@@ -1,0 +1,97 @@
+// Prisma Schema for Advanced Security Scanning Platform
+// -----------------------------------------------------
+// Database: PostgreSQL
+// Features: Relations, Enums, Cascading Deletes, Indexes, Auto Timestamps
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  ADMIN
+  ANALYST
+  USER
+}
+
+enum ScanStatus {
+  PENDING
+  RUNNING
+  COMPLETED
+  FAILED
+}
+
+enum SeverityLevel {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
+model User {
+  user_id     String        @id @default(uuid())
+  full_name   String
+  email       String        @unique
+  role        UserRole      @default(USER)
+  created_at  DateTime      @default(now())
+
+  // Relations
+  scanSessions ScanSession[]
+
+  @@index([email])
+}
+
+model ScanSession {
+  session_id    String                 @id @default(uuid())
+  user_id       String
+  target_url    String
+  status        ScanStatus             @default(PENDING)
+  started_at    DateTime?              @default(now())
+  completed_at  DateTime?
+
+  // Relations
+  user                 User                @relation(fields: [user_id], references: [user_id], onDelete: Cascade)
+  vulnerabilityFindings VulnerabilityFinding[]
+  aiAgentLogs           AIAgentLog[]
+
+  @@index([user_id])
+  @@index([status])
+}
+
+model VulnerabilityFinding {
+  vuln_id        String        @id @default(uuid())
+  session_id     String
+  vuln_type      String
+  severity       SeverityLevel
+  description    String
+  proof          String?
+  recommendation String?
+  timestamp      DateTime      @default(now())
+
+  // Relations
+  scanSession ScanSession @relation(fields: [session_id], references: [session_id], onDelete: Cascade)
+
+  @@index([session_id])
+  @@index([severity])
+}
+
+model AIAgentLog {
+  log_id        String     @id @default(uuid())
+  session_id    String
+  query         String?
+  response      String?
+  file_path     String?
+  format        String?
+  generated_at  DateTime?  @default(now())
+  timestamp     DateTime?  @default(now())
+
+  // Relations
+  scanSession ScanSession @relation(fields: [session_id], references: [session_id], onDelete: Cascade)
+
+  @@index([session_id])
+  @@index([generated_at])
+}
