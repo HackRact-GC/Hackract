@@ -1,13 +1,27 @@
-# Hackract
-Our GC project
-=======
-wellcome to this web App:
-for run code both frontend and backend
-install postgreSQL on your PC 
-backend/
-npm install then 
+#🚀 Hackract
+🔐 Automated & AI-Powered Interactive Penetration Testing Platform
+
+👋 Welcome to this web app!
+Follow the steps below to run both the frontend and backend smoothly on your machine.
+
+🛠️ Prerequisites
+
+Make sure you have the following installed:
+
+🐘 PostgreSQL (required for the database)
+
+🟦 Node.js & npm
+
+⚙️ Backend Setup
+cd backend/
+npm install
 npm run dev
-frontend/
-npm install then 
+
+🎨 Frontend Setup
+cd frontend/
+npm install
 npm run dev
-for now this is good.
+
+✔️ Status
+
+For now, this setup is good to go. More features coming soon! 🚧✨
