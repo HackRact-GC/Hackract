@@ -1,10 +1,11 @@
-#🚀 Hackract
+# 🚀 Hackract
+
 🔐 Automated & AI-Powered Interactive Penetration Testing Platform
 
-👋 Welcome to this web app!
+## 👋 Welcome to this web app!
 Follow the steps below to run both the frontend and backend smoothly on your machine.
 
-🛠️ Prerequisites
+## 🛠️ Prerequisites
 
 Make sure you have the following installed:
 
@@ -22,6 +23,6 @@ cd frontend/
 npm install
 npm run dev
 
-✔️ Status
+## ✔️ Status
 
 For now, this setup is good to go. More features coming soon! 🚧✨
