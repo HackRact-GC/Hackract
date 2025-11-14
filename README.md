@@ -14,14 +14,18 @@ Make sure you have the following installed:
 🟦 Node.js & npm
 
 ⚙️ Backend Setup
-cd backend/
-npm install
+```bash
+cd frontend
+npm install 
 npm run dev
+```
 
 🎨 Frontend Setup
-cd frontend/
-npm install
+```bash
+cd backend
+npm install 
 npm run dev
+```
 
 ## ✔️ Status
 
