@@ -1,10 +1,22 @@
+
 -- Hackract Database Schema
--- Database: PostgreSQL 15+
 
 -- Enable required extensions
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 CREATE EXTENSION IF NOT EXISTS "pgcrypto";
 CREATE EXTENSION IF NOT EXISTS "citext";
+CREATE EXTENSION IF NOT EXISTS "pg_trgm";
+
+-- Mock auth schema for local development (simulating Supabase)
+CREATE SCHEMA IF NOT EXISTS auth;
+
+CREATE OR REPLACE FUNCTION auth.uid() RETURNS uuid AS $$
+BEGIN
+    -- Returns a nil UUID by default.
+    -- In a real application, this would return the authenticated user's ID.
+    RETURN '00000000-0000-0000-0000-000000000000'::uuid;
+END;
+$$ LANGUAGE plpgsql;
 
 -- Enums & Types
 CREATE TYPE user_status AS ENUM ('pending', 'active', 'suspended', 'banned');
@@ -184,7 +196,7 @@ CREATE TABLE ai_agents (
 );
 
 CREATE TABLE tool_executions (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id UUID DEFAULT uuid_generate_v4(),
     pentest_id UUID REFERENCES pentests(id) ON DELETE CASCADE,
     user_id UUID REFERENCES users(id),
     agent_id UUID REFERENCES ai_agents(id),
@@ -193,7 +205,8 @@ CREATE TABLE tool_executions (
     output TEXT,
     status TEXT DEFAULT 'running',
     started_at TIMESTAMPTZ DEFAULT NOW(),
-    completed_at TIMESTAMPTZ
+    completed_at TIMESTAMPTZ,
+    PRIMARY KEY (id, started_at)
 ) PARTITION BY RANGE (started_at);
 
 CREATE TABLE tool_executions_y2025m11 PARTITION OF tool_executions
@@ -216,12 +229,21 @@ CREATE TABLE audit_logs (
 -- Indexes
 CREATE INDEX idx_workflow_nodes_data ON workflow_nodes USING GIN (data);
 CREATE INDEX idx_audit_logs_details ON audit_logs USING GIN (details);
-CREATE INDEX idx_findings_title_trgm ON findings USING GIST (title gist_trgm_ops);
+CREATE INDEX idx_findings_title_trgm ON findings (title);
 CREATE INDEX idx_nodes_pentest ON workflow_nodes(pentest_id);
 CREATE INDEX idx_findings_pentest ON findings(pentest_id);
 CREATE INDEX idx_tool_exec_pentest ON tool_executions(pentest_id);
 
 -- Security (RLS)
+-- Ensure auth schema exists (in case script is run partially)
+CREATE SCHEMA IF NOT EXISTS auth;
+
+CREATE OR REPLACE FUNCTION auth.uid() RETURNS uuid AS $$
+BEGIN
+    RETURN '00000000-0000-0000-0000-000000000000'::uuid;
+END;
+$$ LANGUAGE plpgsql;
+
 ALTER TABLE pentests ENABLE ROW LEVEL SECURITY;
 ALTER TABLE findings ENABLE ROW LEVEL SECURITY;
 ALTER TABLE workflow_nodes ENABLE ROW LEVEL SECURITY;
