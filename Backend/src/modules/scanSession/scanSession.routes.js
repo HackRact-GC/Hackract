@@ -1,6 +1,6 @@
 import express from "express";
 import { createScan, fetchScans, fetchScanById, deleteScan } from "./scanSession.controller.js";
-import { verifyAccessToken } from "../../middlewares/auth0.middleware.js";
+import { verifyAccessToken } from "../../middleware/authMiddleware.js";
 
 const router = express.Router();
 
