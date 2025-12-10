@@ -1,0 +1,41 @@
+# Version control
+.git
+.gitignore
+
+# Python
+__pycache__
+*.pyc
+*.pyo
+*.pyd
+.Python
+env/
+venv/
+.venv/
+pip-log.txt
+pip-delete-this-directory.txt
+
+# Environment variables (security risk if baked into image)
+.env
+.env.local
+.env.*
+
+# Project specific data directories (should be mounted volumes)
+logs/
+memory/
+work_dir/
+instruments/*/output/
+
+# IDEs
+.vscode/
+.idea/
+
+# Docker
+docker-compose.yml
+Dockerfile
+.dockerignore
+
+# Documentation/Misc
+*.md
+*.png
+*.jpg
+LICENSE
