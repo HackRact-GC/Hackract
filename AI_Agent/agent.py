@@ -1,0 +1,516 @@
+"""
+HackrAct AI Agent - Core Agent Implementation
+
+This is the main agent class that handles the reasoning loop, tool execution, and memory integration.
+"""
+
+import asyncio
+import json
+import os
+import sys
+from typing import Dict, Any, List, Optional
+from colorama import Fore, Style
+from config import AgentConfig, load_config
+from python.helpers.log import Logger, LogType
+from python.helpers.llm import ModelManager
+from python.helpers.memory import Memory
+
+# Import tools
+from python.tools.code_execution_tool import CodeExecutionTool  
+from python.tools.memory_save import MemorySaveTool
+from python.tools.memory_load import MemoryLoadTool
+from python.tools.response import ResponseTool
+from python.tools.search import SearchTool
+
+
+class Agent:
+    """Main HackrAct AI Agent"""
+    
+    def __init__(self, config: Optional[AgentConfig] = None):
+        # Load configuration
+        self.config = config if config else load_config()
+        
+        # Set up logger
+        self.logger = Logger(log_dir=self.config.log_dir)
+        self.logger.info(
+            heading=" HackrAct AI Agent Initializing",
+            content=f"Agent: {self.config.name}\nChat Model: {self.config.model.chat_model}"
+        )
+        
+        # Set up LLM
+        self.model_manager = ModelManager(self.config)
+        self.llm = self.model_manager.get_chat_model()
+        
+        # Set up memory
+        if self.config.memory.enabled:
+            self.memory = Memory(
+                memory_dir=self.config.memory.memory_dir,
+                collection_name=self.config.memory.collection_name,
+                embedding_model=self.config.model.embedding_model,
+                api_key=self.config.model.api_key,
+            )
+            self.logger.success(
+                heading="Memory System", 
+                content=f"Initialized with {self.memory.count()} memories"
+            )
+        else:
+            self.memory = None
+            
+        # Initialize tools
+        self.tools = self._initialize_tools()
+        self.logger.success(
+            heading="Tools Loaded",
+            content=f"Available tools: {', '.join(self.tools.keys())}"
+        )
+        
+        # Load system prompt
+        self.system_prompt = self._load_system_prompt()
+        
+        # Message history
+        self.messages: List[Dict[str, str]] = []
+        
+        # Iteration counter
+        self.iteration = 0
+        
+        # Stop flag
+        self.stop_requested = False
+        
+        # Status callback
+        self.status_callback = None
+        
+        # Initialize scratchpad
+        self.scratchpad_path = os.path.join(self.config.work_dir, "scratchpad.md")
+        self._init_scratchpad()
+
+    def set_callback(self, callback):
+        """Set callback for status updates"""
+        self.status_callback = callback
+
+    async def _emit_status(self, type: str, content: str):
+        """Emit status update via callback"""
+        if self.status_callback:
+            try:
+                await self.status_callback(type, content)
+            except Exception as e:
+                self.logger.error(f"Error in status callback: {e}")
+
+    def stop(self):
+        """Request the agent to stop processing"""
+        self.stop_requested = True
+        self.logger.info("Stop requested by user")
+
+    def _init_scratchpad(self):
+        """Initialize the scratchpad file"""
+        try:
+            os.makedirs(self.config.work_dir, exist_ok=True)
+            with open(self.scratchpad_path, 'w', encoding='utf-8') as f:
+                f.write(f"# Agent Scratchpad\nSession Started: {self.config.name}\n")
+        except Exception as e:
+            self.logger.error(f"Failed to init scratchpad: {e}")
+
+    def _log_step_to_scratchpad(self, iteration: int, thoughts: str, tool_name: str, tool_args: Any):
+        """Log the current step to the scratchpad"""
+        try:
+            entry = f"\n\n## Iteration {iteration}\n"
+            entry += f"**Thoughts:** {thoughts}\n"
+            entry += f"**Tool:** `{tool_name}`\n"
+            entry += f"**Args:** `{json.dumps(tool_args)}`\n"
+            
+            with open(self.scratchpad_path, 'a', encoding='utf-8') as f:
+                f.write(entry)
+        except Exception as e:
+            self.logger.error(f"Failed to update scratchpad: {e}")
+
+    async def ask_user_permission(self, question: str) -> bool:
+        """Ask user for permission to execute a dangerous command"""
+        # This is a simple implementation for CLI. 
+        # For API/Web, this would need to be asynchronous via WebSocket or similar.
+        print(f"\n{question}")
+        response = await asyncio.to_thread(input, "Type 'yes' to approve, anything else to deny: ")
+        return response.strip().lower() == 'yes'
+
+    def _initialize_tools(self) -> Dict[str, Any]:
+        """Initialize all agent tools"""
+        tools = {}
+        
+        tools["code_execution_tool"] = CodeExecutionTool(self)
+        tools["memory_save"] = MemorySaveTool(self)
+        tools["memory_load"] = MemoryLoadTool(self)
+        tools["response"] = ResponseTool(self)
+        tools["search"] = SearchTool(self)
+        
+        return tools
+    
+    def _load_system_prompt(self) -> str:
+        """Load and construct system prompt from template files"""
+        prompts_dir = self.config.prompts_dir
+        
+        # Check if we need to use lite prompts (for low-context models like GitHub/GPT-4o-mini)
+        use_lite = self.config.model.max_context_tokens <= 10000
+        
+        # Load individual prompt sections
+        def load_prompt(filename):
+            path = os.path.join(prompts_dir, filename)
+            if os.path.exists(path):
+                with open(path, 'r', encoding='utf-8') as f:
+                    return f.read()
+            return ""
+        
+        # Load all sections
+        role = load_prompt("agent.system.main.role.md")
+        environment = load_prompt("agent.system.main.environment.md")
+        solving = load_prompt("agent.system.main.solving.md")
+        communication = load_prompt("agent.system.main.communication.md")
+        
+        # Load tool prompts
+        tool_code_exe = load_prompt("agent.system.tool.code_exe.md")
+        tool_memory_save = load_prompt("agent.system.tool.memory_save.md")
+        tool_memory_load = load_prompt("agent.system.tool.memory_load.md")
+        tool_response = load_prompt("agent.system.tool.response.md")
+        
+        # Load main template
+        main_template = load_prompt("agent.system.main.md")
+        
+        # CONDENSE PROMPTS FOR LITE MODE
+        if use_lite:
+            self.logger.info("Using LITE system prompt for low-context model")
+            
+            # Condense Role
+            role = "You are HackrAct, an autonomous AI penetration tester. You specialize in Web App Security (OWASP Top 10). You have full access to Kali Linux tools and can install anything via apt-get/pip/npm. Always execute actions, don't just describe them."
+            
+            # Condense Environment
+            environment = "Environment: Kali Linux container. Root access. Network access enabled."
+            
+            # Condense Solving
+            solving = "Methodology: Recon -> Scan -> Exploit -> Report. Be thorough and methodical."
+            
+            # Condense Communication
+            communication = "Be concise. Report technical findings clearly."
+            
+            # Condense Tool Prompts (Massive savings here)
+            tool_code_exe = """## Code Execution Tool
+`code_execution_tool`
+Execute shell commands, Python, or Node.js.
+Params: `language` ("shell"|"python"|"nodejs"), `code` (string), `timeout` (int).
+You can install tools via `apt-get install -y <tool>`.
+Example: `{"language": "shell", "code": "nmap -sV target"}`"""
+
+            tool_memory_save = """## Memory Save
+`memory_save`
+Save important findings.
+Params: `content` (string), `category` (string), `tags` (list)."""
+
+            tool_memory_load = """## Memory Load
+`memory_load`
+Search past findings.
+Params: `query` (string), `max_results` (int)."""
+
+            tool_response = """## Response
+`response`
+Send final answer to user.
+Params: `message` (string)."""
+
+        # Substitute sections into template
+        system_prompt = main_template.format(
+            role=role,
+            environment=environment,
+            solving=solving,
+            communication=communication,
+            tool_code_exe=tool_code_exe,
+            tool_memory_save=tool_memory_save,
+            tool_memory_load=tool_memory_load,
+            tool_response=tool_response,
+        )
+        
+        return system_prompt
+    
+    def _manage_context(self, messages: List[Dict[str, str]]) -> List[Dict[str, str]]:
+        """
+        Manage context window by trimming old messages if necessary.
+        Always keeps the system prompt and the last user message.
+        """
+        # Simple estimation: 1 token ~= 4 chars
+        
+        max_tokens = self.config.model.max_context_tokens
+        current_tokens = 0
+        
+        # Calculate total tokens
+        for msg in messages:
+            current_tokens += len(msg.get("content", "")) / 4
+            
+        if current_tokens <= max_tokens:
+            return messages
+            
+        self.logger.info(f"Context limit exceeded ({int(current_tokens)}/{max_tokens}). Trimming history...")
+        
+        # Keep system prompt (first message)
+        system_prompt = messages[0]
+        
+        # Keep last message (current user input or latest state)
+        last_message = messages[-1]
+        
+        # Available tokens for history
+        available_tokens = max_tokens - (len(system_prompt.get("content", "")) / 4) - (len(last_message.get("content", "")) / 4) - 500 # Buffer
+        
+        if available_tokens < 0:
+            return [system_prompt, last_message]
+            
+        # Select messages from the end backwards until we hit the limit
+        history = []
+        history_tokens = 0
+        
+        # Iterate backwards through middle messages
+        for msg in reversed(messages[1:-1]):
+            msg_tokens = len(msg.get("content", "")) / 4
+            if history_tokens + msg_tokens > available_tokens:
+                break
+            history.insert(0, msg)
+            history_tokens += msg_tokens
+            
+        return [system_prompt, *history, last_message]
+
+    async def process_message(self, user_message: str) -> str:
+        """
+        Process a user message and return response
+        
+        This is the main reasoning loop of the agent
+        """
+        
+        self.logger.info(
+            heading="👤 User Message",
+            content=user_message
+        )
+        
+        # Add user message to history
+        self.messages.append({
+            "role": "user",
+            "content": user_message
+        })
+        
+        # Agent loop
+        final_response = ""
+        self.iteration = 0
+        self.stop_requested = False
+        
+        while self.iteration < self.config.max_iterations:
+            # Check for stop request
+            if self.stop_requested:
+                self.logger.info("Agent execution stopped by user request")
+                return "🛑 Agent execution stopped by user request."
+
+            self.iteration += 1
+            
+            self.logger.info(
+                heading=f"🤖 Agent Iteration {self.iteration}",
+                content="Processing..."
+            )
+            
+            await self._emit_status("thinking", f"Iteration {self.iteration}: Thinking...")
+            
+            # Get agent response
+            messages = [
+                {"role": "system", "content": self.system_prompt},
+                *self.messages
+            ]
+            
+            # Manage context window
+            messages = self._manage_context(messages)
+            
+            try:
+                # Stream agent response
+                print(f"\n{Fore.BLUE}{Style.BRIGHT}[AGENT] Thinking...{Style.RESET_ALL}")
+                agent_response = ""
+                
+                # Get the async generator from the LLM
+                stream_gen = await self.llm.chat(messages, stream=True)
+                
+                async for chunk in stream_gen:
+                    # Check for error in stream
+                    if chunk.startswith("Error:"):
+                        raise Exception(chunk)
+                        
+                    print(f"{Fore.BLUE}{chunk}{Style.RESET_ALL}", end="", flush=True)
+                    agent_response += chunk
+                print() # Newline after stream
+                
+                # Log to history/file but don't print again
+                self.logger.agent(
+                    heading="Agent Thinking",
+                    content=agent_response,
+                    print_console=False
+                )
+                
+                # Parse JSON response
+                response_data = self._parse_agent_response(agent_response)
+                
+                if not response_data:
+                    # Failed to parse - ask agent to retry
+                    self.messages.append({
+                        "role": "assistant",
+                        "content": agent_response
+                    })
+                    self.messages.append({
+                        "role": "user",
+                        "content": "Please respond in valid JSON format with 'thoughts', 'tool_name', and 'tool_args'"
+                    })
+                    continue
+                
+                # Add to message history
+                self.messages.append({
+                    "role": "assistant",
+                    "content": agent_response
+                })
+                
+                # Log to scratchpad
+                self._log_step_to_scratchpad(
+                    self.iteration,
+                    response_data.get("thoughts", "No thoughts provided"),
+                    response_data.get("tool_name"),
+                    response_data.get("tool_args")
+                )
+                
+                # Emit thoughts
+                if "thoughts" in response_data:
+                    await self._emit_status("thought", response_data["thoughts"])
+
+                # Execute tool
+                if self.stop_requested:
+                    self.logger.info("Agent execution stopped by user request before tool execution")
+                    return "🛑 Agent execution stopped by user request."
+
+                tool_name = response_data.get("tool_name")
+                tool_args = response_data.get("tool_args", {})
+                
+                if tool_name != "response":
+                    await self._emit_status("tool", f"Executing tool: {tool_name}")
+
+                tool_result = await self._execute_tool(
+                    tool_name,
+                    tool_args
+                )
+                
+                if tool_name != "response":
+                    # Truncate result for display if too long
+                    result_str = json.dumps(tool_result, indent=2)
+                    if len(result_str) > 500:
+                        result_str = result_str[:500] + "... (truncated)"
+                    await self._emit_status("tool_output", f"Tool Output:\n{result_str}")
+                
+                # Check if this was final response
+                if response_data.get("tool_name") == "response":
+                    final_response = tool_result.get("message", "")
+                    break
+                
+                # Add tool result to messages
+                self.messages.append({
+                    "role": "user",
+                    "content": f"Tool result: {json.dumps(tool_result, indent=2)}"
+                })
+                
+            except Exception as e:
+                self.logger.error(
+                    heading="Error in agent loop",
+                    content=str(e)
+                )
+                # Add error to messages and continue
+                self.messages.append({
+                    "role": "user",
+                    "content": f"Error occurred: {str(e)}. Please try a different approach."
+                })
+        
+        if not final_response:
+            final_response = "Maximum iterations reached without completing the task."
+            
+        return final_response
+    
+    def _parse_agent_response(self, response: str) -> Optional[Dict[str, Any]]:
+        """Parse agent's JSON response"""
+        try:
+            # Try to extract JSON from response
+            # Look for first { and last }
+            start = response.find('{')
+            end = response.rfind('}') + 1
+            
+            if start >= 0 and end > start:
+                json_str = response[start:end]
+                data = json.loads(json_str)
+                return data
+            
+            return None
+            
+        except json.JSONDecodeError as e:
+            self.logger.error(
+                heading="JSON Parse Error",
+                content=f"Could not parse agent response: {str(e)}"
+            )
+            return None
+    
+    async def _execute_tool(self, tool_name: str, tool_args: Dict[str, Any]) -> Dict[str, Any]:
+        """Execute a tool with given arguments"""
+        
+        if not tool_name:
+            return {"success": False, "error": "No tool specified"}
+        
+        if tool_name not in self.tools:
+            return {"success": False, "error": f"Unknown tool: {tool_name}"}
+        
+        try:
+            tool = self.tools[tool_name]
+            result = await tool.execute(**tool_args)
+            return result
+            
+        except Exception as e:
+            self.logger.error(
+                heading=f"Tool Execution Error: {tool_name}",
+                content=str(e)
+            )
+            return {
+                "success": False,
+                "error": f"Tool execution failed: {str(e)}"
+            }
+    
+    async def run_interactive(self):
+        """Run interactive CLI session"""
+        
+        print("\n" + "=" * 70)
+        print("  HackrAct AI Agent - Interactive Mode")
+        print("=" * 70)
+        print("Type your requests, or 'exit' to quit\n")
+        
+        while True:
+            try:
+                # Get user input
+                user_input = input("\n👤 You: ").strip()
+                
+                if user_input.lower() in ['exit', 'quit', 'q']:
+                    print("\n Goodbye!\n")
+                    break
+                
+                if not user_input:
+                    continue
+                
+                # Process message
+                response = await self.process_message(user_input)
+                
+                # Display response
+                print(f"\n HackrAct: {response}\n")
+                
+            except KeyboardInterrupt:
+                print("\n\n Interrupted. Goodbye!\n")
+                break
+            except Exception as e:
+                print(f"\n Error: {str(e)}\n")
+
+
+async def main():
+    """Main entry point"""
+    
+    # Create agent
+    agent = Agent()
+    
+    # Run interactive mode
+    await agent.run_interactive()
+
+
+if __name__ == "__main__":
+    asyncio.run(main())
