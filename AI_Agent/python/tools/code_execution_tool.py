@@ -1,0 +1,348 @@
+"""Code execution tool for running terminal commands and scripts"""
+
+import asyncio
+import subprocess
+import os
+import sys
+from colorama import Fore, Style
+from typing import Dict, Any, Optional
+from python.helpers.tool import Tool
+
+
+class CodeExecutionTool(Tool):
+    """Execute code in terminal - essential for running hacking tools"""
+    
+    def __init__(self, agent):
+        super().__init__(
+            agent=agent,
+            name="code_execution_tool",
+            description="Execute Python, Shell, or Node.js code in the terminal. Use for running security tools like nmap, nikto, sqlmap, etc."
+        )
+        self.work_dir = agent.config.work_dir
+        os.makedirs(self.work_dir, exist_ok=True)
+        
+    async def execute(
+        self,
+        language: str = "shell",
+        code: str = "",
+        timeout: int = 300,
+    ) -> Dict[str, Any]:
+        """
+        Execute code in the specified language
+        
+        Args:
+            language: 'python', 'shell', 'bash', 'nodejs'
+            code: Code to execute
+            timeout: Maximum execution time in seconds
+        """
+        
+        self.log_tool_use({"language": language, "code": code[:200]})
+        
+        if not code.strip():
+            return {"success": False, "error": "No code provided"}
+            
+        # 1. Check for FORBIDDEN patterns (Strict Block)
+        if hasattr(self.agent.config.code_exec, 'forbidden_patterns'):
+            for pattern in self.agent.config.code_exec.forbidden_patterns:
+                if pattern in code:
+                    return {
+                        "success": False,
+                        "error": f"SECURITY VIOLATION: Command contains forbidden pattern '{pattern}'. Execution blocked."
+                    }
+
+        # 2. Check for dangerous commands if approval is required
+        if self.agent.config.code_exec.require_approval:
+            is_dangerous = any(keyword in code for keyword in self.agent.config.code_exec.dangerous_keywords)
+            if is_dangerous:
+                # In a real interactive CLI, we would ask the user here.
+                # For the API/Agent loop, we might need to return a specific status 
+                # or pause execution. For now, we'll log a warning and proceed 
+                # if it's just a warning, or block if strict.
+                # Let's implement a simple blocking check for the CLI context:
+                if hasattr(self.agent, 'ask_user_permission'):
+                    approved = await self.agent.ask_user_permission(
+                        f"⚠️  DANGEROUS COMMAND DETECTED:\n{code}\n\nAllow execution?"
+                    )
+                    if not approved:
+                        return {
+                            "success": False, 
+                            "error": "Command execution denied by user."
+                        }
+        
+        try:
+            # Log code execution
+            if self.logger:
+                self.logger.code(
+                    heading=f"Executing {language} code",
+                    content=code
+                )
+            
+            # Execute based on language
+            if language.lower() in ["shell", "bash", "sh"]:
+                result = await self._execute_shell(code, timeout)
+            elif language.lower() in ["python", "python3", "py"]:
+                result = await self._execute_python(code, timeout)
+            elif language.lower() in ["javascript", "nodejs", "node", "js"]:
+                result = await self._execute_nodejs(code, timeout)
+            else:
+                return {
+                    "success": False,
+                    "error": f"Unsupported language: {language}"
+                }
+            
+            self.log_tool_result(result)
+            return result
+            
+        except Exception as e:
+            error_result = {
+                "success": False,
+                "error": str(e),
+                "output": "",
+                "exit_code": -1,
+            }
+            self.log_tool_result(error_result)
+            return error_result
+    
+    async def _execute_shell(self, code: str, timeout: int) -> Dict[str, Any]:
+        """Execute shell commands"""
+        try:
+            # Run in PowerShell on Windows, bash on Linux
+            if os.name == 'nt':  # Windows
+                process = await asyncio.create_subprocess_shell(
+                    code,
+                    stdout=asyncio.subprocess.PIPE,
+                    stderr=asyncio.subprocess.PIPE,
+                    shell=True,
+                    cwd=self.work_dir,
+                )
+            else:  # Linux/Mac
+                # Apply resource limits (ulimit) for sandboxing
+                # -v: virtual memory (KB) - e.g., 4GB
+                # -u: max user processes - e.g., 100
+                # -f: max file size (blocks) - e.g., 1GB
+                sandboxed_code = f"ulimit -v 4194304; ulimit -u 100; {code}"
+                
+                process = await asyncio.create_subprocess_shell(
+                    sandboxed_code,
+                    stdout=asyncio.subprocess.PIPE,
+                    stderr=asyncio.subprocess.PIPE,
+                    shell=True,
+                    executable='/bin/bash',
+                    cwd=self.work_dir,
+                )
+            
+            # Stream output
+            output_str = ""
+            error_str = ""
+            
+            async def read_stream(stream, is_stderr=False):
+                nonlocal output_str, error_str
+                while True:
+                    line = await stream.readline()
+                    if not line:
+                        break
+                    decoded_line = line.decode('utf-8', errors='ignore')
+                    if is_stderr:
+                        error_str += decoded_line
+                        print(f"{Fore.RED}{decoded_line}{Style.RESET_ALL}", end="", flush=True)
+                    else:
+                        output_str += decoded_line
+                        print(f"{Fore.LIGHTBLACK_EX}{decoded_line}{Style.RESET_ALL}", end="", flush=True)
+
+            # Wait for completion with timeout
+            try:
+                await asyncio.wait_for(
+                    asyncio.gather(
+                        read_stream(process.stdout),
+                        read_stream(process.stderr, is_stderr=True),
+                        process.wait()
+                    ),
+                    timeout=timeout
+                )
+            except asyncio.TimeoutError:
+                process.kill()
+                raise asyncio.TimeoutError("Command timed out")
+            
+            # --- Structured Output Parsing (Nmap) ---
+            # If nmap was run with XML output (-oX), try to parse it for better LLM consumption
+            if "nmap" in code and "-oX" in code:
+                try:
+                    import xml.etree.ElementTree as ET
+                    import re
+                    
+                    # Find the XML filename in the command
+                    match = re.search(r'-oX\s+([^\s]+)', code)
+                    if match:
+                        xml_file = match.group(1)
+                        xml_path = os.path.join(self.work_dir, xml_file)
+                        
+                        if os.path.exists(xml_path):
+                            tree = ET.parse(xml_path)
+                            root = tree.getroot()
+                            
+                            summary = []
+                            for host in root.findall('host'):
+                                address = host.find('address').get('addr')
+                                ports = []
+                                for port in host.findall('.//port'):
+                                    portid = port.get('portid')
+                                    state = port.find('state').get('state')
+                                    service = port.find('service')
+                                    service_name = service.get('name') if service is not None else "unknown"
+                                    product = service.get('product') if service is not None else ""
+                                    version = service.get('version') if service is not None else ""
+                                    
+                                    if state == 'open':
+                                        ports.append(f"{portid}/tcp ({service_name}) {product} {version}")
+                                
+                                if ports:
+                                    summary.append(f"Host: {address}\nOpen Ports:\n  - " + "\n  - ".join(ports))
+                            
+                            if summary:
+                                parsed_output = "\n\n[Parsed Nmap Summary]:\n" + "\n".join(summary)
+                                output_str += parsed_output
+                except Exception as parse_err:
+                    # Don't fail the execution if parsing fails, just log it
+                    error_str += f"\n[Warning: Failed to parse Nmap XML: {str(parse_err)}]"
+
+            # --- Structured Output Parsing (SQLMap) ---
+            # If sqlmap was run, try to find the output directory and summarize findings
+            if "sqlmap" in code:
+                try:
+                    # SQLMap usually stores results in ~/.sqlmap/output/ or custom dir
+                    # We look for CSV logs if available or just check for success indicators in stdout
+                    if "vulnerable" in output_str.lower() or "injected" in output_str.lower():
+                        summary = "\n\n[Parsed SQLMap Summary]:\n⚠️  POSSIBLE VULNERABILITY DETECTED\n"
+                        for line in output_str.splitlines():
+                            if "Parameter:" in line or "Type:" in line or "Title:" in line:
+                                summary += line.strip() + "\n"
+                        output_str += summary
+                except Exception:
+                    pass
+
+            # --- Structured Output Parsing (FFuf) ---
+            # If ffuf was run with -o (JSON), parse it
+            if "ffuf" in code and "-o" in code:
+                try:
+                    import json
+                    import re
+                    match = re.search(r'-o\s+([^\s]+)', code)
+                    if match:
+                        json_file = match.group(1)
+                        json_path = os.path.join(self.work_dir, json_file)
+                        if os.path.exists(json_path):
+                            with open(json_path, 'r') as f:
+                                data = json.load(f)
+                            
+                            summary = ["\n\n[Parsed FFuf Summary]:"]
+                            if "results" in data:
+                                for res in data["results"]:
+                                    # Only show interesting results (e.g. 200 OK or redirects)
+                                    if res.get("status") in [200, 301, 302, 401, 403]:
+                                        url = res.get("url")
+                                        status = res.get("status")
+                                        length = res.get("length")
+                                        summary.append(f"Status: {status} | Size: {length} | URL: {url}")
+                            
+                            if len(summary) > 1:
+                                output_str += "\n".join(summary)
+                except Exception:
+                    pass
+
+            return {
+                "success": process.returncode == 0,
+                "output": output_str,
+                "error": error_str,
+                "exit_code": process.returncode,
+            }
+            
+        except asyncio.TimeoutError:
+            process.kill()
+            return {
+                "success": False,
+                "output": "",
+                "error": f"Execution timed out after {timeout} seconds",
+                "exit_code": -1,
+            }
+    
+    async def _execute_python(self, code: str, timeout: int) -> Dict[str, Any]:
+        """Execute Python code"""
+        # Save code to temp file
+        temp_file = os.path.join(self.work_dir, "_temp_exec.py")
+        with open(temp_file, 'w') as f:
+            f.write(code)
+        
+        try:
+            process = await asyncio.create_subprocess_exec(
+                'python3' if os.name != 'nt' else 'python',
+                temp_file,
+                stdout=asyncio.subprocess.PIPE,
+                stderr=asyncio.subprocess.PIPE,
+                cwd=self.work_dir,
+            )
+            
+            stdout, stderr = await asyncio.wait_for(
+                process.communicate(),
+                timeout=timeout
+            )
+            
+            return {
+                "success": process.returncode == 0,
+                "output": stdout.decode('utf-8', errors='ignore'),
+                "error": stderr.decode('utf-8', errors='ignore'),
+                "exit_code": process.returncode,
+            }
+            
+        except asyncio.TimeoutError:
+            process.kill()
+            return {
+                "success": False,
+                "output": "",
+                "error": f"Execution timed out after {timeout} seconds",
+                "exit_code": -1,
+            }
+        finally:
+            # Clean up temp file
+            if os.path.exists(temp_file):
+                os.remove(temp_file)
+    
+    async def _execute_nodejs(self, code: str, timeout: int) -> Dict[str, Any]:
+        """Execute Node.js code"""
+        # Save code to temp file
+        temp_file = os.path.join(self.work_dir, "_temp_exec.js")
+        with open(temp_file, 'w') as f:
+            f.write(code)
+        
+        try:
+            process = await asyncio.create_subprocess_exec(
+                'node',
+                temp_file,
+                stdout=asyncio.subprocess.PIPE,
+                stderr=asyncio.subprocess.PIPE,
+                cwd=self.work_dir,
+            )
+            
+            stdout, stderr = await asyncio.wait_for(
+                process.communicate(),
+                timeout=timeout
+            )
+            
+            return {
+                "success": process.returncode == 0,
+                "output": stdout.decode('utf-8', errors='ignore'),
+                "error": stderr.decode('utf-8', errors='ignore'),
+                "exit_code": process.returncode,
+            }
+            
+        except asyncio.TimeoutError:
+            process.kill()
+            return {
+                "success": False,
+                "output": "",
+                "error": f"Execution timed out after {timeout} seconds",
+                "exit_code": -1,
+            }
+        finally:
+            # Clean up temp file
+            if os.path.exists(temp_file):
+                os.remove(temp_file)
