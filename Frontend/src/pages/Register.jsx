@@ -28,27 +28,33 @@ const SocialButton = ({ icon: Icon, label }) => (
     </button>
 );
 
-const Login = () => {
+const Register = () => {
     return (
         <div className="flex flex-col gap-8 w-full">
             <div className="space-y-2 text-center md:text-left">
-                <h2 className="text-3xl font-bold font-mono tracking-tighter">Welcome back</h2>
+                <h2 className="text-3xl font-bold font-mono tracking-tighter">Create Account</h2>
                 <p className="text-gray-500 text-xs font-mono tracking-wide">
-                    Enter your user_id and password to access your account
+                    Enter a secured email and password to create your account
                 </p>
             </div>
 
-            <form className="flex flex-col gap-6" onSubmit={(e) => e.preventDefault()}>
+            <form className="flex flex-col gap-5" onSubmit={(e) => e.preventDefault()}>
                 <InputField
                     label="Email"
                     type="email"
-                    id="email"
+                    id="reg-email"
                     placeholder="username@domain.com"
                 />
                 <InputField
                     label="Password"
                     type="password"
-                    id="password"
+                    id="reg-password"
+                    placeholder="................"
+                />
+                <InputField
+                    label="Confirm Password"
+                    type="password"
+                    id="conf-password"
                     placeholder="................"
                 />
 
@@ -56,7 +62,7 @@ const Login = () => {
                     type="submit"
                     className="w-full bg-black text-[#00ff88] font-mono font-bold py-3 uppercase tracking-widest hover:bg-gray-900 transition-colors mt-2"
                 >
-                    Login
+                    Register
                 </button>
             </form>
 
@@ -66,13 +72,13 @@ const Login = () => {
             </div>
 
             <div className="text-center text-xs font-mono text-gray-500 mt-4">
-                Don't have an access?{" "}
-                <Link to="/register" className="underline hover:text-black transition-colors font-bold uppercase">
-                    New_Session
+                Already have an account?{" "}
+                <Link to="/login" className="underline hover:text-black transition-colors font-bold uppercase">
+                    LOGIN
                 </Link>
             </div>
         </div>
     );
 };
 
-export default Login;
+export default Register;
