@@ -5,6 +5,11 @@ import helmet from 'helmet';
 import compression from 'compression';
 import morgan from 'morgan';
 import dotenv from 'dotenv';
+import swaggerUi from "swagger-ui-express";
+import swaggerSpec from "./src/config/Swagger.js";
+
+// Import main router
+import apiRoutes from './src/routes.js';
 
 dotenv.config();
 
@@ -17,7 +22,10 @@ app.use(compression());
 app.use(express.json());
 app.use(morgan('dev'));
 
-// Example route
+// API Routes
+app.use('/api/v1', apiRoutes);
+
+// Example route (root)
 app.get("/", (req, res) => {
   res.send(`
     <!DOCTYPE html>
@@ -88,6 +96,53 @@ app.get("/", (req, res) => {
     </body>
     </html>
   `);
+});
+
+// Health check endpoint
+app.get('/health', (req, res) => {
+  res.status(200).json({
+    status: 'healthy',
+    timestamp: new Date().toISOString(),
+    uptime: process.uptime()
+  });
+});
+
+// Swagger Docs
+app.use(
+  "/api-docs",
+  swaggerUi.serve,
+  swaggerUi.setup(swaggerSpec, {
+    explorer: true,
+    customSiteTitle: "HackRact API Docs"
+  })
+);
+
+// 404 handler for undefined routes
+app.use((req, res, next) => {
+  res.status(404).json({
+    error: 'Route not found',
+    path: req.path,
+    method: req.method,
+    availableRoutes: {
+      root: 'GET /',
+      health: 'GET /health',
+      apiDocs: 'GET /api-docs',
+      apiV1: '/api/v1'
+    }
+  });
+});
+
+// Error handling middleware
+app.use((err, req, res, next) => {
+  console.error('Error:', err);
+
+  const statusCode = err.statusCode || 500;
+  const message = err.message || 'Internal Server Error';
+
+  res.status(statusCode).json({
+    error: message,
+    ...(process.env.NODE_ENV === 'development' && { stack: err.stack })
+  });
 });
 
 export default app;
