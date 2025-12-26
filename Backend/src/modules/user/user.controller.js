@@ -1,26 +1,51 @@
-import chalk from "chalk";
-import axios from "axios";
-import { PrismaClient } from "@prisma/client";
-import { loginSchema } from "./user.schema.js";
-import { findOrCreateUser, getAllUsers, getUserById } from "./user.service.js";
+import * as service from "./user.service.js";
+import {
+  registerSchema,
+  loginSchema,
+  updateProfileSchema,
+  changePasswordSchema
+} from "./user.schema.js";
 
-const prisma = new PrismaClient();
-
-export async function loginUser(req, res) {
+export const register = async (req, res, next) => {
   try {
-    const { error, value } = loginSchema.validate(req.body, { abortEarly: false });
-    if (error)
-      return res.status(400).json({ success: false, message: "Validation failed", details: error.details.map(d => d.message) });
+    res.status(201).json(await service.register(registerSchema.parse(req.body)));
+  } catch (e) { next(e); }
+};
 
-    const { user } = value;
-    const accessToken = req.headers.authorization?.split(" ")[1];
-    if (!accessToken)
-      return res.status(400).json({ success: false, message: "Missing access token" });
+export const login = async (req, res, next) => {
+  try {
+    res.json(await service.login(loginSchema.parse(req.body)));
+  } catch (e) { next(e); }
+};
 
-    const result = await findOrCreateUser(user, accessToken);
-    res.status(200).json({ success: true, message: "User logged in successfully", user: result });
-  } catch (err) {
-    console.error(chalk.red("🔥 Login Error:"), err);
-    res.status(500).json({ success: false, message: "Login failed", error: err.message });
-  }
-}
+export const me = (req, res) => res.json(req.user);
+
+export const updateProfile = async (req, res, next) => {
+  try {
+    res.json(await service.updateProfile(
+      req.user.id,
+      updateProfileSchema.parse(req.body)
+    ));
+  } catch (e) { next(e); }
+};
+
+export const changePassword = async (req, res, next) => {
+  try {
+    res.json(await service.changePassword(
+      req.user.id,
+      changePasswordSchema.parse(req.body)
+    ));
+  } catch (e) { next(e); }
+};
+
+export const deactivate = async (req, res) => {
+  res.json(await service.deactivateAccount(req.user.id));
+};
+
+export const remove = async (req, res) => {
+  res.status(204).json(await service.deleteAccount(req.user.id));
+};
+
+export const listUsers = async (req, res) => {
+  res.json(await service.getAllUsers());
+};

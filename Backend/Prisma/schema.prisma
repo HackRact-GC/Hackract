@@ -1,8 +1,6 @@
-// Prisma Schema for Advanced Security Scanning Platform
-// -----------------------------------------------------
-// Database: PostgreSQL
-// Features: Relations, Enums, Cascading Deletes, Indexes, Auto Timestamps
-
+// =====================================
+// Prisma Config
+// =====================================
 generator client {
   provider = "prisma-client-js"
 }
@@ -12,86 +10,354 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-enum UserRole {
-  ADMIN
-  ANALYST
-  USER
-}
-
-enum ScanStatus {
+// =====================================
+// ENUMS
+// =====================================
+enum UserStatus {
   PENDING
-  RUNNING
-  COMPLETED
-  FAILED
+  ACTIVE
+  SUSPENDED
+  BANNED
 }
 
-enum SeverityLevel {
+enum PentestStatus {
+  PLANNING
+  IN_PROGRESS
+  REPORTING
+  CLOSED
+}
+
+enum FindingSeverity {
+  INFO
   LOW
   MEDIUM
   HIGH
   CRITICAL
 }
 
-model User {
-  user_id     String        @id @default(uuid())
-  full_name   String
-  email       String        @unique
-  role        UserRole      @default(USER)
-  created_at  DateTime      @default(now())
-
-  // Relations
-  scanSessions ScanSession[]
-
-  @@index([email])
+enum FindingStatus {
+  OPEN
+  VERIFIED
+  FIXED
+  ACCEPTED_RISK
 }
 
-model ScanSession {
-  session_id    String                 @id @default(uuid())
-  user_id       String
-  target_url    String
-  status        ScanStatus             @default(PENDING)
-  started_at    DateTime?              @default(now())
-  completed_at  DateTime?
+enum RoleType {
+  SUPER_ADMIN
+  ORG_ADMIN
+  PENTESTER
+  ANALYST
+  VIEWER
+}
+
+// =====================================
+// 1️⃣ User
+// =====================================
+model User {
+  id           String     @id @default(uuid())
+  email        String     @unique
+  passwordHash String
+  fullName     String
+  handle       String     @unique
+  status       UserStatus @default(PENDING)
+  isVerified   Boolean    @default(false)
 
   // Relations
-  user                 User                @relation(fields: [user_id], references: [user_id], onDelete: Cascade)
-  vulnerabilityFindings VulnerabilityFinding[]
-  aiAgentLogs           AIAgentLog[]
+  organizations        OrganizationMember[]
+  roles                Role[] // Direct relation to Role
+  pentestsLed          Pentest[]             @relation("LeadPentester")
+  findingsReported     Finding[]             @relation("FindingReporter") // Changed from 'findings'
+  aiAgents             AiAgent[]             @relation("AiAgentUser")
+  pentestCollaborators PentestCollaborator[]
+  userSignatures       UserSignature[]
+  auditLogs            AuditLog[]
 
-  @@index([user_id])
+  // Timestamps
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([email])
+  @@index([handle])
   @@index([status])
 }
 
-model VulnerabilityFinding {
-  vuln_id        String        @id @default(uuid())
-  session_id     String
-  vuln_type      String
-  severity       SeverityLevel
-  description    String
-  proof          String?
-  recommendation String?
-  timestamp      DateTime      @default(now())
+// =====================================
+// 2️⃣ Role
+// =====================================
+model Role {
+  id          String   @id @default(uuid())
+  name        String   @unique
+  type        RoleType @unique
+  description String?
+  permissions String[] // Array of permission strings
 
   // Relations
-  scanSession ScanSession @relation(fields: [session_id], references: [session_id], onDelete: Cascade)
+  users User[] // Many-to-many with User
 
-  @@index([session_id])
-  @@index([severity])
+  // Timestamps
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([type])
 }
 
-model AIAgentLog {
-  log_id        String     @id @default(uuid())
-  session_id    String
-  query         String?
-  response      String?
-  file_path     String?
-  format        String?
-  generated_at  DateTime?  @default(now())
-  timestamp     DateTime?  @default(now())
+// =====================================
+// 3️⃣ Organization
+// =====================================
+model Organization {
+  id   String @id @default(uuid())
+  name String
+  slug String @unique
 
   // Relations
-  scanSession ScanSession @relation(fields: [session_id], references: [session_id], onDelete: Cascade)
+  members   OrganizationMember[]
+  pentests  Pentest[]
+  auditLogs AuditLog[]
 
-  @@index([session_id])
-  @@index([generated_at])
+  // Timestamps
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([name, slug])
+}
+
+// =====================================
+// 4️⃣ OrganizationMember
+// =====================================
+model OrganizationMember {
+  id   String @id @default(uuid())
+  role String @default("member")
+
+  // Relations
+  organization   Organization @relation(fields: [organizationId], references: [id])
+  organizationId String
+
+  user   User   @relation(fields: [userId], references: [id])
+  userId String
+
+  // Permissions
+  canCreatePentests Boolean @default(false)
+  canInviteMembers  Boolean @default(false)
+
+  // Timestamps
+  joinedAt DateTime @default(now())
+
+  @@unique([organizationId, userId])
+  @@index([organizationId])
+  @@index([userId])
+}
+
+// =====================================
+// 5️⃣ Pentest
+// =====================================
+model Pentest {
+  id          String        @id @default(uuid())
+  name        String
+  description String?
+  status      PentestStatus @default(PLANNING)
+
+  // Relations
+  organization   Organization @relation(fields: [organizationId], references: [id])
+  organizationId String
+
+  leadPentester   User?   @relation("LeadPentester", fields: [leadPentesterId], references: [id])
+  leadPentesterId String?
+
+  collaborators PentestCollaborator[]
+  findings      Finding[]
+  aiAgents      AiAgent[]             @relation("PentestAiAgent")
+  auditLogs     AuditLog[] // Added opposite relation
+
+  // Timestamps
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([organizationId])
+  @@index([leadPentesterId])
+  @@index([status])
+}
+
+// =====================================
+// 6️⃣ PentestCollaborator
+// =====================================
+model PentestCollaborator {
+  id String @id @default(uuid())
+
+  // Relations
+  pentest   Pentest @relation(fields: [pentestId], references: [id])
+  pentestId String
+
+  user   User   @relation(fields: [userId], references: [id])
+  userId String
+
+  role String @default("collaborator")
+
+  // Permissions
+  canEditFindings   Boolean @default(false)
+  canManageSessions Boolean @default(false)
+
+  // Timestamps
+  addedAt DateTime @default(now())
+
+  @@unique([pentestId, userId])
+  @@index([pentestId])
+  @@index([userId])
+}
+
+// =====================================
+// 7️⃣ Finding
+// =====================================
+model Finding {
+  id          String          @id @default(uuid())
+  title       String
+  description String?
+  severity    FindingSeverity @default(LOW)
+  status      FindingStatus   @default(OPEN)
+  remediation String?
+  proof       String?
+
+  // Relations
+  pentest   Pentest @relation(fields: [pentestId], references: [id])
+  pentestId String
+
+  reporter   User?   @relation("FindingReporter", fields: [reporterId], references: [id])
+  reporterId String?
+
+  // Timestamps
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([pentestId])
+  @@index([severity])
+  @@index([status])
+}
+
+// =====================================
+// 8️⃣ LegalAgreement
+// =====================================
+model LegalAgreement {
+  id       String  @id @default(uuid())
+  title    String
+  content  String
+  version  String
+  isActive Boolean @default(true)
+  type     String  @default("terms_of_service")
+
+  // Relations
+  signatures UserSignature[]
+
+  // Timestamps
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([title, version])
+}
+
+// =====================================
+// 9️⃣ UserSignature
+// =====================================
+model UserSignature {
+  id String @id @default(uuid())
+
+  // Relations
+  user   User   @relation(fields: [userId], references: [id])
+  userId String
+
+  agreement   LegalAgreement @relation(fields: [agreementId], references: [id])
+  agreementId String
+
+  // Metadata
+  ipAddress String?
+  userAgent String?
+  signedAt  DateTime @default(now())
+
+  @@unique([userId, agreementId])
+  @@index([userId])
+  @@index([agreementId])
+}
+
+// =====================================
+// 🔟 AiAssistant
+// =====================================
+model AiAssistant {
+  id           String   @id @default(uuid())
+  name         String
+  model        String
+  systemPrompt String
+  capabilities String[]
+
+  // Relations
+  aiAgents AiAgent[]
+
+  // Configuration
+  temperature Float?  @default(0.7)
+  maxTokens   Int?    @default(2000)
+  isActive    Boolean @default(true)
+
+  // Timestamps
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([name])
+  @@index([model])
+}
+
+// =====================================
+// 1️⃣1️⃣ AiAgent
+// =====================================
+model AiAgent {
+  id String @id @default(uuid())
+
+  // Relations
+  assistant   AiAssistant @relation(fields: [assistantId], references: [id])
+  assistantId String
+
+  user   User   @relation("AiAgentUser", fields: [userId], references: [id])
+  userId String
+
+  pentest   Pentest? @relation("PentestAiAgent", fields: [pentestId], references: [id])
+  pentestId String?
+
+  // Agent data
+  name       String?
+  messages   Json?
+  tokensUsed Int?    @default(0)
+  isActive   Boolean @default(true)
+
+  // Timestamps
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId])
+  @@index([pentestId])
+  @@index([assistantId])
+}
+
+// =====================================
+// 1️⃣2️⃣ AuditLog
+// =====================================
+model AuditLog {
+  id        String  @id @default(uuid())
+  action    String
+  details   Json?
+  ipAddress String?
+  userAgent String?
+
+  // Relations
+  organization   Organization? @relation(fields: [organizationId], references: [id])
+  organizationId String?
+
+  user   User?   @relation(fields: [userId], references: [id])
+  userId String?
+
+  pentest   Pentest? @relation(fields: [pentestId], references: [id])
+  pentestId String?
+
+  // Timestamps
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@index([organizationId])
+  @@index([pentestId])
+  @@index([createdAt])
 }
