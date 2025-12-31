@@ -8,81 +8,10 @@ const router = express.Router();
  * @swagger
  * tags:
  *   name: Users
- *   description: User authentication and management APIs
+ *   description: User profile management APIs
  */
 
-/**
- * @swagger
- * /api/v1/users/register:
- *   post:
- *     summary: Register a new user
- *     tags: [Users]
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             required:
- *               - email
- *               - password
- *               - firstName
- *               - lastName
- *             properties:
- *               email:
- *                 type: string
- *                 format: email
- *                 example: user@example.com
- *               password:
- *                 type: string
- *                 format: password
- *                 example: SecurePass123!
- *               firstName:
- *                 type: string
- *                 example: John
- *               lastName:
- *                 type: string
- *                 example: Doe
- *     responses:
- *       201:
- *         description: User registered successfully
- *       400:
- *         description: Validation error
- */
-router.post('/register', controller.register);
-
-/**
- * @swagger
- * /api/v1/users/login:
- *   post:
- *     summary: User login
- *     tags: [Users]
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             required:
- *               - email
- *               - password
- *             properties:
- *               email:
- *                 type: string
- *                 format: email
- *                 example: user@example.com
- *               password:
- *                 type: string
- *                 format: password
- *                 example: SecurePass123!
- *     responses:
- *       200:
- *         description: Login successful
- *       401:
- *         description: Invalid credentials
- */
-router.post('/login', controller.login);
-
+// All routes require authentication
 router.use(protect);
 
 /**
@@ -91,9 +20,11 @@ router.use(protect);
  *   get:
  *     summary: Get current user profile
  *     tags: [Users]
+ *     security:
+ *       - bearerAuth: []
  *     responses:
  *       200:
- *         description: User profile
+ *         description: User profile retrieved successfully
  *       401:
  *         description: Unauthorized
  */
@@ -101,30 +32,34 @@ router.get('/me', controller.me);
 
 /**
  * @swagger
- * /api/v1/users/update-profile:
+ * /api/v1/users/profile:
  *   patch:
  *     summary: Update user profile
  *     tags: [Users]
+ *     security:
+ *       - bearerAuth: []
  *     requestBody:
  *       content:
  *         application/json:
  *           schema:
  *             type: object
  *             properties:
- *               firstName:
+ *               fullName:
  *                 type: string
- *               lastName:
+ *                 example: John Doe
+ *               handle:
  *                 type: string
- *               email:
+ *                 example: johndoe
+ *               avatar:
  *                 type: string
- *                 format: email
+ *                 example: https://example.com/avatar.jpg
  *     responses:
  *       200:
  *         description: Profile updated successfully
  *       401:
  *         description: Unauthorized
  */
-router.patch('/update-profile', controller.updateProfile);
+router.patch('/profile', controller.updateProfile);
 
 /**
  * @swagger
@@ -132,6 +67,8 @@ router.patch('/update-profile', controller.updateProfile);
  *   patch:
  *     summary: Change user password
  *     tags: [Users]
+ *     security:
+ *       - bearerAuth: []
  *     requestBody:
  *       required: true
  *       content:
@@ -139,10 +76,10 @@ router.patch('/update-profile', controller.updateProfile);
  *           schema:
  *             type: object
  *             required:
- *               - currentPassword
+ *               - oldPassword
  *               - newPassword
  *             properties:
- *               currentPassword:
+ *               oldPassword:
  *                 type: string
  *                 format: password
  *               newPassword:
@@ -151,8 +88,10 @@ router.patch('/update-profile', controller.updateProfile);
  *     responses:
  *       200:
  *         description: Password changed successfully
+ *       400:
+ *         description: Invalid old password
  *       401:
- *         description: Unauthorized or invalid current password
+ *         description: Unauthorized
  */
 router.patch('/change-password', controller.changePassword);
 
@@ -162,6 +101,8 @@ router.patch('/change-password', controller.changePassword);
  *   post:
  *     summary: Deactivate user account
  *     tags: [Users]
+ *     security:
+ *       - bearerAuth: []
  *     responses:
  *       200:
  *         description: Account deactivated successfully
@@ -176,6 +117,8 @@ router.post('/deactivate', controller.deactivate);
  *   delete:
  *     summary: Delete user account permanently
  *     tags: [Users]
+ *     security:
+ *       - bearerAuth: []
  *     responses:
  *       204:
  *         description: Account deleted successfully
@@ -190,6 +133,28 @@ router.delete('/delete-account', controller.remove);
  *   get:
  *     summary: Get all users (Admin only)
  *     tags: [Users]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *           default: 1
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           default: 20
+ *       - in: query
+ *         name: search
+ *         schema:
+ *           type: string
+ *       - in: query
+ *         name: status
+ *         schema:
+ *           type: string
+ *           enum: [PENDING, ACTIVE, SUSPENDED, BANNED]
  *     responses:
  *       200:
  *         description: List of all users
@@ -199,5 +164,65 @@ router.delete('/delete-account', controller.remove);
  *         description: Forbidden - Admin only
  */
 router.get('/', restrictTo('SUPER_ADMIN', 'ORG_ADMIN'), controller.listUsers);
+
+/**
+ * @swagger
+ * /api/v1/users/{id}:
+ *   get:
+ *     summary: Get user by ID (Admin only)
+ *     tags: [Users]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: User retrieved successfully
+ *       404:
+ *         description: User not found
+ *       403:
+ *         description: Forbidden - Admin only
+ */
+router.get('/:id', restrictTo('SUPER_ADMIN', 'ORG_ADMIN'), controller.getUserById);
+
+/**
+ * @swagger
+ * /api/v1/users/{id}/status:
+ *   patch:
+ *     summary: Update user account status (Admin only)
+ *     tags: [Users]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - status
+ *             properties:
+ *               status:
+ *                 type: string
+ *                 enum: [PENDING, ACTIVE, SUSPENDED, BANNED]
+ *     responses:
+ *       200:
+ *         description: Account status updated successfully
+ *       400:
+ *         description: Invalid status
+ *       403:
+ *         description: Forbidden - Admin only
+ */
+router.patch('/:id/status', restrictTo('SUPER_ADMIN', 'ORG_ADMIN'), controller.updateStatus);
 
 export default router;
