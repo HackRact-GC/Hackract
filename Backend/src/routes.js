@@ -1,4 +1,5 @@
 import express from "express";
+import AuthRouter from "./modules/auth/auth.routes.js";
 import UserRouter from "./modules/user/user.routes.js";
 import RoleRouter from "./modules/Roles/roles.routes.js";
 import OrganizationRouter from "./modules/Organization/Organization.routes.js";
@@ -14,6 +15,7 @@ import UserSignatureRouter from "./modules/UserSignature/userSignature.routes.js
 
 const router = express.Router();
 
+router.use("/auth", AuthRouter);
 router.use("/users", UserRouter);
 router.use("/roles", RoleRouter);
 router.use("/organizations", OrganizationRouter);

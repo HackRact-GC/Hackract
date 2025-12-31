@@ -1,51 +1,73 @@
-import * as service from "./user.service.js";
-import {
-  registerSchema,
-  loginSchema,
-  updateProfileSchema,
-  changePasswordSchema
-} from "./user.schema.js";
+import asyncHandler from 'express-async-handler';
+import * as service from './user.service.js';
+import ApiResponse from '../../utils/ApiResponse.js';
 
-export const register = async (req, res, next) => {
-  try {
-    res.status(201).json(await service.register(registerSchema.parse(req.body)));
-  } catch (e) { next(e); }
-};
+/**
+ * Get current user profile
+ */
+export const me = asyncHandler(async (req, res) => {
+  const { passwordHash, ...userWithoutPassword } = req.user;
+  ApiResponse.success(res, { user: userWithoutPassword }, 'User profile retrieved successfully');
+});
 
-export const login = async (req, res, next) => {
-  try {
-    res.json(await service.login(loginSchema.parse(req.body)));
-  } catch (e) { next(e); }
-};
+/**
+ * Update user profile
+ */
+export const updateProfile = asyncHandler(async (req, res) => {
+  const user = await service.updateProfile(req.user.id, req.body);
+  ApiResponse.success(res, { user }, 'Profile updated successfully');
+});
 
-export const me = (req, res) => res.json(req.user);
+/**
+ * Change password
+ */
+export const changePassword = asyncHandler(async (req, res) => {
+  const result = await service.changePassword(req.user.id, req.body);
+  ApiResponse.success(res, null, result.message);
+});
 
-export const updateProfile = async (req, res, next) => {
-  try {
-    res.json(await service.updateProfile(
-      req.user.id,
-      updateProfileSchema.parse(req.body)
-    ));
-  } catch (e) { next(e); }
-};
+/**
+ * Deactivate account
+ */
+export const deactivate = asyncHandler(async (req, res) => {
+  const result = await service.deactivateAccount(req.user.id);
+  ApiResponse.success(res, null, result.message);
+});
 
-export const changePassword = async (req, res, next) => {
-  try {
-    res.json(await service.changePassword(
-      req.user.id,
-      changePasswordSchema.parse(req.body)
-    ));
-  } catch (e) { next(e); }
-};
+/**
+ * Delete account permanently
+ */
+export const remove = asyncHandler(async (req, res) => {
+  await service.deleteAccount(req.user.id);
+  ApiResponse.noContent(res);
+});
 
-export const deactivate = async (req, res) => {
-  res.json(await service.deactivateAccount(req.user.id));
-};
+/**
+ * Get all users (Admin only)
+ */
+export const listUsers = asyncHandler(async (req, res) => {
+  const result = await service.getAllUsers(req.query);
 
-export const remove = async (req, res) => {
-  res.status(204).json(await service.deleteAccount(req.user.id));
-};
+  if (result.pagination) {
+    ApiResponse.paginated(res, result.data, result.pagination, 'Users retrieved successfully');
+  } else {
+    ApiResponse.success(res, result, 'Users retrieved successfully');
+  }
+});
 
-export const listUsers = async (req, res) => {
-  res.json(await service.getAllUsers());
-};
+/**
+ * Get user by ID (Admin only)
+ */
+export const getUserById = asyncHandler(async (req, res) => {
+  const user = await service.getUserById(req.params.id);
+  ApiResponse.success(res, { user }, 'User retrieved successfully');
+});
+
+/**
+ * Update account status (Admin only)
+ */
+export const updateStatus = asyncHandler(async (req, res) => {
+  const { status } = req.body;
+  const user = await service.updateAccountStatus(req.params.id, status);
+  ApiResponse.success(res, { user }, 'Account status updated successfully');
+});
