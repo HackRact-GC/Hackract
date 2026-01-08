@@ -5,63 +5,62 @@ import { UserErrorCodes } from './user.constants.js';
 
 const SALT_ROUNDS = 12;
 
-export const register = async (data) => {
-  const hashedPassword = await bcrypt.hash(data.password, SALT_ROUNDS);
-
-  const user = await userRepository.createUser({
-    email: data.email,
-    passwordHash: hashedPassword,
-    fullName: data.fullName,
-    handle: data.handle,
-    status: 'ACTIVE', // Default to active or PENDING based on requirement (schema says PENDING)
-    isVerified: false
-  });
-
+/**
+ * Get user by ID
+ */
+export const getUserById = async (userId) => {
+  const user = await userRepository.findById(userId);
+  if (!user) {
+    throw new AppError('User not found', 404, UserErrorCodes.NOT_FOUND);
+  }
   const { passwordHash, ...userWithoutPassword } = user;
   return userWithoutPassword;
 };
 
-export const login = async ({ email, password }) => {
-  const user = await userRepository.findByEmail(email);
-  if (!user) {
-    throw new AppError('Invalid email or password', 401, UserErrorCodes.INVALID_CREDENTIALS);
-  }
+/**
+ * Get all users with filters
+ */
+export const getAllUsers = async (filters) => {
+  return await userRepository.findAll(filters);
+};
 
-  // Check if suspended or banned
-  if (user.status === 'SUSPENDED') {
-    throw new AppError('Account is suspended', 403, UserErrorCodes.SUSPENDED);
-  }
-  if (user.status === 'BANNED') {
-    throw new AppError('Account is banned', 403, UserErrorCodes.BANNED);
-  }
+/**
+ * Update user profile
+ */
+export const updateProfile = async (userId, data) => {
+  // Remove fields that shouldn't be updated via this endpoint
+  const { passwordHash, status, isVerified, roles, provider, providerId, ...allowedData } = data;
 
-  const isValidPassword = await bcrypt.compare(password, user.passwordHash);
-  if (!isValidPassword) {
-    throw new AppError('Invalid email or password', 401, UserErrorCodes.INVALID_CREDENTIALS);
-  }
-
-  // TODO: Generate JWT here if not handled by controller
-  // For now return user object to be handled by controller which might issue token
+  const user = await userRepository.updateUser(userId, allowedData);
   const { passwordHash: _, ...userWithoutPassword } = user;
   return userWithoutPassword;
 };
 
-export const updateProfile = async (userId, data) => {
-  // If verifying email uniqueness is needed, repository handles P2002 error
-  const user = await userRepository.updateUser(userId, data);
-  const { passwordHash, ...userWithoutPassword } = user;
-  return userWithoutPassword;
-};
-
+/**
+ * Change password
+ */
 export const changePassword = async (userId, { oldPassword, newPassword }) => {
   const user = await userRepository.findById(userId);
   if (!user) {
     throw new AppError('User not found', 404, UserErrorCodes.NOT_FOUND);
   }
 
+  if (!user.passwordHash) {
+    throw new AppError(
+      'Cannot change password for OAuth accounts',
+      400,
+      UserErrorCodes.OAUTH_ACCOUNT,
+      { provider: user.provider }
+    );
+  }
+
   const isValidPassword = await bcrypt.compare(oldPassword, user.passwordHash);
   if (!isValidPassword) {
-    throw new AppError('Incorrect old password', 400, UserErrorCodes.OLD_PASSWORD_INCORRECT);
+    throw new AppError(
+      'Current password is incorrect',
+      400,
+      UserErrorCodes.OLD_PASSWORD_INCORRECT
+    );
   }
 
   const hashedPassword = await bcrypt.hash(newPassword, SALT_ROUNDS);
@@ -70,34 +69,36 @@ export const changePassword = async (userId, { oldPassword, newPassword }) => {
   return { message: 'Password updated successfully' };
 };
 
-export const deactivateAccount = async (userId) => {
-  // Soft delete logic, or just status change
-  // If you want to delete strictly:
-  // await userRepository.deleteUser(userId);
-  // If status change:
-  await userRepository.updateUser(userId, { status: 'Suspended' }); // Matching enum likely?
-  // Schema enum: PENDING, ACTIVE, Suspended, BANNED (Note case sensitivity in Postgres/Prisma)
-  // Schema.sql line 11: 'PENDING', 'ACTIVE', 'Suspended', 'BANNED'
-  // Prisma schema line 16: PENDING, ACTIVE, SUSPENDED, BANNED
-  // Wait, check Prisma schema case sensitivity.
-  // Prisma schema: SUSPENDED (all caps)
-  // SQL schema: 'Suspended' (Mixed case)
-  // If Prisma schema says SUSPENDED, prisma updates will use that.
-  return { message: 'Account deactivated' };
+/**
+ * Update account status (Admin only)
+ */
+export const updateAccountStatus = async (userId, status) => {
+  const validStatuses = ['PENDING', 'ACTIVE', 'SUSPENDED', 'BANNED'];
+  if (!validStatuses.includes(status)) {
+    throw new AppError(
+      `Invalid status. Must be one of: ${validStatuses.join(', ')}`,
+      400,
+      UserErrorCodes.INVALID_STATUS
+    );
+  }
+
+  const user = await userRepository.updateUser(userId, { status });
+  const { passwordHash, ...userWithoutPassword } = user;
+  return userWithoutPassword;
 };
 
+/**
+ * Deactivate account (soft delete)
+ */
+export const deactivateAccount = async (userId) => {
+  await userRepository.updateUser(userId, { status: 'SUSPENDED' });
+  return { message: 'Account deactivated successfully' };
+};
+
+/**
+ * Delete account permanently
+ */
 export const deleteAccount = async (userId) => {
   await userRepository.deleteUser(userId);
   return { message: 'Account deleted permanently' };
-};
-
-export const getAllUsers = async (filters) => {
-  return await userRepository.findAll(filters);
-};
-
-export const getUserById = async (userId) => {
-  const user = await userRepository.findById(userId);
-  if (!user) throw new AppError('User not found', 404, UserErrorCodes.NOT_FOUND);
-  const { passwordHash, ...userWithoutPassword } = user;
-  return userWithoutPassword;
 };
