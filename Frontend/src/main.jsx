@@ -1,10 +1,27 @@
-import { StrictMode } from 'react'
-import { createRoot } from 'react-dom/client'
-import App from './App.jsx'
-import './index.css'
+// src/main.jsx
+import React, { StrictMode } from "react";
+import ReactDOM from "react-dom/client";
+import "./index.css";
+import { Auth0Provider } from "@auth0/auth0-react";
+import { RouterProvider } from "react-router-dom";
+import router from "../src/Router/Index";
+// import { Provider } from "react-redux";
+// import  store  from "./store/Store.js";
 
-createRoot(document.getElementById('root')).render(
+ReactDOM.createRoot(document.getElementById("root")).render(
   <StrictMode>
-    <App />
-  </StrictMode>,
-)
+    {/* <Provider store={store}> */}
+    <Auth0Provider
+      domain={import.meta.env.VITE_AUTH0_DOMAIN}
+      clientId={import.meta.env.VITE_AUTH0_CLIENT_ID}
+      authorizationParams={{
+        redirect_uri: window.location.origin,
+        audience: import.meta.env.VITE_AUTH0_AUDIENCE,
+        scope: "openid profile email",
+      }}
+    >
+      <RouterProvider router={router} />
+    </Auth0Provider>
+    {/* </Provider> */}
+  </StrictMode>
+);

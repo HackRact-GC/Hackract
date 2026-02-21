@@ -11,12 +11,12 @@ const MatrixRain = () => {
     let fontSize = 16;
     let columns = Math.floor(canvas.offsetWidth / fontSize); // Use offsetWidth
     let drops = [];
-    const speed = 0.6;
+    const speed = 0.3;
     const alpha = 0.08;
 
     const initDrops = () => {
-       columns = Math.floor(canvas.width / fontSize);
-       drops = new Array(columns).fill(0);
+      columns = Math.floor(canvas.width / fontSize);
+      drops = new Array(columns).fill(0);
     }
 
     const resize = () => {
@@ -28,7 +28,7 @@ const MatrixRain = () => {
     };
 
     const draw = () => {
-        if (!ctx || !canvas) return;
+      if (!ctx || !canvas) return;
       ctx.fillStyle = `rgba(0,0,0,${alpha})`;
       ctx.fillRect(0, 0, canvas.width, canvas.height);
 
@@ -38,13 +38,13 @@ const MatrixRain = () => {
         const text = Math.random() > 0.5 ? "0" : "1";
         const x = i * fontSize;
         const y = drops[i] * fontSize;
-        
+
         // Random green shades
-        ctx.fillStyle = Math.random() > 0.98 ? "#b3ffd9" : "#00ff88"; 
+        ctx.fillStyle = Math.random() > 0.98 ? "#b3ffd9" : "#00ff88";
         ctx.fillText(text, x, y);
 
         if (y > canvas.height && Math.random() > 0.975) {
-            drops[i] = 0;
+          drops[i] = 0;
         }
         drops[i] += speed * (0.8 + Math.random() * 0.5); // Varied drop speed
       }
@@ -63,10 +63,10 @@ const MatrixRain = () => {
   }, []);
 
   return (
-    <canvas 
-        ref={canvasRef} 
-        className="absolute inset-0 w-full h-full object-cover" 
-        style={{ background: 'black' }}
+    <canvas
+      ref={canvasRef}
+      className="absolute inset-0 w-full h-full object-cover"
+      style={{ background: 'black' }}
     />
   );
 };
