@@ -15,12 +15,12 @@ const AuthLayout = () => {
 
                     {/* Overlay Content */}
                     <div className="relative z-10 flex flex-col h-full justify-between p-12 pointer-events-none select-none">
-                        <div className="text-xl font-bold tracking-wider">
+                        <div className="text-xl font-bold tracking-wider hover:text-white transition-colors duration-300 cursor-default">
                             {label}
                         </div>
 
                         <div className="flex flex-col gap-4 max-w-md">
-                            <h1 className="text-5xl font-bold leading-tight">
+                            <h1 className="text-5xl font-bold leading-tight hover:translate-x-2 transition-transform duration-500 cursor-default">
                                 Rewrite the <br /> Rules
                             </h1>
                             <p className="text-sm opacity-80 leading-relaxed font-light">
@@ -34,7 +34,7 @@ const AuthLayout = () => {
 
             {/* Right Side - Form Container */}
             <div className="flex w-full md:w-1/2 flex-col justify-center items-center p-8 md:p-16 bg-white relative">
-                <div className="absolute top-8 md:top-12 text-center uppercase tracking-[0.2em] font-bold text-lg md:text-xl font-sans">
+                <div className="absolute top-8 md:top-12 text-center uppercase tracking-[0.2em] font-bold text-lg md:text-xl font-sans hover:tracking-[0.3em] transition-all duration-500 cursor-pointer select-none">
                     HACKRACT
                 </div>
 

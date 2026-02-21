@@ -1,18 +1,18 @@
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
-import AuthLayout from "./layouts/AuthLayout";
-import Login from "./pages/Login";
-import Register from "./pages/Register";
+import { Outlet } from "react-router-dom";
+import { Toaster } from "react-hot-toast";
+import useAuthSync from "./hooks/useAuthSync";
 
-export default function App() {
+function App() {
+  // Automatically sync Auth0 user data with PostgreSQL backend
+  useAuthSync();
+
   return (
-    <BrowserRouter>
-      <Routes>
-        <Route element={<AuthLayout />}>
-          <Route path="/login" element={<Login />} />
-          <Route path="/register" element={<Register />} />
-        </Route>
-        <Route path="/" element={<Navigate to="/login" replace />} />
-      </Routes>
-    </BrowserRouter>
+    <>
+      <main>
+        <Outlet />
+      </main>
+      <Toaster />
+    </>
   );
 }
+export default App;

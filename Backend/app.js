@@ -7,8 +7,6 @@ import morgan from 'morgan';
 import dotenv from 'dotenv';
 import swaggerUi from "swagger-ui-express";
 import swaggerSpec from "./src/config/Swagger.js";
-import passport from './src/config/passport.js';
-
 // Import main router
 import apiRoutes from './src/routes.js';
 
@@ -23,8 +21,6 @@ app.use(compression());
 app.use(express.json());
 app.use(morgan('dev'));
 
-// Initialize Passport
-app.use(passport.initialize());
 
 // API Routes
 app.use('/api/v1', apiRoutes);
