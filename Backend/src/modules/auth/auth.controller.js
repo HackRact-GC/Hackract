@@ -3,6 +3,26 @@ import authService from './auth.service.js';
 import ApiResponse from '../../utils/ApiResponse.js';
 import AppError from '../../utils/AppError.js';
 
+const metaFromReq = (req) => ({ userAgent: req.get('user-agent'), ipAddress: req.ip });
+
+export const registerLocal = asyncHandler(async (req, res) => {
+    const payload = req.validatedBody || req.body;
+    const result = await authService.registerLocal(payload, metaFromReq(req));
+    ApiResponse.created(res, result, 'Registration successful');
+});
+
+export const loginLocal = asyncHandler(async (req, res) => {
+    const payload = req.validatedBody || req.body;
+    const result = await authService.loginLocal(payload, metaFromReq(req));
+    ApiResponse.success(res, result, 'Login successful');
+});
+
+export const refreshToken = asyncHandler(async (req, res) => {
+    const payload = req.validatedBody || req.body;
+    const result = await authService.refresh(payload.refreshToken, metaFromReq(req));
+    ApiResponse.success(res, result, 'Token refreshed successfully');
+});
+
 /**
  * Get currently authenticated user profile
  */
@@ -21,8 +41,8 @@ export const getMe = asyncHandler(async (req, res) => {
  * Logout from local device
  */
 export const logout = asyncHandler(async (req, res) => {
-    // With Auth0, logout usually happens on the client side by redirecting to Auth0 logout URL.
-    // Locally, we just return success.
+    const { refreshToken } = req.body || {};
+    await authService.logout(refreshToken);
     ApiResponse.success(res, null, 'Logged out from local session');
 });
 
@@ -32,4 +52,36 @@ export const logout = asyncHandler(async (req, res) => {
 export const logoutAll = asyncHandler(async (req, res) => {
     const result = await authService.logoutAll(req.user.id);
     ApiResponse.success(res, null, result.message);
+});
+
+export const findUserByEmail = asyncHandler(async (req, res) => {
+    const email = req.query.email;
+    if (!email) {
+        throw new AppError('Email query parameter is required', 400);
+    }
+
+    const user = await authService.findUserByEmail(email);
+    if (!user) {
+        throw new AppError('User not found', 404);
+    }
+
+    ApiResponse.success(res, { user }, 'User retrieved successfully');
+});
+
+export const verifyEmail = asyncHandler(async (req, res) => {
+    const payload = req.validatedBody || req.body;
+    const result = await authService.verifyEmail(payload.token, payload.email);
+    ApiResponse.success(res, result, result.message || 'Email verified successfully');
+});
+
+export const forgotPassword = asyncHandler(async (req, res) => {
+    const payload = req.validatedBody || req.body;
+    const result = await authService.forgotPassword(payload.email, metaFromReq(req));
+    ApiResponse.success(res, result, result.message);
+});
+
+export const resetPassword = asyncHandler(async (req, res) => {
+    const payload = req.validatedBody || req.body;
+    const result = await authService.resetPassword(payload.token, payload.newPassword);
+    ApiResponse.success(res, result, result.message);
 });

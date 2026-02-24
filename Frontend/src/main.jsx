@@ -5,6 +5,7 @@ import "./index.css";
 import { Auth0Provider } from "@auth0/auth0-react";
 import { RouterProvider } from "react-router-dom";
 import router from "../src/Router/Index";
+import { AuthProvider } from "./context/AuthContext.jsx";
 // import { Provider } from "react-redux";
 // import  store  from "./store/Store.js";
 
@@ -20,7 +21,9 @@ ReactDOM.createRoot(document.getElementById("root")).render(
         scope: "openid profile email",
       }}
     >
-      <RouterProvider router={router} />
+      <AuthProvider>
+        <RouterProvider router={router} />
+      </AuthProvider>
     </Auth0Provider>
     {/* </Provider> */}
   </StrictMode>

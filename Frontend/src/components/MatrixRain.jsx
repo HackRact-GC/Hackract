@@ -11,8 +11,8 @@ const MatrixRain = () => {
     let fontSize = 16;
     let columns = Math.floor(canvas.offsetWidth / fontSize); // Use offsetWidth
     let drops = [];
-    const speed = 0.3;
-    const alpha = 0.08;
+    const speed = 0.12; // slower base speed for hacker vibe
+    const alpha = 0.06; // slightly longer trail persistence
 
     const initDrops = () => {
       columns = Math.floor(canvas.width / fontSize);
@@ -43,10 +43,10 @@ const MatrixRain = () => {
         ctx.fillStyle = Math.random() > 0.98 ? "#b3ffd9" : "#00ff88";
         ctx.fillText(text, x, y);
 
-        if (y > canvas.height && Math.random() > 0.975) {
+        if (y > canvas.height && Math.random() > 0.99) {
           drops[i] = 0;
         }
-        drops[i] += speed * (0.8 + Math.random() * 0.5); // Varied drop speed
+        drops[i] += speed * (0.6 + Math.random() * 0.35); // gentler varied drop speed
       }
 
       animationRef.current = requestAnimationFrame(draw);

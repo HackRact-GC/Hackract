@@ -1,0 +1,139 @@
+import { useState } from "react";
+import { Link } from "react-router-dom";
+import { useAuth } from "../context/AuthContext.jsx";
+
+const InputField = ({ label, type, placeholder, id, name, value, onChange }) => (
+  <div className="flex flex-col gap-2 group">
+    <label
+      htmlFor={id}
+      className="text-xs font-bold tracking-widest uppercase text-gray-500 font-sans cursor-pointer"
+    >
+      {label}
+    </label>
+    <div className="flex items-center w-full bg-gray-100 rounded-sm px-3 py-3 border border-transparent focus-within:border-black transition-all duration-300">
+      <span className="text-xs font-mono text-gray-500 mr-2 select-none">root@hackract:~$</span>
+      <input
+        type={type}
+        id={id}
+        name={name}
+        placeholder={placeholder}
+        value={value}
+        onChange={onChange}
+        autoComplete={name}
+        className="flex-1 bg-transparent outline-none text-sm font-mono placeholder-gray-400 text-gray-900 cursor-text"
+        required
+      />
+    </div>
+  </div>
+);
+
+const Register = () => {
+  const { register, loading } = useAuth();
+  const [form, setForm] = useState({
+    fullName: "",
+    handle: "",
+    email: "",
+    password: "",
+  });
+  const [successMessage, setSuccessMessage] = useState("");
+  const [errorMessage, setErrorMessage] = useState("");
+
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setForm((prev) => ({ ...prev, [name]: value }));
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setSuccessMessage("");
+    setErrorMessage("");
+    try {
+      const result = await register(form);
+      setSuccessMessage(result?.message || "Registration successful. Check your email to verify your account.");
+      console.info("[ui] registration success", result);
+    } catch (err) {
+      const backendError = err?.response?.data?.error || err?.response?.data?.message;
+      setErrorMessage(backendError || "Registration failed. Please try again.");
+      console.error("[ui] registration failed", err?.response?.data || err);
+    }
+  };
+
+  return (
+    <div className="flex flex-col gap-8 w-full">
+      <div className="space-y-2 text-center md:text-left">
+        <h2 className="text-3xl font-bold font-mono tracking-tighter hover:text-green-500 transition-colors duration-500 cursor-default">
+          Create account
+        </h2>
+        <p className="text-gray-500 text-xs font-mono tracking-wide">
+          Register with your email and password
+        </p>
+      </div>
+
+      <form className="flex flex-col gap-6" onSubmit={handleSubmit}>
+        {successMessage && (
+          <div className="bg-green-50 border border-green-200 text-green-800 text-xs font-mono px-3 py-2 rounded">
+            {successMessage}
+          </div>
+        )}
+        {errorMessage && (
+          <div className="bg-red-50 border border-red-200 text-red-800 text-xs font-mono px-3 py-2 rounded">
+            {errorMessage}
+          </div>
+        )}
+        <InputField
+          label="Full Name"
+          type="text"
+          id="fullName"
+          name="fullName"
+          placeholder="Jane Doe"
+          value={form.fullName}
+          onChange={handleChange}
+        />
+        <InputField
+          label="Handle"
+          type="text"
+          id="handle"
+          name="handle"
+          placeholder="janedoe"
+          value={form.handle}
+          onChange={handleChange}
+        />
+        <InputField
+          label="Email"
+          type="email"
+          id="email"
+          name="email"
+          placeholder="username@domain.com"
+          value={form.email}
+          onChange={handleChange}
+        />
+        <InputField
+          label="Password"
+          type="password"
+          id="password"
+          name="password"
+          placeholder="At least 8 characters"
+          value={form.password}
+          onChange={handleChange}
+        />
+
+        <button
+          type="submit"
+          disabled={loading}
+          className="w-full bg-black text-[#00ff88] font-mono font-bold py-3 uppercase tracking-widest hover:bg-[#00ff88] hover:text-black transition-all duration-300 mt-2 cursor-pointer shadow-lg disabled:cursor-not-allowed disabled:opacity-70"
+        >
+          {loading ? "Registering..." : "Register"}
+        </button>
+      </form>
+
+      <div className="text-center text-xs font-mono text-gray-500 mt-4">
+        Already have an account?{" "}
+        <Link to="/login" className="underline hover:text-black transition-colors font-bold uppercase">
+          Sign in
+        </Link>
+      </div>
+    </div>
+  );
+};
+
+export default Register;

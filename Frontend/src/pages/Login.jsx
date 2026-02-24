@@ -1,22 +1,30 @@
+import { useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
 import { useAuth0 } from "@auth0/auth0-react";
-import { Link } from "react-router-dom";
 import { FcGoogle } from "react-icons/fc";
 import { FaGithub } from "react-icons/fa";
+import { useAuth } from "../context/AuthContext.jsx";
 
-const InputField = ({ label, type, placeholder, id }) => (
+const InputField = ({ label, type, placeholder, id, name, value, onChange }) => (
     <div className="flex flex-col gap-2 group">
-        <label htmlFor={id} className="text-xs font-bold tracking-widest uppercase text-gray-500 font-sans cursor-pointer">
+        <label
+            htmlFor={id}
+            className="text-xs font-bold tracking-widest uppercase text-gray-500 font-sans cursor-pointer"
+        >
             {label}
         </label>
         <div className="flex items-center w-full bg-gray-100 rounded-sm px-3 py-3 border border-transparent focus-within:border-black transition-all duration-300">
-            <span className="text-xs font-mono text-gray-500 mr-2 select-none">
-                root@hackract:~$
-            </span>
+            <span className="text-xs font-mono text-gray-500 mr-2 select-none">root@hackract:~$</span>
             <input
                 type={type}
                 id={id}
+                name={name}
                 placeholder={placeholder}
+                value={value}
+                onChange={onChange}
+                autoComplete={name}
                 className="flex-1 bg-transparent outline-none text-sm font-mono placeholder-gray-400 text-gray-900 cursor-text"
+                required
             />
         </div>
     </div>
@@ -33,7 +41,25 @@ const SocialButton = ({ icon, label, onClick }) => (
 );
 
 const Login = () => {
+    const navigate = useNavigate();
     const { loginWithRedirect } = useAuth0();
+    const { login, loading } = useAuth();
+    const [form, setForm] = useState({ email: "", password: "" });
+
+    const handleChange = (e) => {
+        const { name, value } = e.target;
+        setForm((prev) => ({ ...prev, [name]: value }));
+    };
+
+    const handleSubmit = async (e) => {
+        e.preventDefault();
+        try {
+            await login(form);
+            navigate("/");
+        } catch {
+            // toast handled in context
+        }
+    };
 
     const handleGoogleLogin = () => {
         loginWithRedirect({
@@ -58,29 +84,42 @@ const Login = () => {
             <div className="space-y-2 text-center md:text-left">
                 <h2 className="text-3xl font-bold font-mono tracking-tighter hover:text-green-500 transition-colors duration-500 cursor-default">Welcome back</h2>
                 <p className="text-gray-500 text-xs font-mono tracking-wide">
-                    Enter your user_id and password to access your account
+                    Enter your email and password to access your account
                 </p>
             </div>
 
-            <form className="flex flex-col gap-6" onSubmit={(e) => e.preventDefault()}>
+            <form className="flex flex-col gap-6" onSubmit={handleSubmit}>
                 <InputField
                     label="Email"
                     type="email"
                     id="email"
+                    name="email"
                     placeholder="username@domain.com"
+                    value={form.email}
+                    onChange={handleChange}
                 />
                 <InputField
                     label="Password"
                     type="password"
                     id="password"
-                    placeholder="................"
+                    name="password"
+                    placeholder="••••••••"
+                    value={form.password}
+                    onChange={handleChange}
                 />
+
+                        <div className="text-right text-[11px] font-mono text-gray-500">
+                                <Link to="/forgot-password" className="underline hover:text-black transition-colors font-bold uppercase">
+                                        Forgot password?
+                                </Link>
+                        </div>
 
                 <button
                     type="submit"
-                    className="w-full bg-black text-[#00ff88] font-mono font-bold py-3 uppercase tracking-widest hover:bg-[#00ff88] hover:text-black transition-all duration-300 mt-2 cursor-pointer shadow-lg active:scale-98"
+                    disabled={loading}
+                    className="w-full bg-black text-[#00ff88] font-mono font-bold py-3 uppercase tracking-widest hover:bg-[#00ff88] hover:text-black transition-all duration-300 mt-2 cursor-pointer shadow-lg disabled:cursor-not-allowed disabled:opacity-70"
                 >
-                    Login
+                    {loading ? "Authorizing..." : "Login"}
                 </button>
             </form>
 
@@ -104,9 +143,9 @@ const Login = () => {
             </div>
 
             <div className="text-center text-xs font-mono text-gray-500 mt-4">
-                Don't have an access?{" "}
+                New here?{" "}
                 <Link to="/register" className="underline hover:text-black transition-colors font-bold uppercase">
-                    New_Session
+                    Create account
                 </Link>
             </div>
         </div>
