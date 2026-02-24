@@ -1,6 +1,15 @@
 import express from 'express';
 import * as controller from './auth.controller.js';
-import { protect } from '../../middleware/Auth.middleware.js';
+import { protect, validateLocal } from '../../middleware/Auth.middleware.js';
+import {
+	validate,
+	registerSchema,
+	loginSchema,
+	refreshTokenSchema,
+	verifyEmailSchema,
+	forgotPasswordSchema,
+	resetPasswordSchema,
+} from './auth.schema.js';
 
 const router = express.Router();
 
@@ -10,6 +19,66 @@ const router = express.Router();
  *   name: Authentication
  *   description: User authentication and profile APIs (Auth0)
  */
+
+/**
+ * @swagger
+ * /api/v1/auth/local/register:
+ *   post:
+ *     summary: Register with email/password
+ *     tags: [Authentication]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             $ref: '#/components/schemas/RegisterRequest'
+ *     responses:
+ *       201:
+ *         description: Registration successful
+ */
+router.post('/local/register', validate(registerSchema), controller.registerLocal);
+
+/**
+ * @swagger
+ * /api/v1/auth/local/login:
+ *   post:
+ *     summary: Login with email/password
+ *     tags: [Authentication]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             $ref: '#/components/schemas/LoginRequest'
+ *     responses:
+ *       200:
+ *         description: Login successful
+ */
+router.post('/local/login', validate(loginSchema), controller.loginLocal);
+
+/**
+ * @swagger
+ * /api/v1/auth/local/refresh:
+ *   post:
+ *     summary: Refresh access token
+ *     tags: [Authentication]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             $ref: '#/components/schemas/RefreshTokenRequest'
+ *     responses:
+ *       200:
+ *         description: Token refreshed successfully
+ */
+router.post('/local/refresh', validate(refreshTokenSchema), controller.refreshToken);
+
+router.post('/verify-email', validate(verifyEmailSchema), controller.verifyEmail);
+router.post('/forgot-password', validate(forgotPasswordSchema), controller.forgotPassword);
+router.post('/reset-password', validate(resetPasswordSchema), controller.resetPassword);
+
+router.post('/verify-email', validate(verifyEmailSchema), controller.verifyEmail);
 
 /**
  * @swagger
@@ -26,6 +95,9 @@ const router = express.Router();
  *         description: Unauthorized
  */
 router.get('/me', protect, controller.getMe);
+
+// Local JWT-protected profile
+router.get('/local/me', validateLocal, controller.getMe);
 
 /**
  * @swagger
@@ -54,5 +126,8 @@ router.post('/logout', protect, controller.logout);
  *         description: Logged out from all devices
  */
 router.post('/logout-all', protect, controller.logoutAll);
+
+// Admin lookup by email (supports both token types)
+router.get('/user-by-email', protect, controller.findUserByEmail);
 
 export default router;

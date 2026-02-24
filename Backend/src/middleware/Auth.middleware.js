@@ -1,9 +1,16 @@
 import { auth } from 'express-oauth2-jwt-bearer';
+import jwt from 'jsonwebtoken';
 import AppError from '../utils/AppError.js';
 import prisma from '../database/prismaClient.js';
 import dotenv from 'dotenv';
 
 dotenv.config();
+
+const buildFallbackEmail = (auth0Id, nickname) => {
+  const safeId = auth0Id.replace(/[^a-zA-Z0-9_-]/g, '-');
+  const localPart = nickname ? nickname.toLowerCase().replace(/[^a-z0-9_.-]/g, '-') : safeId;
+  return `${localPart || safeId}@placeholder.hackract.local`;
+};
 
 // Auth0 JWT validation middleware
 const checkJwt = auth({
@@ -12,8 +19,58 @@ const checkJwt = auth({
   tokenSigningAlg: 'RS256'
 });
 
+const tryLocalToken = async (req) => {
+  const authHeader = req.headers.authorization;
+  if (!authHeader || !authHeader.startsWith('Bearer ')) return null;
+  const token = authHeader.split(' ')[1];
+  if (!process.env.JWT_ACCESS_SECRET) return null;
+
+  let decoded;
+  try {
+    decoded = jwt.verify(token, process.env.JWT_ACCESS_SECRET);
+  } catch (err) {
+    return null;
+  }
+
+  const user = await prisma.user.findUnique({
+    where: { id: decoded.sub },
+    include: { roles: true },
+  });
+
+  if (!user) return null;
+  if (user.status === 'SUSPENDED' || user.status === 'BANNED') {
+    throw new AppError('Account is suspended or banned', 403);
+  }
+
+  return user;
+};
+
+export const validateLocal = async (req, res, next) => {
+  try {
+    const user = await tryLocalToken(req);
+    if (!user) {
+      return next(new AppError('Not authorized to access this route', 401));
+    }
+    req.user = user;
+    next();
+  } catch (error) {
+    next(error);
+  }
+};
+
 export const protect = async (req, res, next) => {
-  // First, use Auth0's middleware to validate the token
+  try {
+    // 1) Try local JWT first
+    const localUser = await tryLocalToken(req);
+    if (localUser) {
+      req.user = localUser;
+      return next();
+    }
+  } catch (localError) {
+    return next(localError);
+  }
+
+  // 2) Fallback to Auth0 validation
   checkJwt(req, res, async (err) => {
     if (err) {
       console.error('Auth0 Token Validation Error:', err);
@@ -27,18 +84,16 @@ export const protect = async (req, res, next) => {
     }
 
     try {
-      // Auth0 token is valid. Now sync/fetch user from local DB
-      // Auth0 puts the user info in req.auth
       const auth0Id = req.auth.payload.sub;
+      const provider = auth0Id?.split('|')?.[0] || 'auth0';
+      const providerId = auth0Id?.split('|')?.[1] || auth0Id;
       console.log('Auth0 Payload:', JSON.stringify(req.auth.payload, null, 2));
 
-      // Try to find user by auth0Id
       let user = await prisma.user.findUnique({
         where: { auth0Id },
         include: { roles: true }
       });
 
-      // If user doesn't exist locally, we might want to create them if they have an email claim
       if (!user) {
         const payload = req.auth.payload;
         let email = payload['https://hackract.com/email'] || payload.email;
@@ -47,7 +102,6 @@ export const protect = async (req, res, next) => {
         let nickname = payload.nickname;
         let emailVerified = payload.email_verified;
 
-        // Fallback: If email is missing, fetch from Auth0 /userinfo endpoint
         if (!email) {
           console.log('Email missing from JWT. Fetching from Auth0 /userinfo...');
           try {
@@ -69,60 +123,58 @@ export const protect = async (req, res, next) => {
           }
         }
 
-        if (email) {
-          // Check if user exists by email (for migration)
-          user = await prisma.user.findUnique({
-            where: { email },
+        if (!email) {
+          email = buildFallbackEmail(auth0Id, nickname);
+        }
+
+        user = await prisma.user.findUnique({
+          where: { email },
+          include: { roles: true }
+        });
+
+        if (user) {
+          user = await prisma.user.update({
+            where: { id: user.id },
+            data: {
+              auth0Id,
+              provider,
+              providerId,
+              avatar: user.avatar || picture,
+              isVerified: user.isVerified || emailVerified || false
+            },
             include: { roles: true }
           });
+        } else {
+          const defaultRole = await prisma.role.findUnique({
+            where: { type: 'PENTESTER' },
+          });
 
-          if (user) {
-            // Migrating user to Auth0
-            user = await prisma.user.update({
-              where: { id: user.id },
-              data: {
-                auth0Id,
-                provider: 'auth0',
-                avatar: user.avatar || picture,
-                isVerified: user.isVerified || emailVerified || false
-              },
-              include: { roles: true }
-            });
-          } else {
-            // Auto-create user from Auth0 data
-            const defaultRole = await prisma.role.findUnique({
-              where: { type: 'PENTESTER' },
-            });
+          let baseHandle = (nickname || email.split('@')[0]).toLowerCase().replace(/[^a-z0-9_]/g, '');
+          let handle = baseHandle || `user${Date.now()}`;
+          let counter = 1;
 
-            // Generate a unique handle
-            let baseHandle = nickname || email.split('@')[0];
-            baseHandle = baseHandle.toLowerCase().replace(/[^a-z0-9_]/g, '');
-            let handle = baseHandle;
-            let counter = 1;
-
-            // Simple check-and-retry for unique handle
-            while (await prisma.user.findUnique({ where: { handle } })) {
-              handle = `${baseHandle}${counter}`;
-              counter++;
-            }
-
-            user = await prisma.user.create({
-              data: {
-                email,
-                auth0Id,
-                fullName: fullName || nickname || email.split('@')[0],
-                handle: handle,
-                provider: 'auth0',
-                avatar: picture,
-                status: 'ACTIVE',
-                isVerified: emailVerified || false,
-                roles: defaultRole ? {
-                  connect: { id: defaultRole.id },
-                } : undefined,
-              },
-              include: { roles: true }
-            });
+          while (await prisma.user.findUnique({ where: { handle } })) {
+            handle = `${baseHandle}${counter}`;
+            counter++;
           }
+
+          user = await prisma.user.create({
+            data: {
+              email,
+              auth0Id,
+              provider,
+              providerId,
+              fullName: fullName || nickname || email.split('@')[0],
+              handle,
+              avatar: picture,
+              status: 'ACTIVE',
+              isVerified: emailVerified || false,
+              roles: defaultRole ? {
+                connect: { id: defaultRole.id },
+              } : undefined,
+            },
+            include: { roles: true }
+          });
         }
       }
 
@@ -147,7 +199,6 @@ export const restrictTo = (...allowedRoles) => {
     if (!req.user || !req.user.roles) {
       return next(new AppError('User not authenticated correctly', 401));
     }
-    // Check if user has at least one of the allowed roles
     const hasPermission = req.user.roles.some(role => allowedRoles.includes(role.type));
 
     if (!hasPermission) {
