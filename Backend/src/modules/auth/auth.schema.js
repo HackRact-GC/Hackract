@@ -32,15 +32,15 @@ export const registerSchema = Joi.object({
         }),
 
     handle: Joi.string()
-        .alphanum()
+        .pattern(/^[a-zA-Z0-9_-]+$/)
         .min(3)
         .max(30)
-        .required()
+        .optional()
+        .allow('', null)
         .messages({
-            'string.alphanum': 'Handle must only contain alphanumeric characters',
+            'string.pattern.base': 'Handle may contain letters, numbers, underscores, or hyphens',
             'string.min': 'Handle must be at least 3 characters long',
             'string.max': 'Handle must not exceed 30 characters',
-            'any.required': 'Handle is required',
         }),
 });
 
@@ -67,10 +67,20 @@ export const loginSchema = Joi.object({
  * Email verification schema
  */
 export const verifyEmailSchema = Joi.object({
-    token: Joi.string()
+    email: Joi.string()
+        .email()
         .required()
         .messages({
-            'any.required': 'Verification token is required',
+            'string.email': 'Please provide a valid email address',
+            'any.required': 'Email is required',
+        }),
+
+    token: Joi.string()
+        .pattern(/^\d{6}$/)
+        .required()
+        .messages({
+            'string.pattern.base': 'Verification code must be a 6-digit number',
+            'any.required': 'Verification code is required',
         }),
 });
 
@@ -103,6 +113,14 @@ export const resetPasswordSchema = Joi.object({
         .messages({
             'string.pattern.base': 'Password must be at least 8 characters long and contain at least one uppercase letter, one lowercase letter, one number, and one special character',
             'any.required': 'New password is required',
+        }),
+
+    confirmPassword: Joi.any()
+        .valid(Joi.ref('newPassword'))
+        .required()
+        .messages({
+            'any.only': 'Passwords must match',
+            'any.required': 'Confirm password is required',
         }),
 });
 
