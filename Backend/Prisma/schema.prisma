@@ -65,6 +65,7 @@ model User {
   // OAuth fields
   provider     String?    // 'local', 'google', 'github', etc.
   providerId   String?    // OAuth provider's user ID
+  auth0Id      String?    @unique // Auth0 identifier
   avatar       String?    // Profile picture URL
 
   // Email verification
