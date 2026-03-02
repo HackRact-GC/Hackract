@@ -267,6 +267,7 @@ class AuthService {
     async registerLocal(payload, meta) {
         const email = payload.email.toLowerCase();
         const handle = payload.handle?.toLowerCase() || email.split('@')[0];
+        const requestedRoleType = payload.roleType === 'ORG_ADMIN' ? 'ORG_ADMIN' : 'PENTESTER';
 
         const existingByEmail = await prisma.user.findUnique({ where: { email } });
         if (existingByEmail) {
@@ -279,21 +280,41 @@ class AuthService {
         }
 
         const passwordHash = await bcrypt.hash(payload.password, SALT_ROUNDS);
-        const defaultRole = await prisma.role.findUnique({ where: { type: 'PENTESTER' } });
+        const selectedRole =
+            (await prisma.role.findUnique({ where: { type: requestedRoleType } })) ||
+            (await prisma.role.findUnique({ where: { type: 'PENTESTER' } }));
 
-        const user = await prisma.user.create({
+        let user = await prisma.user.create({
             data: {
                 email,
                 passwordHash,
                 fullName: payload.fullName,
                 handle,
                 provider: 'local',
-                status: 'PENDING',
-                isVerified: false,
-                roles: defaultRole ? { connect: { id: defaultRole.id } } : undefined,
+                status: process.env.NODE_ENV === 'development' ? 'ACTIVE' : 'PENDING',
+                isVerified: process.env.NODE_ENV === 'development',
+                roles: selectedRole ? { connect: { id: selectedRole.id } } : undefined,
             },
             include: { roles: true },
         });
+
+        // In development, skip email verification entirely and allow immediate login
+        if (process.env.NODE_ENV === 'development') {
+            user = await prisma.user.update({
+                where: { id: user.id },
+                data: {
+                    isVerified: true,
+                    status: 'ACTIVE',
+                    emailVerifiedAt: new Date(),
+                },
+                include: { roles: true },
+            });
+
+            return {
+                user: this.sanitizeUser(user),
+                message: 'Registration successful. Email verification is skipped in development. You can log in now.',
+            };
+        }
 
         const verification = await this.sendVerification(user, meta);
 
