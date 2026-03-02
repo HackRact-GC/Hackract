@@ -34,7 +34,9 @@ const Register = () => {
     handle: "",
     email: "",
     password: "",
+    confirmPassword: "",
   });
+  const [roleType, setRoleType] = useState("PENTESTER"); // PENTESTER (Hacker) or ORG_ADMIN (Organization)
   const [successMessage, setSuccessMessage] = useState("");
   const [errorMessage, setErrorMessage] = useState("");
 
@@ -48,7 +50,8 @@ const Register = () => {
     setSuccessMessage("");
     setErrorMessage("");
     try {
-      const result = await register(form);
+      const payload = { ...form, roleType };
+      const result = await register(payload);
       setSuccessMessage(result?.message || "Registration successful. Check your email to verify your account.");
       console.info("[ui] registration success", result);
     } catch (err) {
@@ -67,6 +70,30 @@ const Register = () => {
         <p className="text-gray-500 text-xs font-mono tracking-wide">
           Register with your email and password
         </p>
+      </div>
+
+      {/* Role toggle */}
+      <div className="flex gap-2 w-full">
+        {[
+          { id: "PENTESTER", label: "Hacker" },
+          { id: "ORG_ADMIN", label: "Organization" },
+        ].map((option) => {
+          const isActive = roleType === option.id;
+          return (
+            <button
+              key={option.id}
+              type="button"
+              onClick={() => setRoleType(option.id)}
+              className={`flex-1 py-2.5 border text-xs font-mono uppercase tracking-widest rounded-sm transition-all duration-300 cursor-pointer ${
+                isActive
+                  ? "bg-black text-[#00ff88] border-black shadow-lg shadow-[#00ff88]/30"
+                  : "bg-white text-gray-700 border-gray-300 hover:border-black hover:bg-gray-100"
+              }`}
+            >
+              {option.label}
+            </button>
+          );
+        })}
       </div>
 
       <form className="flex flex-col gap-6" onSubmit={handleSubmit}>
@@ -114,6 +141,15 @@ const Register = () => {
           name="password"
           placeholder="At least 8 characters"
           value={form.password}
+          onChange={handleChange}
+        />
+        <InputField
+          label="Confirm Password"
+          type="password"
+          id="confirmPassword"
+          name="confirmPassword"
+          placeholder="Re-enter password"
+          value={form.confirmPassword}
           onChange={handleChange}
         />
 
