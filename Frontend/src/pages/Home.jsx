@@ -1,35 +1,64 @@
-const navItems = [
-  { label: "Dashboard", active: true },
-  { label: "Pentests" },
-  { label: "Reports" },
-  { label: "Findings" },
-  { label: "Settings" },
-];
-
-const quickActions = [
-  { title: "New Pentest", description: "Kick off a scoped engagement" },
-  { title: "Upload Evidence", description: "Attach screenshots or logs" },
-  { title: "Invite Teammate", description: "Collaborate on findings" },
-];
-
-const highlights = [
-  { title: "Open Findings", value: "12", tone: "bg-amber-50 text-amber-800" },
-  { title: "In Progress", value: "3", tone: "bg-blue-50 text-blue-800" },
-  { title: "Reports Due", value: "2", tone: "bg-rose-50 text-rose-800" },
-];
-
-const activity = [
-  { title: "SQLi discovered on login", time: "2h ago" },
-  { title: "Report draft exported", time: "6h ago" },
-  { title: "New collaborator added", time: "Yesterday" },
-];
-
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext.jsx";
 
 const Home = () => {
   const navigate = useNavigate();
   const { user, logout } = useAuth();
+
+  const primaryRoleType = user?.roles?.[0]?.type;
+  const isOrgView = primaryRoleType === "ORG_ADMIN";
+
+  const navItems = isOrgView
+    ? [
+        { label: "Org Overview", active: true },
+        { label: "Teams" },
+        { label: "Engagements" },
+        { label: "Compliance" },
+        { label: "Settings" },
+      ]
+    : [
+        { label: "Dashboard", active: true },
+        { label: "Pentests" },
+        { label: "Reports" },
+        { label: "Findings" },
+        { label: "Settings" },
+      ];
+
+  const quickActions = isOrgView
+    ? [
+        { title: "Create Program", description: "Define a new security program" },
+        { title: "Invite Pentester", description: "Bring in an external operator" },
+        { title: "Review Findings", description: "Prioritize open issues" },
+      ]
+    : [
+        { title: "New Pentest", description: "Kick off a scoped engagement" },
+        { title: "Upload Evidence", description: "Attach screenshots or logs" },
+        { title: "Invite Teammate", description: "Collaborate on findings" },
+      ];
+
+  const highlights = isOrgView
+    ? [
+        { title: "Active Programs", value: "4", tone: "bg-emerald-50 text-emerald-800" },
+        { title: "Vulns Awaiting Triage", value: "18", tone: "bg-amber-50 text-amber-800" },
+        { title: "Vendors Engaged", value: "6", tone: "bg-sky-50 text-sky-800" },
+      ]
+    : [
+        { title: "Open Findings", value: "12", tone: "bg-amber-50 text-amber-800" },
+        { title: "In Progress", value: "3", tone: "bg-blue-50 text-blue-800" },
+        { title: "Reports Due", value: "2", tone: "bg-rose-50 text-rose-800" },
+      ];
+
+  const activity = isOrgView
+    ? [
+        { title: "New vendor added to program", time: "1h ago" },
+        { title: "Policy exception approved", time: "5h ago" },
+        { title: "Quarterly report exported", time: "Yesterday" },
+      ]
+    : [
+        { title: "SQLi discovered on login", time: "2h ago" },
+        { title: "Report draft exported", time: "6h ago" },
+        { title: "New collaborator added", time: "Yesterday" },
+      ];
 
   const handleLogout = async () => {
     await logout();
@@ -67,8 +96,12 @@ const Home = () => {
               λ
             </div>
             <div>
-              <div className="text-sm font-mono text-gray-300">Welcome back</div>
-              <div className="text-lg font-semibold">Your command center</div>
+              <div className="text-sm font-mono text-gray-300">
+                {isOrgView ? "Organization view" : "Operator console"}
+              </div>
+              <div className="text-lg font-semibold">
+                {isOrgView ? "Security program overview" : "Your command center"}
+              </div>
             </div>
           </div>
           <div className="flex items-center gap-3">
