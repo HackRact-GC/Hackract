@@ -21,6 +21,14 @@ export const registerSchema = Joi.object({
             'any.required': 'Password is required',
         }),
 
+    confirmPassword: Joi.any()
+        .valid(Joi.ref('password'))
+        .required()
+        .messages({
+            'any.only': 'Passwords must match',
+            'any.required': 'Confirm password is required',
+        }),
+
     fullName: Joi.string()
         .min(2)
         .max(100)
@@ -41,6 +49,17 @@ export const registerSchema = Joi.object({
             'string.pattern.base': 'Handle may contain letters, numbers, underscores, or hyphens',
             'string.min': 'Handle must be at least 3 characters long',
             'string.max': 'Handle must not exceed 30 characters',
+        }),
+
+    /**
+     * Optional primary role type for the user.
+     * If not provided, backend will default to PENTESTER.
+     */
+    roleType: Joi.string()
+        .valid('PENTESTER', 'ORG_ADMIN')
+        .optional()
+        .messages({
+            'any.only': 'Invalid role selected. Choose Hacker or Organization.',
         }),
 });
 
