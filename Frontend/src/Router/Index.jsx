@@ -9,6 +9,7 @@ import VerifyEmail from "../pages/VerifyEmail.jsx";
 import Home from "../pages/Home.jsx";
 import ForgotPassword from "../pages/ForgotPassword.jsx";
 import ResetPassword from "../pages/ResetPassword.jsx";
+import HackerProfile from "../pages/HackerProfile.jsx";
 const router = createBrowserRouter([
   {
     path: "/",
@@ -17,6 +18,10 @@ const router = createBrowserRouter([
       {
         index: true,
         element: <Home />,
+      },
+      {
+        path: "hacker-profile",
+        element: <HackerProfile />,
       },
       {
         element: <AuthLayout />,
