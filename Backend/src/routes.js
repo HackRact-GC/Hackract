@@ -12,6 +12,7 @@ import AiAgentRouter from "./modules/AiAgent/agent.routes.js";
 import AuditLogRouter from "./modules/AuditLogs/auditLog.routes.js";
 import LegalAgreementRouter from "./modules/LegalAgreement/legalAgreement.routes.js";
 import UserSignatureRouter from "./modules/UserSignature/userSignature.routes.js";
+import HackerProfileRouter from "./modules/HackerProfile/hackerProfile.routes.js";
 
 const router = express.Router();
 
@@ -28,5 +29,6 @@ router.use("/ai-agents", AiAgentRouter);
 router.use("/audit-logs", AuditLogRouter);
 router.use("/legal-agreements", LegalAgreementRouter);
 router.use("/user-signatures", UserSignatureRouter);
+router.use("/hacker-profiles", HackerProfileRouter);
 
 export default router;

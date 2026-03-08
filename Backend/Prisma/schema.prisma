@@ -50,6 +50,14 @@ enum RoleType {
   VIEWER
 }
 
+enum HackerProfileStatus {
+  DRAFT
+  SUBMITTED
+  UNDER_REVIEW
+  APPROVED
+  REJECTED
+}
+
 // =====================================
 // 1️⃣ User
 // =====================================
@@ -87,6 +95,10 @@ model User {
   passwordResetTokens  PasswordResetToken[]
   refreshTokens        RefreshToken[]
 
+  // Hacker profile (for PENTESTER users)
+  hackerProfile        HackerProfile?
+  reviewedHackerProfiles HackerProfile[] @relation("HackerProfileReviewedBy")
+
   // Timestamps
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -96,6 +108,34 @@ model User {
   @@index([handle])
   @@index([status])
   @@index([provider])
+}
+
+// =====================================
+// 1️⃣6️⃣ HackerProfile
+// =====================================
+
+model HackerProfile {
+  id        String              @id @default(uuid())
+  user      User                @relation(fields: [userId], references: [id])
+  userId    String              @unique
+
+  bio                String
+  country            String?
+  yearsOfExperience  Int?
+  primarySkills      String[]
+  certifications     String[]
+  portfolioLinks     String[]
+
+  status      HackerProfileStatus @default(DRAFT)
+  reviewNotes String?
+
+  reviewedBy   User?   @relation("HackerProfileReviewedBy", fields: [reviewedById], references: [id])
+  reviewedById String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([status])
 }
 
 // =====================================
