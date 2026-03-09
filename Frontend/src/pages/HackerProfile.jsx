@@ -105,14 +105,14 @@ const HackerProfile = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-white">
-        <p className="text-sm font-mono text-gray-600">Loading hacker profile...</p>
+      <div className="min-h-screen flex items-center justify-center bg-[#0a0a0a] text-white">
+        <p className="text-sm font-mono text-gray-400">Loading hacker profile...</p>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-white flex items-center justify-center px-4">
+    <div className="min-h-screen bg-[#0a0a0a] text-white flex items-center justify-center px-4">
       <div className="w-full max-w-2xl py-10">
         <h1 className="text-2xl font-mono font-bold mb-2">Hacker profile</h1>
         <p className="text-xs font-mono text-gray-500 mb-6">
@@ -120,12 +120,12 @@ const HackerProfile = () => {
         </p>
 
         {error && (
-          <div className="mb-4 text-xs font-mono text-red-700 bg-red-50 border border-red-200 px-3 py-2 rounded">
+          <div className="mb-4 text-xs font-mono text-red-400 bg-red-950/30 border border-red-500/30 px-3 py-2 rounded">
             {error}
           </div>
         )}
         {success && (
-          <div className="mb-4 text-xs font-mono text-green-800 bg-green-50 border border-green-200 px-3 py-2 rounded">
+          <div className="mb-4 text-xs font-mono text-[#00ff88] bg-[#00ff88]/10 border border-[#00ff88]/30 px-3 py-2 rounded">
             {success}
           </div>
         )}
@@ -141,7 +141,7 @@ const HackerProfile = () => {
               value={form.bio}
               onChange={handleChange}
               required
-              className="w-full border border-gray-300 rounded-sm px-3 py-2 text-sm font-mono focus:outline-none focus:border-black"
+              className="w-full bg-white/5 border border-white/10 rounded-md px-3 py-2 text-sm font-mono text-white focus:outline-none focus:border-[#00ff88] transition-colors"
               placeholder="Briefly describe your experience, specialties, and approach to ethical hacking."
             />
           </div>
@@ -156,7 +156,7 @@ const HackerProfile = () => {
                 name="country"
                 value={form.country}
                 onChange={handleChange}
-                className="w-full border border-gray-300 rounded-sm px-3 py-2 text-sm font-mono focus:outline-none focus:border-black"
+                className="w-full bg-white/5 border border-white/10 rounded-md px-3 py-2 text-sm font-mono text-white focus:outline-none focus:border-[#00ff88] transition-colors"
                 placeholder="e.g. Germany"
               />
             </div>
@@ -171,7 +171,7 @@ const HackerProfile = () => {
                 onChange={handleChange}
                 min={0}
                 max={60}
-                className="w-full border border-gray-300 rounded-sm px-3 py-2 text-sm font-mono focus:outline-none focus:border-black"
+                className="w-full bg-white/5 border border-white/10 rounded-md px-3 py-2 text-sm font-mono text-white focus:outline-none focus:border-[#00ff88] transition-colors"
                 placeholder="e.g. 3"
               />
             </div>
@@ -187,7 +187,7 @@ const HackerProfile = () => {
               value={form.primarySkills}
               onChange={handleChange}
               required
-              className="w-full border border-gray-300 rounded-sm px-3 py-2 text-sm font-mono focus:outline-none focus:border-black"
+              className="w-full bg-white/5 border border-white/10 rounded-md px-3 py-2 text-sm font-mono text-white focus:outline-none focus:border-[#00ff88] transition-colors"
               placeholder="e.g. web app pentesting, mobile, cloud"
             />
           </div>
@@ -201,7 +201,7 @@ const HackerProfile = () => {
               name="certifications"
               value={form.certifications}
               onChange={handleChange}
-              className="w-full border border-gray-300 rounded-sm px-3 py-2 text-sm font-mono focus:outline-none focus:border-black"
+              className="w-full bg-white/5 border border-white/10 rounded-md px-3 py-2 text-sm font-mono text-white focus:outline-none focus:border-[#00ff88] transition-colors"
               placeholder="e.g. OSCP, CEH, eWPTX"
             />
           </div>
@@ -215,7 +215,7 @@ const HackerProfile = () => {
               name="portfolioLinks"
               value={form.portfolioLinks}
               onChange={handleChange}
-              className="w-full border border-gray-300 rounded-sm px-3 py-2 text-sm font-mono focus:outline-none focus:border-black"
+              className="w-full bg-white/5 border border-white/10 rounded-md px-3 py-2 text-sm font-mono text-white focus:outline-none focus:border-[#00ff88] transition-colors"
               placeholder="e.g. https://github.com/you, https://blog.example.com"
             />
           </div>
@@ -224,7 +224,7 @@ const HackerProfile = () => {
             <button
               type="submit"
               disabled={saving}
-              className="px-4 py-2 bg-black text-[#00ff88] font-mono text-xs uppercase tracking-widest rounded-sm hover:bg-[#00ff88] hover:text-black transition-colors disabled:opacity-60"
+              className="px-4 py-2 bg-[#00ff88] text-black font-mono text-xs uppercase tracking-widest rounded-md hover:bg-[#00ff88]/90 transition-colors disabled:opacity-60 font-bold"
             >
               {saving ? "Saving..." : "Save draft"}
             </button>
@@ -232,9 +232,17 @@ const HackerProfile = () => {
               type="button"
               disabled={saving}
               onClick={handleSubmitForReview}
-              className="px-4 py-2 border border-gray-900 text-gray-900 font-mono text-xs uppercase tracking-widest rounded-sm hover:bg-gray-900 hover:text-white transition-colors disabled:opacity-60"
+              className="px-4 py-2 bg-white/10 border border-white/20 text-white font-mono text-xs uppercase tracking-widest rounded-md hover:border-[#00ff88] hover:text-[#00ff88] transition-colors disabled:opacity-60"
             >
               Submit for review
+            </button>
+            <button
+              type="button"
+              disabled={saving}
+              onClick={() => navigate("/")}
+              className="px-4 py-2 bg-white/10 border border-white/20 text-white font-mono text-xs uppercase tracking-widest rounded-md hover:border-[#00ff88] hover:text-[#00ff88] transition-colors disabled:opacity-60 ml-auto"
+            >
+              Dashboard
             </button>
           </div>
         </form>
