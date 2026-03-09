@@ -10,6 +10,8 @@ import Home from "../pages/Home.jsx";
 import ForgotPassword from "../pages/ForgotPassword.jsx";
 import ResetPassword from "../pages/ResetPassword.jsx";
 import HackerProfile from "../pages/HackerProfile.jsx";
+import OrganizationProfile from "../pages/OrganizationProfile.jsx";
+
 const router = createBrowserRouter([
   {
     path: "/",
@@ -22,6 +24,10 @@ const router = createBrowserRouter([
       {
         path: "hacker-profile",
         element: <HackerProfile />,
+      },
+      {
+        path: "organization-profile",
+        element: <OrganizationProfile />,
       },
       {
         element: <AuthLayout />,
