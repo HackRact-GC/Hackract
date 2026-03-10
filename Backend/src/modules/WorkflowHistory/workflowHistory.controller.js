@@ -1,0 +1,43 @@
+import { PrismaClient } from '@prisma/client';
+import asyncHandler from 'express-async-handler';
+
+const prisma = new PrismaClient();
+
+// Record a new history event for a workflow
+export const recordHistory = asyncHandler(async (req, res) => {
+  const { workflowId } = req.params;
+  const { action, details, isSnapshot, snapshot } = req.body;
+
+  // Since we use 'protect' middleware, req.user holds the authenticated user details
+  const userId = req.user.id;
+
+  const historyRecord = await prisma.workflowHistory.create({
+    data: {
+      workflowId,
+      userId,
+      action,
+      details: details || {},
+      isSnapshot: isSnapshot || false,
+      snapshot: snapshot || null
+    }
+  });
+
+  res.status(201).json(historyRecord);
+});
+
+// Retrieve history for a specific workflow
+export const getHistory = asyncHandler(async (req, res) => {
+  const { workflowId } = req.params;
+
+  const history = await prisma.workflowHistory.findMany({
+    where: { workflowId },
+    orderBy: { createdAt: 'desc' },
+    include: {
+      user: {
+        select: { id: true, fullName: true, email: true, handle: true, avatar: true }
+      }
+    }
+  });
+
+  res.status(200).json(history);
+});
