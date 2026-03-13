@@ -8,14 +8,15 @@ const StartingPointNode = ({ data }) => {
       <div className="bg-[#0b0f19] border-b border-[#00ff41]/30 p-2 flex justify-between items-center text-[#00ff41]">
         <div className="flex items-center gap-2">
           <FiPlay size={16} />
-          <input 
-            className="bg-transparent border-none font-bold focus:outline-none w-full text-[#00ff41] placeholder-[#00ff41]/50" 
-            defaultValue={data.label || 'Starting Point'}
-            onBlur={(e) => data.onTitleChange && data.onTitleChange(e.target.value)}
-          />
+          <span className="font-bold">Starting Point</span>
         </div>
         <div className="flex items-center gap-2">
-          <span className="text-gray-400 text-xs">Initial Scan</span>
+          <input 
+            className="bg-transparent border-none text-right focus:outline-none text-gray-400 text-xs placeholder-gray-600 w-[120px]" 
+            placeholder="Scan Title..."
+            defaultValue={data.label || ''}
+            onBlur={(e) => data.onTitleChange && data.onTitleChange(e.target.value)}
+          />
           <button 
             className="text-gray-500 hover:text-red-500 transition-colors cursor-pointer"
             onClick={() => data.onDelete && data.onDelete()}
