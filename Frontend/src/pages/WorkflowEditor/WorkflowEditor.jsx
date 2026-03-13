@@ -61,7 +61,8 @@ const WorkflowEditor = ({ workflowId = "mock-id-123", pentestId }) => {
         ...node,
         data: {
           ...node.data,
-          onDelete: () => deleteNode(node.id)
+          onDelete: () => deleteNode(node.id),
+          onTitleChange: (newTitle) => updateNodeTitle(node.id, newTitle)
         }
       }));
       setNodes(nodesWithHandlers);
@@ -79,7 +80,8 @@ const WorkflowEditor = ({ workflowId = "mock-id-123", pentestId }) => {
             ...node,
             data: {
               ...node.data,
-              onDelete: () => deleteNode(node.id)
+              onDelete: () => deleteNode(node.id),
+              onTitleChange: (newTitle) => updateNodeTitle(node.id, newTitle)
             }
           }));
           setNodes(nodesWithHandlers);
@@ -138,7 +140,8 @@ const WorkflowEditor = ({ workflowId = "mock-id-123", pentestId }) => {
       position,
       data: {
         label: `${type} node`,
-        onDelete: () => deleteNode(id)
+        onDelete: () => deleteNode(id),
+        onTitleChange: (newTitle) => updateNodeTitle(id, newTitle)
       },
     };
 
@@ -158,6 +161,32 @@ const WorkflowEditor = ({ workflowId = "mock-id-123", pentestId }) => {
     const position = { x: 250, y: 250 }; 
     addNode(type, position);
   };
+
+  // Update Node Title Handler
+  const updateNodeTitle = useCallback((id, newTitle) => {
+    setNodes((nds) => {
+      const newNodes = nds.map((node) => {
+        if (node.id === id) {
+          return {
+            ...node,
+            data: {
+              ...node.data,
+              label: newTitle,
+            },
+          };
+        }
+        return node;
+      });
+
+      setEdges((eds) => {
+        emitWorkflowChange(newNodes, eds);
+        saveToDatabase(newNodes, eds, "UPDATE_TITLE", { nodeId: id, newTitle });
+        return eds;
+      });
+
+      return newNodes;
+    });
+  }, [emitWorkflowChange, setNodes, setEdges]);
 
   // Handle Connecting Nodes
   const onConnect = useCallback(
