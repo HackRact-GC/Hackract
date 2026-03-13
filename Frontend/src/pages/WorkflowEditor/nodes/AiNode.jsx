@@ -5,15 +5,17 @@ const AiNode = ({ data, selected }) => {
   return (
     <div className={`bg-[#0b0f19] border rounded-lg w-[280px] font-mono text-sm transition-all ${selected ? 'border-[#00a3ff] shadow-[0_0_20px_rgba(0,163,255,0.6)]' : 'border-[#00a3ff]/50 shadow-[0_0_10px_rgba(0,163,255,0.3)]'}`}>
       <div className="p-2 flex justify-between items-center text-[#00a3ff] border-b border-[#00a3ff]/30">
-        <div className="flex items-center gap-2 flex-1">
+        <div className="flex items-center gap-2">
           <FiCpu size={16} />
-          <input 
-            className="bg-transparent border-none font-bold focus:outline-none w-full text-[#00a3ff] placeholder-[#00a3ff]/50" 
-            defaultValue={data.label || 'AI'}
-            onBlur={(e) => data.onTitleChange && data.onTitleChange(e.target.value)}
-          />
+          <span className="font-bold text-xs uppercase tracking-tighter">AI Assistant</span>
         </div>
         <div className="flex items-center gap-2">
+          <input 
+            className="bg-transparent border-none text-right focus:outline-none text-gray-500 text-xs placeholder-gray-700 w-[100px]" 
+            placeholder="Task name..."
+            defaultValue={data.label || ''}
+            onBlur={(e) => data.onTitleChange && data.onTitleChange(e.target.value)}
+          />
           <button 
             className="text-gray-500 hover:text-red-500 transition-colors cursor-pointer"
             onClick={() => data.onDelete && data.onDelete()}

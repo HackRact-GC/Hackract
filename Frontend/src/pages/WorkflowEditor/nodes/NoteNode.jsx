@@ -6,15 +6,17 @@ const NoteNode = ({ data, selected }) => {
     <div className={`bg-[#0b0f19] border rounded-lg w-[260px] font-mono text-sm transition-all ${selected ? 'border-[#ff7a00] shadow-[0_0_20px_rgba(255,122,0,0.6)]' : 'border-[#ff7a00]/50 shadow-[0_0_10px_rgba(255,122,0,0.3)]'}`}>
       {/* Header */}
       <div className="p-2 flex justify-between items-center text-[#ff7a00] border-b border-[#ff7a00]/30">
-        <div className="flex items-center gap-2 flex-1">
+        <div className="flex items-center gap-2">
           <FiFileText size={16} />
-          <input 
-            className="bg-transparent border-none font-bold focus:outline-none w-full text-[#ff7a00] placeholder-[#ff7a00]/50" 
-            defaultValue={data.label || 'Note'}
-            onBlur={(e) => data.onTitleChange && data.onTitleChange(e.target.value)}
-          />
+          <span className="font-bold text-xs uppercase tracking-tighter">Research Note</span>
         </div>
         <div className="flex items-center gap-2">
+          <input 
+            className="bg-transparent border-none text-right focus:outline-none text-gray-500 text-xs placeholder-gray-700 w-[100px]" 
+            placeholder="Title..."
+            defaultValue={data.label || ''}
+            onBlur={(e) => data.onTitleChange && data.onTitleChange(e.target.value)}
+          />
           <button 
             className="text-gray-500 hover:text-red-500 transition-colors cursor-pointer"
             onClick={() => data.onDelete && data.onDelete()}
