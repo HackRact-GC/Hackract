@@ -105,45 +105,16 @@ const HackerProfile = () => {
 
   if (loading) {
     return (
-<<<<<<< HEAD
-      <div className="min-h-screen flex items-center justify-center bg-[#0a0a0a] text-white">
-        <p className="text-sm font-mono text-gray-400">Loading hacker profile...</p>
-=======
       <div className="min-h-screen flex items-center justify-center bg-[#0a0a0a]">
         <div className="flex flex-col items-center gap-4">
           <div className="w-12 h-12 border-4 border border-[#00ff88]/20 border-t-[#00ff88] rounded-full animate-spin"></div>
           <p className="text-sm font-mono text-[#00ff88] animate-pulse">Initializing neural link...</p>
         </div>
->>>>>>> dde535ac4d5b17dc36b5079824fc5d19582bc2a7
       </div>
     );
   }
 
   return (
-<<<<<<< HEAD
-    <div className="min-h-screen bg-[#0a0a0a] text-white flex items-center justify-center px-4">
-      <div className="w-full max-w-2xl py-10">
-        <h1 className="text-2xl font-mono font-bold mb-2">Hacker profile</h1>
-        <p className="text-xs font-mono text-gray-500 mb-6">
-          Tell us who you are as an ethical hacker. This helps organizations trust you.
-        </p>
-
-        {error && (
-          <div className="mb-4 text-xs font-mono text-red-400 bg-red-950/30 border border-red-500/30 px-3 py-2 rounded">
-            {error}
-          </div>
-        )}
-        {success && (
-          <div className="mb-4 text-xs font-mono text-[#00ff88] bg-[#00ff88]/10 border border-[#00ff88]/30 px-3 py-2 rounded">
-            {success}
-          </div>
-        )}
-
-        <form className="space-y-4" onSubmit={handleSubmit}>
-          <div>
-            <label className="block text-xs font-bold font-sans uppercase tracking-widest text-gray-500 mb-1">
-              Bio
-=======
     <div className="min-h-screen bg-[#0a0a0a] font-sans text-gray-200 flex items-center justify-center px-4 py-12 relative overflow-hidden">
       {/* Background ambient glows */}
       <div className="absolute top-1/4 -left-32 w-96 h-96 bg-[#00ff88] rounded-full mix-blend-screen filter blur-[150px] opacity-10 pointer-events-none"></div>
@@ -187,7 +158,6 @@ const HackerProfile = () => {
             <label className="flex items-center gap-2 text-xs font-mono uppercase tracking-widest text-gray-500 group-focus-within:text-[#00ff88] transition-colors">
               <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>
               Bio / Directive
->>>>>>> dde535ac4d5b17dc36b5079824fc5d19582bc2a7
             </label>
             <textarea
               name="bio"
@@ -195,17 +165,6 @@ const HackerProfile = () => {
               value={form.bio}
               onChange={handleChange}
               required
-<<<<<<< HEAD
-              className="w-full bg-white/5 border border-white/10 rounded-md px-3 py-2 text-sm font-mono text-white focus:outline-none focus:border-[#00ff88] transition-colors"
-              placeholder="Briefly describe your experience, specialties, and approach to ethical hacking."
-            />
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-xs font-bold font-sans uppercase tracking-widest text-gray-500 mb-1">
-                Country
-=======
               className="w-full bg-[#1a1a1a] border border-gray-800 rounded-lg px-4 py-3 text-sm text-gray-300 font-mono focus:outline-none focus:border-[#00ff88] focus:ring-1 focus:ring-[#00ff88] focus:bg-[#0a0a0a] transition-all placeholder-gray-600 resize-none"
               placeholder="Briefly describe your experience, specialties, and approach to ethical hacking..."
             />
@@ -216,22 +175,12 @@ const HackerProfile = () => {
               <label className="flex items-center gap-2 text-xs font-mono uppercase tracking-widest text-gray-500 group-focus-within:text-[#00ff88] transition-colors">
                 <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
                 Location / Node
->>>>>>> dde535ac4d5b17dc36b5079824fc5d19582bc2a7
               </label>
               <input
                 type="text"
                 name="country"
                 value={form.country}
                 onChange={handleChange}
-<<<<<<< HEAD
-                className="w-full bg-white/5 border border-white/10 rounded-md px-3 py-2 text-sm font-mono text-white focus:outline-none focus:border-[#00ff88] transition-colors"
-                placeholder="e.g. Germany"
-              />
-            </div>
-            <div>
-              <label className="block text-xs font-bold font-sans uppercase tracking-widest text-gray-500 mb-1">
-                Years of experience
-=======
                 className="w-full bg-[#1a1a1a] border border-gray-800 rounded-lg px-4 py-3 text-sm text-gray-300 font-mono focus:outline-none focus:border-[#00ff88] focus:ring-1 focus:ring-[#00ff88] focus:bg-[#0a0a0a] transition-all placeholder-gray-600"
                 placeholder="e.g. Germany"
               />
@@ -240,7 +189,6 @@ const HackerProfile = () => {
               <label className="flex items-center gap-2 text-xs font-mono uppercase tracking-widest text-gray-500 group-focus-within:text-[#00ff88] transition-colors">
                 <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
                 Years Active
->>>>>>> dde535ac4d5b17dc36b5079824fc5d19582bc2a7
               </label>
               <input
                 type="number"
@@ -249,26 +197,16 @@ const HackerProfile = () => {
                 onChange={handleChange}
                 min={0}
                 max={60}
-<<<<<<< HEAD
-                className="w-full bg-white/5 border border-white/10 rounded-md px-3 py-2 text-sm font-mono text-white focus:outline-none focus:border-[#00ff88] transition-colors"
-=======
                 className="w-full bg-[#1a1a1a] border border-gray-800 rounded-lg px-4 py-3 text-sm text-gray-300 font-mono focus:outline-none focus:border-[#00ff88] focus:ring-1 focus:ring-[#00ff88] focus:bg-[#0a0a0a] transition-all placeholder-gray-600"
->>>>>>> dde535ac4d5b17dc36b5079824fc5d19582bc2a7
                 placeholder="e.g. 3"
               />
             </div>
           </div>
 
-<<<<<<< HEAD
-          <div>
-            <label className="block text-xs font-bold font-sans uppercase tracking-widest text-gray-500 mb-1">
-              Primary skills (comma-separated)
-=======
           <div className="space-y-2 group">
             <label className="flex items-center gap-2 text-xs font-mono uppercase tracking-widest text-gray-500 group-focus-within:text-[#00ff88] transition-colors">
               <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" /></svg>
               Core Capabilities (Skills)
->>>>>>> dde535ac4d5b17dc36b5079824fc5d19582bc2a7
             </label>
             <input
               type="text"
@@ -276,16 +214,6 @@ const HackerProfile = () => {
               value={form.primarySkills}
               onChange={handleChange}
               required
-<<<<<<< HEAD
-              className="w-full bg-white/5 border border-white/10 rounded-md px-3 py-2 text-sm font-mono text-white focus:outline-none focus:border-[#00ff88] transition-colors"
-              placeholder="e.g. web app pentesting, mobile, cloud"
-            />
-          </div>
-
-          <div>
-            <label className="block text-xs font-bold font-sans uppercase tracking-widest text-gray-500 mb-1">
-              Certifications (comma-separated)
-=======
               className="w-full bg-[#1a1a1a] border border-gray-800 rounded-lg px-4 py-3 text-sm text-gray-300 font-mono focus:outline-none focus:border-[#00ff88] focus:ring-1 focus:ring-[#00ff88] focus:bg-[#0a0a0a] transition-all placeholder-gray-600"
               placeholder="e.g. web app pentesting, mobile, cloud"
             />
@@ -296,56 +224,32 @@ const HackerProfile = () => {
             <label className="flex items-center gap-2 text-xs font-mono uppercase tracking-widest text-gray-500 group-focus-within:text-[#00ff88] transition-colors">
               <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z" /></svg>
               Certifications
->>>>>>> dde535ac4d5b17dc36b5079824fc5d19582bc2a7
             </label>
             <input
               type="text"
               name="certifications"
               value={form.certifications}
               onChange={handleChange}
-<<<<<<< HEAD
-              className="w-full bg-white/5 border border-white/10 rounded-md px-3 py-2 text-sm font-mono text-white focus:outline-none focus:border-[#00ff88] transition-colors"
-=======
               className="w-full bg-[#1a1a1a] border border-gray-800 rounded-lg px-4 py-3 text-sm text-gray-300 font-mono focus:outline-none focus:border-[#00ff88] focus:ring-1 focus:ring-[#00ff88] focus:bg-[#0a0a0a] transition-all placeholder-gray-600"
->>>>>>> dde535ac4d5b17dc36b5079824fc5d19582bc2a7
               placeholder="e.g. OSCP, CEH, eWPTX"
             />
           </div>
 
-<<<<<<< HEAD
-          <div>
-            <label className="block text-xs font-bold font-sans uppercase tracking-widest text-gray-500 mb-1">
-              Portfolio links (comma-separated URLs)
-=======
           <div className="space-y-2 group">
             <label className="flex items-center gap-2 text-xs font-mono uppercase tracking-widest text-gray-500 group-focus-within:text-[#00ff88] transition-colors">
               <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" /></svg>
               Portfolio / Vectors
->>>>>>> dde535ac4d5b17dc36b5079824fc5d19582bc2a7
             </label>
             <input
               type="text"
               name="portfolioLinks"
               value={form.portfolioLinks}
               onChange={handleChange}
-<<<<<<< HEAD
-              className="w-full bg-white/5 border border-white/10 rounded-md px-3 py-2 text-sm font-mono text-white focus:outline-none focus:border-[#00ff88] transition-colors"
-=======
               className="w-full bg-[#1a1a1a] border border-gray-800 rounded-lg px-4 py-3 text-sm text-gray-300 font-mono focus:outline-none focus:border-[#00ff88] focus:ring-1 focus:ring-[#00ff88] focus:bg-[#0a0a0a] transition-all placeholder-gray-600"
->>>>>>> dde535ac4d5b17dc36b5079824fc5d19582bc2a7
               placeholder="e.g. https://github.com/you, https://blog.example.com"
             />
           </div>
 
-<<<<<<< HEAD
-          <div className="flex items-center gap-3 pt-2">
-            <button
-              type="submit"
-              disabled={saving}
-              className="px-4 py-2 bg-[#00ff88] text-black font-mono text-xs uppercase tracking-widest rounded-md hover:bg-[#00ff88]/90 transition-colors disabled:opacity-60 font-bold"
-            >
-              {saving ? "Saving..." : "Save draft"}
-=======
           <div className="flex flex-col sm:flex-row items-center gap-4 pt-4 mt-8 border-t border-gray-800">
             <button
               type="submit"
@@ -363,30 +267,15 @@ const HackerProfile = () => {
                   Save Draft
                 </>
               )}
->>>>>>> dde535ac4d5b17dc36b5079824fc5d19582bc2a7
             </button>
             <button
               type="button"
               disabled={saving}
               onClick={handleSubmitForReview}
-<<<<<<< HEAD
-              className="px-4 py-2 bg-white/10 border border-white/20 text-white font-mono text-xs uppercase tracking-widest rounded-md hover:border-[#00ff88] hover:text-[#00ff88] transition-colors disabled:opacity-60"
-            >
-              Submit for review
-            </button>
-            <button
-              type="button"
-              disabled={saving}
-              onClick={() => navigate("/")}
-              className="px-4 py-2 bg-white/10 border border-white/20 text-white font-mono text-xs uppercase tracking-widest rounded-md hover:border-[#00ff88] hover:text-[#00ff88] transition-colors disabled:opacity-60 ml-auto"
-            >
-              Dashboard
-=======
               className="w-full sm:w-auto px-8 py-3 bg-transparent border border-[#00ff88]/50 text-[#00ff88] font-bold font-mono text-sm uppercase tracking-wider rounded-lg hover:bg-[#00ff88]/10 hover:border-[#00ff88] transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
             >
               <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" /></svg>
               Submit for Review
->>>>>>> dde535ac4d5b17dc36b5079824fc5d19582bc2a7
             </button>
           </div>
         </form>
@@ -396,7 +285,3 @@ const HackerProfile = () => {
 };
 
 export default HackerProfile;
-<<<<<<< HEAD
-
-=======
->>>>>>> dde535ac4d5b17dc36b5079824fc5d19582bc2a7
