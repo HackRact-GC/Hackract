@@ -7,8 +7,12 @@ import Login from "../pages/Login.jsx";
 import Register from "../pages/Register.jsx";
 import VerifyEmail from "../pages/VerifyEmail.jsx";
 import Home from "../pages/Home.jsx";
+import Landing from "../pages/Landing.jsx";
 import ForgotPassword from "../pages/ForgotPassword.jsx";
 import ResetPassword from "../pages/ResetPassword.jsx";
+import HackerProfile from "../pages/HackerProfile.jsx";
+import OrganizationProfile from "../pages/OrganizationProfile.jsx";
+
 const router = createBrowserRouter([
   {
     path: "/",
@@ -16,7 +20,19 @@ const router = createBrowserRouter([
     children: [
       {
         index: true,
+        element: <Landing />,
+      },
+      {
+        path: "dashboard",
         element: <Home />,
+      },
+      {
+        path: "hacker-profile",
+        element: <HackerProfile />,
+      },
+      {
+        path: "organization-profile",
+        element: <OrganizationProfile />,
       },
       {
         element: <AuthLayout />,
