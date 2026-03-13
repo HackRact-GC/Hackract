@@ -12,12 +12,9 @@ import AiAgentRouter from "./modules/AiAgent/agent.routes.js";
 import AuditLogRouter from "./modules/AuditLogs/auditLog.routes.js";
 import LegalAgreementRouter from "./modules/LegalAgreement/legalAgreement.routes.js";
 import UserSignatureRouter from "./modules/UserSignature/userSignature.routes.js";
-<<<<<<< HEAD
 import WorkflowRouter from "./modules/Workflow/workflow.routes.js";
 import WorkflowHistoryRouter from "./modules/WorkflowHistory/workflowHistory.routes.js";
-=======
 import HackerProfileRouter from "./modules/HackerProfile/hackerProfile.routes.js";
->>>>>>> aa5a0c3ffcdbfba4f4871c45b17db60fd7fe8c92
 
 const router = express.Router();
 
@@ -34,11 +31,8 @@ router.use("/ai-agents", AiAgentRouter);
 router.use("/audit-logs", AuditLogRouter);
 router.use("/legal-agreements", LegalAgreementRouter);
 router.use("/user-signatures", UserSignatureRouter);
-<<<<<<< HEAD
 router.use("/workflows", WorkflowRouter);
 router.use("/workflows", WorkflowHistoryRouter);
-=======
 router.use("/hacker-profiles", HackerProfileRouter);
->>>>>>> aa5a0c3ffcdbfba4f4871c45b17db60fd7fe8c92
 
 export default router;
