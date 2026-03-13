@@ -139,7 +139,7 @@ const WorkflowEditor = ({ workflowId = "mock-id-123", pentestId }) => {
       type,
       position,
       data: {
-        label: `${type} node`,
+        label: '',
         onDelete: () => deleteNode(id),
         onTitleChange: (newTitle) => updateNodeTitle(id, newTitle)
       },
