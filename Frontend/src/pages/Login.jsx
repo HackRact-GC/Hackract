@@ -108,11 +108,11 @@ const Login = () => {
                     onChange={handleChange}
                 />
 
-                        <div className="text-right text-[11px] font-mono text-gray-500">
-                                <Link to="/forgot-password" className="underline hover:text-black transition-colors font-bold uppercase">
-                                        Forgot password?
-                                </Link>
-                        </div>
+                <div className="text-right text-[11px] font-mono text-gray-500">
+                    <Link to="/forgot-password" className="underline hover:text-black transition-colors font-bold uppercase">
+                        Forgot password?
+                    </Link>
+                </div>
 
                 <button
                     type="submit"

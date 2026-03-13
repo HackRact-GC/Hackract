@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext.jsx";
 
 const InputField = ({ label, type, placeholder, id, name, value, onChange }) => (
@@ -29,6 +29,7 @@ const InputField = ({ label, type, placeholder, id, name, value, onChange }) => 
 
 const Register = () => {
   const { register, loading } = useAuth();
+  const navigate = useNavigate();
   const [form, setForm] = useState({
     fullName: "",
     handle: "",
@@ -54,6 +55,16 @@ const Register = () => {
       const result = await register(payload);
       setSuccessMessage(result?.message || "Registration successful. Check your email to verify your account.");
       console.info("[ui] registration success", result);
+
+      const registeredUser = result?.user;
+      const roles = registeredUser?.roles || [];
+      const isHacker = roles.some((role) => role.type === "PENTESTER");
+
+      if (isHacker) {
+        navigate("/hacker-profile");
+      } else {
+        navigate("/");
+      }
     } catch (err) {
       const backendError = err?.response?.data?.error || err?.response?.data?.message;
       setErrorMessage(backendError || "Registration failed. Please try again.");

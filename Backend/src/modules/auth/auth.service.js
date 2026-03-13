@@ -298,7 +298,7 @@ class AuthService {
             include: { roles: true },
         });
 
-        // In development, skip email verification entirely and allow immediate login
+        // In development, skip email verification entirely and issue tokens immediately
         if (process.env.NODE_ENV === 'development') {
             user = await prisma.user.update({
                 where: { id: user.id },
@@ -310,9 +310,12 @@ class AuthService {
                 include: { roles: true },
             });
 
+            const issued = await this.issueTokens(user, meta);
+
             return {
-                user: this.sanitizeUser(user),
-                message: 'Registration successful. Email verification is skipped in development. You can log in now.',
+                ...issued,
+                message:
+                    'Registration successful. Email verification is skipped in development, and you are now signed in.',
             };
         }
 

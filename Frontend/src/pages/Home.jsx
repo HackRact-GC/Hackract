@@ -10,55 +10,55 @@ const Home = () => {
 
   const navItems = isOrgView
     ? [
-        { label: "Org Overview", active: true },
-        { label: "Teams" },
-        { label: "Engagements" },
-        { label: "Compliance" },
-        { label: "Settings" },
-      ]
+      { label: "Org Overview", active: true },
+      { label: "Teams" },
+      { label: "Engagements" },
+      { label: "Compliance" },
+      { label: "Settings" },
+    ]
     : [
-        { label: "Dashboard", active: true },
-        { label: "Pentests" },
-        { label: "Reports" },
-        { label: "Findings" },
-        { label: "Settings" },
-      ];
+      { label: "Dashboard", active: true },
+      { label: "Pentests" },
+      { label: "Reports" },
+      { label: "Findings" },
+      { label: "Settings" },
+    ];
 
   const quickActions = isOrgView
     ? [
-        { title: "Create Program", description: "Define a new security program" },
-        { title: "Invite Pentester", description: "Bring in an external operator" },
-        { title: "Review Findings", description: "Prioritize open issues" },
-      ]
+      { title: "Create Program", description: "Define a new security program" },
+      { title: "Invite Pentester", description: "Bring in an external operator" },
+      { title: "Review Findings", description: "Prioritize open issues" },
+    ]
     : [
-        { title: "New Pentest", description: "Kick off a scoped engagement" },
-        { title: "Upload Evidence", description: "Attach screenshots or logs" },
-        { title: "Invite Teammate", description: "Collaborate on findings" },
-      ];
+      { title: "New Pentest", description: "Kick off a scoped engagement" },
+      { title: "Upload Evidence", description: "Attach screenshots or logs" },
+      { title: "Invite Teammate", description: "Collaborate on findings" },
+    ];
 
   const highlights = isOrgView
     ? [
-        { title: "Active Programs", value: "4", tone: "bg-emerald-50 text-emerald-800" },
-        { title: "Vulns Awaiting Triage", value: "18", tone: "bg-amber-50 text-amber-800" },
-        { title: "Vendors Engaged", value: "6", tone: "bg-sky-50 text-sky-800" },
-      ]
+      { title: "Active Programs", value: "4", tone: "bg-emerald-50 text-emerald-800" },
+      { title: "Vulns Awaiting Triage", value: "18", tone: "bg-amber-50 text-amber-800" },
+      { title: "Vendors Engaged", value: "6", tone: "bg-sky-50 text-sky-800" },
+    ]
     : [
-        { title: "Open Findings", value: "12", tone: "bg-amber-50 text-amber-800" },
-        { title: "In Progress", value: "3", tone: "bg-blue-50 text-blue-800" },
-        { title: "Reports Due", value: "2", tone: "bg-rose-50 text-rose-800" },
-      ];
+      { title: "Open Findings", value: "12", tone: "bg-amber-50 text-amber-800" },
+      { title: "In Progress", value: "3", tone: "bg-blue-50 text-blue-800" },
+      { title: "Reports Due", value: "2", tone: "bg-rose-50 text-rose-800" },
+    ];
 
   const activity = isOrgView
     ? [
-        { title: "New vendor added to program", time: "1h ago" },
-        { title: "Policy exception approved", time: "5h ago" },
-        { title: "Quarterly report exported", time: "Yesterday" },
-      ]
+      { title: "New vendor added to program", time: "1h ago" },
+      { title: "Policy exception approved", time: "5h ago" },
+      { title: "Quarterly report exported", time: "Yesterday" },
+    ]
     : [
-        { title: "SQLi discovered on login", time: "2h ago" },
-        { title: "Report draft exported", time: "6h ago" },
-        { title: "New collaborator added", time: "Yesterday" },
-      ];
+      { title: "SQLi discovered on login", time: "2h ago" },
+      { title: "Report draft exported", time: "6h ago" },
+      { title: "New collaborator added", time: "Yesterday" },
+    ];
 
   const handleLogout = async () => {
     await logout();
@@ -74,11 +74,10 @@ const Home = () => {
           {navItems.map((item) => (
             <button
               key={item.label}
-              className={`w-full text-left px-4 py-3 rounded-lg font-mono text-sm transition-all duration-200 ${
-                item.active
+              className={`w-full text-left px-4 py-3 rounded-lg font-mono text-sm transition-all duration-200 ${item.active
                   ? "bg-[#00ff88] text-black shadow-lg shadow-[#00ff88]/30"
                   : "text-gray-300 hover:bg-white/5"
-              }`}
+                }`}
             >
               {item.label}
             </button>
@@ -181,8 +180,10 @@ const Home = () => {
                 <div>MFA: Enabled</div>
                 <div>Last login: Today</div>
               </div>
-              <button className="mt-4 w-full py-2 bg-white/10 border border-white/20 rounded-md text-xs font-mono uppercase tracking-widest hover:border-[#00ff88] transition-colors">
-                View profile
+              <button
+                onClick={() => navigate(isOrgView ? "/organization-profile" : "/hacker-profile")}
+                className="mt-4 w-full py-2 bg-white/10 border border-white/20 rounded-md text-xs font-mono uppercase tracking-widest hover:border-[#00ff88] transition-colors">
+                {isOrgView ? "Org profile" : "Hacker profile"}
               </button>
             </div>
 
