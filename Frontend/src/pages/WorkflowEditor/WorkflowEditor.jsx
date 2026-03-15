@@ -8,7 +8,8 @@ import {
   useEdgesState, 
   Controls, 
   Background,
-  MiniMap
+  MiniMap,
+  Panel
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 import { formatDistanceToNow } from 'date-fns';
@@ -20,6 +21,7 @@ import AiNode from './nodes/AiNode';
 import TerminalNode from './nodes/TerminalNode';
 import Sidebar from './components/Sidebar';
 import HistorySidebar from './components/HistorySidebar';
+import WorkflowControls from './components/WorkflowControls';
 
 // Hooks & Services
 import { useWorkflowSocket } from '../../hooks/useWorkflowSocket';
@@ -37,16 +39,19 @@ const WorkflowEditor = ({ workflowId = "mock-id-123", pentestId }) => {
   const [reactFlowInstance, setReactFlowInstance] = useState(null);
   const [lastSaved, setLastSaved] = useState(new Date());
   const [isHistoryOpen, setIsHistoryOpen] = useState(false);
+  const [isLocked, setIsLocked] = useState(false);
 
-  // Socket Hook for Real-time Collab
   const {
     socket,
     collaborators,
     cursors,
+    activeNodes,
     nodes: remoteNodes,
     edges: remoteEdges,
     emitWorkflowChange,
-    emitCursorMove
+    emitCursorMove,
+    emitNodeFocus,
+    user: localUser
   } = useWorkflowSocket(workflowId);
 
   // Local React Flow State
@@ -62,7 +67,8 @@ const WorkflowEditor = ({ workflowId = "mock-id-123", pentestId }) => {
         data: {
           ...node.data,
           onDelete: () => deleteNode(node.id),
-          onTitleChange: (newTitle) => updateNodeTitle(node.id, newTitle)
+          onTitleChange: (newTitle) => updateNodeTitle(node.id, newTitle),
+          activeUsers: activeNodes[node.id] || {}
         }
       }));
       setNodes(nodesWithHandlers);
@@ -81,7 +87,8 @@ const WorkflowEditor = ({ workflowId = "mock-id-123", pentestId }) => {
             data: {
               ...node.data,
               onDelete: () => deleteNode(node.id),
-              onTitleChange: (newTitle) => updateNodeTitle(node.id, newTitle)
+              onTitleChange: (newTitle) => updateNodeTitle(node.id, newTitle),
+              activeUsers: activeNodes[node.id] || {}
             }
           }));
           setNodes(nodesWithHandlers);
@@ -141,7 +148,8 @@ const WorkflowEditor = ({ workflowId = "mock-id-123", pentestId }) => {
       data: {
         label: '',
         onDelete: () => deleteNode(id),
-        onTitleChange: (newTitle) => updateNodeTitle(id, newTitle)
+        onTitleChange: (newTitle) => updateNodeTitle(id, newTitle),
+        activeUsers: {}
       },
     };
 
@@ -246,6 +254,28 @@ const WorkflowEditor = ({ workflowId = "mock-id-123", pentestId }) => {
     }
   }, [onNodesChange, emitWorkflowChange, setNodes, setEdges]);
 
+  // Sync activeNodes to node data
+  useEffect(() => {
+    setNodes((nds) => 
+      nds.map(node => ({
+        ...node,
+        data: {
+          ...node.data,
+          activeUsers: activeNodes[node.id] || {}
+        }
+      }))
+    );
+  }, [activeNodes, setNodes]);
+
+  const onSelectionChange = useCallback(({ nodes: selectedNodes }) => {
+    const mainNode = selectedNodes[0];
+    if (mainNode) {
+      emitNodeFocus(mainNode.id, localUser.name, localUser.color);
+    } else {
+      emitNodeFocus(null, localUser.name, localUser.color);
+    }
+  }, [emitNodeFocus, localUser]);
+
   // Render Remote Cursors
   const renderCursors = () => {
     return Object.entries(cursors).map(([socketId, cursor]) => (
@@ -282,14 +312,19 @@ const WorkflowEditor = ({ workflowId = "mock-id-123", pentestId }) => {
         </div>
 
         <div className="flex items-center gap-3">
-           {/* Active Collaborators Bubbles */}
-           <div className="flex -space-x-2">
-              {Object.keys(collaborators).map((id, index) => (
-                <div key={id} className={`w-8 h-8 rounded-full border-2 border-[#0b0f19] flex items-center justify-center text-xs font-bold ring-1 ring-[#00ff41]/30`} style={{ backgroundColor: `hsl(${index * 40}, 70%, 50%)`}}>
-                  {collaborators[id].user?.[0] || 'U'}
-                </div>
-              ))}
-           </div>
+            {/* Active Collaborators Bubbles */}
+            <div className="flex -space-x-2 items-center">
+               {Object.values(collaborators).map((collab, index) => (
+                 <div 
+                   key={collab.id} 
+                   className="w-8 h-8 rounded-full border-2 border-[#0b0f19] flex items-center justify-center text-xs font-bold shadow-lg transition-transform hover:-translate-y-1 hover:z-30 cursor-help" 
+                   style={{ backgroundColor: collab.color || '#00ff41', color: '#fff', zIndex: 10 + index }}
+                   title={collab.user}
+                >
+                   {collab.user?.[0] || 'U'}
+                 </div>
+               ))}
+            </div>
 
            <div className="h-6 w-px bg-gray-700 mx-2"></div>
 
@@ -312,7 +347,7 @@ const WorkflowEditor = ({ workflowId = "mock-id-123", pentestId }) => {
 
       {/* Main Workspace */}
       <div className="flex flex-1 overflow-hidden relative"
-           onMouseMove={(e) => emitCursorMove(e.clientX, e.clientY, 'You')}>
+           onMouseMove={(e) => emitCursorMove(e.clientX, e.clientY, localUser.name)}>
 
         <Sidebar onAdd={addNodeByClick} />
 
@@ -329,9 +364,14 @@ const WorkflowEditor = ({ workflowId = "mock-id-123", pentestId }) => {
               onInit={setReactFlowInstance}
               onDrop={onDrop}
               onDragOver={onDragOver}
+              onSelectionChange={onSelectionChange}
               nodeTypes={nodeTypes}
               fitView
               className="bg-[#07090e]"
+              nodesDraggable={!isLocked}
+              nodesConnectable={!isLocked}
+              elementsSelectable={!isLocked}
+              panOnDrag={!isLocked}
             >
               <Background 
                 variant="lines" 
@@ -339,10 +379,9 @@ const WorkflowEditor = ({ workflowId = "mock-id-123", pentestId }) => {
                 gap={40} 
                 className="bg-[#07090e]" 
               />
-              <Controls 
-                position="bottom-left" 
-                className="bg-[#161a23] border border-gray-800 rounded-lg shadow-xl p-1 [&>button]:border-gray-700 [&>button]:bg-transparent hover:[&>button]:bg-[#00a3ff]/20 [&>button>svg]:fill-[#00a3ff]" 
-              />
+              <Panel position="bottom-left">
+                <WorkflowControls isLocked={isLocked} onToggleLock={() => setIsLocked(!isLocked)} />
+              </Panel>
               <MiniMap 
                 nodeColor={(n) => {
                   if (n.type === 'startingPoint') return '#00ff41';
