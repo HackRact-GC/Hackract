@@ -1,9 +1,27 @@
 import { Handle, Position } from '@xyflow/react';
 import { FiPlay, FiX } from 'react-icons/fi';
 
-const StartingPointNode = ({ data }) => {
+const StartingPointNode = ({ data, selected }) => {
+  const activeUsers = Object.values(data.activeUsers || {});
+  const showPresence = activeUsers.length > 0;
+
   return (
-    <div className="bg-[#0b0f19] border border-[#00ff41] rounded-lg shadow-[0_0_15px_rgba(0,255,65,0.4)] w-[300px] font-mono text-sm overflow-hidden">
+    <div className={`bg-[#0b0f19] border ${showPresence ? 'border-[#00ff41]' : 'border-[#00ff41]/50'} rounded-lg shadow-[0_0_15px_rgba(0,255,65,0.4)] w-[300px] font-mono text-sm overflow-hidden transition-all ${selected ? 'ring-2 ring-[#00ff41]' : ''}`}>
+      {/* Presence Indicators (Figma Style) */}
+      {showPresence && (
+        <div className="absolute -top-6 right-0 flex -space-x-2">
+          {activeUsers.map((u, i) => (
+            <div 
+              key={i} 
+              className="w-5 h-5 rounded-full border-2 border-[#0b0f19] flex items-center justify-center text-[10px] font-bold text-white shadow-lg animate-bounce"
+              style={{ backgroundColor: u.color || '#00ff41' }}
+              title={u.user}
+            >
+              {u.user?.[0] || 'U'}
+            </div>
+          ))}
+        </div>
+      )}
       {/* Header */}
       <div className="bg-[#0b0f19] border-b border-[#00ff41]/30 p-2 flex justify-between items-center text-[#00ff41]">
         <div className="flex items-center gap-2">

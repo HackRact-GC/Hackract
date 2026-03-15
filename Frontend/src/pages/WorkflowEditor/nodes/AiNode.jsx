@@ -2,8 +2,26 @@ import { Handle, Position } from '@xyflow/react';
 import { FiCpu, FiX } from 'react-icons/fi';
 
 const AiNode = ({ data, selected }) => {
+  const activeUsers = Object.values(data.activeUsers || {});
+  const showPresence = activeUsers.length > 0;
+
   return (
-    <div className={`bg-[#0b0f19] border rounded-lg w-[280px] font-mono text-sm transition-all ${selected ? 'border-[#00a3ff] shadow-[0_0_20px_rgba(0,163,255,0.6)]' : 'border-[#00a3ff]/50 shadow-[0_0_10px_rgba(0,163,255,0.3)]'}`}>
+    <div className={`bg-[#0b0f19] border rounded-lg w-[280px] font-mono text-sm transition-all relative ${selected || showPresence ? 'border-[#00a3ff] shadow-[0_0_20px_rgba(0,163,255,0.6)]' : 'border-[#00a3ff]/50 shadow-[0_0_10px_rgba(0,163,255,0.3)]'}`}>
+      {/* Presence Indicators (Figma Style) */}
+      {showPresence && (
+        <div className="absolute -top-6 right-0 flex -space-x-2">
+          {activeUsers.map((u, i) => (
+            <div 
+              key={i} 
+              className="w-5 h-5 rounded-full border-2 border-[#0b0f19] flex items-center justify-center text-[10px] font-bold text-white shadow-lg animate-bounce"
+              style={{ backgroundColor: u.color || '#00a3ff' }}
+              title={u.user}
+            >
+              {u.user?.[0] || 'U'}
+            </div>
+          ))}
+        </div>
+      )}
       <div className="p-2 flex justify-between items-center text-[#00a3ff] border-b border-[#00a3ff]/30">
         <div className="flex items-center gap-2">
           <FiCpu size={16} />
