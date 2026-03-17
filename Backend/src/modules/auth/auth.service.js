@@ -280,9 +280,22 @@ class AuthService {
         }
 
         const passwordHash = await bcrypt.hash(payload.password, SALT_ROUNDS);
-        const selectedRole =
-            (await prisma.role.findUnique({ where: { type: requestedRoleType } })) ||
-            (await prisma.role.findUnique({ where: { type: 'PENTESTER' } }));
+        const ensureRole = async (roleType) =>
+            prisma.role.upsert({
+                where: { type: roleType },
+                update: {},
+                create: {
+                    name: roleType === 'ORG_ADMIN' ? 'Organization Admin' : 'Pentester',
+                    type: roleType,
+                    description:
+                        roleType === 'ORG_ADMIN'
+                            ? 'Full access within their organization'
+                            : 'Default pentester role for new users',
+                    permissions: [],
+                },
+            });
+
+        const selectedRole = await ensureRole(requestedRoleType || 'PENTESTER');
 
         let user = await prisma.user.create({
             data: {

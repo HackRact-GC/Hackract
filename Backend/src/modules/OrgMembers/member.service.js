@@ -1,13 +1,56 @@
+import prisma from '../../database/prismaClient.js';
+import AppError from '../../utils/AppError.js';
 import memberRepository from './member.repository.js';
+import organizationRepository from '../Organization/Organization.repository.js';
 
-export const addMember = async (data) => {
-    return await memberRepository.addMember(data);
+const hasRole = (user, role) => (user?.roles || []).some((r) => r.type === role);
+
+const ensureOrgAdminAccess = async (organizationId, user) => {
+    if (hasRole(user, 'SUPER_ADMIN')) return;
+    if (!hasRole(user, 'ORG_ADMIN')) {
+        throw new AppError('Only organization admins can manage members', 403);
+    }
+
+    const isMember = await organizationRepository.isMember(organizationId, user.id);
+    if (!isMember) {
+        throw new AppError('You must belong to this organization to manage its members', 403);
+    }
 };
 
-export const removeMember = async (orgId, userId) => {
-    return await memberRepository.removeMember(orgId, userId);
+const ensureOrganizationExists = async (organizationId) => {
+    const organization = await prisma.organization.findUnique({ where: { id: organizationId } });
+    if (!organization) {
+        throw new AppError('Organization not found', 404);
+    }
+    return organization;
 };
 
-export const updateMember = async (orgId, userId, data) => {
-    return await memberRepository.updateMember(orgId, userId, data);
+export const addMember = async (data, user) => {
+    await ensureOrganizationExists(data.organizationId);
+    await ensureOrgAdminAccess(data.organizationId, user);
+    return memberRepository.addMember(data);
+};
+
+export const listMembers = async (organizationId, user) => {
+    await ensureOrganizationExists(organizationId);
+    await ensureOrgAdminAccess(organizationId, user);
+    return memberRepository.listMembers(organizationId);
+};
+
+export const getMember = async (organizationId, userId, user) => {
+    await ensureOrganizationExists(organizationId);
+    await ensureOrgAdminAccess(organizationId, user);
+    return memberRepository.findMember(organizationId, userId);
+};
+
+export const removeMember = async (organizationId, userId, user) => {
+    await ensureOrganizationExists(organizationId);
+    await ensureOrgAdminAccess(organizationId, user);
+    return memberRepository.removeMember(organizationId, userId);
+};
+
+export const updateMember = async (organizationId, userId, data, user) => {
+    await ensureOrganizationExists(organizationId);
+    await ensureOrgAdminAccess(organizationId, user);
+    return memberRepository.updateMember(organizationId, userId, data);
 };

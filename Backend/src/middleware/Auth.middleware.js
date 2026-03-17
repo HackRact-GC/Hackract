@@ -12,6 +12,33 @@ const buildFallbackEmail = (auth0Id, nickname) => {
   return `${localPart || safeId}@placeholder.hackract.local`;
 };
 
+const getOrCreateRole = async (roleType = 'PENTESTER') => {
+  return prisma.role.upsert({
+    where: { type: roleType },
+    update: {},
+    create: {
+      name: roleType === 'ORG_ADMIN' ? 'Organization Admin' : 'Pentester',
+      type: roleType,
+      description:
+        roleType === 'ORG_ADMIN'
+          ? 'Full access within their organization'
+          : 'Default pentester role for new users',
+      permissions: [],
+    },
+  });
+};
+
+const ensureUserHasRole = async (user, fallbackRole = 'PENTESTER') => {
+  if (user?.roles?.length) return user;
+  const role = await getOrCreateRole(fallbackRole);
+  const updated = await prisma.user.update({
+    where: { id: user.id },
+    data: { roles: { connect: { id: role.id } } },
+    include: { roles: true },
+  });
+  return updated;
+};
+
 // Auth0 JWT validation middleware
 const checkJwt = auth({
   audience: process.env.AUTH0_AUDIENCE,
@@ -38,11 +65,12 @@ const tryLocalToken = async (req) => {
   });
 
   if (!user) return null;
+  const hydratedUser = await ensureUserHasRole(user);
   if (user.status === 'SUSPENDED' || user.status === 'BANNED') {
     throw new AppError('Account is suspended or banned', 403);
   }
 
-  return user;
+  return hydratedUser;
 };
 
 export const validateLocal = async (req, res, next) => {
@@ -144,10 +172,9 @@ export const protect = async (req, res, next) => {
             },
             include: { roles: true }
           });
+          user = await ensureUserHasRole(user);
         } else {
-          const defaultRole = await prisma.role.findUnique({
-            where: { type: 'PENTESTER' },
-          });
+          const defaultRole = await getOrCreateRole('PENTESTER');
 
           let baseHandle = (nickname || email.split('@')[0]).toLowerCase().replace(/[^a-z0-9_]/g, '');
           let handle = baseHandle || `user${Date.now()}`;
@@ -169,9 +196,7 @@ export const protect = async (req, res, next) => {
               avatar: picture,
               status: 'ACTIVE',
               isVerified: emailVerified || false,
-              roles: defaultRole ? {
-                connect: { id: defaultRole.id },
-              } : undefined,
+              roles: defaultRole ? { connect: { id: defaultRole.id } } : undefined,
             },
             include: { roles: true }
           });
@@ -186,7 +211,7 @@ export const protect = async (req, res, next) => {
         return next(new AppError('Account is suspended or banned', 403));
       }
 
-      req.user = user;
+      req.user = await ensureUserHasRole(user);
       next();
     } catch (dbError) {
       next(dbError);
@@ -199,10 +224,15 @@ export const restrictTo = (...allowedRoles) => {
     if (!req.user || !req.user.roles) {
       return next(new AppError('User not authenticated correctly', 401));
     }
+
+    // Debug logging to help identify why the user is rejected
+    console.log(`[RESTRICT_TO] Required roles: ${allowedRoles.join(', ')}`);
+    console.log(`[RESTRICT_TO] User has roles: ${JSON.stringify(req.user.roles)}`);
+
     const hasPermission = req.user.roles.some(role => allowedRoles.includes(role.type));
 
     if (!hasPermission) {
-      return next(new AppError('You do not have permission to perform this action', 403));
+      return next(new AppError(`You do not have permission to perform this action. Required: ${allowedRoles.join(', ')}. Found: ${req.user.roles.map(r => r.type).join(', ')}`, 403));
     }
 
     next();

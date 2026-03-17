@@ -1,7 +1,12 @@
 // src/modules/organization/organization.middleware.js
 import organizationRepository from './Organization.repository.js';
 import AppError from '../../utils/AppError.js';
-// import prisma from '../../config/database.js';
+import prisma from '../../database/prismaClient.js';
+
+const hasElevatedOrgAccess = (user) => {
+  const roles = user?.roles?.map((r) => r.type) || [];
+  return roles.includes('SUPER_ADMIN') || roles.includes('ORG_ADMIN');
+};
 
 export const isOrganizationMember = async (req, res, next) => {
   try {
@@ -9,6 +14,10 @@ export const isOrganizationMember = async (req, res, next) => {
     
     if (!organizationId) {
       return next(new AppError('Organization ID is required', 400));
+    }
+
+    if (hasElevatedOrgAccess(req.user)) {
+      return next();
     }
 
     const isMember = await organizationRepository.isMember(organizationId, req.user.id);
@@ -30,6 +39,10 @@ export const hasOrganizationPermission = (permission) => {
       
       if (!organizationId) {
         return next(new AppError('Organization ID is required', 400));
+      }
+
+      if (hasElevatedOrgAccess(req.user)) {
+        return next();
       }
 
       const hasPermission = await organizationRepository.checkPermission(
@@ -55,6 +68,10 @@ export const isOrganizationAdmin = async (req, res, next) => {
     
     if (!organizationId) {
       return next(new AppError('Organization ID is required', 400));
+    }
+
+    if (hasElevatedOrgAccess(req.user)) {
+      return next();
     }
 
     const member = await prisma.organizationMember.findFirst({
@@ -84,6 +101,10 @@ export const isOrganizationOwner = async (req, res, next) => {
     
     if (!organizationId) {
       return next(new AppError('Organization ID is required', 400));
+    }
+
+    if (hasElevatedOrgAccess(req.user)) {
+      return next();
     }
 
     const member = await prisma.organizationMember.findFirst({

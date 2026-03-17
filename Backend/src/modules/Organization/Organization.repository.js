@@ -1,5 +1,5 @@
 // src/modules/organization/organization.repository.js
-// import prisma from '../../config/database.js';
+import prisma from '../../database/prismaClient.js';
 import AppError from '../../utils/AppError.js';
 import { OrganizationErrorCodes } from './Organization.constants.js';
 
@@ -24,7 +24,22 @@ class OrganizationRepository {
           data: {
             name: data.name,
             slug: slug,
-            description: data.description
+            description: data.description,
+            industry: data.industry,
+            size: data.size,
+            website: data.website,
+            primaryEmail: data.primaryEmail,
+            phoneNumber: data.phoneNumber,
+            addressLine1: data.addressLine1,
+            addressLine2: data.addressLine2,
+            city: data.city,
+            state: data.state,
+            postalCode: data.postalCode,
+            country: data.country,
+            timezone: data.timezone,
+            currency: data.currency,
+            registrationNumber: data.registrationNumber,
+            taxId: data.taxId
           }
         });
 
@@ -123,57 +138,6 @@ class OrganizationRepository {
     return organization;
   }
 
-  async getAllOrganizations(filters) {
-    const {
-      page = 1,
-      limit = 20,
-      search = '',
-      sortBy = 'createdAt',
-      sortOrder = 'desc'
-    } = filters;
-
-    const skip = (page - 1) * limit;
-
-    const where = search ? {
-      OR: [
-        { name: { contains: search, mode: 'insensitive' } },
-        { slug: { contains: search, mode: 'insensitive' } }
-      ]
-    } : {};
-
-    const [organizations, total] = await Promise.all([
-      prisma.organization.findMany({
-        where,
-        skip,
-        take: limit,
-        orderBy: { [sortBy]: sortOrder },
-        include: {
-          _count: {
-            select: {
-              members: true,
-              pentests: true
-            }
-          }
-        }
-      }),
-      prisma.organization.count({ where })
-    ]);
-
-    const totalPages = Math.ceil(total / limit);
-
-    return {
-      data: organizations,
-      pagination: {
-        page: parseInt(page),
-        limit: parseInt(limit),
-        total,
-        totalPages,
-        hasNextPage: page < totalPages,
-        hasPrevPage: page > 1
-      }
-    };
-  }
-
   async updateOrganization(id, data) {
     try {
       return await prisma.organization.update({
@@ -196,177 +160,35 @@ class OrganizationRepository {
 
   async deleteOrganization(id) {
     try {
-      return await prisma.organization.delete({
-        where: { id }
+      return await prisma.$transaction(async (tx) => {
+        const pentests = await tx.pentest.findMany({
+          where: { organizationId: id },
+          select: { id: true }
+        });
+
+        const pentestIds = pentests.map((p) => p.id);
+
+        if (pentestIds.length) {
+          await tx.pentestCollaborator.deleteMany({ where: { pentestId: { in: pentestIds } } });
+          await tx.finding.deleteMany({ where: { pentestId: { in: pentestIds } } });
+          await tx.aiAgent.deleteMany({ where: { pentestId: { in: pentestIds } } });
+          await tx.pentest.deleteMany({ where: { id: { in: pentestIds } } });
+        }
+
+        await tx.auditLog.deleteMany({ where: { organizationId: id } });
+        await tx.organizationMember.deleteMany({ where: { organizationId: id } });
+
+        return tx.organization.delete({ where: { id } });
       });
     } catch (error) {
       if (error.code === 'P2025') {
         throw new AppError('Organization not found', 404, OrganizationErrorCodes.NOT_FOUND);
       }
-      throw error;
-    }
-  }
-
-  async addMember(organizationId, data) {
-    try {
-      return await prisma.organizationMember.create({
-        data: {
-          organizationId,
-          userId: data.userId,
-          role: data.role || 'member',
-          canCreatePentests: data.canCreatePentests || false,
-          canInviteMembers: data.canInviteMembers || false
-        },
-        include: {
-          user: {
-            select: {
-              id: true,
-              email: true,
-              fullName: true,
-              handle: true
-            }
-          }
-        }
-      });
-    } catch (error) {
-      if (error.code === 'P2002') {
-        throw new AppError('Member already exists in organization', 400, OrganizationErrorCodes.MEMBER_EXISTS);
-      }
       if (error.code === 'P2003') {
-        throw new AppError('User not found', 404, 'USER_NOT_FOUND');
-      }
-      throw error;
-    }
-  }
-
-  async getMember(organizationId, memberId) {
-    const member = await prisma.organizationMember.findFirst({
-      where: {
-        id: memberId,
-        organizationId
-      },
-      include: {
-        user: {
-          select: {
-            id: true,
-            email: true,
-            fullName: true,
-            handle: true
-          }
-        }
-      }
-    });
-
-    if (!member) {
-      throw new AppError('Member not found', 404, OrganizationErrorCodes.MEMBER_NOT_FOUND);
-    }
-
-    return member;
-  }
-
-  async getMembers(organizationId, filters) {
-    const {
-      page = 1,
-      limit = 20,
-      search = '',
-      role = ''
-    } = filters;
-
-    const skip = (page - 1) * limit;
-
-    const where = {
-      organizationId
-    };
-
-    if (search) {
-      where.user = {
-        OR: [
-          { email: { contains: search, mode: 'insensitive' } },
-          { fullName: { contains: search, mode: 'insensitive' } },
-          { handle: { contains: search, mode: 'insensitive' } }
-        ]
-      };
-    }
-
-    if (role) {
-      where.role = role;
-    }
-
-    const [members, total] = await Promise.all([
-      prisma.organizationMember.findMany({
-        where,
-        skip,
-        take: limit,
-        orderBy: { joinedAt: 'desc' },
-        include: {
-          user: {
-            select: {
-              id: true,
-              email: true,
-              fullName: true,
-              handle: true,
-              status: true
-            }
-          }
-        }
-      }),
-      prisma.organizationMember.count({ where })
-    ]);
-
-    const totalPages = Math.ceil(total / limit);
-
-    return {
-      data: members,
-      pagination: {
-        page: parseInt(page),
-        limit: parseInt(limit),
-        total,
-        totalPages,
-        hasNextPage: page < totalPages,
-        hasPrevPage: page > 1
-      }
-    };
-  }
-
-  async updateMember(organizationId, memberId, data) {
-    try {
-      return await prisma.organizationMember.update({
-        where: {
-          id: memberId
-        },
-        data: {
-          ...data,
-          updatedAt: new Date()
-        },
-        include: {
-          user: {
-            select: {
-              id: true,
-              email: true,
-              fullName: true,
-              handle: true
-            }
-          }
-        }
-      });
-    } catch (error) {
-      if (error.code === 'P2025') {
-        throw new AppError('Member not found', 404, OrganizationErrorCodes.MEMBER_NOT_FOUND);
-      }
-      throw error;
-    }
-  }
-
-  async removeMember(organizationId, memberId) {
-    try {
-      return await prisma.organizationMember.delete({
-        where: {
-          id: memberId
-        }
-      });
-    } catch (error) {
-      if (error.code === 'P2025') {
-        throw new AppError('Member not found', 404, OrganizationErrorCodes.MEMBER_NOT_FOUND);
+        throw new AppError(
+          'Organization cannot be deleted while related resources exist (e.g., pentests, audit logs). Remove or migrate them first.',
+          409
+        );
       }
       throw error;
     }
@@ -403,29 +225,7 @@ class OrganizationRepository {
     return true;
   }
 
-  async getStatistics(organizationId) {
-    const [membersCount, pentestsCount, findingsCount] = await Promise.all([
-      prisma.organizationMember.count({
-        where: { organizationId }
-      }),
-      prisma.pentest.count({
-        where: { organizationId }
-      }),
-      prisma.finding.count({
-        where: {
-          pentest: {
-            organizationId
-          }
-        }
-      })
-    ]);
 
-    return {
-      members: membersCount,
-      pentests: pentestsCount,
-      findings: findingsCount
-    };
-  }
 }
 
 export default new OrganizationRepository();
