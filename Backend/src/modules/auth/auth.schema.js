@@ -56,7 +56,7 @@ export const registerSchema = Joi.object({
      * If not provided, backend will default to PENTESTER.
      */
     roleType: Joi.string()
-        .valid('PENTESTER', 'ORG_ADMIN')
+        .valid('PENTESTER', 'ORG_ADMIN', "PENTEST_ADMIN")
         .optional()
         .messages({
             'any.only': 'Invalid role selected. Choose Hacker or Organization.',

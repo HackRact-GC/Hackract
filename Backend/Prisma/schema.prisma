@@ -97,7 +97,7 @@ model User {
   workflowHistories       WorkflowHistory[]
 
   // Hacker profile (for PENTESTER users)
-  hackerProfile        HackerProfile?
+  hackerProfile          HackerProfile?
   reviewedHackerProfiles HackerProfile[] @relation("HackerProfileReviewedBy")
 
   // Timestamps
@@ -116,16 +116,16 @@ model User {
 // =====================================
 
 model HackerProfile {
-  id        String              @id @default(uuid())
-  user      User                @relation(fields: [userId], references: [id])
-  userId    String              @unique
+  id     String @id @default(uuid())
+  user   User   @relation(fields: [userId], references: [id])
+  userId String @unique
 
-  bio                String
-  country            String?
-  yearsOfExperience  Int?
-  primarySkills      String[]
-  certifications     String[]
-  portfolioLinks     String[]
+  bio               String
+  country           String?
+  yearsOfExperience Int?
+  primarySkills     String[]
+  certifications    String[]
+  portfolioLinks    String[]
 
   status      HackerProfileStatus @default(DRAFT)
   reviewNotes String?
@@ -166,6 +166,28 @@ model Organization {
   id   String @id @default(uuid())
   name String
   slug String @unique
+
+  // Profile Information
+  description  String?
+  industry     String?
+  size         String?
+  website      String?
+  primaryEmail String?
+  phoneNumber  String?
+
+  // International / Location Info
+  addressLine1 String?
+  addressLine2 String?
+  city         String?
+  state        String?
+  postalCode   String?
+  country      String?
+  timezone     String?
+  currency     String?
+
+  // Legal / Tax Info
+  registrationNumber String?
+  taxId              String?
 
   // Relations
   members   OrganizationMember[]
