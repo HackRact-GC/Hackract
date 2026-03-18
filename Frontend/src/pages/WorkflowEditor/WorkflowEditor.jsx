@@ -18,6 +18,7 @@ import { formatDistanceToNow } from 'date-fns';
 import StartingPointNode from './nodes/StartingPointNode';
 import NoteNode from './nodes/NoteNode';
 import AiNode from './nodes/AiNode';
+import AiAgentNode from './nodes/AiAgentNode';
 import TerminalNode from './nodes/TerminalNode';
 import Sidebar from './components/Sidebar';
 import HistorySidebar from './components/HistorySidebar';
@@ -31,6 +32,7 @@ const nodeTypes = {
   startingPoint: StartingPointNode,
   note: NoteNode,
   ai: AiNode,
+  agent: AiAgentNode,
   terminal: TerminalNode,
 };
 
@@ -386,6 +388,7 @@ const WorkflowEditor = ({ workflowId = "mock-id-123", pentestId }) => {
                 nodeColor={(n) => {
                   if (n.type === 'startingPoint') return '#00ff41';
                   if (n.type === 'ai') return '#00a3ff';
+                  if (n.type === 'agent') return '#d000ff';
                   if (n.type === 'note') return '#ff7a00';
                   if (n.type === 'terminal') return '#ffb000';
                   return '#333';
