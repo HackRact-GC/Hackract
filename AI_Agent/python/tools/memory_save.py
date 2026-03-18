@@ -34,6 +34,8 @@ class MemorySaveTool(Tool):
         
         if not content.strip():
             return {"success": False, "error": "No content provided"}
+        if self.memory is None:
+            return {"success": False, "error": "Memory is disabled. Enable it in configuration (MEMORY_ENABLED=true)."}
         
         try:
             # Prepare metadata
