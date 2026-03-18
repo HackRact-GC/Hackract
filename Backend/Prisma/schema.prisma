@@ -120,6 +120,7 @@ model HackerProfile {
   user      User                @relation(fields: [userId], references: [id])
   userId    String              @unique
 
+  idDocumentNumber   String?
   bio                String
   country            String?
   yearsOfExperience  Int?
