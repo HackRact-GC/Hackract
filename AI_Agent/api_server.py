@@ -8,7 +8,7 @@ from fastapi import FastAPI, WebSocket, WebSocketDisconnect, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from typing import Optional, List, Dict, Any
 import asyncio
 import json
@@ -17,7 +17,7 @@ import os
 from datetime import datetime
 
 from agent import Agent
-from config import load_config
+from config import load_config, ConfigValidationError
 
 # Initialize FastAPI app
 app = FastAPI(
@@ -26,10 +26,12 @@ app = FastAPI(
     version="1.0.0"
 )
 
-# Enable CORS for frontend
+# CORS: use AI_AGENT_CORS_ORIGINS (comma-separated) in production; "*" for dev when unset
+_cors_origins = os.getenv("AI_AGENT_CORS_ORIGINS", "").strip()
+_cors_origins_list = [o.strip() for o in _cors_origins.split(",") if o.strip()] if _cors_origins else ["*"]
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # In production, specify your frontend domain
+    allow_origins=_cors_origins_list,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -41,35 +43,48 @@ conversations: Dict[str, List[Dict]] = {}
 
 
 def format_error_message(error: Exception) -> str:
-    """Format error message for user display"""
+    """Format error message for user display. Prefer exception types where available."""
     error_str = str(error)
-    
-    if "AuthenticationError" in error_str or "Missing Anthropic API Key" in error_str or "Missing OpenAI API Key" in error_str or "Missing Gemini API Key" in error_str:
+    err_type = type(error).__name__
+
+    # Auth / API key (by type or message)
+    if err_type in ("AuthenticationError", "InvalidApiKeyError") or any(
+        x in error_str for x in (
+            "Missing Anthropic API Key", "Missing OpenAI API Key", "Missing Gemini API Key",
+            "AuthenticationError", "Invalid API key", "api_key client option must be set",
+        )
+    ):
         return "Authentication failed: Missing or invalid API Key. Please check your settings."
-    
-    if "OpenAIException - The api_key client option must be set" in error_str:
+    if "OpenAIException" in err_type or "api_key client option must be set" in error_str:
         return "Authentication failed: GitHub Models requires a valid Personal Access Token. Please check your settings."
 
-    if "ConnectionError" in error_str or "ConnectTimeout" in error_str:
+    # Connection (by type or message)
+    if err_type in ("ConnectionError", "ConnectTimeout", "ConnectError") or any(
+        x in error_str for x in ("ConnectionError", "ConnectTimeout", "Connection refused")
+    ):
         return "Connection failed: Could not connect to the AI provider. Please check your internet connection."
-        
-    if "RateLimitError" in error_str:
+
+    # Rate limit
+    if err_type == "RateLimitError" or "RateLimitError" in error_str or "rate limit" in error_str.lower():
         return "Rate limit exceeded: Please try again later or check your API quota."
-        
-    if "ModelNotFoundError" in error_str:
+
+    # Model not found
+    if err_type == "ModelNotFoundError" or "ModelNotFoundError" in error_str or "model not found" in error_str.lower():
         return "Model not found: The selected model is not available. Please check your settings."
-        
-    # Return generic error for other cases, but stripped of technical details if possible
-    # If it starts with "Error:", strip it
+
+    # Generic: strip "Error:" prefix and take first part before " - "
     if error_str.startswith("Error: "):
         error_str = error_str[7:]
-        
     return f"An error occurred: {error_str.split(' - ')[0] if ' - ' in error_str else error_str}"
 
 
+# Limits for API/WebSocket (avoid abuse and OOM)
+MAX_MESSAGE_LENGTH = int(os.getenv("AI_AGENT_MAX_MESSAGE_LENGTH", "65536"))  # 64k chars
+MAX_WS_PAYLOAD_BYTES = int(os.getenv("AI_AGENT_MAX_WS_PAYLOAD_BYTES", "65536"))  # 64k
+
 # Pydantic models for API
 class MessageRequest(BaseModel):
-    message: str
+    message: str = Field(..., min_length=1, max_length=MAX_MESSAGE_LENGTH)
     session_id: Optional[str] = None
 
 
@@ -93,9 +108,9 @@ class HealthResponse(BaseModel):
 
 # Helper functions
 def get_or_create_agent(session_id: str) -> Agent:
-    """Get existing agent or create new one for session"""
+    """Get existing agent or create new one for session. Validates config when creating."""
     if session_id not in active_agents:
-        config = load_config()
+        config = load_config(validate=True)
         active_agents[session_id] = Agent(config)
         conversations[session_id] = []
     return active_agents[session_id]
@@ -136,9 +151,10 @@ async def send_message(request: MessageRequest):
     """
     # Generate or use provided session ID
     session_id = request.session_id or str(uuid.uuid4())
-    
-    # Get or create agent for this session
-    agent = get_or_create_agent(session_id)
+    try:
+        agent = get_or_create_agent(session_id)
+    except ConfigValidationError as e:
+        raise HTTPException(status_code=503, detail=str(e))
     
     # Save user message
     save_message(session_id, "user", request.message)
@@ -231,14 +247,23 @@ async def websocket_endpoint(websocket: WebSocket, session_id: str):
     Receive JSON: {"type": "response|thinking|tool|error", "content": "..."}
     """
     await websocket.accept()
-    
-    # Get or create agent
-    agent = get_or_create_agent(session_id)
+    try:
+        agent = get_or_create_agent(session_id)
+    except ConfigValidationError as e:
+        await websocket.send_json({"type": "error", "content": str(e)})
+        await websocket.close()
+        return
     
     try:
         while True:
-            # Receive message from client
+            # Receive message from client (enforce payload size limit)
             data = await websocket.receive_text()
+            if len(data.encode("utf-8")) > MAX_WS_PAYLOAD_BYTES:
+                await websocket.send_json({
+                    "type": "error",
+                    "content": f"Message too large. Maximum size is {MAX_WS_PAYLOAD_BYTES} bytes."
+                })
+                continue
             message_data = json.loads(data)
             
             # Handle stop command
@@ -250,7 +275,13 @@ async def websocket_endpoint(websocket: WebSocket, session_id: str):
                 })
                 continue
 
-            user_message = message_data.get("message", "")
+            user_message = message_data.get("message", "") or ""
+            if len(user_message) > MAX_MESSAGE_LENGTH:
+                await websocket.send_json({
+                    "type": "error",
+                    "content": f"Message too long. Maximum length is {MAX_MESSAGE_LENGTH} characters."
+                })
+                continue
             
             if not user_message:
                 await websocket.send_json({
@@ -321,7 +352,8 @@ async def get_memory_count():
             memory_dir=config.memory.memory_dir,
             collection_name=config.memory.collection_name,
             embedding_model=config.model.embedding_model,
-            api_key=config.model.api_key
+            api_key=config.model.api_key,
+            embedding_fallback_dimension=config.memory.embedding_fallback_dimension,
         )
         count = memory.count()
         return {"count": count}
@@ -340,7 +372,8 @@ async def search_memory(query: str, max_results: int = 5):
         memory_dir=config.memory.memory_dir,
         collection_name=config.memory.collection_name,
         embedding_model=config.model.embedding_model,
-        api_key=config.model.api_key
+        api_key=config.model.api_key,
+        embedding_fallback_dimension=config.memory.embedding_fallback_dimension,
     )
     
     results = await memory.recall(query, max_results)
@@ -358,14 +391,46 @@ class TestConnectionRequest(BaseModel):
 async def test_connection(request: TestConnectionRequest):
     """Test LLM connection with provided settings"""
     from python.helpers.llm import LLM
+    import requests
+    import os
     
     try:
+        if request.llm_provider == "ollama":
+            base_url = request.custom_endpoint or "http://localhost:11434"
+            
+            # If running in Docker (which is common for this project), localhost refers to the container itself.
+            # We need to map localhost to host.docker.internal to reach the host machine's Ollama instance.
+            if ("localhost" in base_url or "127.0.0.1" in base_url) and os.path.exists('/.dockerenv'):
+                base_url = base_url.replace("localhost", "host.docker.internal").replace("127.0.0.1", "host.docker.internal")
+
+            try:
+                resp = requests.get(f"{base_url}/api/tags", timeout=5)
+                resp.raise_for_status()
+                models = resp.json().get("models", [])
+                model_names = [m.get("name") for m in models]
+                
+                response_msg = f"Ollama is running at {base_url}!\n"
+                if request.chat_model and request.chat_model not in model_names:
+                    response_msg += f"Warning: '{request.chat_model}' is not pulled locally. Available models: {', '.join(model_names) if model_names else 'None'}"
+                else:
+                    response_msg += f"Model '{request.chat_model}' is available."
+                
+                return {"status": "success", "message": "Connection successful!", "response": response_msg}
+            except Exception as e:
+                raise Exception(f"Could not connect to Ollama at {base_url}. Is it running? (Error: {str(e)})")
+
+        # Setup base URL properly for docker env when using LLM integration
+        ollama_url = request.custom_endpoint or "http://localhost:11434"
+        if request.llm_provider == "ollama" and ("localhost" in ollama_url or "127.0.0.1" in ollama_url) and os.path.exists('/.dockerenv'):
+            ollama_url = ollama_url.replace("localhost", "host.docker.internal").replace("127.0.0.1", "host.docker.internal")
+
         # Initialize LLM with provided settings
         llm = LLM(
             provider=request.llm_provider,
             api_key=request.api_key,
             model=request.chat_model,
-            custom_api_base=request.custom_endpoint or ""
+            custom_api_base=request.custom_endpoint or "",
+            ollama_base_url=ollama_url
         )
         
         # Try a simple generation
@@ -382,12 +447,16 @@ async def test_connection(request: TestConnectionRequest):
 
 @app.get("/api/settings")
 async def get_settings():
-    """Get current configuration settings"""
-    config = load_config()
-    
+    """Get current configuration settings. API key is never returned; use api_key_set for UI."""
+    try:
+        config = load_config(validate=True)
+    except ConfigValidationError as e:
+        raise HTTPException(status_code=503, detail=str(e))
+    key = config.model.api_key or ""
     return {
         "llm_provider": config.model.provider,
-        "api_key": config.model.api_key if config.model.api_key else "",
+        "api_key_set": bool(key),
+        "api_key_masked": ("****" + key[-4:]) if len(key) >= 4 else ("****" if key else ""),
         "chat_model": config.model.chat_model,
         "utility_model": config.model.utility_model,
         "custom_endpoint": config.model.custom_api_base,
@@ -434,7 +503,8 @@ async def clear_memory():
             memory_dir=config.memory.memory_dir,
             collection_name=config.memory.collection_name,
             embedding_model=config.model.embedding_model,
-            api_key=config.model.api_key
+            api_key=config.model.api_key,
+            embedding_fallback_dimension=config.memory.embedding_fallback_dimension,
         )
         
         # Clear the collection
@@ -458,7 +528,8 @@ async def list_memories():
             memory_dir=config.memory.memory_dir,
             collection_name=config.memory.collection_name,
             embedding_model=config.model.embedding_model,
-            api_key=config.model.api_key
+            api_key=config.model.api_key,
+            embedding_fallback_dimension=config.memory.embedding_fallback_dimension,
         )
         
         # Get all items from collection
