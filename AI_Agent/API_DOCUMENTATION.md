@@ -12,11 +12,12 @@ docker-compose up
 python run_api.py
 ```
 
-The API will be available at:
-- **Base URL**: `http://localhost:8000`
-- **API Docs**: `http://localhost:8000/docs` (Interactive Swagger UI)
-- **Alternative Docs**: `http://localhost:8000/redoc`
-- **WebSocket**: `ws://localhost:8000/ws/{session_id}`
+The API will be available at (port configurable via `AI_AGENT_PORT` or `PORT`, default 8008):
+- **Base URL**: `http://localhost:8008`
+- **Health check**: `GET http://localhost:8008/api/health`
+- **API Docs**: `http://localhost:8008/docs` (Interactive Swagger UI)
+- **Alternative Docs**: `http://localhost:8008/redoc`
+- **WebSocket**: `ws://localhost:8008/ws/{session_id}`
 
 ---
 
@@ -24,7 +25,7 @@ The API will be available at:
 
 ### Health Check
 
-**GET** `/health`
+**GET** `/api/health`
 
 Check if the API is running.
 
@@ -64,7 +65,7 @@ Send a message/task to the agent and get a response.
 
 **Example (JavaScript):**
 ```javascript
-const response = await fetch('http://localhost:8000/api/message', {
+const response = await fetch('http://localhost:8008/api/message', {
   method: 'POST',
   headers: {
     'Content-Type': 'application/json',
@@ -83,7 +84,7 @@ console.log(data.response);
 ```python
 import requests
 
-response = requests.post('http://localhost:8000/api/message', json={
+response = requests.post('http://localhost:8008/api/message', json={
     'message': 'Scan localhost for open ports',
     'session_id': 'my-session-123'
 })
@@ -93,7 +94,7 @@ print(response.json()['response'])
 
 **Example (curl):**
 ```bash
-curl -X POST http://localhost:8000/api/message \
+curl -X POST http://localhost:8008/api/message \
   -H "Content-Type: application/json" \
   -d '{"message": "What tools are available?"}'
 ```
@@ -234,12 +235,12 @@ For real-time, bidirectional communication.
 
 ### Connect to WebSocket
 
-**URL**: `ws://localhost:8000/ws/{session_id}`
+**URL**: `ws://localhost:8008/ws/{session_id}`
 
 ### Send Message
 
 ```javascript
-const ws = new WebSocket('ws://localhost:8000/ws/my-session-123');
+const ws = new WebSocket('ws://localhost:8008/ws/my-session-123');
 
 ws.onopen = () => {
   // Send message to agent
@@ -302,7 +303,7 @@ function ChatComponent() {
   const sendMessage = async () => {
     setLoading(true);
     try {
-      const res = await fetch('http://localhost:8000/api/message', {
+      const res = await fetch('http://localhost:8008/api/message', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ message, session_id: sessionId })
@@ -359,7 +360,7 @@ export default {
     async sendMessage() {
       this.loading = true;
       try {
-        const res = await fetch('http://localhost:8000/api/message', {
+        const res = await fetch('http://localhost:8008/api/message', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ 
@@ -391,7 +392,7 @@ function useAgentWebSocket(sessionId) {
   const [status, setStatus] = useState('');
 
   useEffect(() => {
-    const websocket = new WebSocket(`ws://localhost:8000/ws/${sessionId}`);
+    const websocket = new WebSocket(`ws://localhost:8008/ws/${sessionId}`);
     
     websocket.onmessage = (event) => {
       const data = JSON.parse(event.data);
@@ -444,7 +445,7 @@ docker-compose up
 ```
 
 **Ports exposed:**
-- `8000`: API server
+- `8008`: API server (override with AI_AGENT_PORT or PORT)
 
 **To run only the API (not CLI):**
 
@@ -471,24 +472,24 @@ command: python3 run_api.py
 
 ### Using Swagger UI
 
-Navigate to `http://localhost:8000/docs` for interactive API testing.
+Navigate to `http://localhost:8008/docs` for interactive API testing.
 
 ### Using curl
 
 ```bash
 # Health check
-curl http://localhost:8000/health
+curl http://localhost:8008/health
 
 # Send message
-curl -X POST http://localhost:8000/api/message \
+curl -X POST http://localhost:8008/api/message \
   -H "Content-Type: application/json" \
   -d '{"message": "What can you do?"}'
 
 # List sessions
-curl http://localhost:8000/api/sessions
+curl http://localhost:8008/api/sessions
 
 # Search memory
-curl "http://localhost:8000/api/memory/search?query=sql%20injection&max_results=3"
+curl "http://localhost:8008/api/memory/search?query=sql%20injection&max_results=3"
 ```
 
 ### Using Postman
@@ -511,7 +512,7 @@ Import this collection:
     }
   ],
   "variable": [
-    { "key": "base_url", "value": "http://localhost:8000" }
+    { "key": "base_url", "value": "http://localhost:8008" }
   ]
 }
 ```

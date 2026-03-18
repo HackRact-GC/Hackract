@@ -34,6 +34,8 @@ class MemoryLoadTool(Tool):
         
         if not query.strip():
             return {"success": False, "error": "No query provided"}
+        if self.memory is None:
+            return {"success": False, "error": "Memory is disabled. Enable it in configuration (MEMORY_ENABLED=true).", "memories": []}
         
         try:
             # Prepare filter
