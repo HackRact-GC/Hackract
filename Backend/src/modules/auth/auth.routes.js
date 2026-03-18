@@ -111,7 +111,7 @@ router.get('/local/me', validateLocal, controller.getMe);
  *       200:
  *         description: Logged out successfully
  */
-router.post('/logout', protect, controller.logout);
+router.post('/logout', controller.logout);
 
 /**
  * @swagger
