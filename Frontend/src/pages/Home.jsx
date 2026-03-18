@@ -1,9 +1,26 @@
+import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext.jsx";
+import api from "../api/axiosConfig";
 
 const Home = () => {
   const navigate = useNavigate();
   const { user, logout } = useAuth();
+  const [profileStatus, setProfileStatus] = useState(null);
+
+  useEffect(() => {
+    const fetchStatus = async () => {
+      try {
+        const { data } = await api.get('/hacker-profiles/me/status');
+        setProfileStatus(data.data.profile?.status);
+      } catch (err) {
+        console.error('Failed to fetch profile status');
+      }
+    };
+    if (user?.roles?.[0]?.type === 'PENTESTER') {
+      fetchStatus();
+    }
+  }, [user]);
 
   const primaryRoleType = user?.roles?.[0]?.type;
   const isOrgView = primaryRoleType === "ORG_ADMIN";
@@ -143,6 +160,29 @@ const Home = () => {
                 ))}
               </div>
             </div>
+
+            {primaryRoleType === 'PENTESTER' && profileStatus !== 'APPROVED' && (
+              <div className="bg-amber-500/10 border border-amber-500/30 rounded-2xl p-6 shadow-xl flex items-center justify-between gap-6 group">
+                <div className="flex items-center gap-4">
+                  <div className="h-12 w-12 rounded-full bg-amber-500/20 flex items-center justify-center text-amber-500 text-xl">
+                    ⚠️
+                  </div>
+                  <div>
+                    <h3 className="font-bold text-amber-500 uppercase tracking-tighter text-sm">Action Required: Operator Identity Pending</h3>
+                    <p className="text-xs text-gray-400 max-w-lg">
+                      To participate in organization engagements, you must provide legal proof of identity and sign our MNDA. 
+                      Your status is currently <span className="text-amber-500 font-mono font-bold">[{profileStatus || 'UNVERIFIED'}]</span>.
+                    </p>
+                  </div>
+                </div>
+                <button 
+                  onClick={() => navigate('/hacker-verification')}
+                  className="bg-amber-500 hover:bg-amber-600 text-black px-4 py-2 rounded-lg text-xs font-mono font-bold uppercase tracking-widest transition-all active:scale-95 whitespace-nowrap"
+                >
+                  Verify Now →
+                </button>
+              </div>
+            )}
 
             <div className="bg-white/5 border border-white/10 rounded-2xl p-6 shadow-xl shadow-black/40">
               <h3 className="text-xl font-semibold mb-4">Quick actions</h3>
