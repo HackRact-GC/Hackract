@@ -27,6 +27,7 @@ export const upsertMyProfile = async (userId, payload) => {
 
   const data = {
     bio: payload.bio,
+    idDocumentNumber: payload.idDocumentNumber || null,
     country: payload.country || null,
     yearsOfExperience: payload.yearsOfExperience ?? null,
     primarySkills: payload.primarySkills,
@@ -56,6 +57,11 @@ export const submitMyProfile = async (userId) => {
     return profile;
   }
 
+  const missing = await getMissingAgreements(userId);
+  if (missing.length > 0) {
+    throw new AppError(`Mandatory legal agreements must be signed: ${missing.join(', ')}`, 400);
+  }
+
   const updated = await prisma.hackerProfile.update({
     where: { userId },
     data: { status: HackerProfileStatus.SUBMITTED },
@@ -77,28 +83,48 @@ export const listProfilesForReview = async (statusFilter) => {
   });
 };
 
-export const reviewProfile = async (profileId, reviewerId, action, notes) => {
-  const profile = await prisma.hackerProfile.findUnique({ where: { id: profileId } });
-  if (!profile) {
-    throw new AppError('Hacker profile not found', 404, HackerProfileErrorCodes.NOT_FOUND);
-  }
+export const getMissingAgreements = async (userId) => {
+  const mandatoryAgreements = ['Mutual Non-Disclosure Agreement (MNDA)', 'Ethical Hacking Code of Conduct'];
 
-  const status =
-    action === 'approve'
-      ? HackerProfileStatus.APPROVED
-      : action === 'reject'
-      ? HackerProfileStatus.REJECTED
-      : profile.status;
-
-  const updated = await prisma.hackerProfile.update({
-    where: { id: profileId },
-    data: {
-      status,
-      reviewNotes: notes || null,
-      reviewedById: reviewerId,
-    },
+  const signedAgreements = await prisma.userSignature.findMany({
+    where: { userId },
+    include: { agreement: true }
   });
 
-  return updated;
+  const signedTitles = signedAgreements.map(s => s.agreement.title);
+  return mandatoryAgreements.filter(title => !signedTitles.includes(title));
+};
+
+export const signAgreement = async (userId, agreementTitle, meta = {}) => {
+  const agreement = await prisma.legalAgreement.findFirst({
+    where: { title: agreementTitle, isActive: true },
+    orderBy: { version: 'desc' }
+  });
+
+  if (!agreement) {
+    throw new AppError('Agreement not found or inactive', 404);
+  }
+
+  const signature = await prisma.userSignature.upsert({
+    where: {
+      userId_agreementId: {
+        userId,
+        agreementId: agreement.id
+      }
+    },
+    create: {
+      userId,
+      agreementId: agreement.id,
+      ipAddress: meta.ipAddress,
+      userAgent: meta.userAgent,
+    },
+    update: {
+      signedAt: new Date(),
+      ipAddress: meta.ipAddress,
+      userAgent: meta.userAgent,
+    }
+  });
+
+  return signature;
 };
 
