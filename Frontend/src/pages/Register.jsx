@@ -1,5 +1,8 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import { useAuth0 } from "@auth0/auth0-react";
+import { FcGoogle } from "react-icons/fc";
+import { FaGithub } from "react-icons/fa";
 import { useAuth } from "../context/AuthContext.jsx";
 
 const InputField = ({ label, type, placeholder, id, name, value, onChange }) => (
@@ -27,8 +30,19 @@ const InputField = ({ label, type, placeholder, id, name, value, onChange }) => 
   </div>
 );
 
+const SocialButton = ({ icon, label, onClick }) => (
+  <button
+    onClick={onClick}
+    className="flex items-center justify-center gap-2 w-full border border-gray-300 rounded-sm py-2.5 hover:bg-gray-100 hover:border-black transition-all duration-300 cursor-pointer active:scale-95"
+  >
+    <span className="text-xl">{icon}</span>
+    <span className="text-sm font-mono font-bold tracking-wide">{label}</span>
+  </button>
+);
+
 const Register = () => {
   const { register, loading } = useAuth();
+  const { loginWithRedirect } = useAuth0();
   const navigate = useNavigate();
   const [form, setForm] = useState({
     fullName: "",
@@ -46,6 +60,24 @@ const Register = () => {
     setForm((prev) => ({ ...prev, [name]: value }));
   };
 
+  const handleGoogleLogin = () => {
+    loginWithRedirect({
+      authorizationParams: {
+        connection: 'google-oauth2',
+        audience: import.meta.env.VITE_AUTH0_AUDIENCE,
+      },
+    });
+  };
+
+  const handleGithubLogin = () => {
+    loginWithRedirect({
+      authorizationParams: {
+        connection: 'github',
+        audience: import.meta.env.VITE_AUTH0_AUDIENCE,
+      },
+    });
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setSuccessMessage("");
@@ -53,18 +85,14 @@ const Register = () => {
     try {
       const payload = { ...form, roleType };
       const result = await register(payload);
-      setSuccessMessage(result?.message || "Registration successful. Check your email to verify your account.");
+      
+      setSuccessMessage(result?.message || "Registration successful. Check your email for verification code.");
       console.info("[ui] registration success", result);
 
-      const registeredUser = result?.user;
-      const roles = registeredUser?.roles || [];
-      const isHacker = roles.some((role) => role.type === "PENTESTER");
-
-      if (isHacker) {
-        navigate("/hacker-profile");
-      } else {
-        navigate("/");
-      }
+      // Redirect to OTP verification page
+      setTimeout(() => {
+        navigate(`/verify-email?email=${encodeURIComponent(form.email)}`);
+      }, 1500);
     } catch (err) {
       const backendError = err?.response?.data?.error || err?.response?.data?.message;
       setErrorMessage(backendError || "Registration failed. Please try again.");
@@ -172,6 +200,25 @@ const Register = () => {
           {loading ? "Registering..." : "Register"}
         </button>
       </form>
+
+      <div className="flex items-center gap-4">
+        <div className="h-px flex-1 bg-gray-200"></div>
+        <span className="text-[10px] font-mono text-gray-400 uppercase tracking-widest">or connect via</span>
+        <div className="h-px flex-1 bg-gray-200"></div>
+      </div>
+
+      <div className="flex gap-4 w-full">
+        <SocialButton
+          icon={<FcGoogle />}
+          label="Google"
+          onClick={handleGoogleLogin}
+        />
+        <SocialButton
+          icon={<FaGithub />}
+          label="Github"
+          onClick={handleGithubLogin}
+        />
+      </div>
 
       <div className="text-center text-xs font-mono text-gray-500 mt-4">
         Already have an account?{" "}
