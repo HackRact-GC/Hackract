@@ -63,39 +63,45 @@ const VerifyEmail = () => {
         <p className="text-sm font-mono text-gray-800">{message}</p>
       </div>
 
-      <form className="space-y-4" onSubmit={handleSubmit}>
+      <form className="space-y-6" onSubmit={handleSubmit}>
         <div className="flex flex-col gap-2">
-          <label className="text-xs font-bold tracking-widest uppercase text-gray-500">Email</label>
-          <input
-            type="email"
-            name="email"
-            value={form.email}
-            onChange={handleChange}
-            required
-            className="w-full bg-white border border-gray-200 rounded-sm px-3 py-2 text-sm font-mono focus:outline-none focus:border-black"
-            placeholder="username@domain.com"
-          />
+          <label className="text-xs font-bold tracking-widest uppercase text-gray-500 font-sans">Email</label>
+          <div className="flex items-center w-full bg-gray-100 rounded-sm px-3 py-3 border border-transparent focus-within:border-black transition-all duration-300">
+            <span className="text-xs font-mono text-gray-500 mr-2 select-none">root@hackract:~$</span>
+            <input
+              type="email"
+              name="email"
+              value={form.email}
+              onChange={handleChange}
+              required
+              className="flex-1 bg-transparent outline-none text-sm font-mono placeholder-gray-400 text-gray-900 cursor-text"
+              placeholder="username@domain.com"
+            />
+          </div>
         </div>
         <div className="flex flex-col gap-2">
-          <label className="text-xs font-bold tracking-widest uppercase text-gray-500">6-digit code</label>
-          <input
-            type="text"
-            name="code"
-            value={form.code}
-            onChange={handleChange}
-            required
-            pattern="\d{6}"
-            maxLength={6}
-            className="w-full bg-white border border-gray-200 rounded-sm px-3 py-2 text-sm font-mono tracking-[0.4em] text-center focus:outline-none focus:border-black"
-            placeholder="123456"
-          />
+          <label className="text-xs font-bold tracking-widest uppercase text-gray-500 font-sans">6-digit access code</label>
+          <div className="flex items-center w-full bg-gray-100 rounded-sm px-3 py-3 border border-transparent focus-within:border-black transition-all duration-300">
+            <span className="text-xs font-mono text-gray-500 mr-2 select-none">otp_verify:</span>
+            <input
+              type="text"
+              name="code"
+              value={form.code}
+              onChange={handleChange}
+              required
+              pattern="\d{6}"
+              maxLength={6}
+              className="flex-1 bg-transparent outline-none text-sm font-mono tracking-[0.8em] font-bold text-center placeholder-gray-400 text-gray-900 cursor-text"
+              placeholder="000000"
+            />
+          </div>
         </div>
         <button
           type="submit"
           disabled={status === "loading"}
           className="w-full bg-black text-[#00ff88] font-mono font-bold py-3 uppercase tracking-widest hover:bg-[#00ff88] hover:text-black transition-all duration-300 mt-2 cursor-pointer shadow-lg disabled:opacity-60"
         >
-          {status === "loading" ? "Verifying..." : "Verify"}
+          {status === "loading" ? "Validating..." : "Execute Verification"}
         </button>
       </form>
 

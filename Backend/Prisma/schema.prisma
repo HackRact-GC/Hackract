@@ -64,17 +64,17 @@ enum HackerProfileStatus {
 model User {
   id           String     @id @default(uuid())
   email        String     @unique
-  passwordHash String?    // Optional for OAuth users
+  passwordHash String? // Optional for OAuth users
   fullName     String
   handle       String     @unique
   status       UserStatus @default(PENDING)
   isVerified   Boolean    @default(false)
 
   // OAuth fields
-  provider     String?    // 'local', 'google', 'github', etc.
-  providerId   String?    // OAuth provider's user ID
-  auth0Id      String?    @unique // Auth0 identifier
-  avatar       String?    // Profile picture URL
+  provider   String? // 'local', 'google', 'github', etc.
+  providerId String? // OAuth provider's user ID
+  auth0Id    String? @unique // Auth0 identifier
+  avatar     String? // Profile picture URL
 
   // Email verification
   emailVerifiedAt DateTime?
@@ -83,17 +83,18 @@ model User {
   lastLoginAt DateTime?
 
   // Relations
-  organizations        OrganizationMember[]
-  roles                Role[] // Direct relation to Role
-  pentestsLed          Pentest[]             @relation("LeadPentester")
-  findingsReported     Finding[]             @relation("FindingReporter") // Changed from 'findings'
-  aiAgents             AiAgent[]             @relation("AiAgentUser")
-  pentestCollaborators PentestCollaborator[]
-  userSignatures       UserSignature[]
-  auditLogs            AuditLog[]
+  organizations           OrganizationMember[]
+  roles                   Role[] // Direct relation to Role
+  pentestsLed             Pentest[]                @relation("LeadPentester")
+  findingsReported        Finding[]                @relation("FindingReporter") // Changed from 'findings'
+  aiAgents                AiAgent[]                @relation("AiAgentUser")
+  pentestCollaborators    PentestCollaborator[]
+  userSignatures          UserSignature[]
+  auditLogs               AuditLog[]
   emailVerificationTokens EmailVerificationToken[]
-  passwordResetTokens  PasswordResetToken[]
-  refreshTokens        RefreshToken[]
+  passwordResetTokens     PasswordResetToken[]
+  refreshTokens           RefreshToken[]
+  workflowHistories       WorkflowHistory[]
 
   // Hacker profile (for PENTESTER users)
   hackerProfile        HackerProfile?
@@ -224,6 +225,7 @@ model Pentest {
   findings      Finding[]
   aiAgents      AiAgent[]             @relation("PentestAiAgent")
   auditLogs     AuditLog[] // Added opposite relation
+  workflows     Workflow[]
 
   // Timestamps
   createdAt DateTime @default(now())
@@ -453,7 +455,7 @@ model PasswordResetToken {
   userId String
 
   // Timestamps
-  createdAt DateTime @default(now())
+  createdAt DateTime  @default(now())
   usedAt    DateTime?
 
   @@index([userId])
@@ -485,4 +487,55 @@ model RefreshToken {
   @@index([userId])
   @@index([token])
   @@index([expiresAt])
+}
+
+// =====================================
+// 1️⃣6️⃣ Workflow
+// =====================================
+model Workflow {
+  id   String @id @default(uuid())
+  name String @default("Untitled Workflow")
+
+  // The current state of the workflow (nodes and connections)
+  nodes Json @default("[]")
+  edges Json @default("[]")
+
+  // Relations
+  pentest   Pentest @relation(fields: [pentestId], references: [id], onDelete: Cascade)
+  pentestId String
+
+  history WorkflowHistory[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([pentestId])
+}
+
+// =====================================
+// 1️⃣7️⃣ WorkflowHistory
+// =====================================
+model WorkflowHistory {
+  id String @id @default(uuid())
+
+  // Relations
+  workflow   Workflow @relation(fields: [workflowId], references: [id], onDelete: Cascade)
+  workflowId String
+
+  user   User   @relation(fields: [userId], references: [id])
+  userId String
+
+  // Versioning Details
+  action  String // e.g., "NODE_ADDED", "NODE_MOVED", "TEXT_CHANGED"
+  details Json? // The delta/diff (what specifically changed)
+
+  // Snapshot (Optional: save the full state every 10-20 changes for easy rollback)
+  isSnapshot Boolean @default(false)
+  snapshot   Json? // The full { nodes, edges } state at this point in time
+
+  createdAt DateTime @default(now())
+
+  @@index([workflowId])
+  @@index([userId])
+  @@index([createdAt])
 }
