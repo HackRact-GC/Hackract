@@ -58,4 +58,23 @@ export const reject = async (req, res, next) => {
     next(error);
   }
 };
+export const getStatus = async (req, res, next) => {
+  try {
+    const profile = await service.getMyProfile(req.user.id);
+    const missing = await service.getMissingAgreements(req.user.id);
+    ApiResponse.success(res, { profile, missingAgreements: missing }, 'Verification status retrieved');
+  } catch (error) {
+    next(error);
+  }
+};
 
+export const signAgreement = async (req, res, next) => {
+  try {
+    const { agreementTitle } = req.body;
+    const meta = { ipAddress: req.ip, userAgent: req.get('user-agent') };
+    const signature = await service.signAgreement(req.user.id, agreementTitle, meta);
+    ApiResponse.success(res, { signature }, 'Agreement signed successfully');
+  } catch (error) {
+    next(error);
+  }
+};
