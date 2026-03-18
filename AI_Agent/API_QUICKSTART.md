@@ -8,7 +8,7 @@
 # Build and start
 docker-compose up --build
 
-# The API will be available at http://localhost:8000
+# The API will be available at http://localhost:8008
 ```
 
 ### Without Docker (Local)
@@ -25,20 +25,21 @@ python3 run_api.py
 
 Once running, you can access:
 
-- **API Server**: http://localhost:8000
-- **Interactive API Docs**: http://localhost:8000/docs
-- **Alternative Docs**: http://localhost:8000/redoc
-- **Example Frontend**: Open `frontend_example.html` in your browser
+- **API Server**: http://localhost:8008
+- **Health check**: http://localhost:8008/api/health
+- **Interactive API Docs**: http://localhost:8008/docs
+- **Alternative Docs**: http://localhost:8008/redoc
+- **Example Frontend**: Open `static/index.html` in your browser
 
 ## 📡 Quick API Test
 
 ### Using curl:
 ```bash
 # Health check
-curl http://localhost:8000/health
+curl http://localhost:8008/api/health
 
 # Send a message
-curl -X POST http://localhost:8000/api/message \
+curl -X POST http://localhost:8008/api/message \
   -H "Content-Type: application/json" \
   -d '{"message": "What tools are available?"}'
 ```
@@ -55,7 +56,7 @@ curl -X POST http://localhost:8000/api/message \
 
 ```javascript
 async function askAgent(message) {
-    const response = await fetch('http://localhost:8000/api/message', {
+    const response = await fetch('http://localhost:8008/api/message', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

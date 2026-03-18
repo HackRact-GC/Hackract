@@ -24,6 +24,9 @@ You have access to the following tools to accomplish your tasks:
 ### 4. response
 {tool_response}
 
+### 5. search
+{tool_search}
+
 ## Response Format
 
 You must respond in JSON format with your thoughts and tool usage:

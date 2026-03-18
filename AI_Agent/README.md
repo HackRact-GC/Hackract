@@ -1,12 +1,12 @@
-# HackrAct AI Agent 🛡️
+# HackrAct AI Agent
 
 **Autonomous AI Penetration Tester powered by Large Language Models**
 
-HackrAct is an AI-powered cybersecurity agent designed for penetration testing, vulnerability assessment, and security research. Built on top of Agent Zero's hacking capabilities, it combines autonomous reasoning with professional security tools.
+HackrAct is an AI-powered cybersecurity agent designed for penetration testing, vulnerability assessment, and security research. It combines autonomous reasoning with professional security tools.
 
-> ⚠️ **LEGAL DISCLAIMER**: This tool is for authorized security testing and educational purposes ONLY. Unauthorized access to computer systems is illegal. Always obtain explicit written permission before testing any systems.
+> **LEGAL DISCLAIMER**: This tool is for authorized security testing and educational purposes ONLY. Unauthorized access to computer systems is illegal. Always obtain explicit written permission before testing any systems.
 
-## 🎯 Features
+## Features
 
 - **Autonomous Pentesting**: AI-driven security testing with minimal human intervention
 - **Comprehensive Tool Suite**: Integrated with Kali Linux tools (nmap, metasploit, sqlmap, john, hashcat, nikto, and more)
@@ -15,7 +15,7 @@ HackrAct is an AI-powered cybersecurity agent designed for penetration testing, 
 - **Methodical Approach**: Follows industry-standard frameworks (OWASP, PTES, MITRE ATT&CK)
 - **Professional Reporting**: Technical, detailed security reports
 
-## 🏗️ Architecture
+## Architecture
 
 ```
 HackrAct AI Agent
@@ -39,7 +39,7 @@ HackrAct AI Agent
     └── Kali Linux with security tools
 ```
 
-## 📦 Installation
+## Installation
 
 ### Prerequisites
 
@@ -94,14 +94,14 @@ nano .env
 python3 run_cli.py
 ```
 
-## 🚀 Usage
+## Usage
 
 ### Interactive Mode
 
 ```
-👤 You: Scan localhost for open ports
+You: Scan localhost for open ports
 
-🛡️ HackrAct: I'll perform a port scan on localhost using nmap...
+HackrAct: I'll perform a port scan on localhost using nmap...
 
 [Agent executes: nmap -sV -sC localhost]
 
@@ -147,7 +147,7 @@ The MySQL exposure is a critical security issue...
 "Use metasploit to exploit the identified vulnerability"
 ```
 
-## 🛠️ Available Tools
+## Available Tools
 
 ### Security Tools (via code_execution_tool)
 
@@ -187,7 +187,7 @@ The MySQL exposure is a critical security issue...
 - **search**: Search for threat intelligence and CVEs
 - **response**: Send formatted responses to user
 
-## 🧠 Memory System
+## Memory System
 
 HackrAct remembers what it learns:
 
@@ -210,7 +210,7 @@ Agent: [Recalls from memory] "I found a successful SQL injection payload..."
 - `technique` - Successful attack methods
 - `finding` - General security findings
 
-## 📋 Configuration
+## Configuration
 
 Edit `.env` file:
 
@@ -241,25 +241,25 @@ MAX_ITERATIONS=25
 - **Ollama**: Local models (Llama 3.1, Mistral, CodeLlama, etc.) - **FREE & PRIVATE!**
 - **Custom**: Self-hosted or other compatible APIs
 
-> 💡 **New to LLMs?** Check out [LLM_PROVIDER_GUIDE.md](LLM_PROVIDER_GUIDE.md) for detailed setup instructions for each provider.
+> **New to LLMs?** Check out [LLM_PROVIDER_GUIDE.md](LLM_PROVIDER_GUIDE.md) for detailed setup instructions for each provider.
 
-## 🔒 Security & Ethics
+## Security & Ethics
 
-### ⚠️ Legal and Ethical Use
+### Legal and Ethical Use
 
 **DO:**
-- ✅ Use on systems you own
-- ✅ Use with explicit written authorization
-- ✅ Use for educational purposes in controlled environments
-- ✅ Use for authorized penetration testing engagements
-- ✅ Report vulnerabilities responsibly
+- Use on systems you own
+- Use with explicit written authorization
+- Use for educational purposes in controlled environments
+- Use for authorized penetration testing engagements
+- Report vulnerabilities responsibly
 
 **DON'T:**
-- ❌ Test systems without authorization - This is illegal!
-- ❌ Cause damage or disruption
-- ❌ Exploit found vulnerabilities maliciously
-- ❌ Share or publish sensitive findings without permission
-- ❌ Use for any illegal activities
+- Test systems without authorization - This is illegal!
+- Cause damage or disruption
+- Exploit found vulnerabilities maliciously
+- Share or publish sensitive findings without permission
+- Use for any illegal activities
 
 ### Safety Measures
 
@@ -268,7 +268,7 @@ MAX_ITERATIONS=25
 3. **Authorized Scope**: Only test systems you have permission for
 4. **Data Protection**: Protect any credentials/data discovered
 
-## 🎓 Graduation Project Usage
+## Graduation Project Usage
 
 This project was created as a graduation project focused on AI-powered cybersecurity. It demonstrates:
 
@@ -287,11 +287,11 @@ For academic presentations:
 - Demonstrates tool use and function calling
 - Shows ethical AI deployment considerations
 
-## 📖 Examples
+## Examples
 
 See [EXAMPLES.md](EXAMPLES.md) for detailed usage scenarios and walkthroughs.
 
-## 🤝 Contributing
+## Contributing
 
 This is a graduation project, but improvements are welcome:
 1. Fork the repository
@@ -299,17 +299,16 @@ This is a graduation project, but improvements are welcome:
 3. Make your changes
 4. Submit a pull request
 
-## 📄 License
+## License
 
 This project is for educational purposes. Use responsibly and legally.
 
-## 🙏 Acknowledgments
+## Acknowledgments
 
-- Built upon [Agent Zero](https://github.com/agent0ai/agent-zero) framework
 - Powered by Kali Linux and its comprehensive security tools
 - LLM integration via LiteLLM
 
-## ⚡ Troubleshooting
+## Troubleshooting
 
 **"API Key Error":**
 - Check your `.env` file has valid `API_KEY`
@@ -326,13 +325,13 @@ This project is for educational purposes. Use responsibly and legally.
 **"No module named 'X'":**
 - Install Python deps: `pip3 install -r requirements.txt`
 
-## 📞 Support
+## Support
 
 For issues and questions:
 - Check the documentation
 - Review example usage in EXAMPLES.md
-- Check Agent Zero documentation for framework details
+- Check project documentation for framework details
 
 ---
 
-**Remember: With great power comes great responsibility. Use HackrAct ethically and legally!** 🛡️
+**Remember: With great power comes great responsibility. Use HackrAct ethically and legally!**
