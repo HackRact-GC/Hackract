@@ -1,5 +1,6 @@
 import React from 'react';
 import { FiPlay, FiCpu, FiFileText, FiTerminal } from 'react-icons/fi';
+import { RiRobotLine } from 'react-icons/ri';
 
 const Sidebar = ({ onAdd }) => {
   const onDragStart = (event, nodeType) => {
@@ -27,6 +28,16 @@ const Sidebar = ({ onAdd }) => {
         title="AI Assistant"
       >
         <FiCpu size={20} className="text-[#00a3ff]" />
+      </div>
+
+      <div 
+        className="w-10 h-10 rounded-lg bg-[#161a23] border border-[#d000ff]/50 flex items-center justify-center cursor-grab hover:bg-[#d000ff]/10 transition-colors active:scale-95"
+        onDragStart={(event) => onDragStart(event, 'agent')}
+        onClick={() => onAdd && onAdd('agent')}
+        draggable
+        title="AI Agent"
+      >
+        <RiRobotLine size={20} className="text-[#d000ff]" />
       </div>
 
       <div 
