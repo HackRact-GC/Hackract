@@ -31,3 +31,15 @@ export const update = async (req, res, next) => {
         res.json(await service.updateAgentSession(req.params.id, updateAgentSchema.parse(req.body)));
     } catch (e) { next(e); }
 };
+
+export const test = async (req, res, next) => {
+    try {
+        res.json(await service.testAgent(req.params.id, req.body.prompt));
+    } catch (e) { next(e); }
+};
+
+export const deploy = async (req, res, next) => {
+    try {
+        res.json(await service.deployAgent(req.params.id, req.body.pentestId));
+    } catch (e) { next(e); }
+};

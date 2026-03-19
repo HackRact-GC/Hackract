@@ -110,4 +110,7 @@ router.get('/', controller.list);
 router.get('/:id', controller.get);
 router.patch('/:id', controller.update);
 
+router.post('/:id/test', controller.test);
+router.post('/:id/deploy', controller.deploy);
+
 export default router;
