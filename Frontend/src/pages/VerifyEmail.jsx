@@ -37,7 +37,7 @@ const VerifyEmail = () => {
       const successMsg = data?.message || "Email verified! You can now log in.";
       setMessage(successMsg);
       toast.success(successMsg);
-      setTimeout(() => navigate("/"), 800);
+      setTimeout(() => navigate("/login"), 800);
     } catch (error) {
       const errorMsg =
         error?.response?.data?.error ||
