@@ -71,3 +71,11 @@ export const updateStatus = asyncHandler(async (req, res) => {
   const user = await service.updateAccountStatus(req.params.id, status);
   ApiResponse.success(res, { user }, 'Account status updated successfully');
 });
+
+/**
+ * Get current user trust score
+ */
+export const getMyTrustScore = asyncHandler(async (req, res) => {
+  const score = await service.calculateTrustScore(req.user.id);
+  ApiResponse.success(res, { trustScore: score }, 'Trust score calculated successfully');
+});

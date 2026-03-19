@@ -176,5 +176,6 @@ router.get('/', controller.list);
 router.get('/:id', controller.get);
 router.patch('/:id', restrictTo('SUPER_ADMIN'), controller.update);
 router.delete('/:id', restrictTo('SUPER_ADMIN'), controller.remove);
+router.post('/:id/notify', restrictTo('SUPER_ADMIN'), controller.notify);
 
 export default router;

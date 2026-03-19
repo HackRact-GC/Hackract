@@ -29,3 +29,10 @@ export const updateAgreement = async (id, data) => {
 export const deleteAgreement = async (id) => {
     return await legalAgreementRepository.deleteAgreement(id);
 };
+
+export const notifyUsers = async (id) => {
+    const agreement = await getAgreementById(id);
+    // In a real implementation this would trigger email/in-app notifications
+    console.log(`[Platform Notification]: The legal agreement "${agreement.title}" (v${agreement.version}) has been updated. Please review the new terms.`);
+    return { notified: true, agreementId: id };
+};

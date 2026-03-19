@@ -58,9 +58,22 @@ export const updateOrganizationSchema = Joi.object({
     .optional()
     .messages({
       'string.max': 'Description cannot exceed 500 characters'
-    })
+    }),
+  taxId: Joi.string().max(50).optional(),
+  industry: Joi.string().max(100).optional(),
+  companySize: Joi.string().max(50).optional(),
+  website: Joi.string().uri().optional(),
+  address: Joi.string().max(500).optional(),
 }).min(1).messages({
   'object.min': 'At least one field must be provided for update'
+});
+
+export const submitVerificationSchema = Joi.object({
+  taxId: Joi.string().required(),
+  industry: Joi.string().required(),
+  companySize: Joi.string().required(),
+  website: Joi.string().uri().required(),
+  address: Joi.string().required(),
 });
 
 export const addMemberSchema = Joi.object({

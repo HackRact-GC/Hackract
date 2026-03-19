@@ -140,6 +140,17 @@ router.route('/:organizationId')
     organizationController.deleteOrganization
   );
 
+router.post('/:organizationId/submit-verification',
+  organizationMiddleware.isOrganizationOwner,
+  organizationController.submitVerification
+);
+
+router.post('/:organizationId/validate-domain',
+  organizationMiddleware.isOrganizationMember,
+  organizationMiddleware.hasOrganizationPermission('manage_settings'),
+  organizationController.validateDomain
+);
+
 /**
  * @swagger
  * /api/v1/organizations/{organizationId}/members:

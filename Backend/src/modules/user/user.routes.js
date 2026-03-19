@@ -32,6 +32,22 @@ router.get('/me', controller.me);
 
 /**
  * @swagger
+ * /api/v1/users/me/trust-score:
+ *   get:
+ *     summary: get current user trust score
+ *     tags: [Users]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Trust score retrieved successfully
+ *       401:
+ *         description: Unauthorized
+ */
+router.get('/me/trust-score', controller.getMyTrustScore);
+
+/**
+ * @swagger
  * /api/v1/users/profile:
  *   patch:
  *     summary: Update user profile
