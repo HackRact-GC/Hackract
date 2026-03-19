@@ -1,6 +1,7 @@
 import prisma from '../../database/prismaClient.js';
 import AppError from '../../utils/AppError.js';
-import { HackerProfileErrorCodes, HackerProfileStatus } from './hackerProfile.constants.js';
+import { HackerProfileErrorCodes, VerificationStatus } from './hackerProfile.constants.js';
+import { calculateTrustScore } from '../user/user.service.js';
 
 export const getMyProfile = async (userId) => {
   const profile = await prisma.hackerProfile.findUnique({
@@ -12,7 +13,7 @@ export const getMyProfile = async (userId) => {
 export const upsertMyProfile = async (userId, payload) => {
   const existing = await prisma.hackerProfile.findUnique({ where: { userId } });
 
-  if (existing && [HackerProfileStatus.UNDER_REVIEW, HackerProfileStatus.APPROVED].includes(existing.status)) {
+  if (existing && [VerificationStatus.UNDER_REVIEW, VerificationStatus.APPROVED].includes(existing.status)) {
     throw new AppError(
       'Approved or under-review profiles cannot be edited. Contact an administrator.',
       403,
@@ -21,9 +22,9 @@ export const upsertMyProfile = async (userId, payload) => {
   }
 
   const nextStatus =
-    payload.status && payload.status === HackerProfileStatus.SUBMITTED
-      ? HackerProfileStatus.SUBMITTED
-      : HackerProfileStatus.DRAFT;
+    payload.status && payload.status === VerificationStatus.SUBMITTED
+      ? VerificationStatus.SUBMITTED
+      : VerificationStatus.DRAFT;
 
   const data = {
     bio: payload.bio,
@@ -45,6 +46,8 @@ export const upsertMyProfile = async (userId, payload) => {
     update: data,
   });
 
+  await calculateTrustScore(userId);
+
   return profile;
 };
 
@@ -53,7 +56,7 @@ export const submitMyProfile = async (userId) => {
   if (!profile) {
     throw new AppError('Hacker profile not found', 404, HackerProfileErrorCodes.NOT_FOUND);
   }
-  if (profile.status === HackerProfileStatus.APPROVED) {
+  if (profile.status === VerificationStatus.APPROVED) {
     return profile;
   }
 
@@ -64,8 +67,10 @@ export const submitMyProfile = async (userId) => {
 
   const updated = await prisma.hackerProfile.update({
     where: { userId },
-    data: { status: HackerProfileStatus.SUBMITTED },
+    data: { status: VerificationStatus.SUBMITTED },
   });
+
+  await calculateTrustScore(userId);
 
   return updated;
 };
