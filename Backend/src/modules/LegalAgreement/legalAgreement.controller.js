@@ -41,3 +41,9 @@ export const remove = async (req, res, next) => {
     res.status(204).send();
   } catch (e) { next(e); }
 };
+
+export const notify = async (req, res, next) => {
+  try {
+    res.json(await service.notifyUsers(req.params.id));
+  } catch (e) { next(e); }
+};
