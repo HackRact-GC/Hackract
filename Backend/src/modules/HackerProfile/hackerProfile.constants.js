@@ -1,4 +1,4 @@
-export const HackerProfileStatus = {
+export const VerificationStatus = {
   DRAFT: 'DRAFT',
   SUBMITTED: 'SUBMITTED',
   UNDER_REVIEW: 'UNDER_REVIEW',

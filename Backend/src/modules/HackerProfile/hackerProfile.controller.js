@@ -1,6 +1,6 @@
 import * as service from './hackerProfile.service.js';
 import ApiResponse from '../../utils/ApiResponse.js';
-import { HackerProfileStatus } from './hackerProfile.constants.js';
+import { VerificationStatus } from './hackerProfile.constants.js';
 
 export const getMe = async (req, res, next) => {
   try {
@@ -32,7 +32,7 @@ export const submitMe = async (req, res, next) => {
 export const listForReview = async (req, res, next) => {
   try {
     const status = req.query.status;
-    const validStatus = Object.values(HackerProfileStatus);
+    const validStatus = Object.values(VerificationStatus);
     const statusFilter = status && validStatus.includes(status) ? status : undefined;
     const profiles = await service.listProfilesForReview(statusFilter);
     ApiResponse.success(res, { profiles }, 'Hacker profiles retrieved successfully');
