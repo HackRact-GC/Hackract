@@ -19,3 +19,18 @@ export const updateAgentSession = async (id, data) => {
 export const listAgentSessions = async (filters) => {
     return await agentRepository.findAll(filters);
 };
+
+export const testAgent = async (id, prompt) => {
+    const agent = await getAgentSession(id);
+    return {
+        agentId: id,
+        prompt,
+        response: `[Simulated Model Interaction]: Successfully parsed prompt "${prompt}".`,
+        status: 'SUCCESS',
+        testedAt: new Date()
+    };
+};
+
+export const deployAgent = async (id, pentestId) => {
+    return await updateAgentSession(id, { isActive: true, pentestId });
+};

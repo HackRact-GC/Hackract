@@ -7,6 +7,7 @@ const Home = () => {
   const navigate = useNavigate();
   const { user, logout } = useAuth();
   const [profileStatus, setProfileStatus] = useState(null);
+  const [orgs, setOrgs] = useState([]);
 
   useEffect(() => {
     const fetchStatus = async () => {
@@ -19,6 +20,18 @@ const Home = () => {
     };
     if (user?.roles?.[0]?.type === 'PENTESTER') {
       fetchStatus();
+    }
+    
+    const fetchOrgs = async () => {
+      try {
+        const { data } = await api.get('/organizations/me');
+        setOrgs(data.data || []);
+      } catch (err) {
+        console.error('Failed to fetch organizations');
+      }
+    };
+    if (user?.roles?.[0]?.type === 'ORG_ADMIN') {
+      fetchOrgs();
     }
   }, [user]);
 
@@ -180,6 +193,28 @@ const Home = () => {
                   className="bg-amber-500 hover:bg-amber-600 text-black px-4 py-2 rounded-lg text-xs font-mono font-bold uppercase tracking-widest transition-all active:scale-95 whitespace-nowrap"
                 >
                   Verify Now →
+                </button>
+              </div>
+            )}
+
+            {isOrgView && orgs.some(o => o.verificationStatus !== 'APPROVED') && (
+              <div className="bg-sky-500/10 border border-sky-500/30 rounded-2xl p-6 shadow-xl flex items-center justify-between gap-6 group">
+                <div className="flex items-center gap-4">
+                  <div className="h-12 w-12 rounded-full bg-sky-500/20 flex items-center justify-center text-sky-500 text-xl">
+                    🏢
+                  </div>
+                  <div>
+                    <h3 className="font-bold text-sky-400 uppercase tracking-tighter text-sm">Business Entity Verification Required</h3>
+                    <p className="text-xs text-gray-400 max-w-lg">
+                      Your organization **{orgs.find(o => o.verificationStatus !== 'APPROVED')?.name}** must be verified before you can launch security programs or invite testers.
+                    </p>
+                  </div>
+                </div>
+                <button 
+                  onClick={() => navigate(`/organization-verification/${orgs.find(o => o.verificationStatus !== 'APPROVED')?.id}`)}
+                  className="bg-sky-500 hover:bg-sky-600 text-white px-4 py-2 rounded-lg text-xs font-mono font-bold uppercase tracking-widest transition-all active:scale-95 whitespace-nowrap"
+                >
+                  Complete Profile →
                 </button>
               </div>
             )}

@@ -1,5 +1,5 @@
 import Joi from 'joi';
-import { HackerProfileStatus } from './hackerProfile.constants.js';
+import { VerificationStatus } from './hackerProfile.constants.js';
 
 export const upsertHackerProfileSchema = Joi.object({
   bio: Joi.string().min(20).max(2000).required().messages({
@@ -20,6 +20,6 @@ export const upsertHackerProfileSchema = Joi.object({
     .optional()
     .default([]),
   status: Joi.string()
-    .valid(HackerProfileStatus.DRAFT, HackerProfileStatus.SUBMITTED)
+    .valid(VerificationStatus.DRAFT, VerificationStatus.SUBMITTED)
     .optional(),
 });
