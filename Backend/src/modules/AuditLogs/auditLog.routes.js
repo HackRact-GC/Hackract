@@ -74,6 +74,22 @@ router.get('/', restrictTo('SUPER_ADMIN', 'ORG_ADMIN'), controller.list);
 
 /**
  * @swagger
+ * /api/v1/audit-logs/report:
+ *   get:
+ *     summary: Generate audit compliance report
+ *     tags: [AuditLogs]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Audit report generated successfully
+ *       403:
+ *         description: Forbidden
+ */
+router.get('/report', restrictTo('SUPER_ADMIN', 'ORG_ADMIN'), controller.generateReport);
+
+/**
+ * @swagger
  * /api/v1/audit-logs/{id}:
  *   get:
  *     summary: Get audit log by ID
