@@ -14,6 +14,7 @@ import HackerProfile from "../pages/HackerProfile.jsx";
 import OrganizationProfile from "../pages/OrganizationProfile.jsx";
 import WorkflowEditor from "../pages/WorkflowEditor/WorkflowEditor.jsx";
 import HackerVerification from "../pages/HackerVerification.jsx";
+import OrganizationVerification from "../pages/OrganizationVerification.jsx";
 import ErrorPage from "../pages/ErrorPage.jsx";
 
 const router = createBrowserRouter([
@@ -41,6 +42,10 @@ const router = createBrowserRouter([
       {
         path: "organization-profile",
         element: <OrganizationProfile />,
+      },
+      {
+        path: "organization-verification/:organizationId",
+        element: <OrganizationVerification />,
       },
       {
         path: "workflows/:workflowId",
