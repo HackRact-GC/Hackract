@@ -8,7 +8,8 @@ import {
   updateMemberSchema,
   paginationSchema,
   organizationIdSchema,
-  memberIdSchema
+  memberIdSchema,
+  submitVerificationSchema
 } from './Organization.schema.js';
 import asyncHandler from '../../utils/AsyncHandler.js';
 
@@ -238,6 +239,54 @@ class OrganizationController {
     res.status(200).json({
       success: true,
       ...result
+    });
+  });
+
+  submitVerification = asyncHandler(async (req, res) => {
+    const paramsValidation = organizationIdSchema.validate(req.params);
+    if (paramsValidation.error) {
+      return res.status(400).json({
+        success: false,
+        error: paramsValidation.error.details[0].message
+      });
+    }
+
+    const bodyValidation = submitVerificationSchema.validate(req.body);
+    if (bodyValidation.error) {
+      return res.status(400).json({
+        success: false,
+        error: bodyValidation.error.details[0].message
+      });
+    }
+
+    const organization = await organizationService.submitVerification(
+      paramsValidation.value.organizationId,
+      bodyValidation.value,
+      req.user.id
+    );
+
+    res.status(200).json({
+      success: true,
+      message: 'Organization verification submitted successfully',
+      data: organization
+    });
+  });
+
+  validateDomain = asyncHandler(async (req, res) => {
+    const { error, value } = organizationIdSchema.validate(req.params);
+    if (error) {
+      return res.status(400).json({
+        success: false,
+        error: error.details[0].message
+      });
+    }
+
+    const result = await organizationService.validateDomain(value.organizationId, req.user.id);
+
+    res.status(200).json({
+      success: true,
+      message: 'Domain validation successful',
+      data: result
     });
   });
 }
