@@ -8,6 +8,7 @@ import asyncio
 import json
 import os
 import sys
+import time
 from typing import Dict, Any, List, Optional
 from colorama import Fore, Style
 from config import AgentConfig, load_config
@@ -21,6 +22,13 @@ from python.tools.memory_save import MemorySaveTool
 from python.tools.memory_load import MemoryLoadTool
 from python.tools.response import ResponseTool
 from python.tools.search import SearchTool
+
+# Max tool stdout/JSON shown in the web UI (full result still goes to the model).
+UI_TOOL_OUTPUT_MAX_CHARS = 120_000
+# Throttle WebSocket updates while the LLM stream is receiving tokens.
+LLM_STREAM_EMIT_INTERVAL_SEC = 0.07
+# Avoid huge WebSocket frames while streaming (tail of response is shown).
+WS_THINKING_DISPLAY_MAX_CHARS = 100_000
 
 
 class Agent:
@@ -87,13 +95,26 @@ class Agent:
         """Set callback for status updates"""
         self.status_callback = callback
 
-    async def _emit_status(self, type: str, content: str):
-        """Emit status update via callback"""
+    async def _emit_status(self, type: str, content: str, meta: Optional[Dict[str, Any]] = None):
+        """Emit status update via callback (optional meta for UI: ProcessGroup modal, etc.)."""
         if self.status_callback:
             try:
-                await self.status_callback(type, content)
+                await self.status_callback(type, content, meta or {})
             except Exception as e:
                 self.logger.error(f"Error in status callback: {e}")
+
+    async def emit_terminal_chunk(self, text: str, is_stderr: bool = False) -> None:
+        """Stream raw terminal bytes to the web UI (ProcessGroup terminal) as the process runs."""
+        if not text:
+            return
+        await self._emit_status(
+            "terminal_stream",
+            text,
+            {
+                "iteration": getattr(self, "iteration", 0),
+                "stderr": is_stderr,
+            },
+        )
 
     def stop(self):
         """Request the agent to stop processing"""
@@ -162,6 +183,7 @@ class Agent:
         environment = load_prompt("agent.system.main.environment.md")
         solving = load_prompt("agent.system.main.solving.md")
         communication = load_prompt("agent.system.main.communication.md")
+        tips = load_prompt("agent.system.main.tips.md")
         
         # Load tool prompts
         tool_code_exe = load_prompt("agent.system.tool.code_exe.md")
@@ -188,6 +210,11 @@ class Agent:
             
             # Condense Communication
             communication = "Be concise. Report technical findings clearly."
+            tips = (
+                "Verify with tool output; retry failed commands once after fixing; "
+                "use memory tools for durable notes; prefer shell for simple tasks; "
+                "markdown-friendly final answers (headings, lists, code fences)."
+            )
             
             # Condense Tool Prompts (Massive savings here)
             tool_code_exe = """## Code Execution Tool
@@ -223,6 +250,7 @@ Params: `query` (string), `max_results` (int)."""
             environment=environment,
             solving=solving,
             communication=communication,
+            tips=tips,
             tool_code_exe=tool_code_exe,
             tool_memory_save=tool_memory_save,
             tool_memory_load=tool_memory_load,
@@ -313,8 +341,17 @@ Params: `query` (string), `max_results` (int)."""
                 content="Processing..."
             )
             
-            await self._emit_status("thinking", f"Iteration {self.iteration}: Thinking...")
-            
+            await self._emit_status(
+                "thinking",
+                f"Iteration {self.iteration}: Thinking...",
+                {"iteration": self.iteration, "phase": "llm_pending"},
+            )
+            await self._emit_status(
+                "llm_start",
+                "Calling LLM…",
+                {"iteration": self.iteration, "chat_model": self.config.model.chat_model},
+            )
+
             # Get agent response
             messages = [
                 {"role": "system", "content": self.system_prompt},
@@ -328,18 +365,55 @@ Params: `query` (string), `max_results` (int)."""
                 # Stream agent response
                 print(f"\n{Fore.BLUE}{Style.BRIGHT}[AGENT] Thinking...{Style.RESET_ALL}")
                 agent_response = ""
-                
+                stream_emit_next = 0.0
+
                 # Get the async generator from the LLM
                 stream_gen = await self.llm.chat(messages, stream=True)
-                
+
                 async for chunk in stream_gen:
                     # Check for error in stream
                     if chunk.startswith("Error:"):
                         raise Exception(chunk)
-                        
+
                     print(f"{Fore.BLUE}{chunk}{Style.RESET_ALL}", end="", flush=True)
                     agent_response += chunk
-                print() # Newline after stream
+                    # Live "thinking" in the ProcessGroup UI (throttled for WebSocket)
+                    now = time.monotonic()
+                    if now >= stream_emit_next:
+                        disp = agent_response
+                        if len(disp) > WS_THINKING_DISPLAY_MAX_CHARS:
+                            disp = (
+                                "… (earlier stream truncated for UI)\n\n"
+                                + disp[-WS_THINKING_DISPLAY_MAX_CHARS:]
+                            )
+                        await self._emit_status(
+                            "thinking",
+                            disp,
+                            {
+                                "iteration": self.iteration,
+                                "streaming": True,
+                                "chat_model": self.config.model.chat_model,
+                            },
+                        )
+                        stream_emit_next = now + LLM_STREAM_EMIT_INTERVAL_SEC
+
+                # Final flush so the UI has the complete model text before JSON parse
+                disp_final = agent_response
+                if len(disp_final) > WS_THINKING_DISPLAY_MAX_CHARS:
+                    disp_final = (
+                        "… (earlier stream truncated for UI)\n\n"
+                        + disp_final[-WS_THINKING_DISPLAY_MAX_CHARS:]
+                    )
+                await self._emit_status(
+                    "thinking",
+                    disp_final,
+                    {
+                        "iteration": self.iteration,
+                        "streaming": False,
+                        "chat_model": self.config.model.chat_model,
+                    },
+                )
+                print()  # Newline after stream
                 
                 # Log to history/file but don't print again
                 self.logger.agent(
@@ -377,9 +451,27 @@ Params: `query` (string), `max_results` (int)."""
                     response_data.get("tool_args")
                 )
                 
-                # Emit thoughts
+                # Emit thoughts (meta for ProcessGroup step details modal)
                 if "thoughts" in response_data:
-                    await self._emit_status("thought", response_data["thoughts"])
+                    raw_trunc = agent_response[:24000] if len(agent_response) > 24000 else agent_response
+                    th = response_data["thoughts"]
+                    if isinstance(th, list):
+                        th_text = "\n".join(str(x) for x in th)
+                    else:
+                        th_text = str(th)
+                    await self._emit_status(
+                        "thought",
+                        th_text,
+                        {
+                            "iteration": self.iteration,
+                            "tool_name": response_data.get("tool_name"),
+                            "tool_args": response_data.get("tool_args"),
+                            "raw_model_response": raw_trunc,
+                            "chat_model": self.config.model.chat_model,
+                            "temperature": self.config.model.temperature,
+                            "max_tokens": self.config.model.max_tokens,
+                        },
+                    )
 
                 # Execute tool
                 if self.stop_requested:
@@ -390,7 +482,16 @@ Params: `query` (string), `max_results` (int)."""
                 tool_args = response_data.get("tool_args", {})
                 
                 if tool_name != "response":
-                    await self._emit_status("tool", f"Executing tool: {tool_name}")
+                    await self._emit_status(
+                        "tool",
+                        f"Executing tool: {tool_name}",
+                        {
+                            "iteration": self.iteration,
+                            "tool_name": tool_name,
+                            "tool_args": tool_args,
+                            "chat_model": self.config.model.chat_model,
+                        },
+                    )
 
                 tool_result = await self._execute_tool(
                     tool_name,
@@ -398,11 +499,42 @@ Params: `query` (string), `max_results` (int)."""
                 )
                 
                 if tool_name != "response":
-                    # Truncate result for display if too long
                     result_str = json.dumps(tool_result, indent=2)
-                    if len(result_str) > 500:
-                        result_str = result_str[:500] + "... (truncated)"
-                    await self._emit_status("tool_output", f"Tool Output:\n{result_str}")
+                    streamed = bool(tool_result.get("streamed_to_ui"))
+                    if streamed:
+                        ec = tool_result.get("exit_code", 0)
+                        ok = tool_result.get("success", False)
+                        display_str = (
+                            f"\n--- Finished · exit {ec} · success={ok} "
+                            f"(output was streamed live above) ---"
+                        )
+                        meta_out: Dict[str, Any] = {
+                            "tool_name": tool_name,
+                            "truncated": False,
+                            "streamed_to_ui": True,
+                            "result_chars": len(result_str),
+                            "chat_model": self.config.model.chat_model,
+                        }
+                    else:
+                        ui_truncated = len(result_str) > UI_TOOL_OUTPUT_MAX_CHARS
+                        if ui_truncated:
+                            display_str = (
+                                result_str[:UI_TOOL_OUTPUT_MAX_CHARS]
+                                + "\n\n… (truncated for UI display; full output is in the agent context)"
+                            )
+                        else:
+                            display_str = result_str
+                        meta_out = {
+                            "tool_name": tool_name,
+                            "truncated": ui_truncated,
+                            "result_chars": len(result_str),
+                            "chat_model": self.config.model.chat_model,
+                        }
+                    if len(result_str) <= 120000:
+                        meta_out["result"] = tool_result
+                    else:
+                        meta_out["result"] = {"_note": "Output too large for details modal; see streamed content."}
+                    await self._emit_status("tool_output", f"Tool Output:\n{display_str}", meta_out)
                 
                 # Check if this was final response
                 if response_data.get("tool_name") == "response":

@@ -189,8 +189,17 @@ def save_config_to_env(config_dict: dict) -> bool:
     
     Returns:
         bool: True if successful
+    
+    Note:
+        If ``api_key`` is missing or empty/whitespace, the existing ``API_KEY`` in .env
+        is left unchanged (so the Settings UI can omit the secret when saving other fields).
     """
     from pathlib import Path
+
+    config_dict = dict(config_dict)
+    # Never wipe API_KEY when the form sends an empty password field
+    if not str(config_dict.get("api_key", "") or "").strip():
+        config_dict.pop("api_key", None)
     
     env_path = Path(".env")
     

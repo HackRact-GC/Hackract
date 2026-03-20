@@ -104,6 +104,7 @@ class HealthResponse(BaseModel):
     status: str
     version: str
     agent_name: str
+    config_error: Optional[str] = None  # set when status is "degraded" (invalid LLM config)
 
 
 # Helper functions
@@ -132,13 +133,21 @@ def save_message(session_id: str, role: str, content: str):
 
 @app.get("/api/health", response_model=HealthResponse)
 async def api_health_check():
-    """Health check endpoint"""
-    config = load_config()
-    return {
-        "status": "online",
-        "version": "1.0.0",
-        "agent_name": config.name
-    }
+    """Health check endpoint. Returns 200 even if LLM config is invalid (status=degraded) so probes still pass."""
+    try:
+        config = load_config()
+        return {
+            "status": "online",
+            "version": "1.0.0",
+            "agent_name": config.name,
+        }
+    except ConfigValidationError as e:
+        return {
+            "status": "degraded",
+            "version": "1.0.0",
+            "agent_name": os.getenv("AGENT_NAME", "HackrAct"),
+            "config_error": str(e),
+        }
 
 
 @app.post("/api/message", response_model=MessageResponse)
@@ -301,11 +310,11 @@ async def websocket_endpoint(websocket: WebSocket, session_id: str):
             
             try:
                 # Define callback for status updates
-                async def status_callback(type: str, content: str):
-                    await websocket.send_json({
-                        "type": type,
-                        "content": content
-                    })
+                async def status_callback(type: str, content: str, meta: Optional[dict] = None):
+                    payload: Dict[str, Any] = {"type": type, "content": content}
+                    if meta:
+                        payload["meta"] = meta
+                    await websocket.send_json(payload)
                 
                 # Set callback on agent
                 agent.set_callback(status_callback)
@@ -450,8 +459,9 @@ async def get_settings():
     """Get current configuration settings. API key is never returned; use api_key_set for UI."""
     try:
         config = load_config(validate=True)
-    except ConfigValidationError as e:
-        raise HTTPException(status_code=503, detail=str(e))
+    except ConfigValidationError:
+        # Allow UI to open after a bad save (e.g. empty key + github); show current env without failing
+        config = load_config(validate=False)
     key = config.model.api_key or ""
     return {
         "llm_provider": config.model.provider,

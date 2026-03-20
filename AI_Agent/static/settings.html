@@ -6,145 +6,165 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Settings - HackrAct AI Agent</title>
     <style>
+        :root {
+            --bg: #343541;
+            --bg-secondary: #40414f;
+            --bg-tertiary: #2b2b32;
+            --border: rgba(255, 255, 255, 0.08);
+            --text: #ececec;
+            --text-muted: #8e8ea0;
+            --accent: #10a37f;
+            --accent-hover: #1a7f64;
+            --font: "Söhne", "ui-sans-serif", system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+        }
+
         * {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
         }
 
+        html {
+            color-scheme: dark;
+        }
+
         body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: linear-gradient(135deg, #0f0c29, #302b63, #24243e);
-            color: #fff;
+            font-family: var(--font);
+            background: var(--bg);
+            color: var(--text);
             min-height: 100vh;
-            padding: 20px;
+            padding: 1.5rem 1rem 2.5rem;
+            -webkit-font-smoothing: antialiased;
         }
 
         .container {
-            max-width: 800px;
+            max-width: 42rem;
             margin: 0 auto;
         }
 
         .header {
-            text-align: center;
-            margin-bottom: 40px;
+            margin-bottom: 1.75rem;
         }
 
         .header h1 {
-            font-size: 32px;
-            color: #00ff88;
-            margin-bottom: 10px;
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: var(--text);
+            letter-spacing: -0.02em;
+            margin-bottom: 0.35rem;
         }
 
         .header p {
-            color: #aaa;
-            font-size: 14px;
+            color: var(--text-muted);
+            font-size: 0.875rem;
         }
 
         .nav {
             display: flex;
-            gap: 10px;
-            margin-bottom: 30px;
+            gap: 0.5rem;
+            margin-bottom: 1.5rem;
         }
 
         .nav-btn {
-            padding: 10px 20px;
-            background: rgba(255, 255, 255, 0.1);
-            border: 1px solid rgba(255, 255, 255, 0.2);
-            border-radius: 8px;
-            color: #fff;
+            display: inline-block;
+            padding: 0.5rem 0.875rem;
+            background: transparent;
+            border: 1px solid var(--border);
+            border-radius: 0.5rem;
+            color: var(--text);
             text-decoration: none;
-            transition: all 0.3s;
-            cursor: pointer;
-            font-size: 14px;
+            font-size: 0.8125rem;
+            transition: background 0.15s;
         }
 
         .nav-btn:hover {
-            background: rgba(255, 255, 255, 0.2);
-            border-color: #00ff88;
+            background: var(--bg-secondary);
         }
 
         .settings-card {
-            background: rgba(255, 255, 255, 0.05);
-            backdrop-filter: blur(10px);
-            border-radius: 16px;
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            padding: 30px;
-            margin-bottom: 20px;
-            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+            background: var(--bg-secondary);
+            border-radius: 0.75rem;
+            border: 1px solid var(--border);
+            padding: 1.25rem;
+            margin-bottom: 1rem;
         }
 
         .settings-card h2 {
-            font-size: 20px;
-            color: #00ff88;
-            margin-bottom: 20px;
-            display: flex;
-            align-items: center;
-            gap: 10px;
+            font-size: 0.9375rem;
+            font-weight: 600;
+            color: var(--text);
+            margin-bottom: 1rem;
+            letter-spacing: -0.02em;
         }
 
         .form-group {
-            margin-bottom: 20px;
+            margin-bottom: 1rem;
         }
 
         .form-group label {
             display: block;
-            margin-bottom: 8px;
-            color: #ccc;
-            font-size: 14px;
+            margin-bottom: 0.35rem;
+            color: var(--text-muted);
+            font-size: 0.8125rem;
             font-weight: 500;
         }
 
         .form-group input,
         .form-group select {
             width: 100%;
-            padding: 12px 16px;
-            background: rgba(255, 255, 255, 0.1);
-            border: 1px solid rgba(255, 255, 255, 0.2);
-            border-radius: 8px;
-            color: #fff;
-            font-size: 14px;
+            padding: 0.625rem 0.875rem;
+            background-color: var(--bg-tertiary);
+            border: 1px solid var(--border);
+            border-radius: 0.5rem;
+            color: var(--text);
+            font-size: 0.875rem;
+            font-family: inherit;
             outline: none;
-            transition: all 0.3s;
+            transition: border-color 0.15s, box-shadow 0.15s;
+        }
+
+        .form-group select {
+            cursor: pointer;
         }
 
         .form-group input:focus,
         .form-group select:focus {
-            background: rgba(255, 255, 255, 0.15);
-            border-color: #00ff88;
+            border-color: rgba(16, 163, 127, 0.5);
+            box-shadow: 0 0 0 2px rgba(16, 163, 127, 0.1);
         }
 
         .form-group input::placeholder {
-            color: #666;
+            color: var(--text-muted);
         }
 
-        .form-group select option {
-            background: #1a1a2e;
-            color: #fff;
+        .form-group select option,
+        .form-group select optgroup {
+            background-color: #2b2b32;
+            color: var(--text);
         }
 
         .form-help {
-            font-size: 12px;
-            color: #888;
-            margin-top: 4px;
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            margin-top: 0.25rem;
         }
 
         .toggle-container {
             display: flex;
             align-items: center;
             justify-content: space-between;
-            padding: 12px 0;
+            padding: 0.5rem 0;
         }
 
         .toggle-label {
-            font-size: 14px;
-            color: #ccc;
+            font-size: 0.875rem;
+            color: var(--text);
         }
 
         .toggle-switch {
             position: relative;
-            width: 50px;
-            height: 26px;
+            width: 44px;
+            height: 24px;
         }
 
         .toggle-switch input {
@@ -160,97 +180,100 @@
             left: 0;
             right: 0;
             bottom: 0;
-            background-color: rgba(255, 255, 255, 0.2);
-            transition: 0.4s;
-            border-radius: 26px;
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border);
+            border-radius: 24px;
+            transition: 0.2s;
         }
 
         .toggle-slider:before {
             position: absolute;
             content: "";
-            height: 18px;
-            width: 18px;
-            left: 4px;
-            bottom: 4px;
-            background-color: white;
-            transition: 0.4s;
+            height: 16px;
+            width: 16px;
+            left: 3px;
+            bottom: 3px;
+            background: #fff;
             border-radius: 50%;
+            transition: 0.2s;
         }
 
-        input:checked+.toggle-slider {
-            background-color: #00ff88;
+        input:checked + .toggle-slider {
+            background: var(--accent);
+            border-color: var(--accent);
         }
 
-        input:checked+.toggle-slider:before {
-            transform: translateX(24px);
+        input:checked + .toggle-slider:before {
+            transform: translateX(20px);
         }
 
         .btn-primary {
             width: 100%;
-            padding: 14px;
-            background: linear-gradient(135deg, #00ff88, #00cc6a);
+            padding: 0.75rem;
+            background: var(--accent);
             border: none;
-            border-radius: 8px;
-            color: #000;
+            border-radius: 0.5rem;
+            color: #fff;
             font-weight: 600;
-            font-size: 16px;
+            font-size: 0.875rem;
             cursor: pointer;
-            transition: all 0.3s;
-            margin-top: 10px;
+            margin-top: 0.5rem;
+            font-family: inherit;
+            transition: background 0.15s;
         }
 
         .btn-primary:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 4px 12px rgba(0, 255, 136, 0.4);
+            background: var(--accent-hover);
         }
 
         .btn-secondary {
             width: 100%;
-            padding: 12px;
-            background: rgba(255, 255, 255, 0.1);
-            border: 1px solid rgba(255, 255, 255, 0.2);
-            border-radius: 8px;
-            color: #fff;
+            padding: 0.625rem 0.875rem;
+            background: transparent;
+            border: 1px solid var(--border);
+            border-radius: 0.5rem;
+            color: var(--text);
             font-weight: 500;
-            font-size: 14px;
+            font-size: 0.8125rem;
             cursor: pointer;
-            transition: all 0.3s;
-            margin-top: 10px;
+            margin-top: 0.5rem;
+            font-family: inherit;
+            transition: background 0.15s;
         }
 
         .btn-secondary:hover {
-            background: rgba(255, 255, 255, 0.15);
+            background: var(--bg-tertiary);
         }
 
         .alert {
-            padding: 12px 16px;
-            border-radius: 8px;
-            margin-bottom: 20px;
-            font-size: 14px;
+            padding: 0.625rem 0.875rem;
+            border-radius: 0.5rem;
+            margin-bottom: 1rem;
+            font-size: 0.8125rem;
         }
 
         .alert-success {
-            background: rgba(0, 255, 136, 0.2);
-            border: 1px solid rgba(0, 255, 136, 0.3);
-            color: #00ff88;
+            background: rgba(16, 163, 127, 0.15);
+            border: 1px solid rgba(16, 163, 127, 0.35);
+            color: #6ee7b7;
         }
 
         .alert-error {
-            background: rgba(255, 77, 77, 0.2);
-            border: 1px solid rgba(255, 77, 77, 0.3);
-            color: #ff4d4d;
+            background: rgba(239, 68, 68, 0.12);
+            border: 1px solid rgba(239, 68, 68, 0.35);
+            color: #fca5a5;
         }
 
         .alert-info {
-            background: rgba(100, 150, 255, 0.2);
-            border: 1px solid rgba(100, 150, 255, 0.3);
-            color: #6496ff;
+            background: rgba(59, 130, 246, 0.12);
+            border: 1px solid rgba(59, 130, 246, 0.3);
+            color: #93c5fd;
         }
 
         .grid-2 {
             display: grid;
             grid-template-columns: 1fr 1fr;
-            gap: 15px;
+            gap: 0.75rem;
         }
 
         @media (max-width: 768px) {
@@ -264,8 +287,8 @@
 <body>
     <div class="container">
         <div class="header">
-            <h1>⚙️ Settings</h1>
-            <p>Configure your HackrAct AI Agent</p>
+            <h1>Settings</h1>
+            <p>Configure models, memory, and advanced options</p>
         </div>
 
         <div class="nav">
