@@ -6,493 +6,215 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>HackrAct AI Agent - Web Interface</title>
     <style>
-        /* ChatGPT / Claude–inspired dark UI */
-        :root {
-            --bg: #343541;
-            --bg-secondary: #40414f;
-            --bg-tertiary: #2b2b32;
-            --bg-user: #2f2f2f;
-            --border: rgba(255, 255, 255, 0.08);
-            --text: #ececec;
-            --text-muted: #8e8ea0;
-            --accent: #10a37f;
-            --accent-hover: #1a7f64;
-            --danger: #ef4444;
-            --radius-msg: 1.25rem;
-            --radius-input: 1.5rem;
-            --font: "Söhne", "ui-sans-serif", system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-        }
-
         * {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
         }
 
-        .visually-hidden {
-            position: absolute;
-            width: 1px;
-            height: 1px;
-            padding: 0;
-            margin: -1px;
-            overflow: hidden;
-            clip: rect(0, 0, 0, 0);
-            white-space: nowrap;
-            border: 0;
-        }
-
-        html {
-            color-scheme: dark;
-        }
-
         body {
-            font-family: var(--font);
-            background: var(--bg);
-            color: var(--text);
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #0f0c29, #302b63, #24243e);
+            color: #fff;
             height: 100vh;
-            height: 100dvh;
             display: flex;
             justify-content: center;
-            -webkit-font-smoothing: antialiased;
+            align-items: center;
         }
 
         .container {
-            width: 100%;
-            max-width: 48rem;
-            height: 100%;
+            width: 90%;
+            max-width: 900px;
+            height: 90vh;
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
             display: flex;
             flex-direction: column;
             overflow: hidden;
-            border-left: 1px solid var(--border);
-            border-right: 1px solid var(--border);
         }
 
         .header {
-            flex-shrink: 0;
-            padding: 0.75rem 1rem;
-            border-bottom: 1px solid var(--border);
-            background: var(--bg);
-        }
-
-        .header-top {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            gap: 0.75rem;
-        }
-
-        .brand {
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-            min-width: 0;
-        }
-
-        .brand-mark {
-            width: 28px;
-            height: 28px;
-            border-radius: 6px;
-            background: linear-gradient(135deg, #d97757 0%, #c45c3e 100%);
-            flex-shrink: 0;
+            padding: 20px;
+            background: rgba(0, 0, 0, 0.3);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
         }
 
         .header h1 {
-            font-size: 0.9375rem;
+            font-size: 24px;
             font-weight: 600;
-            color: var(--text);
-            letter-spacing: -0.02em;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-        }
-
-        .header-sub {
+            color: #00ff88;
             display: flex;
             align-items: center;
-            justify-content: space-between;
-            margin-top: 0.35rem;
+            gap: 10px;
         }
 
         .status {
-            font-size: 0.6875rem;
-            color: var(--text-muted);
+            font-size: 12px;
+            color: #aaa;
+            margin-top: 5px;
         }
 
         .status.online {
-            color: var(--accent);
-        }
-
-        .btn-icon {
-            padding: 0.5rem 0.75rem;
-            background: transparent;
-            border: 1px solid var(--border);
-            border-radius: 0.5rem;
-            color: var(--text);
-            font-size: 0.8125rem;
-            cursor: pointer;
-            transition: background 0.15s, border-color 0.15s;
-        }
-
-        .btn-icon:hover {
-            background: var(--bg-secondary);
-            border-color: rgba(255, 255, 255, 0.12);
+            color: #00ff88;
         }
 
         .chat-container {
             flex: 1;
             overflow-y: auto;
-            padding: 1.25rem 1rem 1.5rem;
+            padding: 20px;
             display: flex;
             flex-direction: column;
-            gap: 1.25rem;
+            gap: 15px;
         }
 
         .message {
             display: flex;
-            gap: 0.75rem;
-            animation: fadeIn 0.25s ease;
-            max-width: 100%;
+            gap: 10px;
+            animation: fadeIn 0.3s;
         }
 
         .message.user {
             flex-direction: row-reverse;
-            margin-left: auto;
         }
 
         .message-content {
-            max-width: min(85%, 36rem);
-            padding: 0.75rem 1rem;
-            border-radius: var(--radius-msg);
-            line-height: 1.6;
-            font-size: 0.9375rem;
+            max-width: 70%;
+            padding: 12px 16px;
+            border-radius: 12px;
+            line-height: 1.5;
+            font-size: 14px;
         }
 
         .message.user .message-content {
-            background: var(--bg-user);
-            color: var(--text);
-            border: 1px solid transparent;
-        }
-
-        .message.assistant {
-            flex-direction: column;
-            align-items: stretch;
-            max-width: min(100%, 48rem);
-            margin-right: auto;
-        }
-
-        .assistant-inner {
-            display: flex;
-            gap: 0.75rem;
-            align-items: flex-start;
-            width: 100%;
-        }
-
-        .assistant-avatar {
-            flex-shrink: 0;
-            width: 28px;
-            height: 28px;
-            border-radius: 4px;
-            background: linear-gradient(145deg, #19c37d, #0d8f5c);
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             color: #fff;
-            font-size: 0.7rem;
-            font-weight: 700;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            letter-spacing: -0.02em;
-            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.35);
         }
 
         .message.assistant .message-content {
-            background: transparent;
-            color: var(--text);
-            border: none;
-            padding: 0.125rem 0 0;
-            max-width: none;
-            flex: 1;
-            min-width: 0;
-            font-size: 1rem;
-            line-height: 1.65;
-        }
-
-        /* ChatGPT-style markdown body */
-        .prose-msg {
-            color: #ececf1;
-            font-size: 1rem;
-            line-height: 1.65;
-            word-wrap: break-word;
-        }
-
-        .prose-msg > *:first-child {
-            margin-top: 0 !important;
-        }
-
-        .prose-msg > *:last-child {
-            margin-bottom: 0 !important;
-        }
-
-        .prose-msg p {
-            margin: 0.65em 0;
-        }
-
-        .prose-msg h1,
-        .prose-msg h2,
-        .prose-msg h3,
-        .prose-msg h4 {
-            font-weight: 600;
-            line-height: 1.35;
-            margin: 1.15em 0 0.45em;
-            color: #f4f4f5;
-        }
-
-        .prose-msg h1 { font-size: 1.35em; }
-        .prose-msg h2 { font-size: 1.2em; }
-        .prose-msg h3 { font-size: 1.08em; }
-
-        .prose-msg ul,
-        .prose-msg ol {
-            margin: 0.5em 0;
-            padding-left: 1.5em;
-        }
-
-        .prose-msg li {
-            margin: 0.3em 0;
-        }
-
-        .prose-msg li > p {
-            margin: 0.25em 0;
-        }
-
-        .prose-msg blockquote {
-            margin: 0.65em 0;
-            padding-left: 1em;
-            border-left: 3px solid rgba(255, 255, 255, 0.18);
-            color: var(--text-muted);
-        }
-
-        .prose-msg a {
-            color: #7ab8ff;
-            text-decoration: none;
-        }
-
-        .prose-msg a:hover {
-            text-decoration: underline;
-        }
-
-        .prose-msg hr {
-            border: none;
-            border-top: 1px solid var(--border);
-            margin: 1.25em 0;
-        }
-
-        .prose-msg pre {
-            margin: 0.85em 0;
-            padding: 0.9em 1em;
-            background: #0d0d0f;
-            border: 1px solid var(--border);
-            border-radius: 0.5rem;
-            overflow-x: auto;
-            font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-            font-size: 0.8125rem;
-            line-height: 1.5;
-            color: #e4e4e7;
-        }
-
-        .prose-msg pre code {
-            background: none;
-            padding: 0;
-            font-size: inherit;
-            color: inherit;
-        }
-
-        .prose-msg :not(pre) > code {
-            background: rgba(255, 255, 255, 0.08);
-            padding: 0.15em 0.4em;
-            border-radius: 0.3rem;
-            font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-            font-size: 0.875em;
-            color: #e8e8ed;
-        }
-
-        .prose-msg table {
-            width: 100%;
-            border-collapse: collapse;
-            margin: 0.85em 0;
-            font-size: 0.9em;
-            display: block;
-            overflow-x: auto;
-        }
-
-        .prose-msg th,
-        .prose-msg td {
-            border: 1px solid var(--border);
-            padding: 0.45em 0.65em;
-            text-align: left;
-        }
-
-        .prose-msg th {
-            background: rgba(255, 255, 255, 0.05);
-            font-weight: 600;
-        }
-
-        .message.assistant .timestamp {
-            margin-top: 0.5rem;
-            padding-left: calc(28px + 0.75rem);
-            opacity: 0.65;
-        }
-
-        .pg-group-completed {
-            opacity: 0.92;
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
         }
 
         .message.system .message-content {
-            background: var(--bg-tertiary);
-            border: 1px solid var(--border);
-            color: var(--text-muted);
-            font-size: 0.8125rem;
-            font-style: normal;
+            background: rgba(255, 165, 0, 0.2);
+            border: 1px solid rgba(255, 165, 0, 0.3);
+            font-style: italic;
             max-width: 100%;
             text-align: center;
-            margin: 0 auto;
-        }
-
-        .msg-bubble-thinking {
-            background: var(--bg-secondary) !important;
-            border: 1px solid var(--border) !important;
-            border-radius: var(--radius-msg) !important;
-            padding: 0.75rem 1rem !important;
-        }
-
-        .msg-bubble-tool {
-            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-            font-size: 0.75rem;
-            background: var(--bg-tertiary) !important;
-            border: 1px solid var(--border) !important;
-            border-radius: 0.5rem !important;
-            max-width: 100% !important;
         }
 
         .input-container {
-            flex-shrink: 0;
-            padding: 0.75rem 1rem 1.25rem;
-            background: var(--bg);
-            border-top: 1px solid var(--border);
+            padding: 20px;
+            background: rgba(0, 0, 0, 0.3);
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
             display: flex;
-            align-items: center;
-            gap: 0.5rem;
-        }
-
-        .input-wrap {
-            flex: 1;
-            display: flex;
-            align-items: center;
-            gap: 0.35rem;
-            background: var(--bg-secondary);
-            border: 1px solid var(--border);
-            border-radius: var(--radius-input);
-            padding: 0.2rem 0.35rem 0.2rem 1rem;
-            transition: box-shadow 0.2s, border-color 0.2s;
-        }
-
-        .input-wrap:focus-within {
-            border-color: rgba(16, 163, 127, 0.45);
-            box-shadow: 0 0 0 3px rgba(16, 163, 127, 0.12);
+            gap: 10px;
         }
 
         #messageInput {
             flex: 1;
-            min-width: 0;
-            padding: 0.55rem 0;
-            background: transparent;
-            border: none;
-            color: var(--text);
-            font-size: 0.9375rem;
-            font-family: inherit;
+            padding: 12px 16px;
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 8px;
+            color: #fff;
+            font-size: 14px;
             outline: none;
+            transition: all 0.3s;
         }
 
-        #messageInput::placeholder {
-            color: var(--text-muted);
+        #messageInput:focus {
+            background: rgba(255, 255, 255, 0.15);
+            border-color: #00ff88;
         }
 
         #sendButton {
-            padding: 0.45rem 0.85rem;
-            background: var(--accent);
+            padding: 12px 24px;
+            background: linear-gradient(135deg, #00ff88, #00cc6a);
             border: none;
-            border-radius: 0.65rem;
-            color: #fff;
+            border-radius: 8px;
+            color: #000;
             font-weight: 600;
-            font-size: 0.8125rem;
             cursor: pointer;
-            transition: background 0.15s;
-            flex-shrink: 0;
+            transition: all 0.3s;
+            font-size: 14px;
         }
 
         #sendButton:hover:not(:disabled) {
-            background: var(--accent-hover);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 255, 136, 0.4);
         }
 
         #sendButton:disabled {
-            opacity: 0.45;
+            opacity: 0.5;
             cursor: not-allowed;
         }
 
         #stopButton {
-            padding: 0.5rem 0.875rem;
-            background: transparent;
-            border: 1px solid rgba(239, 68, 68, 0.5);
-            border-radius: 0.75rem;
-            color: #f87171;
+            padding: 12px 24px;
+            background: linear-gradient(135deg, #ff4b4b, #cc0000);
+            border: none;
+            border-radius: 8px;
+            color: #fff;
             font-weight: 600;
-            font-size: 0.8125rem;
             cursor: pointer;
-            transition: background 0.15s;
+            transition: all 0.3s;
+            font-size: 14px;
             display: none;
-            flex-shrink: 0;
+            /* Hidden by default */
         }
 
         #stopButton:hover {
-            background: rgba(239, 68, 68, 0.12);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(255, 75, 75, 0.4);
         }
 
         .loading {
             display: inline-block;
-            width: 14px;
-            height: 14px;
-            border: 2px solid var(--border);
-            border-top-color: var(--accent);
+            width: 12px;
+            height: 12px;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-top-color: #00ff88;
             border-radius: 50%;
-            animation: spin 0.7s linear infinite;
-            vertical-align: middle;
-            margin-right: 6px;
+            animation: spin 0.8s linear infinite;
         }
 
         @keyframes spin {
-            to { transform: rotate(360deg); }
+            to {
+                transform: rotate(360deg);
+            }
         }
 
         @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(4px); }
-            to { opacity: 1; transform: translateY(0); }
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
         }
 
         .code-block {
-            background: #0d0d0f;
-            padding: 0.75rem 1rem;
-            border-radius: 0.5rem;
-            border: 1px solid var(--border);
-            border-left: 3px solid var(--accent);
-            margin: 0.5rem 0;
+            background: rgba(0, 0, 0, 0.4);
+            padding: 10px;
+            border-radius: 6px;
+            border-left: 3px solid #00ff88;
+            margin: 8px 0;
             overflow-x: auto;
-            font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-            font-size: 0.8125rem;
-            color: #d4d4d8;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
         }
 
         .timestamp {
-            font-size: 0.625rem;
-            color: var(--text-muted);
-            margin-top: 0.35rem;
+            font-size: 10px;
+            color: #666;
+            margin-top: 4px;
         }
 
         ::-webkit-scrollbar {
@@ -500,798 +222,16 @@
         }
 
         ::-webkit-scrollbar-track {
-            background: transparent;
+            background: rgba(255, 255, 255, 0.05);
         }
 
         ::-webkit-scrollbar-thumb {
-            background: rgba(255, 255, 255, 0.12);
+            background: rgba(255, 255, 255, 0.2);
             border-radius: 4px;
         }
 
         ::-webkit-scrollbar-thumb:hover {
-            background: rgba(255, 255, 255, 0.2);
-        }
-
-        #chatView {
-            display: flex;
-            flex-direction: column;
-            flex: 1;
-            overflow: hidden;
-            min-height: 0;
-        }
-
-        #settingsView {
-            display: none;
-            flex-direction: column;
-            flex: 1;
-            overflow-y: auto;
-            padding: 1rem 1rem 2rem;
-            color-scheme: dark;
-            background: var(--bg);
-        }
-
-        #settingsView.visible {
-            display: flex;
-        }
-
-        #chatView.hidden {
-            display: none !important;
-        }
-
-        .settings-card {
-            background: var(--bg-secondary);
-            border-radius: 0.75rem;
-            border: 1px solid var(--border);
-            padding: 1.25rem;
-            margin-bottom: 1rem;
-        }
-
-        .settings-card h2 {
-            font-size: 0.9375rem;
-            font-weight: 600;
-            color: var(--text);
-            margin-bottom: 1rem;
-            letter-spacing: -0.02em;
-        }
-
-        .form-group {
-            margin-bottom: 1rem;
-        }
-
-        .form-group label {
-            display: block;
-            margin-bottom: 0.35rem;
-            color: var(--text-muted);
-            font-size: 0.8125rem;
-            font-weight: 500;
-        }
-
-        .form-group input,
-        .form-group select {
-            width: 100%;
-            padding: 0.625rem 0.875rem;
-            background-color: var(--bg-tertiary);
-            border: 1px solid var(--border);
-            border-radius: 0.5rem;
-            color: var(--text);
-            font-size: 0.875rem;
-            font-family: inherit;
-        }
-
-        .form-group select {
-            cursor: pointer;
-        }
-
-        .form-group select option,
-        .form-group select optgroup {
-            background-color: #2b2b32;
-            color: var(--text);
-        }
-
-        .form-group input:focus,
-        .form-group select:focus {
-            outline: none;
-            border-color: rgba(16, 163, 127, 0.5);
-            box-shadow: 0 0 0 2px rgba(16, 163, 127, 0.1);
-        }
-
-        .form-help {
-            font-size: 0.75rem;
-            color: var(--text-muted);
-            margin-top: 0.25rem;
-        }
-
-        .grid-2 {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 0.75rem;
-        }
-
-        .toggle-container {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            padding: 0.5rem 0;
-        }
-
-        .toggle-label {
-            font-size: 0.875rem;
-            color: var(--text);
-        }
-
-        .toggle-switch {
-            position: relative;
-            width: 44px;
-            height: 24px;
-        }
-
-        .toggle-switch input {
-            opacity: 0;
-            width: 0;
-            height: 0;
-        }
-
-        .toggle-slider {
-            position: absolute;
-            cursor: pointer;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: var(--bg-tertiary);
-            border: 1px solid var(--border);
-            border-radius: 24px;
-            transition: 0.2s;
-        }
-
-        .toggle-slider:before {
-            position: absolute;
-            content: "";
-            height: 16px;
-            width: 16px;
-            left: 3px;
-            bottom: 3px;
-            background: #fff;
-            border-radius: 50%;
-            transition: 0.2s;
-        }
-
-        input:checked + .toggle-slider {
-            background: var(--accent);
-            border-color: var(--accent);
-        }
-
-        input:checked + .toggle-slider:before {
-            transform: translateX(20px);
-        }
-
-        .btn-primary {
-            width: 100%;
-            padding: 0.75rem;
-            background: var(--accent);
-            border: none;
-            border-radius: 0.5rem;
-            color: #fff;
-            font-weight: 600;
-            font-size: 0.875rem;
-            cursor: pointer;
-            margin-top: 0.5rem;
-            transition: background 0.15s;
-        }
-
-        .btn-primary:hover {
-            background: var(--accent-hover);
-        }
-
-        .btn-secondary {
-            padding: 0.5rem 0.875rem;
-            background: transparent;
-            border: 1px solid var(--border);
-            border-radius: 0.5rem;
-            color: var(--text);
-            cursor: pointer;
-            margin-right: 0.5rem;
-            margin-top: 0.5rem;
-            font-size: 0.8125rem;
-            font-family: inherit;
-            transition: background 0.15s;
-        }
-
-        .btn-secondary:hover {
-            background: var(--bg-tertiary);
-        }
-
-        .alert {
-            padding: 0.625rem 0.875rem;
-            border-radius: 0.5rem;
-            margin-bottom: 1rem;
-            font-size: 0.8125rem;
-        }
-
-        .alert-success {
-            background: rgba(16, 163, 127, 0.15);
-            border: 1px solid rgba(16, 163, 127, 0.35);
-            color: #6ee7b7;
-        }
-
-        .alert-error {
-            background: rgba(239, 68, 68, 0.12);
-            border: 1px solid rgba(239, 68, 68, 0.35);
-            color: #fca5a5;
-        }
-
-        .alert-info {
-            background: rgba(59, 130, 246, 0.12);
-            border: 1px solid rgba(59, 130, 246, 0.3);
-            color: #93c5fd;
-        }
-
-        /* —— ProcessGroup (agent task hierarchy) —— */
-        :root {
-            --pg-gen: #22d3ee;
-            --pg-exe: #a78bfa;
-            --pg-end: #34d399;
-            --pg-reason: #94a3b8;
-            --pg-line: rgba(255, 255, 255, 0.12);
-        }
-
-        .pg-toolbar-wrap {
-            display: flex;
-            align-items: center;
-            gap: 0.35rem;
-        }
-
-        .pg-mode-select {
-            font-size: 0.6875rem;
-            padding: 0.35rem 0.5rem;
-            max-width: 9rem;
-            background: var(--bg-secondary);
-            color: var(--text);
-            border: 1px solid var(--border);
-            border-radius: 0.375rem;
-            cursor: pointer;
-        }
-
-        .pg-group {
-            border: 1px solid var(--border);
-            border-radius: 0.75rem;
-            background: var(--bg-secondary);
-            margin-bottom: 1rem;
-            overflow: hidden;
-            animation: fadeIn 0.25s ease;
-        }
-
-        .pg-group-header {
-            width: 100%;
-            display: flex;
-            align-items: flex-start;
-            gap: 0.5rem;
-            padding: 0.75rem 1rem;
-            background: var(--bg-tertiary);
-            border: none;
-            color: var(--text);
-            font-family: inherit;
-            text-align: left;
-            cursor: pointer;
-        }
-
-        .pg-group-header:hover {
-            background: rgba(255, 255, 255, 0.04);
-        }
-
-        .pg-group-chevron {
-            flex-shrink: 0;
-            width: 1.25rem;
-            color: var(--text-muted);
-            font-size: 0.65rem;
-            margin-top: 0.2rem;
-        }
-
-        .pg-group-header-main {
-            flex: 1;
-            min-width: 0;
-        }
-
-        .pg-group-title {
-            display: block;
-            font-size: 0.875rem;
-            font-weight: 600;
-            letter-spacing: -0.02em;
-            margin-bottom: 0.35rem;
-        }
-
-        .pg-group-meta {
-            display: flex;
-            flex-wrap: wrap;
-            align-items: center;
-            gap: 0.5rem 0.75rem;
-            font-size: 0.6875rem;
-            color: var(--text-muted);
-        }
-
-        .pg-group-badge {
-            padding: 0.15rem 0.45rem;
-            border-radius: 0.25rem;
-            font-weight: 700;
-            letter-spacing: 0.06em;
-            font-size: 0.625rem;
-        }
-
-        .pg-badge-gen {
-            background: rgba(34, 211, 238, 0.15);
-            color: var(--pg-gen);
-            border: 1px solid rgba(34, 211, 238, 0.35);
-        }
-
-        .pg-badge-exe {
-            background: rgba(167, 139, 250, 0.15);
-            color: var(--pg-exe);
-            border: 1px solid rgba(167, 139, 250, 0.35);
-        }
-
-        .pg-badge-end {
-            background: rgba(52, 211, 153, 0.12);
-            color: var(--pg-end);
-            border: 1px solid rgba(52, 211, 153, 0.35);
-        }
-
-        .pg-group-body.pg-group-body-collapsed {
-            display: none;
-        }
-
-        .pg-steps {
-            position: relative;
-            padding: 0.5rem 0.75rem 1rem 0.25rem;
-            margin-left: 0.5rem;
-            border-left: 2px solid var(--pg-line);
-        }
-
-        .pg-step {
-            position: relative;
-            display: flex;
-            gap: 0;
-            margin-bottom: 0.75rem;
-        }
-
-        .pg-step:last-child {
-            margin-bottom: 0;
-        }
-
-        .pg-step-connector {
-            position: absolute;
-            left: -0.55rem;
-            top: 1.1rem;
-            width: 0.55rem;
-            height: 2px;
-            background: var(--pg-line);
-        }
-
-        .pg-step-inner {
-            flex: 1;
-            min-width: 0;
-        }
-
-        .pg-step-toolbar,
-        .pg-step-toolbar.pg-step-toolbar {
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-            margin-bottom: 0.35rem;
-        }
-
-        .pg-step-icon {
-            font-size: 0.9rem;
-            opacity: 0.95;
-        }
-
-        .pg-icon-gen {
-            color: var(--pg-gen);
-        }
-
-        .pg-icon-exe {
-            color: var(--pg-exe);
-        }
-
-        .pg-icon-reason {
-            color: var(--pg-reason);
-        }
-
-        .pg-step-kind {
-            font-size: 0.75rem;
-            font-weight: 600;
-            color: var(--text-muted);
-            text-transform: uppercase;
-            letter-spacing: 0.04em;
-        }
-
-        .pg-step-tag {
-            font-size: 0.625rem;
-            font-weight: 700;
-            padding: 0.1rem 0.35rem;
-            border-radius: 0.2rem;
-            background: rgba(255, 255, 255, 0.06);
-            color: var(--text-muted);
-        }
-
-        .pg-step-gen .pg-step-tag {
-            color: var(--pg-gen);
-            border: 1px solid rgba(34, 211, 238, 0.3);
-        }
-
-        .pg-step-exe .pg-step-tag {
-            color: var(--pg-exe);
-            border: 1px solid rgba(167, 139, 250, 0.3);
-        }
-
-        .pg-tag-muted {
-            opacity: 0.85;
-        }
-
-        .pg-info-btn {
-            margin-left: auto;
-            padding: 0.15rem 0.4rem;
-            font-size: 0.75rem;
-            line-height: 1;
-            background: transparent;
-            border: 1px solid var(--border);
-            border-radius: 0.25rem;
-            color: var(--text-muted);
-            cursor: pointer;
-        }
-
-        .pg-info-btn:hover {
-            color: var(--text);
-            border-color: rgba(255, 255, 255, 0.2);
-        }
-
-        .pg-step-body {
-            padding-left: 0.1rem;
-        }
-
-        .pg-step-body-collapsed {
-            display: none !important;
-        }
-
-        .pg-gen-stream {
-            font-size: 0.8125rem;
-            line-height: 1.55;
-            color: var(--text);
-            white-space: pre-wrap;
-            word-break: break-word;
-            max-height: min(45vh, 22rem);
-            overflow-y: auto;
-        }
-
-        .pg-reason-bubble {
-            font-size: 0.875rem;
-            line-height: 1.55;
-            font-style: italic;
-            color: #cbd5e1;
-            background: rgba(148, 163, 184, 0.08);
-            border: 1px solid rgba(148, 163, 184, 0.2);
-            border-radius: 0.65rem;
-            padding: 0.65rem 0.85rem;
-        }
-
-        .pg-terminal {
-            border-radius: 0.5rem;
-            overflow: hidden;
-            border: 1px solid rgba(167, 139, 250, 0.25);
-            background: #0c0c0f;
-        }
-
-        .pg-terminal-bar {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            padding: 0.35rem 0.65rem;
-            background: #16161c;
-            border-bottom: 1px solid rgba(167, 139, 250, 0.15);
-        }
-
-        .pg-terminal-label {
-            font-size: 0.625rem;
-            text-transform: uppercase;
-            letter-spacing: 0.08em;
-            color: var(--pg-exe);
-            font-weight: 600;
-        }
-
-        .pg-copy-btn {
-            font-size: 0.6875rem;
-            padding: 0.2rem 0.5rem;
-            background: rgba(167, 139, 250, 0.15);
-            border: 1px solid rgba(167, 139, 250, 0.35);
-            border-radius: 0.25rem;
-            color: #e9d5ff;
-            cursor: pointer;
-            font-family: inherit;
-        }
-
-        .pg-copy-btn:hover {
-            background: rgba(167, 139, 250, 0.25);
-        }
-
-        .pg-terminal-body {
-            margin: 0;
-            padding: 0.75rem 1rem;
-            font-size: 0.75rem;
-            line-height: 1.45;
-            color: #e4e4e7;
-            white-space: pre-wrap;
-            word-break: break-word;
-            max-height: min(55vh, 28rem);
-            overflow-y: auto;
-            font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-        }
-
-        .pg-terminal-body .pg-terminal-stderr {
-            color: #f87171;
-        }
-
-        .pg-utility-row {
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-            font-size: 0.75rem;
-            color: var(--text-muted);
-            padding: 0.25rem 0;
-        }
-
-        .pg-utility-dot {
-            width: 6px;
-            height: 6px;
-            border-radius: 50%;
-            background: var(--text-muted);
-            flex-shrink: 0;
-            opacity: 0.6;
-        }
-
-        .pg-utility-text {
-            flex: 1;
-            min-width: 0;
-        }
-
-        .pg-modal {
-            position: fixed;
-            inset: 0;
-            z-index: 1000;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            padding: 1rem;
-        }
-
-        .pg-modal[hidden] {
-            display: none !important;
-        }
-
-        .pg-modal-backdrop {
-            position: absolute;
-            inset: 0;
-            background: rgba(0, 0, 0, 0.65);
-            backdrop-filter: blur(4px);
-        }
-
-        .pg-modal-panel {
-            position: relative;
-            width: 100%;
-            max-width: 42rem;
-            max-height: min(85vh, 40rem);
-            overflow: hidden;
-            display: flex;
-            flex-direction: column;
-            background: var(--bg-secondary);
-            border: 1px solid var(--border);
-            border-radius: 0.75rem;
-            box-shadow: 0 24px 48px rgba(0, 0, 0, 0.45);
-        }
-
-        .pg-modal-header-compact {
-            display: flex;
-            align-items: flex-start;
-            justify-content: space-between;
-            flex-wrap: wrap;
-            gap: 0.5rem 0.75rem;
-            padding: 0.75rem 1rem;
-            border-bottom: 1px solid var(--border);
-            background: rgba(0, 0, 0, 0.2);
-        }
-
-        .pg-modal-header-main {
-            flex: 1;
-            min-width: 0;
-        }
-
-        .pg-modal-header-main h3 {
-            font-size: 0.9375rem;
-            font-weight: 600;
-            margin: 0 0 0.35rem;
-        }
-
-        .pg-modal-badges {
-            display: flex;
-            flex-wrap: wrap;
-            align-items: center;
-            gap: 0.35rem;
-        }
-
-        .pg-modal-badge {
-            display: inline-block;
-            padding: 0.15rem 0.45rem;
-            border-radius: 6px;
-            font-size: 0.6875rem;
-            font-weight: 600;
-            text-transform: uppercase;
-            letter-spacing: 0.04em;
-            background: var(--bg-tertiary);
-            color: var(--text-muted);
-            border: 1px solid var(--border);
-        }
-
-        .pg-modal-badge-mono {
-            font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-            text-transform: none;
-            letter-spacing: 0;
-            font-weight: 500;
-            font-size: 0.75rem;
-            color: var(--text);
-        }
-
-        .pg-modal-header-actions {
-            display: flex;
-            flex-wrap: wrap;
-            align-items: center;
-            gap: 0.35rem;
-        }
-
-        .pg-modal-action-btn {
-            padding: 0.35rem 0.55rem;
-            display: inline-flex;
-            align-items: center;
-            gap: 0.25rem;
-            background: var(--bg-tertiary);
-            color: var(--text);
-            border: 1px solid var(--border);
-            border-radius: 6px;
-            cursor: pointer;
-            font-size: 0.75rem;
-            font-family: inherit;
-            transition: border-color 0.15s, color 0.15s;
-        }
-
-        .pg-modal-action-btn:hover {
-            border-color: var(--accent);
-            color: var(--accent);
-        }
-
-        .pg-modal-action-btn.active {
-            background: rgba(25, 195, 125, 0.15);
-            border-color: #19c37d;
-            color: #19c37d;
-        }
-
-        .pg-modal-close {
-            background: transparent;
-            border: none;
-            color: var(--text-muted);
-            font-size: 1.25rem;
-            line-height: 1;
-            cursor: pointer;
-            padding: 0.25rem 0.35rem;
-            border-radius: 4px;
-        }
-
-        .pg-modal-close:hover {
-            color: var(--text);
-            background: var(--bg-tertiary);
-        }
-
-        .pg-modal-body {
-            padding: 1rem;
-            overflow-y: auto;
-            flex: 1;
-            min-height: 0;
-        }
-
-        .pg-modal-section-title {
-            font-size: 0.6875rem;
-            font-weight: 700;
-            text-transform: uppercase;
-            letter-spacing: 0.06em;
-            color: var(--text-muted);
-            margin: 0.75rem 0 0.35rem;
-        }
-
-        .pg-modal-section-title:first-child {
-            margin-top: 0;
-        }
-
-        [data-pg-view-formatted] > .pg-modal-section-title:first-of-type {
-            margin-top: 0;
-        }
-
-        .pg-modal-content-text {
-            color: var(--text);
-            line-height: 1.55;
-            font-size: 0.875rem;
-            margin: 0;
-            white-space: pre-wrap;
-            word-break: break-word;
-        }
-
-        .pg-modal-kvp {
-            margin-top: 0.75rem;
-            padding: 0.65rem 0.75rem;
-            background: rgba(0, 0, 0, 0.25);
-            border: 1px solid var(--border);
-            border-radius: 0.5rem;
-        }
-
-        .pg-modal-kvp-head {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            gap: 0.5rem;
-            margin-bottom: 0.35rem;
-        }
-
-        .pg-modal-kvp-head .pg-modal-section-title {
-            margin: 0;
-        }
-
-        .pg-modal-pre {
-            margin: 0;
-            padding: 0.75rem;
-            background: #0c0c0f;
-            border-radius: 0.5rem;
-            font-size: 0.6875rem;
-            line-height: 1.4;
-            overflow-x: auto;
-            white-space: pre-wrap;
-            word-break: break-word;
-            color: #d4d4d8;
-            border: 1px solid var(--border);
-        }
-
-        .pg-modal-stats-line {
-            font-size: 0.8125rem;
-            color: var(--text-muted);
-            margin: 0;
-        }
-
-        .pg-modal-toast {
-            position: absolute;
-            bottom: 0.75rem;
-            left: 50%;
-            transform: translateX(-50%);
-            padding: 0.35rem 0.85rem;
-            background: rgba(25, 195, 125, 0.95);
-            color: #0a0a0a;
-            font-size: 0.75rem;
-            font-weight: 600;
-            border-radius: 999px;
-            pointer-events: none;
-            opacity: 0;
-            transition: opacity 0.2s;
-            z-index: 2;
-        }
-
-        .pg-modal-toast.pg-modal-toast-visible {
-            opacity: 1;
-        }
-
-        @media (max-width: 768px) {
-            .grid-2 {
-                grid-template-columns: 1fr;
-            }
-            .container {
-                border-left: none;
-                border-right: none;
-            }
-            .pg-mode-select {
-                max-width: 7rem;
-            }
+            background: rgba(255, 255, 255, 0.3);
         }
     </style>
 </head>
@@ -1299,156 +239,33 @@
 <body>
     <div class="container">
         <div class="header">
-            <div class="header-top">
-                <div class="brand">
-                    <span class="brand-mark" aria-hidden="true"></span>
-                    <h1>HackrAct</h1>
-                </div>
-                <div class="pg-toolbar-wrap">
-                    <label class="visually-hidden" for="pgExpandMode">Process steps</label>
-                    <select id="pgExpandMode" class="pg-mode-select" title="Process step expansion">
-                        <option value="current">Current step only</option>
-                        <option value="all">All expanded</option>
-                        <option value="collapsed">All collapsed</option>
-                    </select>
-                    <button type="button" id="settingsBtn" class="btn-icon" onclick="showSettings()" title="Settings">Settings</button>
-                </div>
-            </div>
-            <div class="header-sub">
-                <div class="status" id="status">Connecting…</div>
+            <h1> HackrAct AI Agent</h1>
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+                <div class="status" id="status">● Connecting...</div>
+                <a href="settings.html"
+                    style="padding: 8px 16px; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); border-radius: 6px; color: #fff; text-decoration: none; font-size: 12px; transition: all 0.3s;"
+                    onmouseover="this.style.background='rgba(255,255,255,0.2)'"
+                    onmouseout="this.style.background='rgba(255,255,255,0.1)'">⚙️ Settings</a>
             </div>
         </div>
 
-        <div id="chatView">
-            <div class="chat-container" id="chatContainer">
-                <div class="message system">
-                    <div class="message-content">
-                        Welcome to HackrAct AI Agent - Your AI-powered web application penetration tester.
-                        <br>Ask me to scan websites, test for vulnerabilities, or install security tools!
-                    </div>
+        <div class="chat-container" id="chatContainer">
+            <div class="message system">
+                <div class="message-content">
+                    Welcome to HackrAct AI Agent - Your AI-powered web application penetration tester.
+                    <br>Ask me to scan websites, test for vulnerabilities, or install security tools!
                 </div>
-            </div>
-            <div class="input-container">
-                <div class="input-wrap">
-                    <input type="text" id="messageInput"
-                        placeholder="Message HackrAct…"
-                        autocomplete="off">
-                    <button type="button" id="sendButton">Send</button>
-                </div>
-                <button type="button" id="stopButton">Stop</button>
             </div>
         </div>
 
-        <div id="settingsView">
-            <div style="margin-bottom: 16px;">
-                <button type="button" class="btn-secondary" onclick="showChat()">← Back to Chat</button>
-            </div>
-            <div id="alertContainer"></div>
-            <div class="settings-card">
-                <h2>LLM Configuration</h2>
-                <div class="form-group">
-                    <label for="llmProvider">LLM Provider</label>
-                    <select id="llmProvider">
-                        <option value="openrouter">OpenRouter</option>
-                        <option value="openai">OpenAI</option>
-                        <option value="anthropic">Anthropic</option>
-                        <option value="gemini">Google Gemini</option>
-                        <option value="github">GitHub Models (Free)</option>
-                        <option value="ollama">Ollama (Local)</option>
-                    </select>
-                </div>
-                <div class="form-group">
-                    <label for="apiKey">API Key</label>
-                    <input type="password" id="apiKey" placeholder="Enter your API key (leave empty for Ollama)" />
-                    <div class="form-help" id="apiKeyHelp">Your API key is stored securely and never shared</div>
-                </div>
-                <div class="grid-2">
-                    <div class="form-group">
-                        <label for="chatModel">Chat Model</label>
-                        <input type="text" id="chatModel" placeholder="e.g., anthropic/claude-3.5-sonnet" />
-                    </div>
-                    <div class="form-group">
-                        <label for="utilityModel">Utility Model</label>
-                        <input type="text" id="utilityModel" placeholder="e.g., anthropic/claude-3-haiku" />
-                    </div>
-                </div>
-                <div class="form-group" id="customEndpointGroup" style="display: none;">
-                    <label for="customEndpoint">Custom API Endpoint</label>
-                    <input type="text" id="customEndpoint" placeholder="https://api.example.com/v1" />
-                </div>
-                <button class="btn-secondary" id="testConnectionBtn" onclick="testConnection()">🔌 Test Connection</button>
-            </div>
-            <div class="settings-card">
-                <h2>Memory</h2>
-                <div class="toggle-container">
-                    <span class="toggle-label">Enable Memory</span>
-                    <label class="toggle-switch"><input type="checkbox" id="memoryEnabled" checked><span class="toggle-slider"></span></label>
-                </div>
-                <div class="form-group">
-                    <label for="collectionName">Collection Name</label>
-                    <input type="text" id="collectionName" placeholder="hackract_memory" />
-                </div>
-                <div class="form-group">
-                    <label for="embeddingModel">Embedding Model</label>
-                    <input type="text" id="embeddingModel" placeholder="text-embedding-3-small" />
-                </div>
-                <button class="btn-secondary" onclick="clearMemories()">Clear Memories</button>
-                <button class="btn-secondary" onclick="viewMemories()">View Memories</button>
-            </div>
-            <div class="settings-card">
-                <h2>🔧 Advanced</h2>
-                <div class="grid-2">
-                    <div class="form-group">
-                        <label for="temperature">Temperature</label>
-                        <input type="number" id="temperature" min="0" max="2" step="0.1" value="0.7" />
-                    </div>
-                    <div class="form-group">
-                        <label for="maxTokens">Max Tokens</label>
-                        <input type="number" id="maxTokens" min="512" max="32000" step="512" value="4096" />
-                    </div>
-                </div>
-            </div>
-            <button class="btn-primary" onclick="saveSettings()">Save Settings</button>
+        <div class="input-container">
+            <input type="text" id="messageInput"
+                placeholder="Ask the agent anything... (e.g., 'Scan localhost for vulnerabilities')">
+            <button id="stopButton">Stop</button>
+            <button id="sendButton">Send</button>
         </div>
     </div>
 
-    <div id="pgStepModal" class="pg-modal" hidden aria-hidden="true" role="dialog" aria-labelledby="pgModalTitle">
-        <div class="pg-modal-backdrop" aria-hidden="true"></div>
-        <div class="pg-modal-panel">
-            <div class="pg-modal-header-compact">
-                <div class="pg-modal-header-main">
-                    <h3 id="pgModalTitle" data-pg-modal-title>Step details</h3>
-                    <div class="pg-modal-badges">
-                        <span class="pg-modal-badge" data-pg-modal-step-type hidden></span>
-                        <span class="pg-modal-badge pg-modal-badge-mono" data-pg-modal-tool-name hidden></span>
-                    </div>
-                </div>
-                <div class="pg-modal-header-actions">
-                    <button type="button" class="pg-modal-action-btn" data-pg-copy-all title="Copy metadata and content">Copy all</button>
-                    <button type="button" class="pg-modal-action-btn" data-pg-copy-content title="Copy main text only">Content</button>
-                    <button type="button" class="pg-modal-action-btn" data-pg-toggle-raw>Raw JSON</button>
-                    <button type="button" class="pg-modal-close" data-pg-modal-close aria-label="Close">×</button>
-                </div>
-            </div>
-            <div class="pg-modal-body">
-                <div data-pg-view-formatted>
-                    <div class="pg-modal-section-title">Label</div>
-                    <p class="pg-modal-content-text" data-pg-modal-label-text></p>
-                    <div class="pg-modal-section-title">Content</div>
-                    <pre class="pg-modal-pre pg-modal-content-pre" data-pg-modal-content-text></pre>
-                    <div data-pg-modal-params></div>
-                    <div data-pg-modal-stats></div>
-                </div>
-                <div data-pg-view-raw hidden>
-                    <div class="pg-modal-section-title">Raw JSON</div>
-                    <pre class="pg-modal-pre" data-pg-modal-json></pre>
-                </div>
-            </div>
-            <div class="pg-modal-toast" data-pg-modal-toast hidden aria-live="polite"></div>
-        </div>
-    </div>
-
-    <script src="/process-group.js"></script>
     <script>
         // Use relative URL so it works on any host/port
         const API_URL = '';
@@ -1463,8 +280,6 @@
 
         let isProcessing = false;
         let socket = null;
-        const CHAT_STORAGE_KEY = 'hackract_chat_' + session_id;
-        let chatHistory = JSON.parse(localStorage.getItem(CHAT_STORAGE_KEY) || '[]');
 
         const chatContainer = document.getElementById('chatContainer');
         const messageInput = document.getElementById('messageInput');
@@ -1472,42 +287,19 @@
         const stopButton = document.getElementById('stopButton');
         const statusElement = document.getElementById('status');
 
-        const pgModal = document.getElementById('pgStepModal');
-        let processGroupUI = null;
-        if (typeof HackrActProcessGroup !== 'undefined' && pgModal) {
-            processGroupUI = new HackrActProcessGroup.ProcessGroupUI(chatContainer, { modal: pgModal });
-            const pgMode = document.getElementById('pgExpandMode');
-            if (pgMode) {
-                pgMode.value = processGroupUI.getExpandMode();
-                pgMode.addEventListener('change', function () {
-                    processGroupUI.setExpandMode(pgMode.value);
-                });
-            }
-        }
-
-        function showChat() {
-            document.getElementById('chatView').classList.remove('hidden');
-            document.getElementById('settingsView').classList.remove('visible');
-        }
-        function showSettings() {
-            document.getElementById('chatView').classList.add('hidden');
-            document.getElementById('settingsView').classList.add('visible');
-            loadSettings();
-        }
-
         // Initialize WebSocket
         function connectWebSocket() {
             socket = new WebSocket(`${WS_URL}/ws/${session_id}`);
 
             socket.onopen = () => {
                 console.log('WebSocket connected');
-                statusElement.textContent = 'Online';
+                statusElement.textContent = '● Online';
                 statusElement.classList.add('online');
             };
 
             socket.onclose = () => {
                 console.log('WebSocket disconnected');
-                statusElement.textContent = 'Offline';
+                statusElement.textContent = '● Offline';
                 statusElement.classList.remove('online');
                 // Try to reconnect after 5 seconds
                 setTimeout(connectWebSocket, 5000);
@@ -1520,18 +312,11 @@
         }
 
         function handleWebSocketMessage(data) {
-            if (processGroupUI && processGroupUI.activeGroupEl && data.type !== 'response' && data.type !== 'error') {
-                processGroupUI.handleWebSocketMessage(data);
-            }
-
+            // Remove thinking message if it exists
             if (data.type === 'response' || data.type === 'error') {
                 document.getElementById('thinking')?.remove();
-                if (processGroupUI) {
-                    if (data.type === 'response') processGroupUI.finalizeSuccess();
-                    else processGroupUI.finalizeError();
-                }
                 isProcessing = false;
-                sendButton.style.display = '';
+                sendButton.style.display = 'block';
                 stopButton.style.display = 'none';
                 messageInput.focus();
             }
@@ -1540,6 +325,44 @@
                 addMessage('assistant', data.content);
             } else if (data.type === 'error') {
                 addMessage('system', `Error: ${data.content}`);
+            } else if (data.type === 'thought') {
+                // Update thinking message or add new one
+                let thinkingDiv = document.getElementById('thinking');
+                if (!thinkingDiv) {
+                    thinkingDiv = document.createElement('div');
+                    thinkingDiv.className = 'message assistant';
+                    thinkingDiv.id = 'thinking';
+                    chatContainer.appendChild(thinkingDiv);
+                }
+                thinkingDiv.innerHTML = `<div class="message-content" style="background: rgba(0, 255, 136, 0.1); border-color: rgba(0, 255, 136, 0.3);">
+                    <div style="font-weight: bold; color: #00ff88; margin-bottom: 5px;">💭 Thinking:</div>
+                    ${data.content}
+                </div>`;
+                chatContainer.scrollTop = chatContainer.scrollHeight;
+            } else if (data.type === 'tool') {
+                // Show tool execution
+                const toolDiv = document.createElement('div');
+                toolDiv.className = 'message system';
+                toolDiv.innerHTML = `<div class="message-content" style="font-family: monospace; font-size: 12px;">
+                    🛠️ ${data.content}
+                </div>`;
+                chatContainer.appendChild(toolDiv);
+                chatContainer.scrollTop = chatContainer.scrollHeight;
+            } else if (data.type === 'tool_output') {
+                // Show tool output (maybe collapsed or small)
+                const outputDiv = document.createElement('div');
+                outputDiv.className = 'message system';
+                outputDiv.innerHTML = `<div class="message-content" style="font-family: monospace; font-size: 11px; opacity: 0.8;">
+                    <details>
+                        <summary>View Output</summary>
+                        <pre style="margin-top: 5px; white-space: pre-wrap;">${data.content}</pre>
+                    </details>
+                </div>`;
+                chatContainer.appendChild(outputDiv);
+                chatContainer.scrollTop = chatContainer.scrollHeight;
+            } else if (data.type === 'status') {
+                // Generic status update
+                // console.log("Status:", data.content);
             }
         }
 
@@ -1557,100 +380,31 @@
             }
         }
 
-        function saveChatToStorage() {
-            try {
-                localStorage.setItem(CHAT_STORAGE_KEY, JSON.stringify(chatHistory));
-            } catch (e) {
-                console.warn('Could not save chat to localStorage', e);
-            }
-        }
-
-        function escapeHtml(str) {
-            return String(str)
-                .replace(/&/g, '&amp;')
-                .replace(/</g, '&lt;')
-                .replace(/>/g, '&gt;')
-                .replace(/"/g, '&quot;');
-        }
-
-        function renderAssistantMarkdown(text) {
-            if (typeof marked !== 'undefined') {
-                marked.setOptions({ breaks: true, gfm: true });
-                let html = marked.parse(text);
-                if (typeof DOMPurify !== 'undefined') {
-                    html = DOMPurify.sanitize(html, {
-                        ALLOWED_TAGS: [
-                            'p', 'br', 'strong', 'em', 'b', 'i', 'u', 's', 'del', 'a', 'ul', 'ol', 'li',
-                            'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'blockquote', 'pre', 'code', 'hr',
-                            'table', 'thead', 'tbody', 'tr', 'th', 'td'
-                        ],
-                        ALLOWED_ATTR: ['href', 'title', 'target', 'rel', 'class']
-                    });
-                }
-                return html;
-            }
-            return escapeHtml(text).replace(/\n/g, '<br>');
-        }
-
-        // Append one message to the DOM only (used for restore and for addMessage)
-        function appendMessageToDOM(role, content) {
+        // Add message to chat
+        function addMessage(role, content) {
             const messageDiv = document.createElement('div');
             messageDiv.className = `message ${role}`;
+
+            const contentDiv = document.createElement('div');
+            contentDiv.className = 'message-content';
+
+            // Format code blocks
+            const formattedContent = content.replace(/```(.*?)```/gs, (match, code) => {
+                return `<div class="code-block">${code.trim()}</div>`;
+            });
+
+            contentDiv.innerHTML = formattedContent;
 
             const timestamp = document.createElement('div');
             timestamp.className = 'timestamp';
             timestamp.textContent = new Date().toLocaleTimeString();
+            contentDiv.appendChild(timestamp);
 
-            if (role === 'assistant') {
-                const inner = document.createElement('div');
-                inner.className = 'assistant-inner';
-
-                const avatar = document.createElement('div');
-                avatar.className = 'assistant-avatar';
-                avatar.setAttribute('aria-hidden', 'true');
-                avatar.textContent = 'HA';
-
-                const col = document.createElement('div');
-                col.style.flex = '1';
-                col.style.minWidth = '0';
-
-                const contentDiv = document.createElement('div');
-                contentDiv.className = 'message-content prose-msg';
-                contentDiv.innerHTML = renderAssistantMarkdown(content);
-
-                col.appendChild(contentDiv);
-                col.appendChild(timestamp);
-
-                inner.appendChild(avatar);
-                inner.appendChild(col);
-                messageDiv.appendChild(inner);
-            } else {
-                const contentDiv = document.createElement('div');
-                contentDiv.className = 'message-content';
-                contentDiv.innerHTML = escapeHtml(content).replace(/\n/g, '<br>');
-                contentDiv.appendChild(timestamp);
-                messageDiv.appendChild(contentDiv);
-            }
-
+            messageDiv.appendChild(contentDiv);
             chatContainer.appendChild(messageDiv);
-            chatContainer.scrollTop = chatContainer.scrollHeight;
-        }
 
-        // Restore chat from localStorage (after navigating back from Settings)
-        function restoreChatFromStorage() {
-            if (chatHistory.length === 0) return;
-            chatContainer.innerHTML = '';
-            chatHistory.forEach(function (m) {
-                appendMessageToDOM(m.role, m.content);
-            });
+            // Scroll to bottom
             chatContainer.scrollTop = chatContainer.scrollHeight;
-        }
-
-        // Add message to chat and persist so it survives navigation to Settings
-        function addMessage(role, content) {
-            appendMessageToDOM(role, content);
-            chatHistory.push({ role: role, content: content });
-            saveChatToStorage();
         }
 
         // Send message to agent
@@ -1668,12 +422,18 @@
             addMessage('user', message);
             messageInput.value = '';
 
-            if (processGroupUI) processGroupUI.beginGroup(message);
-
             // Disable input
             isProcessing = true;
             sendButton.style.display = 'none';
             stopButton.style.display = 'block';
+
+            // Add "thinking" message placeholder
+            const thinkingDiv = document.createElement('div');
+            thinkingDiv.className = 'message assistant';
+            thinkingDiv.id = 'thinking';
+            thinkingDiv.innerHTML = '<div class="message-content"><span class="loading"></span> Agent is thinking...</div>';
+            chatContainer.appendChild(thinkingDiv);
+            chatContainer.scrollTop = chatContainer.scrollHeight;
 
             // Send via WebSocket
             socket.send(JSON.stringify({
@@ -1692,9 +452,6 @@
                     type: 'stop'
                 }));
                 addMessage('system', '🛑 Sending stop command...');
-                if (processGroupUI && processGroupUI.activeGroupEl) {
-                    processGroupUI.addUtility('Stop requested', { source: 'user' });
-                }
             } else {
                 // Fallback to API
                 try {
@@ -1712,137 +469,7 @@
             if (e.key === 'Enter') sendMessage();
         });
 
-        // --- Settings panel (same page, no navigation so chat is never destroyed) ---
-        function showSettingsAlert(message, type) {
-            const el = document.getElementById('alertContainer');
-            const div = document.createElement('div');
-            div.className = 'alert alert-' + (type || 'info');
-            div.textContent = message;
-            el.appendChild(div);
-            setTimeout(function () { div.remove(); }, 5000);
-        }
-        async function loadSettings() {
-            try {
-                const r = await fetch(API_URL + '/api/settings');
-                if (!r.ok) throw new Error('Failed to load');
-                const s = await r.json();
-                document.getElementById('llmProvider').value = s.llm_provider || 'openrouter';
-                document.getElementById('apiKey').value = s.api_key || '';
-                document.getElementById('chatModel').value = s.chat_model || '';
-                document.getElementById('utilityModel').value = s.utility_model || '';
-                document.getElementById('customEndpoint').value = s.custom_endpoint || '';
-                document.getElementById('memoryEnabled').checked = s.memory_enabled !== false;
-                document.getElementById('collectionName').value = s.collection_name || 'hackract_memory';
-                document.getElementById('embeddingModel').value = s.embedding_model || 'text-embedding-3-small';
-                document.getElementById('temperature').value = s.temperature != null ? s.temperature : 0.7;
-                document.getElementById('maxTokens').value = s.max_tokens || 4096;
-                document.getElementById('llmProvider').dispatchEvent(new Event('change'));
-            } catch (e) {
-                showSettingsAlert('Could not load settings.', 'error');
-            }
-        }
-        async function testConnection() {
-            const btn = document.getElementById('testConnectionBtn');
-            const orig = btn.textContent;
-            btn.textContent = 'Testing...';
-            btn.disabled = true;
-            try {
-                const r = await fetch(API_URL + '/api/test_connection', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        llm_provider: document.getElementById('llmProvider').value,
-                        api_key: document.getElementById('apiKey').value,
-                        chat_model: document.getElementById('chatModel').value,
-                        custom_endpoint: document.getElementById('customEndpoint').value
-                    })
-                });
-                const d = await r.json();
-                if (!r.ok) throw new Error(d.detail || 'Connection failed');
-                showSettingsAlert('Connection OK: ' + (d.response || 'success'), 'success');
-            } catch (e) {
-                showSettingsAlert('Error: ' + e.message, 'error');
-            }
-            btn.textContent = orig;
-            btn.disabled = false;
-        }
-        async function saveSettings() {
-            const s = {
-                llm_provider: document.getElementById('llmProvider').value,
-                api_key: document.getElementById('apiKey').value,
-                chat_model: document.getElementById('chatModel').value,
-                utility_model: document.getElementById('utilityModel').value,
-                custom_endpoint: document.getElementById('customEndpoint').value,
-                memory_enabled: document.getElementById('memoryEnabled').checked,
-                collection_name: document.getElementById('collectionName').value,
-                embedding_model: document.getElementById('embeddingModel').value,
-                temperature: parseFloat(document.getElementById('temperature').value),
-                max_tokens: parseInt(document.getElementById('maxTokens').value, 10)
-            };
-            try {
-                const r = await fetch(API_URL + '/api/settings', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(s)
-                });
-                if (!r.ok) throw new Error('Failed to save');
-                showSettingsAlert('Settings saved. Changes apply on next request.', 'success');
-            } catch (e) {
-                showSettingsAlert('Save failed: ' + e.message, 'error');
-            }
-        }
-        async function clearMemories() {
-            if (!confirm('Clear all memories? This cannot be undone.')) return;
-            try {
-                const r = await fetch(API_URL + '/api/memory/clear', { method: 'POST' });
-                if (!r.ok) throw new Error('Failed');
-                showSettingsAlert('Memories cleared.', 'success');
-            } catch (e) {
-                showSettingsAlert('Failed: ' + e.message, 'error');
-            }
-        }
-        function viewMemories() {
-            window.open(API_URL + '/api/memory/list', '_blank');
-        }
-        function updateModelDefaults() {
-            var p = document.getElementById('llmProvider').value;
-            var apiKey = document.getElementById('apiKey');
-            var chat = document.getElementById('chatModel');
-            var util = document.getElementById('utilityModel');
-            var help = document.getElementById('apiKeyHelp');
-            if (p === 'ollama') {
-                apiKey.placeholder = 'No API key for Ollama';
-            } else if (p === 'gemini') {
-                apiKey.placeholder = 'Google Gemini API Key';
-                chat.value = 'gemini/gemini-1.5-pro';
-                util.value = 'gemini/gemini-1.5-flash';
-            } else if (p === 'github') {
-                apiKey.placeholder = 'GitHub Personal Access Token';
-                chat.value = 'gpt-4o';
-                util.value = 'gpt-4o-mini';
-            } else if (p === 'anthropic') {
-                apiKey.placeholder = 'Anthropic API Key';
-                chat.value = 'anthropic/claude-3.5-sonnet';
-                util.value = 'anthropic/claude-3-haiku';
-            } else if (p === 'openai') {
-                apiKey.placeholder = 'OpenAI API Key';
-                chat.value = 'gpt-4o';
-                util.value = 'gpt-3.5-turbo';
-            } else {
-                apiKey.placeholder = 'Enter your API key';
-            }
-            document.getElementById('customEndpointGroup').style.display = (p === 'custom') ? 'block' : 'none';
-        }
-        document.getElementById('llmProvider').addEventListener('change', updateModelDefaults);
-
-        // Initialize: restore chat from storage on refresh; else seed welcome
-        if (chatHistory.length > 0) {
-            restoreChatFromStorage();
-        } else {
-            const welcomeContent = 'Welcome to HackrAct AI Agent - Your AI-powered web application penetration tester.\nAsk me to scan websites, test for vulnerabilities, or install security tools!';
-            chatHistory.push({ role: 'system', content: welcomeContent });
-            saveChatToStorage();
-        }
+        // Initialize
         connectWebSocket();
         checkHealth();
         setInterval(checkHealth, 30000); // Check health every 30 seconds
