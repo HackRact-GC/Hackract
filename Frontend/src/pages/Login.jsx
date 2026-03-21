@@ -3,7 +3,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { useAuth0 } from "@auth0/auth0-react";
 import { FcGoogle } from "react-icons/fc";
 import { FaGithub } from "react-icons/fa";
-import { useAuth } from "../context/AuthContext.jsx";
+import { useAuth } from "../context/authContext.jsx";
 
 const InputField = ({ label, type, placeholder, id, name, value, onChange }) => (
     <div className="flex flex-col gap-2 group">
@@ -54,15 +54,28 @@ const Login = () => {
     const handleSubmit = async (e) => {
         e.preventDefault();
         try {
-            await login(form);
-            navigate("/");
+            const result = await login(form);
+            const primaryRole = result?.user?.roles?.[0]?.type;
+            if (primaryRole === "PENTESTER") {
+                navigate("/hacker-profile", {
+                    state: { requiresEmailVerification: !!result?.requiresEmailVerification },
+                });
+                return;
+            }
+            if (primaryRole === "ORG_ADMIN") {
+                navigate("/organization-profile", {
+                    state: { requiresEmailVerification: !!result?.requiresEmailVerification },
+                });
+                return;
+            }
+            navigate("/dashboard");
         } catch (error) {
             const errorCode = error?.response?.data?.code;
             const status = error?.response?.status;
             // toast handled in context
             if (errorCode === 'EMAIL_NOT_VERIFIED' || status === 403) {
                 setTimeout(() => {
-                    navigate(`/verify-email?email=${encodeURIComponent(form.email)}`);
+                    navigate("/verify-email", { state: { email: form.email } });
                 }, 1500);
             }
         }
