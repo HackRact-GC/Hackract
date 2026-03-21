@@ -35,6 +35,14 @@ export const RolePermissions = {
   ]
 };
 
+export const VerificationStatus = {
+  DRAFT: 'DRAFT',
+  SUBMITTED: 'SUBMITTED',
+  UNDER_REVIEW: 'UNDER_REVIEW',
+  APPROVED: 'APPROVED',
+  REJECTED: 'REJECTED',
+};
+
 export const OrganizationErrorCodes = {
   NOT_FOUND: 'ORGANIZATION_NOT_FOUND',
   ALREADY_EXISTS: 'ORGANIZATION_ALREADY_EXISTS',

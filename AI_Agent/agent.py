@@ -48,6 +48,7 @@ class Agent:
                 collection_name=self.config.memory.collection_name,
                 embedding_model=self.config.model.embedding_model,
                 api_key=self.config.model.api_key,
+                embedding_fallback_dimension=self.config.memory.embedding_fallback_dimension,
             )
             self.logger.success(
                 heading="Memory System", 
@@ -167,6 +168,7 @@ class Agent:
         tool_memory_save = load_prompt("agent.system.tool.memory_save.md")
         tool_memory_load = load_prompt("agent.system.tool.memory_load.md")
         tool_response = load_prompt("agent.system.tool.response.md")
+        tool_search = load_prompt("agent.system.tool.search.md")
         
         # Load main template
         main_template = load_prompt("agent.system.main.md")
@@ -210,6 +212,11 @@ Params: `query` (string), `max_results` (int)."""
 Send final answer to user.
 Params: `message` (string)."""
 
+            tool_search = """## Search
+`search`
+Web search for CVEs, exploits, threat intel.
+Params: `query` (string), `max_results` (int)."""
+
         # Substitute sections into template
         system_prompt = main_template.format(
             role=role,
@@ -220,6 +227,7 @@ Params: `message` (string)."""
             tool_memory_save=tool_memory_save,
             tool_memory_load=tool_memory_load,
             tool_response=tool_response,
+            tool_search=tool_search,
         )
         
         return system_prompt

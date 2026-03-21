@@ -1,12 +1,12 @@
 import React, { useState, useRef, useCallback, useEffect } from 'react';
 import { FiArrowLeft, FiSave, FiClock, FiMessageSquare } from 'react-icons/fi';
-import { 
-  ReactFlow, 
-  ReactFlowProvider, 
-  addEdge, 
-  useNodesState, 
-  useEdgesState, 
-  Controls, 
+import {
+  ReactFlow,
+  ReactFlowProvider,
+  addEdge,
+  useNodesState,
+  useEdgesState,
+  Controls,
   Background,
   MiniMap,
   Panel
@@ -18,6 +18,7 @@ import { formatDistanceToNow } from 'date-fns';
 import StartingPointNode from './nodes/StartingPointNode';
 import NoteNode from './nodes/NoteNode';
 import AiNode from './nodes/AiNode';
+import AiAgentNode from './nodes/AiAgentNode';
 import TerminalNode from './nodes/TerminalNode';
 import Sidebar from './components/Sidebar';
 import HistorySidebar from './components/HistorySidebar';
@@ -31,6 +32,7 @@ const nodeTypes = {
   startingPoint: StartingPointNode,
   note: NoteNode,
   ai: AiNode,
+  agent: AiAgentNode,
   terminal: TerminalNode,
 };
 
@@ -166,7 +168,7 @@ const WorkflowEditor = ({ workflowId = "mock-id-123", pentestId }) => {
 
   const addNodeByClick = (type) => {
     // Add to center of view
-    const position = { x: 250, y: 250 }; 
+    const position = { x: 250, y: 250 };
     addNode(type, position);
   };
 
@@ -256,7 +258,7 @@ const WorkflowEditor = ({ workflowId = "mock-id-123", pentestId }) => {
 
   // Sync activeNodes to node data
   useEffect(() => {
-    setNodes((nds) => 
+    setNodes((nds) =>
       nds.map(node => ({
         ...node,
         data: {
@@ -315,9 +317,9 @@ const WorkflowEditor = ({ workflowId = "mock-id-123", pentestId }) => {
             {/* Active Collaborators Bubbles */}
             <div className="flex -space-x-2 items-center">
                {Object.values(collaborators).map((collab, index) => (
-                 <div 
-                   key={collab.id} 
-                   className="w-8 h-8 rounded-full border-2 border-[#0b0f19] flex items-center justify-center text-xs font-bold shadow-lg transition-transform hover:-translate-y-1 hover:z-30 cursor-help" 
+                 <div
+                   key={collab.id}
+                   className="w-8 h-8 rounded-full border-2 border-[#0b0f19] flex items-center justify-center text-xs font-bold shadow-lg transition-transform hover:-translate-y-1 hover:z-30 cursor-help"
                    style={{ backgroundColor: collab.color || '#00ff41', color: '#fff', zIndex: 10 + index }}
                    title={collab.user}
                 >
@@ -373,24 +375,25 @@ const WorkflowEditor = ({ workflowId = "mock-id-123", pentestId }) => {
               elementsSelectable={!isLocked}
               panOnDrag={!isLocked}
             >
-              <Background 
-                variant="lines" 
-                color="rgba(0, 255, 65, 0.15)" 
-                gap={40} 
-                className="bg-[#07090e]" 
+              <Background
+                variant="lines"
+                color="rgba(0, 255, 65, 0.15)"
+                gap={40}
+                className="bg-[#07090e]"
               />
               <Panel position="bottom-left">
                 <WorkflowControls isLocked={isLocked} onToggleLock={() => setIsLocked(!isLocked)} />
               </Panel>
-              <MiniMap 
+              <MiniMap
                 nodeColor={(n) => {
                   if (n.type === 'startingPoint') return '#00ff41';
                   if (n.type === 'ai') return '#00a3ff';
+                  if (n.type === 'agent') return '#d000ff';
                   if (n.type === 'note') return '#ff7a00';
                   if (n.type === 'terminal') return '#ffb000';
                   return '#333';
                 }}
-                maskColor="rgba(0, 0, 0, 0.6)"
+                maskColor="rgba(0, 0,0, 0.6)"
                 activeColor="#00ff41"
                 className="bg-[#0b0f19] border border-[#00ff41]/20 rounded-lg overflow-hidden shadow-2xl scale-75 origin-bottom-right"
                 style={{ bottom: 10, right: 10 }}

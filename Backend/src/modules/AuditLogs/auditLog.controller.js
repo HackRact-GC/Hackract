@@ -33,3 +33,18 @@ export const get = async (req, res, next) => {
         res.json(await service.getAuditLogById(req.params.id));
     } catch (e) { next(e); }
 };
+
+export const generateReport = async (req, res, next) => {
+    try {
+        const filters = {
+            userId: req.query.userId,
+            organizationId: req.query.organizationId,
+            pentestId: req.query.pentestId,
+            action: req.query.action,
+            startDate: req.query.startDate,
+            endDate: req.query.endDate
+        };
+        const report = await service.generateAuditReport(filters);
+        res.json(report);
+    } catch (e) { next(e); }
+};

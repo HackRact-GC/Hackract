@@ -1,6 +1,6 @@
 import * as service from './hackerProfile.service.js';
 import ApiResponse from '../../utils/ApiResponse.js';
-import { HackerProfileStatus } from './hackerProfile.constants.js';
+import { VerificationStatus } from './hackerProfile.constants.js';
 
 export const getMe = async (req, res, next) => {
   try {
@@ -32,7 +32,7 @@ export const submitMe = async (req, res, next) => {
 export const listForReview = async (req, res, next) => {
   try {
     const status = req.query.status;
-    const validStatus = Object.values(HackerProfileStatus);
+    const validStatus = Object.values(VerificationStatus);
     const statusFilter = status && validStatus.includes(status) ? status : undefined;
     const profiles = await service.listProfilesForReview(statusFilter);
     ApiResponse.success(res, { profiles }, 'Hacker profiles retrieved successfully');
@@ -58,4 +58,23 @@ export const reject = async (req, res, next) => {
     next(error);
   }
 };
+export const getStatus = async (req, res, next) => {
+  try {
+    const profile = await service.getMyProfile(req.user.id);
+    const missing = await service.getMissingAgreements(req.user.id);
+    ApiResponse.success(res, { profile, missingAgreements: missing }, 'Verification status retrieved');
+  } catch (error) {
+    next(error);
+  }
+};
 
+export const signAgreement = async (req, res, next) => {
+  try {
+    const { agreementTitle } = req.body;
+    const meta = { ipAddress: req.ip, userAgent: req.get('user-agent') };
+    const signature = await service.signAgreement(req.user.id, agreementTitle, meta);
+    ApiResponse.success(res, { signature }, 'Agreement signed successfully');
+  } catch (error) {
+    next(error);
+  }
+};

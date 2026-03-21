@@ -29,8 +29,13 @@ class LLM:
         
         # Configure provider-specific settings
         if provider == "ollama":
+            # Map localhost to host.docker.internal if running inside a Docker container
+            if ("localhost" in self.ollama_base_url or "127.0.0.1" in self.ollama_base_url) and os.path.exists('/.dockerenv'):
+                self.ollama_base_url = self.ollama_base_url.replace("localhost", "host.docker.internal").replace("127.0.0.1", "host.docker.internal")
+                
             # For Ollama, set the base URL
-            os.environ["OLLAMA_API_BASE"] = ollama_base_url
+            os.environ["OLLAMA_API_BASE"] = self.ollama_base_url
+            litellm.api_base = self.ollama_base_url
             # LiteLLM expects 'ollama/' prefix for Ollama models
             if not self.model.startswith("ollama/"):
                 self.model = f"ollama/{self.model}"
@@ -49,6 +54,12 @@ class LLM:
             # LiteLLM expects 'gemini/' prefix for Gemini models
             if not self.model.startswith("gemini/"):
                 self.model = f"gemini/{self.model}"
+        elif provider == "deepseek":
+            if api_key:
+                os.environ["DEEPSEEK_API_KEY"] = api_key
+            # Ensure model starts with deepseek/
+            if not self.model.startswith("deepseek/"):
+                self.model = f"deepseek/{self.model}"
         elif provider == "github":
             # GitHub Models (via Azure AI)
             # Uses OpenAI client but with a specific base URL
@@ -211,37 +222,37 @@ class ModelManager:
     ) -> str | AsyncIterator[str]:
         """Send chat completion request"""
         
-        temp = temperature if temperature is not None else self.config.temperature
+        temp = temperature if temperature is not None else self.config.model.temperature
         max_tok = max_tokens if max_tokens is not None else 4000
         
         try:
             # Prepare args for litellm
             kwargs = {
                 "messages": messages,
-                "temperature": self.config.temperature,
+                "temperature": self.config.model.temperature,
                 "max_tokens": 4000,
                 "stream": stream
             }
 
             # Provider-specific adjustments
-            model_name = self.config.chat_model
+            model_name = self.config.model.chat_model
             
-            if self.config.llm_provider == "github":
+            if self.config.model.provider == "github":
                 # GitHub Models uses OpenAI-compatible endpoint
                 kwargs["api_base"] = "https://models.inference.ai.azure.com"
-                kwargs["api_key"] = self.config.api_key
+                kwargs["api_key"] = self.config.model.api_key
                 # Litellm needs 'openai/' prefix to know which client to use for custom base
                 if not model_name.startswith("openai/"):
                     model_name = f"openai/{model_name}"
                 
                 # FIX: Litellm requires OPENAI_API_KEY env var to be present for the openai client
                 # even if we pass api_key in kwargs. We set it temporarily.
-                os.environ["OPENAI_API_KEY"] = self.config.api_key
+                os.environ["OPENAI_API_KEY"] = self.config.model.api_key
             
-            elif self.config.llm_provider == "gemini":
+            elif self.config.model.provider == "gemini":
                 # Gemini models require special handling
                 kwargs["api_base"] = "https://gemini.inference.ai.azure.com"
-                kwargs["api_key"] = self.config.api_key
+                kwargs["api_key"] = self.config.model.api_key
                 # Litellm needs 'gemini/' prefix to know which client to use for custom base
                 if not model_name.startswith("gemini/"):
                     model_name = f"gemini/{model_name}"
@@ -277,12 +288,12 @@ class ModelManager:
     ) -> Dict[str, Any]:
         """Chat with function calling / tool use"""
         
-        temp = temperature if temperature is not None else self.config.temperature
-        max_tok = max_tokens if max_tokens is not None else self.config.max_tokens
+        temp = temperature if temperature is not None else self.config.model.temperature
+        max_tok = max_tokens if max_tokens is not None else self.config.model.max_tokens
         
         try:
             response = await acompletion(
-                model=self.config.chat_model,
+                model=self.config.model.chat_model,
                 messages=messages,
                 tools=tools,
                 temperature=temp,
@@ -312,3 +323,4 @@ class ModelManager:
                 "content": f"Error: {str(e)}",
                 "tool_calls": []
             }
+

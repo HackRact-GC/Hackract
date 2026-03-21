@@ -17,11 +17,13 @@ class Memory:
         collection_name: str = "hackract_memory",
         embedding_model: str = "text-embedding-3-small",
         api_key: str = "",
+        embedding_fallback_dimension: int = 1536,
     ):
         self.memory_dir = memory_dir
         self.collection_name = collection_name
         self.embedding_model = embedding_model
         self.api_key = api_key
+        self.embedding_fallback_dimension = embedding_fallback_dimension
         
         # Create memory directory
         os.makedirs(memory_dir, exist_ok=True)
@@ -50,8 +52,8 @@ class Memory:
             return response.data[0]['embedding']
         except Exception as e:
             print(f"Error getting embedding: {e}")
-            # Return zero vector as fallback
-            return [0.0] * 1536
+            # Return zero vector as fallback (dimension must match collection; configurable for different embedding models)
+            return [0.0] * self.embedding_fallback_dimension
     
     async def save(
         self,

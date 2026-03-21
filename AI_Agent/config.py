@@ -9,6 +9,11 @@ from dotenv import load_dotenv
 load_dotenv()
 
 
+class ConfigValidationError(ValueError):
+    """Raised when required config is missing or invalid."""
+    pass
+
+
 @dataclass
 class ModelConfig:
     """Configuration for AI models"""
@@ -33,6 +38,8 @@ class MemoryConfig:
     memory_dir: str = "./memory"
     collection_name: str = "hackract_memory"
     max_results: int = 10
+    # Fallback embedding dimension when embedding API fails (must match your embedding model; 1536 for OpenAI text-embedding-3-*)
+    embedding_fallback_dimension: int = 1536
 
 
 @dataclass
@@ -74,8 +81,8 @@ class AgentConfig:
     additional: Dict[str, Any] = field(default_factory=dict)
 
 
-def load_config() -> AgentConfig:
-    """Load configuration from environment variables"""
+def load_config(validate: bool = True) -> AgentConfig:
+    """Load configuration from environment variables. Set validate=False to allow startup without API key (e.g. configure via UI)."""
     
     # Smart defaults for provider and models
     provider = os.getenv("LLM_PROVIDER")
@@ -134,6 +141,7 @@ def load_config() -> AgentConfig:
         enabled=os.getenv("MEMORY_ENABLED", "true").lower() == "true",
         memory_dir=os.getenv("MEMORY_DIR", "./memory"),
         collection_name=os.getenv("MEMORY_COLLECTION", "hackract_memory"),
+        embedding_fallback_dimension=int(os.getenv("EMBEDDING_FALLBACK_DIMENSION", "1536")),
     )
     
     code_exec_config = CodeExecutionConfig(
@@ -147,7 +155,22 @@ def load_config() -> AgentConfig:
     
     agent_name = os.getenv("AGENT_NAME", "HackrAct")
     log_dir = os.getenv("LOG_DIR", "./logs")
-    
+
+    if validate:
+        # Validate: non-Ollama providers require an API key
+        if model_config.provider != "ollama" and not (model_config.api_key or "").strip():
+            raise ConfigValidationError(
+                f"API key is required for provider '{model_config.provider}'. "
+                "Set API_KEY in .env or the provider-specific key (e.g. OPENAI_API_KEY, ANTHROPIC_API_KEY)."
+            )
+        # Validate numeric ranges
+        if model_config.max_tokens < 1 or model_config.max_tokens > 128000:
+            raise ConfigValidationError("MAX_TOKENS must be between 1 and 128000.")
+        if not (0 <= model_config.temperature <= 2):
+            raise ConfigValidationError("TEMPERATURE must be between 0 and 2.")
+        if model_config.max_context_tokens < 1000:
+            raise ConfigValidationError("MAX_CONTEXT_TOKENS must be at least 1000.")
+
     return AgentConfig(
         model=model_config, 
         memory=memory_config, 
@@ -171,10 +194,10 @@ def save_config_to_env(config_dict: dict) -> bool:
     
     env_path = Path(".env")
     
-    # Read existing .env file
+    # Read existing .env file (utf-8 for non-ASCII values)
     env_lines = []
     if env_path.exists():
-        with open(env_path, 'r') as f:
+        with open(env_path, 'r', encoding='utf-8') as f:
             env_lines = f.readlines()
     
     # Update values
@@ -248,12 +271,12 @@ def save_config_to_env(config_dict: dict) -> bool:
     if 'max_tokens' in config_dict and 'max_tokens' not in updated:
         new_lines.append(f'MAX_TOKENS={config_dict["max_tokens"]}')
     
-    # Write back to file
-    with open(env_path, 'w') as f:
+    # Write back to file (utf-8 for portability)
+    with open(env_path, 'w', encoding='utf-8') as f:
         f.write('\n'.join(new_lines) + '\n')
     
     return True
 
 
-# Global config instance
-CONFIG = load_config()
+# Global config instance (validate=False so server can start without .env; endpoints validate when needed)
+CONFIG = load_config(validate=False)

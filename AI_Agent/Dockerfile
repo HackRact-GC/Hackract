@@ -74,7 +74,7 @@ RUN pip3 install --no-cache-dir --break-system-packages --ignore-installed -r /t
     rm /tmp/requirements.txt
 
 # Install additional web-focused tools via other package managers
-# Note: requests, bs4, lxml, colorama are in requirements.txt, so we only install extras here
+# Note: requests, colorama are in requirements.txt; extras installed below
 RUN pip3 install --no-cache-dir --break-system-packages \
     jwt pyjwt \
     urllib3 \
@@ -110,9 +110,9 @@ RUN echo 'alias ll="ls -lah"' >> /root/.bashrc && \
     echo 'alias update-tools="apt-get update"' >> /root/.bashrc && \
     echo 'alias search-tools="apt-cache search"' >> /root/.bashrc
 
-# Healthcheck to ensure API is running
+# Healthcheck: route is /api/health (not /health)
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
-    CMD curl -f http://localhost:8008/health || exit 1
+    CMD curl -f http://localhost:8008/api/health || exit 1
 
 # Default command - Run API server
 CMD ["python3", "run_api.py"]

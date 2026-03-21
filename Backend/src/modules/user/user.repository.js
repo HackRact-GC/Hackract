@@ -36,7 +36,9 @@ class UserRepository {
             organization: true
           }
         },
-        userSignatures: true
+        userSignatures: true,
+        hackerProfile: true,
+        findingsReported: true
       }
     });
 
@@ -136,8 +138,9 @@ class UserRepository {
           handle: true,
           status: true,
           isVerified: true,
+          trustScore: true,
           createdAt: true,
-          lastLoginAt: true // If you add this to schema later
+          lastLoginAt: true
         }
       }),
       prisma.user.count({ where })
