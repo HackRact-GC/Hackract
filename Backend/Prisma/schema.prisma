@@ -121,7 +121,6 @@ model HackerProfile {
   user   User   @relation(fields: [userId], references: [id])
   userId String @unique
 
-<<<<<<< HEAD
   bio               String
   country           String?
   yearsOfExperience Int?
@@ -198,11 +197,7 @@ model Organization {
   auditLogs AuditLog[]
 
   // Verification Details
-  taxId             String?
-  industry          String?
   companySize       String?
-  website           String?
-  address           String?
   verificationStatus VerificationStatus @default(DRAFT)
   
   // Timestamps

@@ -1,14 +1,19 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { useAuth } from "../context/authContext.jsx";
 import MatrixRain from "../components/MatrixRain";
 
 const Landing = () => {
     const navigate = useNavigate();
+    const { user, loading } = useAuth();
     const [mounted, setMounted] = useState(false);
 
     useEffect(() => {
         setMounted(true);
-    }, []);
+        if (user && !loading) {
+            navigate("/dashboard");
+        }
+    }, [user, loading, navigate]);
 
     return (
         <div className="relative min-h-screen bg-[#050505] text-white overflow-hidden selection:bg-[#00ff88]/30 selection:text-[#00ff88]">

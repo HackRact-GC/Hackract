@@ -29,14 +29,13 @@ const getOrCreateRole = async (roleType = 'PENTESTER') => {
 };
 
 const ensureUserHasRole = async (user, fallbackRole = 'PENTESTER') => {
+  // If the user already has roles, just return them
   if (user?.roles?.length) return user;
-  const role = await getOrCreateRole(fallbackRole);
-  const updated = await prisma.user.update({
-    where: { id: user.id },
-    data: { roles: { connect: { id: role.id } } },
-    include: { roles: true },
-  });
-  return updated;
+  
+  // NOTE: We used to automatically assign PENTESTER role here.
+  // We've removed this to support the post-social-login onboarding flow.
+  // Users now choose their role on the frontend.
+  return user;
 };
 
 // Auth0 JWT validation middleware
@@ -172,9 +171,8 @@ export const protect = async (req, res, next) => {
             },
             include: { roles: true }
           });
-          user = await ensureUserHasRole(user);
         } else {
-          const defaultRole = await getOrCreateRole('PENTESTER');
+          // REMOVED: const defaultRole = await getOrCreateRole('PENTESTER');
 
           let baseHandle = (nickname || email.split('@')[0]).toLowerCase().replace(/[^a-z0-9_]/g, '');
           let handle = baseHandle || `user${Date.now()}`;
@@ -195,8 +193,8 @@ export const protect = async (req, res, next) => {
               handle,
               avatar: picture,
               status: 'ACTIVE',
-              isVerified: emailVerified || false,
-              roles: defaultRole ? { connect: { id: defaultRole.id } } : undefined,
+               isVerified: emailVerified || false,
+              // roles: defaultRole ? { connect: { id: defaultRole.id } } : undefined, // REMOVED
             },
             include: { roles: true }
           });

@@ -12,9 +12,12 @@ import ForgotPassword from "../pages/ForgotPassword.jsx";
 import ResetPassword from "../pages/ResetPassword.jsx";
 import HackerProfile from "../pages/HackerProfile.jsx";
 import OrganizationProfile from "../pages/OrganizationProfile.jsx";
+import OrganizationDashboard from "../pages/OrganizationDashboard.jsx";
+import HackerDashboard from "../pages/HackerDashboard.jsx";
 import WorkflowEditor from "../pages/WorkflowEditor/WorkflowEditor.jsx";
 import HackerVerification from "../pages/HackerVerification.jsx";
 import OrganizationVerification from "../pages/OrganizationVerification.jsx";
+import Onboarding from "../pages/Onboarding.jsx";
 import ErrorPage from "../pages/ErrorPage.jsx";
 
 const router = createBrowserRouter([
@@ -36,6 +39,10 @@ const router = createBrowserRouter([
         element: <HackerProfile />,
       },
       {
+        path: "hacker-dashboard",
+        element: <HackerDashboard />,
+      },
+      {
         path: "hacker-verification",
         element: <HackerVerification />,
       },
@@ -44,8 +51,16 @@ const router = createBrowserRouter([
         element: <OrganizationProfile />,
       },
       {
+        path: "organization-dashboard",
+        element: <OrganizationDashboard />,
+      },
+      {
         path: "organization-verification/:organizationId",
         element: <OrganizationVerification />,
+      },
+      {
+        path: "onboarding",
+        element: <Onboarding />,
       },
       {
         path: "workflows/:workflowId",

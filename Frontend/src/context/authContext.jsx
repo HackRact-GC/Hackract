@@ -35,15 +35,12 @@ export const AuthProvider = ({ children }) => {
   }, []);
 
   const fetchProfile = useCallback(async () => {
-    if (!accessToken) return;
     try {
-      const { data } = await api.get("/auth/local/me", {
-        headers: { Authorization: `Bearer ${accessToken}` },
-      });
+      const { data } = await api.get("/auth/local/me");
       setUser(data?.data?.user || null);
     } catch (error) {
       console.error("Failed to load profile", error);
-      persistTokens(null, refreshToken);
+      if (accessToken) persistTokens(null, refreshToken);
       setUser(null);
     }
   }, [accessToken, persistTokens, refreshToken]);
@@ -93,6 +90,7 @@ export const AuthProvider = ({ children }) => {
         const { user: newUser, tokens, message: nestedMessage } = payloadData || {};
         const successMessage = nestedMessage || topMessage || "Registration successful. Please verify your email.";
 
+        // If backend returns tokens on register, keep them.
         if (tokens?.accessToken && tokens?.refreshToken) {
           persistTokens(tokens.accessToken, tokens.refreshToken);
           setUser(newUser);
@@ -152,8 +150,9 @@ export const AuthProvider = ({ children }) => {
       logout,
       refreshTokens,
       setUser,
+      refreshUser: fetchProfile,
     }),
-    [user, accessToken, refreshToken, loading, login, register, logout, refreshTokens]
+    [user, accessToken, refreshToken, loading, login, register, logout, refreshTokens, fetchProfile]
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

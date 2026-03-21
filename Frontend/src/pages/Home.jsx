@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { useAuth } from "../context/AuthContext.jsx";
+import { useAuth } from "../context/authContext.jsx";
 import api from "../api/axiosConfig";
 
 const Home = () => {
@@ -32,8 +32,13 @@ const Home = () => {
     };
     if (user?.roles?.[0]?.type === 'ORG_ADMIN') {
       fetchOrgs();
+      navigate('/organization-dashboard');
+    } else if (user?.roles?.[0]?.type === 'PENTESTER') {
+      navigate('/hacker-dashboard');
+    } else if (user) {
+      navigate('/onboarding');
     }
-  }, [user]);
+  }, [user, navigate]);
 
   const primaryRoleType = user?.roles?.[0]?.type;
   const isOrgView = primaryRoleType === "ORG_ADMIN";
