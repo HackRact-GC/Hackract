@@ -6,7 +6,6 @@ import organizationRepository from '../Organization/Organization.repository.js';
 const hasRole = (user, role) => (user?.roles || []).some((r) => r.type === role);
 
 const ensureOrgAdminAccess = async (organizationId, user) => {
-    if (hasRole(user, 'SUPER_ADMIN')) return;
     if (!hasRole(user, 'ORG_ADMIN')) {
         throw new AppError('Only organization admins can manage members', 403);
     }

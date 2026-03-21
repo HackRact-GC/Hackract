@@ -3,7 +3,10 @@ import organizationService from './Organization.service.js';
 import {
   createOrganizationSchema,
   updateOrganizationSchema,
-  organizationIdSchema
+  organizationIdSchema,
+  listOrganizationsQuerySchema,
+  organizationNameQuerySchema,
+  ownerNameQuerySchema
 
 } from './Organization.schema.js';
 import asyncHandler from '../../utils/AsyncHandler.js';
@@ -21,6 +24,51 @@ const sendValidationError = (res, joiError) => {
 };
 
 class OrganizationController {
+  listOrganizations = asyncHandler(async (req, res) => {
+    const { error, value } = listOrganizationsQuerySchema.validate(req.query);
+    if (error) {
+      return sendValidationError(res, error);
+    }
+
+    const result = await organizationService.listOrganizations(value, req.user);
+
+    res.status(200).json({
+      success: true,
+      message: 'Organizations retrieved successfully',
+      data: result
+    });
+  });
+
+  getOrganizationsByName = asyncHandler(async (req, res) => {
+    const { error, value } = organizationNameQuerySchema.validate(req.query);
+    if (error) {
+      return sendValidationError(res, error);
+    }
+
+    const result = await organizationService.getOrganizationsByName(value.name, req.user, value);
+
+    res.status(200).json({
+      success: true,
+      message: 'Organizations retrieved successfully',
+      data: result
+    });
+  });
+
+  getOrganizationsByOwnerName = asyncHandler(async (req, res) => {
+    const { error, value } = ownerNameQuerySchema.validate(req.query);
+    if (error) {
+      return sendValidationError(res, error);
+    }
+
+    const result = await organizationService.getOrganizationsByOwnerName(value.ownerName, req.user, value);
+
+    res.status(200).json({
+      success: true,
+      message: 'Organizations retrieved successfully',
+      data: result
+    });
+  });
+
   createOrganization = asyncHandler(async (req, res) => {
     const { error, value } = createOrganizationSchema.validate(req.body);
     if (error) {
@@ -86,6 +134,15 @@ class OrganizationController {
     res.status(200).json({
       success: true,
       message: 'Organization deleted successfully'
+    });
+  });
+
+  deleteAllOrganizations = asyncHandler(async (req, res) => {
+    const result = await organizationService.deleteAllOrganizations(req.user);
+    res.status(200).json({
+      success: true,
+      message: 'All organizations deleted successfully',
+      data: result
     });
   });
 

@@ -26,6 +26,19 @@ async function seedRoles() {
             ],
         },
         {
+            name: 'Project Admin',
+            type: 'PROJECT_ADMIN',
+            description: 'Project/pentest lead (scoped permissions)',
+            permissions: [
+                'pentest:read', 'pentest:write', 'pentest:manage',
+                'finding:read', 'finding:write', 'finding:delete', 'finding:verify',
+                'ai:read', 'ai:write',
+                'org:read',
+                'user:read',
+                'audit:read',
+            ],
+        },
+        {
             name: 'Pentester',
             type: 'PENTESTER',
             description: 'Can perform penetration tests and manage findings',
@@ -34,29 +47,6 @@ async function seedRoles() {
                 'finding:read', 'finding:write', 'finding:delete',
                 'ai:read', 'ai:write',
                 'org:read', 'user:read',
-            ],
-        },
-        {
-            name: 'Analyst',
-            type: 'ANALYST',
-            description: 'Can analyze pentests and manage findings',
-            permissions: [
-                'pentest:read',
-                'finding:read', 'finding:write',
-                'ai:read', 'ai:write',
-                'org:read', 'user:read',
-            ],
-        },
-        {
-            name: 'Viewer',
-            type: 'VIEWER',
-            description: 'Read-only access to pentests and findings',
-            permissions: [
-                'pentest:read',
-                'finding:read',
-                'org:read',
-                'user:read',
-                'ai:read',
             ],
         },
     ];

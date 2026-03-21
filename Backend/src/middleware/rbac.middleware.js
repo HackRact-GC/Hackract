@@ -14,25 +14,23 @@ export const RoleErrorCodes = {
 
 /**
  * Canonical role model (as per your description)
- * - SYSTEM_ADMIN: system-wide admin (maps to SUPER_ADMIN in DB)
+ * - SUPER_ADMIN: system-wide admin
  * - ORG_ADMIN: admin of a specific organization (scoped via OrganizationMember role)
  * - PROJECT_ADMIN: admin/lead of a specific pentest project (scoped via Pentest.leadPentesterId)
  * - PENTESTER: normal hacker/user
  */
 export const Roles = Object.freeze({
-    SYSTEM_ADMIN: 'SYSTEM_ADMIN',
+    SUPER_ADMIN: 'SUPER_ADMIN',
     ORG_ADMIN: 'ORG_ADMIN',
     PROJECT_ADMIN: 'PROJECT_ADMIN',
     PENTESTER: 'PENTESTER',
 });
 
-// DB enum role kept for backward compatibility (existing seeded users)
 const DB_SUPER_ADMIN = 'SUPER_ADMIN';
 
 const normalizeGlobalRoleType = (roleType) => {
     if (!roleType) return roleType;
-    // Your meaning: SUPER_ADMIN === SYSTEM_ADMIN
-    if (roleType === DB_SUPER_ADMIN) return Roles.SYSTEM_ADMIN;
+    if (roleType === DB_SUPER_ADMIN) return Roles.SUPER_ADMIN;
     return roleType;
 };
 
@@ -48,7 +46,7 @@ const userHasAnyGlobalRole = (user, ...allowedRoles) => {
 };
 
 /**
- * Require one of the provided GLOBAL roles (SYSTEM_ADMIN is treated as SUPER_ADMIN).
+ * Require one of the provided GLOBAL roles.
  */
 export const requireRole = (...allowedRoles) => {
     return (req, res, next) => {
@@ -70,7 +68,7 @@ export const requireRole = (...allowedRoles) => {
     };
 };
 
-export const requireSystemAdmin = () => requireRole(Roles.SYSTEM_ADMIN);
+export const requireSystemAdmin = () => requireRole(Roles.SUPER_ADMIN);
 
 const getOrganizationIdFromRequest = (req, organizationIdField = 'organizationId') => {
     return (
@@ -83,7 +81,7 @@ const getOrganizationIdFromRequest = (req, organizationIdField = 'organizationId
 /**
  * Require ORG_ADMIN for a specific organization.
  * Implementation: user must be an OrganizationMember with role 'owner' or 'admin'.
- * SYSTEM_ADMIN (SUPER_ADMIN) always passes.
+ * SUPER_ADMIN always passes.
  */
 export const requireOrganizationAdmin = (options = {}) => {
     const { organizationIdField = 'organizationId' } = options;
@@ -94,8 +92,8 @@ export const requireOrganizationAdmin = (options = {}) => {
                 return next(new AppError('Unauthorized', 401, RoleErrorCodes.UNAUTHORIZED));
             }
 
-            // SYSTEM_ADMIN always passes
-            if (userHasAnyGlobalRole(req.user, Roles.SYSTEM_ADMIN)) {
+            // SUPER_ADMIN always passes
+            if (userHasAnyGlobalRole(req.user, Roles.SUPER_ADMIN)) {
                 return next();
             }
 
@@ -142,7 +140,7 @@ const getPentestIdFromRequest = (req, pentestIdField = 'pentestId') => {
 /**
  * Require PROJECT_ADMIN for a specific pentest project.
  * Definition (based on your request):
- * - SYSTEM_ADMIN (SUPER_ADMIN) passes
+ * - SUPER_ADMIN passes
  * - ORG_ADMIN of the pentest's organization passes
  * - The pentest lead (Pentest.leadPentesterId) passes (this is the Project Admin)
  */
@@ -164,8 +162,8 @@ export const requireProjectAdmin = (options = {}) => {
                 );
             }
 
-            // SYSTEM_ADMIN always passes
-            if (userHasAnyGlobalRole(req.user, Roles.SYSTEM_ADMIN)) {
+            // SUPER_ADMIN always passes
+            if (userHasAnyGlobalRole(req.user, Roles.SUPER_ADMIN)) {
                 return next();
             }
 

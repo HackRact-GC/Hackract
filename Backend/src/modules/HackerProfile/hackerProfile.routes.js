@@ -10,11 +10,11 @@ const router = express.Router();
 router.use(protect);
 
 // Hacker self-service routes (PENTESTER role)
-router.get('/me', restrictTo('PENTESTER'), controller.getMe);
-router.get('/me/status', restrictTo('PENTESTER'), controller.getStatus);
-router.put('/me', restrictTo('PENTESTER'), validate(upsertHackerProfileSchema), controller.upsertMe);
-router.post('/me/submit', restrictTo('PENTESTER'), controller.submitMe);
-router.post('/me/sign-agreement', restrictTo('PENTESTER'), controller.signAgreement);
+router.get('/me', restrictTo('PENTESTER', 'PROJECT_ADMIN'), controller.getMe);
+router.get('/me/status', restrictTo('PENTESTER', 'PROJECT_ADMIN'), controller.getStatus);
+router.put('/me', restrictTo('PENTESTER', 'PROJECT_ADMIN'), validate(upsertHackerProfileSchema), controller.upsertMe);
+router.post('/me/submit', restrictTo('PENTESTER', 'PROJECT_ADMIN'), controller.submitMe);
+router.post('/me/sign-agreement', restrictTo('PENTESTER', 'PROJECT_ADMIN'), controller.signAgreement);
 
 // Admin review routes
 router.get('/', restrictTo('SUPER_ADMIN', 'ORG_ADMIN'), controller.listForReview);

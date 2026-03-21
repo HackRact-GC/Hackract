@@ -6,7 +6,7 @@ import prisma from '../../database/prismaClient.js';
 
 const hasElevatedOrgAccess = (user) => {
   const roles = user?.roles?.map((r) => r.type) || [];
-  return roles.includes('SUPER_ADMIN') || roles.includes('ORG_ADMIN');
+  return roles.includes('SUPER_ADMIN');
 };
 
 

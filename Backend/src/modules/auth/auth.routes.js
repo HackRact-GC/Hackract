@@ -258,7 +258,7 @@ router.get('/me', protect, controller.getMe);
  * @swagger
  * /api/v1/auth/assign-initial-role:
  *   post:
- *     summary: Explicitly assign initial role (Hacker or Org) after social login
+ *     summary: Assign initial role after social login (Hacker only)
  *     tags: [Authentication]
  *     security:
  *       - bearerAuth: []
@@ -272,7 +272,7 @@ router.get('/me', protect, controller.getMe);
  *             properties:
  *               role:
  *                 type: string
- *                 enum: [PENTESTER, ORG_ADMIN]
+ *                 enum: [PENTESTER]
  *     responses:
  *       200:
  *         description: Role assigned successfully

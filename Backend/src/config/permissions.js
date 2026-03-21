@@ -107,13 +107,17 @@ export const ROLE_PERMISSIONS = {
         PERMISSIONS.USER_READ,
     ],
 
-    ANALYST: [
-        // Pentest read-only
+    PROJECT_ADMIN: [
+        // Project/pentest lead access (scoped in code by pentestId/org membership)
         PERMISSIONS.PENTEST_READ,
+        PERMISSIONS.PENTEST_WRITE,
+        PERMISSIONS.PENTEST_MANAGE,
 
-        // Finding read and write
+        // Finding management
         PERMISSIONS.FINDING_READ,
         PERMISSIONS.FINDING_WRITE,
+        PERMISSIONS.FINDING_DELETE,
+        PERMISSIONS.FINDING_VERIFY,
 
         // AI Assistant
         PERMISSIONS.AI_READ,
@@ -122,17 +126,11 @@ export const ROLE_PERMISSIONS = {
         // Organization read
         PERMISSIONS.ORG_READ,
 
-        // User read (own profile)
+        // User read
         PERMISSIONS.USER_READ,
-    ],
 
-    VIEWER: [
-        // Read-only access
-        PERMISSIONS.PENTEST_READ,
-        PERMISSIONS.FINDING_READ,
-        PERMISSIONS.ORG_READ,
-        PERMISSIONS.USER_READ,
-        PERMISSIONS.AI_READ,
+        // Audit logs (read)
+        PERMISSIONS.AUDIT_READ,
     ],
 };
 
