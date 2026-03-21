@@ -12,11 +12,14 @@ import ForgotPassword from "../pages/ForgotPassword.jsx";
 import ResetPassword from "../pages/ResetPassword.jsx";
 import HackerProfile from "../pages/HackerProfile.jsx";
 import OrganizationProfile from "../pages/OrganizationProfile.jsx";
+import WorkflowEditor from "../pages/WorkflowEditor/WorkflowEditor.jsx";
+import ErrorPage from "../pages/ErrorPage.jsx";
 
 const router = createBrowserRouter([
   {
     path: "/",
     element: <App />,
+    errorElement: <ErrorPage />,
     children: [
       {
         index: true,
@@ -33,6 +36,10 @@ const router = createBrowserRouter([
       {
         path: "organization-profile",
         element: <OrganizationProfile />,
+      },
+      {
+        path: "workflows/:workflowId",
+        element: <WorkflowEditor />,
       },
       {
         element: <AuthLayout />,
