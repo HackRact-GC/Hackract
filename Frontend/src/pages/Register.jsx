@@ -294,24 +294,20 @@ const Register = () => {
         </button>
       </form>
 
-      <div className="flex items-center gap-4">
-        <div className="h-px flex-1 bg-gray-200"></div>
-        <span className="text-[10px] font-mono text-gray-400 uppercase tracking-widest">or connect via</span>
-        <div className="h-px flex-1 bg-gray-200"></div>
-      </div>
+      {accountType === "HACKER" && (
+        <>
+          <div className="flex items-center gap-4">
+            <div className="h-px flex-1 bg-gray-200"></div>
+            <span className="text-[10px] font-mono text-gray-400 uppercase tracking-widest">or connect via</span>
+            <div className="h-px flex-1 bg-gray-200"></div>
+          </div>
 
-      <div className="flex gap-4 w-full">
-        <SocialButton
-          icon={<FcGoogle />}
-          label="Google"
-          onClick={handleGoogleLogin}
-        />
-        <SocialButton
-          icon={<FaGithub />}
-          label="Github"
-          onClick={handleGithubLogin}
-        />
-      </div>
+          <div className="flex gap-4 w-full">
+            <SocialButton icon={<FcGoogle />} label="Google" onClick={handleGoogleLogin} />
+            <SocialButton icon={<FaGithub />} label="Github" onClick={handleGithubLogin} />
+          </div>
+        </>
+      )}
 
       <div className="text-center text-xs font-mono text-gray-500 mt-4">
         Already have an account?{" "}

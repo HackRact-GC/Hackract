@@ -188,3 +188,22 @@ export const organizationIdSchema = Joi.object({
       'any.required': 'Organization ID is required'
     })
 });
+
+export const listOrganizationsQuerySchema = Joi.object({
+  name: Joi.string().max(100).optional(),
+  ownerName: Joi.string().max(100).optional(),
+  page: Joi.number().integer().min(1).default(1),
+  limit: Joi.number().integer().min(1).max(100).default(20)
+});
+
+export const organizationNameQuerySchema = Joi.object({
+  name: Joi.string().min(1).max(100).required(),
+  page: Joi.number().integer().min(1).default(1),
+  limit: Joi.number().integer().min(1).max(100).default(20)
+});
+
+export const ownerNameQuerySchema = Joi.object({
+  ownerName: Joi.string().min(1).max(100).required(),
+  page: Joi.number().integer().min(1).default(1),
+  limit: Joi.number().integer().min(1).max(100).default(20)
+});

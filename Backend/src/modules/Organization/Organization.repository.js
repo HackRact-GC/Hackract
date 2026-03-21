@@ -4,6 +4,35 @@ import AppError from '../../utils/AppError.js';
 import { OrganizationErrorCodes } from './Organization.constants.js';
 
 class OrganizationRepository {
+  buildOrganizationInclude(includeMembers = false) {
+    const include = {
+      _count: {
+        select: {
+          members: true,
+          pentests: true,
+        },
+      },
+    };
+
+    if (includeMembers) {
+      include.members = {
+        include: {
+          user: {
+            select: {
+              id: true,
+              email: true,
+              fullName: true,
+              handle: true,
+              status: true,
+            },
+          },
+        },
+      };
+    }
+
+    return include;
+  }
+
   async createOrganization(data, createdById) {
     try {
       return await prisma.$transaction(async (tx) => {
@@ -89,30 +118,7 @@ class OrganizationRepository {
   }
 
   async getOrganizationById(id, includeMembers = false) {
-    const include = {
-      _count: {
-        select: {
-          members: true,
-          pentests: true
-        }
-      }
-    };
-
-    if (includeMembers) {
-      include.members = {
-        include: {
-          user: {
-            select: {
-              id: true,
-              email: true,
-              fullName: true,
-              handle: true,
-              status: true
-            }
-          }
-        }
-      };
-    }
+    const include = this.buildOrganizationInclude(includeMembers);
 
     const organization = await prisma.organization.findUnique({
       where: { id },
@@ -124,6 +130,62 @@ class OrganizationRepository {
     }
 
     return organization;
+  }
+
+  async listOrganizations({ name, ownerName, skip = 0, take = 20, includeMembers = false } = {}) {
+    const where = {};
+
+    if (name) {
+      where.name = { contains: name, mode: 'insensitive' };
+    }
+
+    if (ownerName) {
+      where.members = {
+        some: {
+          role: 'owner',
+          user: {
+            OR: [
+              { fullName: { contains: ownerName, mode: 'insensitive' } },
+              { handle: { contains: ownerName, mode: 'insensitive' } },
+              { email: { contains: ownerName, mode: 'insensitive' } },
+            ],
+          },
+        },
+      };
+    }
+
+    return prisma.organization.findMany({
+      where,
+      include: this.buildOrganizationInclude(includeMembers),
+      orderBy: { createdAt: 'desc' },
+      skip,
+      take,
+    });
+  }
+
+  async listOrganizationsForUser(userId, { name, skip = 0, take = 20, includeMembers = false } = {}) {
+    const memberships = await prisma.organizationMember.findMany({
+      where: {
+        userId,
+        ...(name
+          ? {
+              organization: {
+                name: { contains: name, mode: 'insensitive' },
+              },
+            }
+          : {}),
+      },
+      include: {
+        organization: {
+          include: this.buildOrganizationInclude(includeMembers),
+        },
+      },
+      orderBy: { joinedAt: 'desc' },
+      skip,
+      take,
+    });
+
+    return memberships.map((m) => m.organization);
   }
 
   async getOrganizationBySlug(slug) {

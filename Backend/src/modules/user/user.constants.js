@@ -21,7 +21,6 @@ export const UserStatus = {
 export const UserRoles = {
   SUPER_ADMIN: 'SUPER_ADMIN',
   ORG_ADMIN: 'ORG_ADMIN',
+  PROJECT_ADMIN: 'PROJECT_ADMIN',
   PENTESTER: 'PENTESTER',
-  ANALYST: 'ANALYST',
-  VIEWER: 'VIEWER'
 };

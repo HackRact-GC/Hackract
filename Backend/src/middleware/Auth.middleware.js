@@ -13,16 +13,34 @@ const buildFallbackEmail = (auth0Id, nickname) => {
 };
 
 const getOrCreateRole = async (roleType = 'PENTESTER') => {
+  const metaByType = {
+    SUPER_ADMIN: {
+      name: 'Super Admin',
+      description: 'Full system access with all permissions',
+    },
+    ORG_ADMIN: {
+      name: 'Organization Admin',
+      description: 'Full access within their organization',
+    },
+    PROJECT_ADMIN: {
+      name: 'Project Admin',
+      description: 'Project/pentest lead (scoped permissions)',
+    },
+    PENTESTER: {
+      name: 'Pentester',
+      description: 'Default pentester role for new users',
+    },
+  };
+
+  const meta = metaByType[roleType] || metaByType.PENTESTER;
+
   return prisma.role.upsert({
     where: { type: roleType },
     update: {},
     create: {
-      name: roleType === 'ORG_ADMIN' ? 'Organization Admin' : 'Pentester',
+      name: meta.name,
       type: roleType,
-      description:
-        roleType === 'ORG_ADMIN'
-          ? 'Full access within their organization'
-          : 'Default pentester role for new users',
+      description: meta.description,
       permissions: [],
     },
   });
@@ -243,9 +261,9 @@ export const ensureHackerVerified = async (req, res, next) => {
       return next(new AppError('Authentication required', 401));
     }
 
-    // Only apply to PENTESTER role
-    const isPentester = req.user.roles.some((role) => role.type === 'PENTESTER');
-    if (!isPentester) {
+    // Only apply to hacker-type roles
+    const isHackerRole = req.user.roles.some((role) => role.type === 'PENTESTER' || role.type === 'PROJECT_ADMIN');
+    if (!isHackerRole) {
       return next();
     }
 

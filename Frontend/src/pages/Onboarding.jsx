@@ -35,7 +35,7 @@ const Onboarding = () => {
   const [error, setError] = useState("");
 
   useEffect(() => {
-    if (user?.roles?.[0]?.type === "PENTESTER") {
+    if (user?.roles?.[0]?.type === "PENTESTER" || user?.roles?.[0]?.type === "PROJECT_ADMIN") {
       navigate("/hacker-dashboard");
     } else if (user?.roles?.[0]?.type === "ORG_ADMIN") {
       navigate("/organization-dashboard");
@@ -96,7 +96,7 @@ const Onboarding = () => {
           </motion.div>
         )}
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 px-4">
+        <div className="grid grid-cols-1 gap-8 px-4 max-w-xl mx-auto">
           {/* Hacker Selection */}
           <motion.button
             whileHover={{ y: -8, scale: 1.02 }}
@@ -117,29 +117,6 @@ const Onboarding = () => {
             </p>
             <div className="flex items-center gap-3 text-indigo-600 font-black text-xs uppercase tracking-widest">
                Initialize Dossier <Icons.ArrowRight />
-            </div>
-          </motion.button>
-
-          {/* Organization Selection */}
-          <motion.button
-            whileHover={{ y: -8, scale: 1.02 }}
-            whileTap={{ scale: 0.98 }}
-            onClick={() => handleRoleSelection("ORG_ADMIN")}
-            disabled={loading}
-            className="group relative bg-white border-2 border-transparent hover:border-emerald-500 rounded-[40px] p-10 text-left shadow-xl shadow-gray-200/50 transition-all overflow-hidden"
-          >
-            <div className="absolute top-0 right-0 p-8 opacity-5 group-hover:opacity-10 transition-opacity">
-               <Icons.Organization />
-            </div>
-            <div className="w-20 h-20 bg-emerald-50 text-emerald-600 rounded-3xl flex items-center justify-center mb-8 shadow-inner group-hover:bg-emerald-600 group-hover:text-white transition-all duration-500">
-               <Icons.Organization />
-            </div>
-            <h3 className="text-2xl font-black text-gray-900 mb-3 group-hover:text-emerald-600 transition-colors uppercase tracking-tight">Security Architect</h3>
-            <p className="text-gray-500 font-medium leading-relaxed mb-8">
-              Protect your infrastructure by collaborating with world-class security researchers and managing pentest cycles.
-            </p>
-            <div className="flex items-center gap-3 text-emerald-600 font-black text-xs uppercase tracking-widest">
-               Register Asset <Icons.ArrowRight />
             </div>
           </motion.button>
         </div>

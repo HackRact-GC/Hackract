@@ -45,9 +45,8 @@ enum FindingStatus {
 enum RoleType {
   SUPER_ADMIN
   ORG_ADMIN
+  PROJECT_ADMIN
   PENTESTER
-  ANALYST
-  VIEWER
 }
 
 enum VerificationStatus {

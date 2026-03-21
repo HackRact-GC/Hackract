@@ -91,7 +91,7 @@ class AuthService {
 
     async assignInitialRole(userId, roleType) {
         // Validate role type
-        if (!['PENTESTER', 'ORG_ADMIN'].includes(roleType)) {
+        if (!['PENTESTER'].includes(roleType)) {
             throw new AppError('Invalid role selection', 400);
         }
 
@@ -113,9 +113,9 @@ class AuthService {
             where: { type: roleType },
             update: {},
             create: {
-                name: roleType === 'ORG_ADMIN' ? 'Organization Admin' : 'Pentester',
+                name: 'Pentester',
                 type: roleType,
-                description: roleType === 'ORG_ADMIN' ? 'Full access within their organization' : 'Ethical hacking and security research',
+                description: 'Ethical hacking and security research',
                 permissions: [],
             },
         });

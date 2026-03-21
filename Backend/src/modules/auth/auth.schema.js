@@ -200,7 +200,7 @@ export const refreshTokenSchema = Joi.object({
  * Assign initial role schema (onboarding)
  */
 export const assignInitialRoleSchema = Joi.object({
-    role: Joi.string().valid('PENTESTER', 'ORG_ADMIN').required().messages({
+    role: Joi.string().valid('PENTESTER').required().messages({
         'any.only': 'Invalid role selection',
         'any.required': 'Role selection is required',
     }),

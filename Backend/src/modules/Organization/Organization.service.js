@@ -4,9 +4,20 @@ import { OrganizationErrorCodes, VerificationStatus } from './Organization.const
 import AppError from '../../utils/AppError.js';
 import prisma from '../../database/prismaClient.js';
 
-const hasElevatedOrgAccess = (user) => {
+const isSuperAdmin = (user) => {
   const roles = user?.roles?.map((r) => r.type) || [];
-  return roles.includes('SUPER_ADMIN') || roles.includes('ORG_ADMIN');
+  return roles.includes('SUPER_ADMIN');
+};
+
+const toPagination = ({ page = 1, limit = 20 } = {}) => {
+  const safePage = Math.max(1, Number(page) || 1);
+  const safeLimit = Math.min(100, Math.max(1, Number(limit) || 20));
+  return {
+    skip: (safePage - 1) * safeLimit,
+    take: safeLimit,
+    page: safePage,
+    limit: safeLimit,
+  };
 };
 
 class OrganizationService {
@@ -22,7 +33,7 @@ class OrganizationService {
   async getOrganizationById(id, user) {
     const organization = await organizationRepository.getOrganizationById(id, true);
 
-    if (hasElevatedOrgAccess(user)) {
+    if (isSuperAdmin(user)) {
       return organization;
     }
 
@@ -35,7 +46,7 @@ class OrganizationService {
   }
 
   async updateOrganization(id, data, user) {
-    if (hasElevatedOrgAccess(user)) {
+    if (isSuperAdmin(user)) {
       return organizationRepository.updateOrganization(id, data);
     }
 
@@ -49,54 +60,61 @@ class OrganizationService {
   }
 
   async deleteOrganization(id, user) {
-    if (hasElevatedOrgAccess(user)) {
+    if (isSuperAdmin(user)) {
       return organizationRepository.deleteOrganization(id);
     }
-
-
-    const organization = await organizationRepository.getOrganizationById(id);
-    if ([VerificationStatus.UNDER_REVIEW, VerificationStatus.APPROVED].includes(organization.verificationStatus)) {
-        // Allow updating but maybe reset status if critical fields change? 
-        // For now, prevent update if approved to maintain integrity, or restrict fields.
-        if (data.taxId || data.name) {
-           throw new AppError('Verified or under-review organizations cannot change critical legal info.', 403);
-        }
-    }
-
-    return await organizationRepository.updateOrganization(id, data);
-  }
-
-  async submitVerification(id, data, userId) {
-    const hasPermission = await organizationRepository.checkPermission(id, userId, 'manage_settings');
-    if (!hasPermission) {
-      throw new AppError('Unauthorized to submit verification', 403, OrganizationErrorCodes.UNAUTHORIZED);
-    }
-
-    const organization = await organizationRepository.getOrganizationById(id);
-    if (organization.verificationStatus === VerificationStatus.APPROVED) {
-        return organization;
-    }
-
-    return await organizationRepository.updateOrganization(id, {
-        ...data,
-        verificationStatus: VerificationStatus.SUBMITTED
-    });
-  }
-
-  async deleteOrganization(id, userId) {
 
     const member = await prisma.organizationMember.findFirst({
       where: {
         organizationId: id,
-        userId: user.id
-      }
+        userId: user.id,
+        role: 'owner',
+      },
     });
 
-    if (!member || member.role !== 'owner') {
+    if (!member) {
       throw new AppError('Only organization owners can delete the organization', 403, OrganizationErrorCodes.UNAUTHORIZED);
     }
 
     return organizationRepository.deleteOrganization(id);
+  }
+
+  async listOrganizations(query, user) {
+    const { skip, take, page, limit } = toPagination(query);
+    const name = query?.name;
+    const ownerName = query?.ownerName;
+
+    const organizations = isSuperAdmin(user)
+      ? await organizationRepository.listOrganizations({ name, ownerName, skip, take })
+      : await organizationRepository.listOrganizationsForUser(user.id, { name, skip, take });
+
+    return { organizations, page, limit };
+  }
+
+  async getOrganizationsByName(name, user, query = {}) {
+    return this.listOrganizations({ ...query, name }, user);
+  }
+
+  async getOrganizationsByOwnerName(ownerName, user, query = {}) {
+    if (!isSuperAdmin(user)) {
+      throw new AppError('Only system admins can search organizations by owner', 403, OrganizationErrorCodes.UNAUTHORIZED);
+    }
+    return this.listOrganizations({ ...query, ownerName }, user);
+  }
+
+  async deleteAllOrganizations(user) {
+    if (!isSuperAdmin(user)) {
+      throw new AppError('Only system admins can delete all organizations', 403, OrganizationErrorCodes.UNAUTHORIZED);
+    }
+
+    const orgs = await prisma.organization.findMany({ select: { id: true } });
+    let deletedCount = 0;
+    for (const org of orgs) {
+      await organizationRepository.deleteOrganization(org.id);
+      deletedCount += 1;
+    }
+
+    return { deletedCount };
   }
 
 
@@ -110,27 +128,6 @@ class OrganizationService {
     });
 
     return memberships.map(membership => membership.organization);
-  }
-
-  async validateDomain(id, userId) {
-    const organization = await this.getOrganizationById(id, userId);
-    if (!organization.website) {
-      throw new AppError('Organization website must be set before validation', 400, OrganizationErrorCodes.INVALID_DATA);
-    }
-
-    // Logic to verify domain (DNS/Meta) - Simulated for this architecture phase
-    const isDomainValid = organization.website.includes('.'); // Basic format check
-    
-    if (!isDomainValid) {
-       throw new AppError('Invalid domain format', 400, OrganizationErrorCodes.INVALID_DATA);
-    }
-
-    return {
-      organizationId: id,
-      domain: organization.website,
-      status: 'VERIFIED',
-      validatedAt: new Date()
-    };
   }
 }
 

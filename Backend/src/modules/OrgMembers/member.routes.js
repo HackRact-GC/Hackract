@@ -8,11 +8,13 @@ const router = express.Router();
  * @swagger
  * tags:
  *   name: OrgMembers
- *   description: Organization member management APIs
+ *   description: Organization member management APIs (ORG_ADMIN only)
  */
 
 router.use(protect);
-router.use(restrictTo('SUPER_ADMIN', 'ORG_ADMIN'));
+
+// Org member management is ORG_ADMIN-only.
+router.use(restrictTo('ORG_ADMIN'));
 
 /**
  * @swagger
@@ -20,6 +22,8 @@ router.use(restrictTo('SUPER_ADMIN', 'ORG_ADMIN'));
  *   post:
  *     summary: Add member to organization (ORG_ADMIN only)
  *     tags: [OrgMembers]
+ *     security:
+ *       - bearerAuth: []
  *     requestBody:
  *       required: true
  *       content:
@@ -32,10 +36,13 @@ router.use(restrictTo('SUPER_ADMIN', 'ORG_ADMIN'));
  *             properties:
  *               organizationId:
  *                 type: string
+ *                 description: Organization ID. ORG_ADMIN can only manage organizations they belong to.
  *               userId:
  *                 type: string
  *               role:
  *                 type: string
+ *                 description: Organization member role (not a system RoleType).
+ *                 enum: [owner, admin, member, viewer]
  *               canCreatePentests:
  *                 type: boolean
  *               canInviteMembers:
@@ -56,6 +63,8 @@ router.post('/', controller.add);
  *   get:
  *     summary: List members in an organization (ORG_ADMIN only)
  *     tags: [OrgMembers]
+ *     security:
+ *       - bearerAuth: []
  *     parameters:
  *       - in: path
  *         name: organizationId
@@ -77,6 +86,8 @@ router.get('/:organizationId', controller.list);
  *   get:
  *     summary: Get a specific organization member (ORG_ADMIN only)
  *     tags: [OrgMembers]
+ *     security:
+ *       - bearerAuth: []
  *     parameters:
  *       - in: path
  *         name: organizationId
@@ -93,6 +104,8 @@ router.get('/:organizationId', controller.list);
  *   delete:
  *     summary: Remove member from organization (ORG_ADMIN only)
  *     tags: [OrgMembers]
+ *     security:
+ *       - bearerAuth: []
  *     parameters:
  *       - in: path
  *         name: organizationId
@@ -117,6 +130,8 @@ router.get('/:organizationId', controller.list);
  *   patch:
  *     summary: Update organization member (ORG_ADMIN only)
  *     tags: [OrgMembers]
+ *     security:
+ *       - bearerAuth: []
  *     parameters:
  *       - in: path
  *         name: organizationId
@@ -138,6 +153,8 @@ router.get('/:organizationId', controller.list);
  *             properties:
  *               role:
  *                 type: string
+ *                 description: Organization member role (not a system RoleType).
+ *                 enum: [owner, admin, member, viewer]
  *               canCreatePentests:
  *                 type: boolean
  *               canInviteMembers:
