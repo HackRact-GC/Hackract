@@ -56,8 +56,15 @@ const Login = () => {
         try {
             await login(form);
             navigate("/");
-        } catch {
+        } catch (error) {
+            const errorCode = error?.response?.data?.code;
+            const status = error?.response?.status;
             // toast handled in context
+            if (errorCode === 'EMAIL_NOT_VERIFIED' || status === 403) {
+                setTimeout(() => {
+                    navigate(`/verify-email?email=${encodeURIComponent(form.email)}`);
+                }, 1500);
+            }
         }
     };
 

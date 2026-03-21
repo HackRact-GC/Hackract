@@ -130,6 +130,16 @@ class AuthService {
         const verification = await this.createEmailVerificationToken(user.id);
         const frontendBase = process.env.FRONTEND_BASE_URL || 'http://localhost:5173';
         const verifyUrl = `${frontendBase}/verify-email?email=${encodeURIComponent(user.email)}`;
+
+        if (process.env.NODE_ENV === 'development') {
+            console.log(`\n=========================================`);
+            console.log(`[DEV EMAIL SIMULATION]`);
+            console.log(`To:    ${user.email}`);
+            console.log(`Code:  ${verification.token}`);
+            console.log(`Link:  ${verifyUrl}`);
+            console.log(`=========================================\n`);
+        }
+
         let delivered = true;
         try {
             await sendVerificationEmail({
@@ -222,6 +232,15 @@ class AuthService {
         const frontendBase = process.env.FRONTEND_BASE_URL || 'http://localhost:5173';
         const resetUrl = `${frontendBase}/reset-password?token=${reset.token}`;
 
+        if (process.env.NODE_ENV === 'development') {
+            console.log(`\n=========================================`);
+            console.log(`[DEV PASSWORD RESET SIMULATION]`);
+            console.log(`To:    ${user.email}`);
+            console.log(`Token: ${reset.token}`);
+            console.log(`Link:  ${resetUrl}`);
+            console.log(`=========================================\n`);
+        }
+
         await sendPasswordResetEmail({
             to: user.email,
             name: user.fullName || user.handle,
@@ -304,8 +323,8 @@ class AuthService {
                 fullName: payload.fullName,
                 handle,
                 provider: 'local',
-                status: process.env.NODE_ENV === 'development' ? 'ACTIVE' : 'PENDING',
-                isVerified: process.env.NODE_ENV === 'development',
+                status: 'PENDING',
+                isVerified: false,
                 roles: selectedRole ? { connect: { id: selectedRole.id } } : undefined,
             },
             include: { roles: true },

@@ -225,11 +225,7 @@ export const restrictTo = (...allowedRoles) => {
       return next(new AppError('User not authenticated correctly', 401));
     }
 
-    // Debug logging to help identify why the user is rejected
-    console.log(`[RESTRICT_TO] Required roles: ${allowedRoles.join(', ')}`);
-    console.log(`[RESTRICT_TO] User has roles: ${JSON.stringify(req.user.roles)}`);
-
-    const hasPermission = req.user.roles.some(role => allowedRoles.includes(role.type));
+    const hasPermission = req.user.roles.some((role) => allowedRoles.includes(role.type));
 
     if (!hasPermission) {
       return next(new AppError(`You do not have permission to perform this action. Required: ${allowedRoles.join(', ')}. Found: ${req.user.roles.map(r => r.type).join(', ')}`, 403));
@@ -237,4 +233,34 @@ export const restrictTo = (...allowedRoles) => {
 
     next();
   };
+};
+
+/**
+ * Middleware to ensure that a PENTESTER has an APPROVED hacker profile
+ * before accessing certain project-related routes.
+ */
+export const ensureHackerVerified = async (req, res, next) => {
+  try {
+    if (!req.user || !req.user.roles) {
+      return next(new AppError('Authentication required', 401));
+    }
+
+    // Only apply to PENTESTER role
+    const isPentester = req.user.roles.some((role) => role.type === 'PENTESTER');
+    if (!isPentester) {
+      return next();
+    }
+
+    const profile = await prisma.hackerProfile.findUnique({
+      where: { userId: req.user.id }
+    });
+
+    if (!profile || profile.status !== 'APPROVED') {
+      return next(new AppError('Access denied. Your hacker profile must be APPROVED to participate in projects.', 403));
+    }
+
+    next();
+  } catch (error) {
+    next(error);
+  }
 };

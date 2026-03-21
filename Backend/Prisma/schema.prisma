@@ -50,7 +50,7 @@ enum RoleType {
   VIEWER
 }
 
-enum HackerProfileStatus {
+enum VerificationStatus {
   DRAFT
   SUBMITTED
   UNDER_REVIEW
@@ -69,6 +69,7 @@ model User {
   handle       String     @unique
   status       UserStatus @default(PENDING)
   isVerified   Boolean    @default(false)
+  trustScore   Int        @default(100)
 
   // OAuth fields
   provider   String? // 'local', 'google', 'github', etc.
@@ -120,6 +121,7 @@ model HackerProfile {
   user   User   @relation(fields: [userId], references: [id])
   userId String @unique
 
+<<<<<<< HEAD
   bio               String
   country           String?
   yearsOfExperience Int?
@@ -127,7 +129,8 @@ model HackerProfile {
   certifications    String[]
   portfolioLinks    String[]
 
-  status      HackerProfileStatus @default(DRAFT)
+
+  status      VerificationStatus @default(DRAFT)
   reviewNotes String?
 
   reviewedBy   User?   @relation("HackerProfileReviewedBy", fields: [reviewedById], references: [id])
@@ -194,6 +197,14 @@ model Organization {
   pentests  Pentest[]
   auditLogs AuditLog[]
 
+  // Verification Details
+  taxId             String?
+  industry          String?
+  companySize       String?
+  website           String?
+  address           String?
+  verificationStatus VerificationStatus @default(DRAFT)
+  
   // Timestamps
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
