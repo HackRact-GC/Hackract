@@ -20,10 +20,10 @@ const AuthLayout = () => {
                         </div>
 
                         <div className="flex flex-col gap-4 max-w-md">
-                            <h1 className="text-5xl font-bold leading-tight hover:translate-x-2 transition-transform duration-500 cursor-default">
+                            <h1 className="text-5xl font-bold leading-tight hover:translate-x-2 transition-transform duration-500 cursor-default text-white">
                                 Rewrite the <br /> Rules
                             </h1>
-                            <p className="text-sm opacity-80 leading-relaxed font-light">
+                            <p className="text-sm opacity-80 leading-relaxed font-light text-gray-400">
                                 Systems bend to <br />
                                 those who understand them.
                             </p>
@@ -34,7 +34,7 @@ const AuthLayout = () => {
 
             {/* Right Side - Form Container */}
             <div className="flex w-full md:w-1/2 flex-col justify-center items-center p-8 md:p-16 bg-white relative">
-                <div className="absolute top-8 md:top-12 text-center uppercase tracking-[0.2em] font-bold text-lg md:text-xl font-sans hover:tracking-[0.3em] transition-all duration-500 cursor-pointer select-none">
+                <div className="absolute top-8 md:top-12 text-center uppercase tracking-[0.2em] font-bold text-lg md:text-xl font-sans hover:tracking-[0.3em] transition-all duration-500 cursor-pointer select-none text-black">
                     HACKRACT
                 </div>
 

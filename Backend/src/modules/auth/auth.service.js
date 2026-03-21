@@ -6,7 +6,7 @@ import prisma from '../../database/prismaClient.js';
 import AppError from '../../utils/AppError.js';
 import { sendVerificationEmail } from '../../utils/email.js';
 import { sendPasswordResetEmail } from '../../utils/email.js';
-import { AuthErrorCodes, TOKEN_EXPIRY } from './auth.constants.js';
+import { AuthErrorCodes, TOKEN_EXPIRY } from '../auth/auth.constants.js';
 
 const SALT_ROUNDS = 12;
 
@@ -311,34 +311,13 @@ class AuthService {
             include: { roles: true },
         });
 
-        // In development, skip email verification entirely and issue tokens immediately
-        if (process.env.NODE_ENV === 'development') {
-            user = await prisma.user.update({
-                where: { id: user.id },
-                data: {
-                    isVerified: true,
-                    status: 'ACTIVE',
-                    emailVerifiedAt: new Date(),
-                },
-                include: { roles: true },
-            });
-
-            const issued = await this.issueTokens(user, meta);
-
-            return {
-                ...issued,
-                message:
-                    'Registration successful. Email verification is skipped in development, and you are now signed in.',
-            };
-        }
-
         const verification = await this.sendVerification(user, meta);
 
         return {
             user: this.sanitizeUser(user),
             message: verification.delivered
-                ? 'Registration successful. Please check your email to verify your account.'
-                : 'Registration successful, but we could not send the verification email. Please request a new link or contact support.',
+                ? 'Registration successful. Please check your email for the 6-digit verification code.'
+                : 'Registration successful, but we could not send the verification code. Please request a new one or contact support.',
         };
     }
 

@@ -109,7 +109,7 @@ const Login = () => {
                 />
 
                 <div className="text-right text-[11px] font-mono text-gray-500">
-                    <Link to="/forgot-password" className="underline hover:text-black transition-colors font-bold uppercase">
+                    <Link to="/forgot-password" size="sm" className="underline hover:text-black transition-colors font-bold uppercase">
                         Forgot password?
                     </Link>
                 </div>
@@ -124,9 +124,9 @@ const Login = () => {
             </form>
 
             <div className="flex items-center gap-4">
-                <div className="h-[1px] flex-1 bg-gray-200"></div>
+                <div className="h-px flex-1 bg-gray-200"></div>
                 <span className="text-[10px] font-mono text-gray-400 uppercase tracking-widest">or connect via</span>
-                <div className="h-[1px] flex-1 bg-gray-200"></div>
+                <div className="h-px flex-1 bg-gray-200"></div>
             </div>
 
             <div className="flex gap-4 w-full">

@@ -161,6 +161,59 @@ const Home = () => {
                 ))}
               </div>
             </div>
+
+            {/* Recommended Software Panel */}
+            <div className="bg-[#00ff41]/5 border border-[#00ff41]/20 rounded-2xl p-6 shadow-xl shadow-black/40">
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center gap-2">
+                  <div className="w-2 h-2 bg-[#00ff41] rounded-full animate-pulse shadow-[0_0_8px_#00ff41]" />
+                  <h3 className="text-sm font-mono font-bold uppercase tracking-widest text-[#00ff41]">
+                    [SYSTEM_INIT] - Recommended Software
+                  </h3>
+                </div>
+                <span className="text-[10px] font-mono text-[#00ff41]/60 uppercase tracking-tighter">
+                  v{new Date().toISOString().split('T')[0].replace(/-/g, '.')}
+                </span>
+              </div>
+              
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                {(isOrgView 
+                  ? [
+                      { name: "OpenVAS", category: "Scanner", status: "PENDING" },
+                      { name: "Splunk", category: "SIEM", status: "CONFIGURED" },
+                      { name: "CrowdStrike", category: "EDR", status: "PENDING" },
+                      { name: "Nessus", category: "Audit", status: "PENDING" }
+                    ]
+                  : [
+                      { name: "Burp Suite", category: "Web Proxy", status: "CONFIGURED" },
+                      { name: "Metasploit", category: "Exploit", status: "PENDING" },
+                      { name: "Ghidra", category: "RE", status: "PENDING" },
+                      { name: "Nmap", category: "Scanner", status: "CONFIGURED" }
+                    ]
+                ).map((tool) => (
+                  <div key={tool.name} className="bg-black/40 border border-white/5 p-4 rounded-xl hover:border-[#00ff41]/40 transition-colors group cursor-pointer relative overflow-hidden">
+                    <div className="absolute top-0 right-0 p-2 opacity-10 group-hover:opacity-40 transition-opacity">
+                      <div className="text-[30px] font-mono font-bold leading-none select-none">
+                        {tool.name[0]}
+                      </div>
+                    </div>
+                    <div className="relative z-10">
+                      <div className="text-[10px] font-mono text-[#00ff41] mb-1 opacity-70">{tool.category}</div>
+                      <div className="font-bold text-sm tracking-tight mb-3">{tool.name}</div>
+                      <div className="flex items-center gap-2">
+                        <div className={`text-[9px] font-mono px-2 py-0.5 rounded-sm ${
+                          tool.status === 'CONFIGURED' 
+                            ? 'bg-[#00ff41]/20 text-[#00ff41]' 
+                            : 'bg-white/5 text-gray-500'
+                        }`}>
+                          {tool.status}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
           </div>
 
           {/* Right sidebar */}

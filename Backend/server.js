@@ -18,16 +18,28 @@ const startServer = async () => {
     }
   });
 
+  // In-memory registry for active collaborators { workflowId: { socketId: userInfo } }
+  const workflowUsers = {};
+
   // Socket.io standard events for Workflow Collaboration
   io.on("connection", (socket) => {
     console.log(`🔌 New client connected: ${socket.id}`);
 
     // Join a specific workflow room (e.g., roomID = workflowId)
-    socket.on("join-workflow", (workflowId) => {
+    socket.on("join-workflow", ({ workflowId, user, color }) => {
       socket.join(workflowId);
-      console.log(`Client ${socket.id} joined workflow room: ${workflowId}`);
+      
+      // Store user info
+      if (!workflowUsers[workflowId]) workflowUsers[workflowId] = {};
+      workflowUsers[workflowId][socket.id] = { id: socket.id, user, color, joinedAt: new Date() };
+
+      console.log(`Client ${socket.id} (${user}) joined workflow room: ${workflowId}`);
+      
+      // Send the current list of collaborators to the new user
+      socket.emit("collaborators-list", Object.values(workflowUsers[workflowId]));
+
       // Notify others in room
-      socket.to(workflowId).emit("user-joined", { id: socket.id });
+      socket.to(workflowId).emit("user-joined", workflowUsers[workflowId][socket.id]);
     });
 
     // Handle incoming changes (nodes moving, edits, etc)
@@ -47,10 +59,35 @@ const startServer = async () => {
       socket.to(data.workflowId).emit("cursor-updated", { ...data, socketId: socket.id });
     });
 
-    socket.on("leave-workflow", (workflowId) => {
+    // Handle node-level presence (focus/selection)
+    socket.on("node-focus", (data) => {
+      // data: { workflowId, nodeId, user }
+      socket.to(data.workflowId).emit("node-focused", { ...data, socketId: socket.id });
+    });
+
+    const handleLeave = (workflowId) => {
+      if (workflowUsers[workflowId]) {
+        delete workflowUsers[workflowId][socket.id];
+        if (Object.keys(workflowUsers[workflowId]).length === 0) {
+          delete workflowUsers[workflowId];
+        }
+      }
       socket.leave(workflowId);
-      console.log(`Client ${socket.id} left workflow room: ${workflowId}`);
       socket.to(workflowId).emit("user-left", { id: socket.id });
+    };
+
+    socket.on("leave-workflow", (workflowId) => {
+      console.log(`Client ${socket.id} left workflow room: ${workflowId}`);
+      handleLeave(workflowId);
+    });
+
+    socket.on("disconnecting", () => {
+      // Clean up from all rooms on disconnect
+      for (const room of socket.rooms) {
+        if (room !== socket.id) {
+          handleLeave(room);
+        }
+      }
     });
 
     socket.on("disconnect", () => {
