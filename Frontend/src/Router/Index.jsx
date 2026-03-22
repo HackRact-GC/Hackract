@@ -19,6 +19,7 @@ import HackerVerification from "../pages/HackerVerification.jsx";
 import OrganizationVerification from "../pages/OrganizationVerification.jsx";
 import Onboarding from "../pages/Onboarding.jsx";
 import ErrorPage from "../pages/ErrorPage.jsx";
+import LegalAgreementCreate from "../pages/LegalAgreementCreate.jsx";
 
 const router = createBrowserRouter([
   {
@@ -65,6 +66,10 @@ const router = createBrowserRouter([
       {
         path: "workflows/:workflowId",
         element: <WorkflowEditor />,
+      },
+      {
+        path: "legal-agreements/new",
+        element: <LegalAgreementCreate />,
       },
       {
         element: <AuthLayout />,

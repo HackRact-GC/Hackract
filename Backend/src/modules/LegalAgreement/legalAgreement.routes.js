@@ -1,8 +1,16 @@
 import express from 'express';
+import multer from 'multer';
 import * as controller from './legalAgreement.controller.js';
 import { protect, restrictTo } from '../../middleware/Auth.middleware.js';
 
 const router = express.Router();
+
+const upload = multer({
+	storage: multer.memoryStorage(),
+	limits: {
+		fileSize: 2 * 1024 * 1024, // 2MB
+	},
+});
 
 /**
  * @swagger
@@ -23,7 +31,7 @@ const router = express.Router();
  *         required: true
  *         schema:
  *           type: string
- *           enum: [TERMS_OF_SERVICE, PRIVACY_POLICY, NDA]
+ *           enum: [terms_of_service, privacy_policy, nda, sla, TERMS_OF_SERVICE, PRIVACY_POLICY, NDA, SLA]
  *         description: Agreement type
  *     responses:
  *       200:
@@ -44,20 +52,36 @@ router.use(protect);
  *     requestBody:
  *       required: true
  *       content:
- *         application/json:
+ *         multipart/form-data:
  *           schema:
  *             type: object
- *             required:
- *               - title
- *               - type
- *               - content
+ *             required: [title, type, version, file]
  *             properties:
  *               title:
  *                 type: string
  *                 example: Terms of Service v2.0
  *               type:
  *                 type: string
- *                 enum: [TERMS_OF_SERVICE, PRIVACY_POLICY, NDA]
+ *                 enum: [terms_of_service, privacy_policy, nda, sla]
+ *               version:
+ *                 type: string
+ *                 example: 2.0
+ *               isActive:
+ *                 type: boolean
+ *               file:
+ *                 type: string
+ *                 format: binary
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [title, type, content, version]
+ *             properties:
+ *               title:
+ *                 type: string
+ *                 example: Terms of Service v2.0
+ *               type:
+ *                 type: string
+ *                 enum: [terms_of_service, privacy_policy, nda, sla]
  *               content:
  *                 type: string
  *               version:
@@ -95,7 +119,7 @@ router.use(protect);
  *       401:
  *         description: Unauthorized
  */
-router.post('/', restrictTo('SUPER_ADMIN'), controller.create);
+router.post('/', restrictTo('SUPER_ADMIN'), upload.single('file'), controller.create);
 router.get('/', controller.list);
 
 /**
@@ -131,12 +155,31 @@ router.get('/', controller.list);
  *         description: Agreement ID
  *     requestBody:
  *       content:
+ *         multipart/form-data:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               title:
+ *                 type: string
+ *               type:
+ *                 type: string
+ *                 enum: [terms_of_service, privacy_policy, nda, sla]
+ *               version:
+ *                 type: string
+ *               isActive:
+ *                 type: boolean
+ *               file:
+ *                 type: string
+ *                 format: binary
  *         application/json:
  *           schema:
  *             type: object
  *             properties:
  *               title:
  *                 type: string
+ *               type:
+ *                 type: string
+ *                 enum: [terms_of_service, privacy_policy, nda, sla]
  *               content:
  *                 type: string
  *               version:
@@ -174,7 +217,7 @@ router.get('/', controller.list);
  *         description: Forbidden - Super Admin only
  */
 router.get('/:id', controller.get);
-router.patch('/:id', restrictTo('SUPER_ADMIN'), controller.update);
+router.patch('/:id', restrictTo('SUPER_ADMIN'), upload.single('file'), controller.update);
 router.delete('/:id', restrictTo('SUPER_ADMIN'), controller.remove);
 router.post('/:id/notify', restrictTo('SUPER_ADMIN'), controller.notify);
 
