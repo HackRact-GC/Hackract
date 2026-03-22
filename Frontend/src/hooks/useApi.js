@@ -1,7 +1,7 @@
 import { useAuth0 } from "@auth0/auth0-react";
 import { useEffect } from "react";
 import api from "../api/axiosConfig";
-import { useAuth } from "../context/AuthContext.jsx";
+import { useAuth } from "../context/authContext.jsx";
 
 const useApi = () => {
     const { getAccessTokenSilently, isAuthenticated } = useAuth0();
