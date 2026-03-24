@@ -18,7 +18,7 @@ const Home = () => {
         console.error('Failed to fetch profile status');
       }
     };
-    if (user?.roles?.[0]?.type === 'PENTESTER' || user?.roles?.[0]?.type === 'PROJECT_ADMIN') {
+    if (user?.roles?.[0]?.type === 'PENTESTER') {
       fetchStatus();
     }
     
@@ -32,13 +32,8 @@ const Home = () => {
     };
     if (user?.roles?.[0]?.type === 'ORG_ADMIN') {
       fetchOrgs();
-      navigate('/organization-dashboard');
-    } else if (user?.roles?.[0]?.type === 'PENTESTER' || user?.roles?.[0]?.type === 'PROJECT_ADMIN') {
-      navigate('/hacker-dashboard');
-    } else if (user) {
-      navigate('/onboarding');
     }
-  }, [user, navigate]);
+  }, [user]);
 
   const primaryRoleType = user?.roles?.[0]?.type;
   const isSuperAdmin = primaryRoleType === "SUPER_ADMIN" || user?.roles?.some(r => r.type === 'SUPER_ADMIN');
@@ -46,6 +41,8 @@ const Home = () => {
 
   let navItems = [
       { label: "Dashboard", active: true, route: '/dashboard' },
+      { label: "Marketplace", route: '/marketplace' },
+      { label: "My Applications", route: '/my-applications' },
       { label: "Projects", route: '/projects' },
       { label: "Reports", route: '/reports' },
       { label: "Findings", route: '/findings' },
@@ -73,9 +70,9 @@ const Home = () => {
       { title: "Review Findings", description: "Prioritize open issues" },
     ]
     : [
+      { title: "Discover Projects", description: "Find new security engagements", route: "/marketplace" },
       { title: "New Pentest", description: "Kick off a scoped engagement" },
       { title: "Upload Evidence", description: "Attach screenshots or logs" },
-      { title: "Invite Teammate", description: "Collaborate on findings" },
     ];
 
   const highlights = isOrgView
@@ -194,7 +191,7 @@ const Home = () => {
               </div>
             </div>
 
-            {(primaryRoleType === 'PENTESTER' || primaryRoleType === 'PROJECT_ADMIN') && profileStatus !== 'APPROVED' && (
+            {primaryRoleType === 'PENTESTER' && profileStatus !== 'APPROVED' && (
               <div className="bg-amber-500/10 border border-amber-500/30 rounded-2xl p-6 shadow-xl flex items-center justify-between gap-6 group">
                 <div className="flex items-center gap-4">
                   <div className="h-12 w-12 rounded-full bg-amber-500/20 flex items-center justify-center text-amber-500 text-xl">
@@ -245,6 +242,7 @@ const Home = () => {
                 {quickActions.map((action) => (
                   <button
                     key={action.title}
+                    onClick={() => action.route ? navigate(action.route) : null}
                     className="group border border-white/10 bg-black/40 rounded-xl p-4 text-left hover:border-[#00ff88]/60 hover:-translate-y-1 transition-all duration-200"
                   >
                     <div className="text-sm font-semibold mb-1 flex items-center gap-2">
