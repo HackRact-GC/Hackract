@@ -3,6 +3,7 @@ import { Link, useLocation, useSearchParams } from "react-router-dom";
 import toast from "react-hot-toast";
 import api from "../api/axiosConfig";
 import { useNavigate } from "react-router-dom";
+import { useSearchParams } from "react-router-dom";
 
 const StatusBadge = ({ status, children }) => {
   const colors = {
@@ -17,6 +18,15 @@ const StatusBadge = ({ status, children }) => {
 
 const VerifyEmail = () => {
   const navigate = useNavigate();
+<<<<<<< HEAD
+  const [searchParams] = useSearchParams();
+  const [status, setStatus] = useState("idle");
+  const [message, setMessage] = useState("Enter the 6-digit code we emailed you.");
+  const [form, setForm] = useState({
+    email: searchParams.get("email") || "",
+    code: "",
+  });
+=======
   const location = useLocation();
   const [searchParams] = useSearchParams();
   const [status, setStatus] = useState("idle");
@@ -40,6 +50,7 @@ const VerifyEmail = () => {
       code: prev.code || tokenFromUrl,
     }));
   }, [initialEmail, tokenFromUrl]);
+>>>>>>> origin/main
 
   const handleChange = (e) => {
     const { name, value } = e.target;

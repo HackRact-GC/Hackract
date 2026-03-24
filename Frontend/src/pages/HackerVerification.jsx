@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useAuth } from '../context/AuthContext';
+import { useAuth } from '../context/authContext.jsx';
 import api from '../api/axiosConfig';
 import toast from 'react-hot-toast';
 import { FiCheckCircle, FiAlertTriangle, FiFileText, FiShield, FiUserCheck, FiChevronRight } from 'react-icons/fi';

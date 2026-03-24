@@ -188,6 +188,8 @@ router.post('/local/refresh', validate(refreshTokenSchema), controller.refreshTo
  */
 router.post('/verify-email', validate(verifyEmailSchema), controller.verifyEmail);
 
+<<<<<<< HEAD
+=======
 /**
  * @swagger
  * /api/v1/auth/forgot-password:
@@ -238,6 +240,7 @@ router.post('/forgot-password', validate(forgotPasswordSchema), controller.forgo
  */
 router.post('/reset-password', validate(resetPasswordSchema), controller.resetPassword);
 
+>>>>>>> origin/main
 /**
  * @swagger
  * /api/v1/auth/me:

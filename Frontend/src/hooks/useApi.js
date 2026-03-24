@@ -43,7 +43,7 @@ const useApi = () => {
                         originalRequest.headers.Authorization = `Bearer ${newAccess}`;
                         return api(originalRequest);
                     } catch {
-                        await logout();
+                        await logout({ skipAuth0Redirect: true });
                     }
                 }
 

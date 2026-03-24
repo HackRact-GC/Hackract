@@ -41,23 +41,30 @@ const Home = () => {
   }, [user, navigate]);
 
   const primaryRoleType = user?.roles?.[0]?.type;
-  const isOrgView = primaryRoleType === "ORG_ADMIN";
+  const isSuperAdmin = primaryRoleType === "SUPER_ADMIN" || user?.roles?.some(r => r.type === 'SUPER_ADMIN');
+  const isOrgView = primaryRoleType === "ORG_ADMIN" || (!isSuperAdmin && user?.roles?.some(r => r.type === 'ORG_ADMIN'));
 
-  const navItems = isOrgView
-    ? [
-      { label: "Org Overview", active: true },
-      { label: "Teams" },
-      { label: "Engagements" },
-      { label: "Compliance" },
-      { label: "Settings" },
-    ]
-    : [
-      { label: "Dashboard", active: true },
-      { label: "Pentests" },
-      { label: "Reports" },
-      { label: "Findings" },
-      { label: "Settings" },
-    ];
+  let navItems = [
+      { label: "Dashboard", active: true, route: '/dashboard' },
+      { label: "Projects", route: '/projects' },
+      { label: "Reports", route: '/reports' },
+      { label: "Findings", route: '/findings' },
+      { label: "Settings", route: '/settings' },
+  ];
+
+  if (isOrgView) {
+      navItems = [
+          { label: "Org Overview", active: true, route: '/dashboard' },
+          { label: "Teams", route: '/teams' },
+          { label: "Projects", route: '/projects' },
+          { label: "Compliance", route: '/compliance' },
+          { label: "Settings", route: '/settings' },
+      ];
+  }
+
+  if (isSuperAdmin) {
+      navItems.push({ label: "Approvals Pipeline", route: '/admin/approvals', adminOnly: true });
+  }
 
   const quickActions = isOrgView
     ? [
@@ -105,16 +112,21 @@ const Home = () => {
       {/* Left sidebar */}
       <aside className="hidden lg:flex w-64 flex-col border-r border-white/10 bg-black/40 backdrop-blur">
         <div className="px-6 py-6 text-xl font-mono font-bold tracking-[0.2em]">HACKRACT</div>
-        <nav className="flex-1 px-4 space-y-1">
+        <nav className="flex-1 px-4 space-y-1 mt-4">
           {navItems.map((item) => (
             <button
               key={item.label}
-              className={`w-full text-left px-4 py-3 rounded-lg font-mono text-sm transition-all duration-200 ${item.active
+              onClick={() => navigate(item.route)}
+              className={`w-full text-left px-4 py-3 rounded-lg font-mono text-sm transition-all duration-200 flex items-center justify-between ${
+                  item.active
                   ? "bg-[#00ff88] text-black shadow-lg shadow-[#00ff88]/30"
-                  : "text-gray-300 hover:bg-white/5"
+                  : item.adminOnly 
+                    ? "text-[#00ff88] hover:bg-[#00ff88]/10 border border-[#00ff88]/30 mt-8"
+                    : "text-gray-300 hover:bg-white/5"
                 }`}
             >
               {item.label}
+              {item.adminOnly && <span className="text-[10px] bg-[#00ff88]/20 px-2 py-0.5 rounded uppercase tracking-widest">Admin</span>}
             </button>
           ))}
         </nav>
@@ -165,7 +177,10 @@ const Home = () => {
                   <div className="text-sm text-gray-400 font-mono">Pipeline</div>
                   <h2 className="text-2xl font-bold">Active engagements</h2>
                 </div>
-                <button className="px-4 py-2 bg-[#00ff88] text-black rounded-md font-mono text-xs tracking-widest uppercase shadow-lg shadow-[#00ff88]/30">
+                <button
+                  onClick={() => navigate("/projects")}
+                  className="px-4 py-2 bg-[#00ff88] text-black rounded-md font-mono text-xs tracking-widest uppercase shadow-lg shadow-[#00ff88]/30"
+                >
                   New project
                 </button>
               </div>

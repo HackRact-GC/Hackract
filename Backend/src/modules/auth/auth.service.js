@@ -22,6 +22,16 @@ const durationToMs = (input) => {
 
 const REFRESH_EXPIRY_MS = durationToMs(TOKEN_EXPIRY.REFRESH_TOKEN) || 7 * 24 * 60 * 60 * 1000;
 
+<<<<<<< HEAD
+const USER_PROFILE_INCLUDE = {
+    roles: true,
+    hackerProfile: true,
+    organizations: {
+        include: { organization: true },
+    },
+};
+
+=======
 const DEFAULT_PUBLIC_EMAIL_DOMAINS = new Set([
     'gmail.com',
     'googlemail.com',
@@ -73,6 +83,7 @@ const slugify = (value) =>
         .replace(/-+/g, '-')
         .trim();
 
+>>>>>>> origin/main
 class AuthService {
     validateOrganizationEmail(email) {
         const { ok, domain } = isCompanyEmail(email);
@@ -139,7 +150,7 @@ class AuthService {
     async getUserProfile(userId) {
         const user = await prisma.user.findUnique({
             where: { id: userId },
-            include: { roles: true },
+            include: USER_PROFILE_INCLUDE,
         });
 
         if (!user) return null;
@@ -150,7 +161,7 @@ class AuthService {
         if (!email) return null;
         const user = await prisma.user.findUnique({
             where: { email: email.toLowerCase() },
-            include: { roles: true },
+            include: USER_PROFILE_INCLUDE,
         });
         if (!user) return null;
         return this.sanitizeUser(user);
@@ -237,6 +248,9 @@ class AuthService {
     async sendVerification(user, meta) {
         const verification = await this.createEmailVerificationToken(user.id);
         const frontendBase = process.env.FRONTEND_BASE_URL || 'http://localhost:5173';
+<<<<<<< HEAD
+        const verifyUrl = `${frontendBase}/verify-email?email=${encodeURIComponent(user.email)}`;
+=======
         const verifyUrl = `${frontendBase}/verify-email?token=${encodeURIComponent(verification.token)}`;
 
         if (process.env.NODE_ENV === 'development') {
@@ -248,6 +262,7 @@ class AuthService {
             console.log(`=========================================\n`);
         }
 
+>>>>>>> origin/main
         let delivered = true;
         try {
             await sendVerificationEmail({
@@ -271,6 +286,12 @@ class AuthService {
             throw new AppError('Verification code is required', 400, AuthErrorCodes.VERIFICATION_TOKEN_INVALID);
         }
 
+<<<<<<< HEAD
+        const record = await prisma.emailVerificationToken.findFirst({
+            where: { token, user: { email: email.toLowerCase() } },
+            include: { user: { include: USER_PROFILE_INCLUDE } },
+        });
+=======
         const record = email
             ? await prisma.emailVerificationToken.findFirst({
                   where: { token, user: { email: email.toLowerCase() } },
@@ -280,6 +301,7 @@ class AuthService {
                   where: { token },
                   include: { user: { include: { roles: true } } },
               });
+>>>>>>> origin/main
 
         if (!record) {
             throw new AppError('Invalid or expired verification token', 400, AuthErrorCodes.VERIFICATION_TOKEN_INVALID);
@@ -308,7 +330,7 @@ class AuthService {
                 status: 'ACTIVE',
                 emailVerifiedAt: new Date(),
             },
-            include: { roles: true },
+            include: USER_PROFILE_INCLUDE,
         });
 
         await prisma.emailVerificationToken.deleteMany({ where: { userId: user.id } });
@@ -344,15 +366,6 @@ class AuthService {
         const reset = await this.createPasswordResetToken(user.id);
         const frontendBase = process.env.FRONTEND_BASE_URL || 'http://localhost:5173';
         const resetUrl = `${frontendBase}/reset-password?token=${reset.token}`;
-
-        if (process.env.NODE_ENV === 'development') {
-            console.log(`\n=========================================`);
-            console.log(`[DEV PASSWORD RESET SIMULATION]`);
-            console.log(`To:    ${user.email}`);
-            console.log(`Token: ${reset.token}`);
-            console.log(`Link:  ${resetUrl}`);
-            console.log(`=========================================\n`);
-        }
 
         await sendPasswordResetEmail({
             to: user.email,
@@ -435,6 +448,20 @@ class AuthService {
 
         const passwordHash = await bcrypt.hash(payload.password, SALT_ROUNDS);
 
+<<<<<<< HEAD
+        let user = await prisma.user.create({
+            data: {
+                email,
+                passwordHash,
+                fullName: payload.fullName,
+                handle,
+                provider: 'local',
+                status: process.env.NODE_ENV === 'development' ? 'ACTIVE' : 'PENDING',
+                isVerified: process.env.NODE_ENV === 'development',
+                roles: selectedRole ? { connect: { id: selectedRole.id } } : undefined,
+            },
+            include: USER_PROFILE_INCLUDE,
+=======
         const { user, organization } = await prisma.$transaction(async (tx) => {
             const selectedRole = await tx.role.upsert({
                 where: { type: requestedRoleType },
@@ -511,6 +538,7 @@ class AuthService {
             }
 
             return { user: createdUser, organization: createdOrganization };
+>>>>>>> origin/main
         });
 
         const verification = await this.sendVerification(user, meta);
@@ -535,7 +563,7 @@ class AuthService {
         const email = payload.email.toLowerCase();
         const user = await prisma.user.findUnique({
             where: { email },
-            include: { roles: true },
+            include: USER_PROFILE_INCLUDE,
         });
 
         if (!user || !user.passwordHash) {
@@ -591,7 +619,7 @@ class AuthService {
 
         const stored = await prisma.refreshToken.findUnique({
             where: { token: refreshToken },
-            include: { user: { include: { roles: true } } },
+            include: { user: { include: USER_PROFILE_INCLUDE } },
         });
 
         if (!stored || stored.revoked) {
