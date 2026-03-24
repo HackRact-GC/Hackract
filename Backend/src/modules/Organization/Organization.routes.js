@@ -5,6 +5,9 @@ import { protect, restrictTo } from '../../middleware/Auth.middleware.js';
 
 const router = express.Router();
 
+// Apply global authentication to all organization routes
+router.use(protect);
+
 /**
  * @swagger
  * tags:
@@ -14,7 +17,7 @@ const router = express.Router();
 
 /**
  * @swagger
- * /api/v1/organizations:
+ * /api/v1/organization:
  *   post:
  *     summary: Create a new organization
  *     tags: [Organizations]
@@ -26,7 +29,6 @@ const router = express.Router();
  *             type: object
  *             required:
  *               - name
- *               - slug
  *             properties:
  *               name:
  *                 type: string
@@ -40,37 +42,123 @@ const router = express.Router();
  *       400:
  *         description: Validation error
  */
-router.post('/', organizationController.createOrganization);
+router.post('/', restrictTo('SUPER_ADMIN', 'ORG_ADMIN', 'PENTESTER'), organizationController.createOrganization);
 
 /**
  * @swagger
- * /api/v1/organizations/me:
+ * /api/v1/organizations:
  *   get:
- *     summary: Get organizations of logged-in user
- *     tags: [Organizations]
- *     responses:
- *       200:
- *         description: List of user organizations
- */
-router.get('/me', organizationController.getMyOrganizations);
-
-/**
- * @swagger
- * /api/v1/organizations/search:
- *   get:
- *     summary: Search organizations
+ *     summary: List organizations
+ *     description: SUPER_ADMIN can list all organizations; other roles list organizations they are members of.
  *     tags: [Organizations]
  *     parameters:
  *       - in: query
- *         name: q
+ *         name: page
+ *         schema:
+ *           type: integer
+ *           default: 1
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           default: 20
+ *       - in: query
+ *         name: name
  *         schema:
  *           type: string
- *         description: Search keyword
+ *         description: Filter by organization name (contains)
+ *       - in: query
+ *         name: ownerName
+ *         schema:
+ *           type: string
+ *         description: Filter by owner name/handle/email (contains). SUPER_ADMIN only.
  *     responses:
  *       200:
- *         description: Search results
+ *         description: Organizations retrieved successfully
+ *       401:
+ *         description: Unauthorized
  */
-router.get('/search', organizationController.searchOrganizations);
+// List organizations (SUPER_ADMIN => all; others => memberships)
+router.get('/', restrictTo('SUPER_ADMIN', 'ORG_ADMIN', 'PENTESTER'), organizationController.listOrganizations);
+
+/**
+ * @swagger
+ * /api/v1/organizations/by-name:
+ *   get:
+ *     summary: Get organizations by name
+ *     tags: [Organizations]
+ *     parameters:
+ *       - in: query
+ *         name: name
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Organization name (contains)
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *           default: 1
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           default: 20
+ *     responses:
+ *       200:
+ *         description: Organizations retrieved successfully
+ *       400:
+ *         description: Validation error
+ */
+/**
+ * @swagger
+ * /api/v1/organizations/by-owner:
+ *   get:
+ *     summary: Get organizations by owner name
+ *     description: SUPER_ADMIN only.
+ *     tags: [Organizations]
+ *     parameters:
+ *       - in: query
+ *         name: ownerName
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Owner full name, handle, or email (contains)
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *           default: 1
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           default: 20
+ *     responses:
+ *       200:
+ *         description: Organizations retrieved successfully
+ *       403:
+ *         description: Forbidden
+ */
+// Search / filter helpers
+router.get('/by-name', restrictTo('SUPER_ADMIN', 'ORG_ADMIN', 'PENTESTER'), organizationController.getOrganizationsByName);
+router.get('/by-owner', restrictTo('SUPER_ADMIN'), organizationController.getOrganizationsByOwnerName);
+
+/**
+ * @swagger
+ * /api/v1/organizations:
+ *   delete:
+ *     summary: Delete all organizations
+ *     description: DANGEROUS. SUPER_ADMIN only.
+ *     tags: [Organizations]
+ *     responses:
+ *       200:
+ *         description: All organizations deleted successfully
+ *       403:
+ *         description: Forbidden
+ */
+// Delete all organizations (DANGEROUS) - SUPER_ADMIN only
+router.delete('/', restrictTo('SUPER_ADMIN'), organizationController.deleteAllOrganizations);
 
 /**
  * @swagger
@@ -141,6 +229,7 @@ router.route('/:organizationId')
     organizationController.deleteOrganization
   );
 
+<<<<<<< HEAD
 router.post('/:organizationId/submit-verification',
   organizationMiddleware.isOrganizationOwner,
   organizationController.submitVerification
@@ -329,4 +418,6 @@ router.post('/:organizationId/reject',
   organizationController.reject
 );
 
+=======
+>>>>>>> origin/main
 export default router;

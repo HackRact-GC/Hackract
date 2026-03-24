@@ -1,6 +1,6 @@
 import prisma from '../../database/prismaClient.js';
 import AppError from '../../utils/AppError.js';
-import { RoleErrorCodes } from './roles.constants.js';
+import { RoleErrorCodes, RoleTypes } from './roles.constants.js';
 
 class RoleRepository {
     async createRole(data) {
@@ -18,7 +18,16 @@ class RoleRepository {
     }
 
     async findAll() {
-        return prisma.role.findMany();
+        return prisma.role.findMany({
+            where: {
+                type: {
+                    in: Object.values(RoleTypes),
+                },
+            },
+            orderBy: {
+                name: 'asc',
+            },
+        });
     }
 
     async findById(id) {

@@ -15,7 +15,7 @@ router.use(protect);
 
 /**
  * @swagger
- * /api/v1/signatures/sign:
+ * /api/v1/user-signatures/sign:
  *   post:
  *     summary: Sign a legal agreement
  *     tags: [UserSignatures]
@@ -42,7 +42,7 @@ router.post('/sign', controller.sign);
 
 /**
  * @swagger
- * /api/v1/signatures/my-signatures:
+ * /api/v1/user-signatures/my-signatures:
  *   get:
  *     summary: Get current user's signatures
  *     tags: [UserSignatures]
@@ -56,7 +56,7 @@ router.get('/my-signatures', controller.getMySignatures);
 
 /**
  * @swagger
- * /api/v1/signatures/check/{agreementId}:
+ * /api/v1/user-signatures/check/{agreementId}:
  *   get:
  *     summary: Check if current user has signed an agreement
  *     tags: [UserSignatures]
@@ -84,7 +84,7 @@ router.get('/check/:agreementId', controller.checkSigned);
 
 /**
  * @swagger
- * /api/v1/signatures/agreement/{agreementId}:
+ * /api/v1/user-signatures/agreement/{agreementId}:
  *   get:
  *     summary: Get all signatures for an agreement (Admin only)
  *     tags: [UserSignatures]
@@ -107,7 +107,7 @@ router.get('/agreement/:agreementId', restrictTo('SUPER_ADMIN', 'ORG_ADMIN'), co
 
 /**
  * @swagger
- * /api/v1/signatures/{id}:
+ * /api/v1/user-signatures/{id}:
  *   get:
  *     summary: Get signature by ID (Admin only)
  *     tags: [UserSignatures]
