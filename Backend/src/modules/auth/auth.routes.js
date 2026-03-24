@@ -78,8 +78,6 @@ router.post('/verify-email', validate(verifyEmailSchema), controller.verifyEmail
 router.post('/forgot-password', validate(forgotPasswordSchema), controller.forgotPassword);
 router.post('/reset-password', validate(resetPasswordSchema), controller.resetPassword);
 
-router.post('/verify-email', validate(verifyEmailSchema), controller.verifyEmail);
-
 /**
  * @swagger
  * /api/v1/auth/me:
