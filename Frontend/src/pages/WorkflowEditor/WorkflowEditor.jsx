@@ -42,6 +42,8 @@ const WorkflowEditor = ({ workflowId = "mock-id-123", pentestId }) => {
   const [lastSaved, setLastSaved] = useState(new Date());
   const [isHistoryOpen, setIsHistoryOpen] = useState(false);
   const [isLocked, setIsLocked] = useState(false);
+  const [canEdit, setCanEdit] = useState(true);
+  const [findings, setFindings] = useState([]);
 
   const {
     socket,
@@ -70,6 +72,8 @@ const WorkflowEditor = ({ workflowId = "mock-id-123", pentestId }) => {
           ...node.data,
           onDelete: () => deleteNode(node.id),
           onTitleChange: (newTitle) => updateNodeTitle(node.id, newTitle),
+          onLinkFinding: (findingId) => linkFinding(node.id, findingId),
+          findings,
           activeUsers: activeNodes[node.id] || {}
         }
       }));
@@ -90,12 +94,28 @@ const WorkflowEditor = ({ workflowId = "mock-id-123", pentestId }) => {
               ...node.data,
               onDelete: () => deleteNode(node.id),
               onTitleChange: (newTitle) => updateNodeTitle(node.id, newTitle),
+              onLinkFinding: (findingId) => linkFinding(node.id, findingId),
+              findings: data.pentest?.findings || [],
               activeUsers: activeNodes[node.id] || {}
             }
           }));
           setNodes(nodesWithHandlers);
         }
         if (data && data.edges) setEdges(data.edges);
+        if (data && data.pentest?.findings) setFindings(data.pentest.findings);
+        
+        // RBAC Check
+        const collaborators = data.pentest?.collaborators || [];
+        const isCollaborator = collaborators.some(c => 
+          c.userId === localUser.id && 
+          ["HACKER", "PROJECT_ADMIN", "ORG_ADMIN"].includes(c.role)
+        );
+        const isSuperAdmin = localUser.roles?.some(r => r.type === "SUPER_ADMIN");
+        
+        if (!isCollaborator && !isSuperAdmin) {
+          setCanEdit(false);
+          setIsLocked(true);
+        }
       } catch (err) {
         console.error("Failed to load workflow data", err);
       }
@@ -191,6 +211,31 @@ const WorkflowEditor = ({ workflowId = "mock-id-123", pentestId }) => {
       setEdges((eds) => {
         emitWorkflowChange(newNodes, eds);
         saveToDatabase(newNodes, eds, "UPDATE_TITLE", { nodeId: id, newTitle });
+        return eds;
+      });
+
+      return newNodes;
+    });
+  }, [emitWorkflowChange, setNodes, setEdges]);
+
+  const linkFinding = useCallback((id, findingId) => {
+    setNodes((nds) => {
+      const newNodes = nds.map((node) => {
+        if (node.id === id) {
+          return {
+            ...node,
+            data: {
+              ...node.data,
+              findingId,
+            },
+          };
+        }
+        return node;
+      });
+
+      setEdges((eds) => {
+        emitWorkflowChange(newNodes, eds);
+        saveToDatabase(newNodes, eds, "LINK_FINDING", { nodeId: id, findingId });
         return eds;
       });
 
@@ -382,7 +427,11 @@ const WorkflowEditor = ({ workflowId = "mock-id-123", pentestId }) => {
                 className="bg-[#07090e]"
               />
               <Panel position="bottom-left">
-                <WorkflowControls isLocked={isLocked} onToggleLock={() => setIsLocked(!isLocked)} />
+                <WorkflowControls 
+                  isLocked={isLocked} 
+                  onToggleLock={() => canEdit && setIsLocked(!isLocked)} 
+                  disabled={!canEdit}
+                />
               </Panel>
               <MiniMap
                 nodeColor={(n) => {
