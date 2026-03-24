@@ -12,16 +12,16 @@ import ForgotPassword from "../pages/ForgotPassword.jsx";
 import ResetPassword from "../pages/ResetPassword.jsx";
 import HackerProfile from "../pages/HackerProfile.jsx";
 import OrganizationProfile from "../pages/OrganizationProfile.jsx";
-import OrganizationDashboard from "../pages/OrganizationDashboard.jsx";
-import HackerDashboard from "../pages/HackerDashboard.jsx";
 import WorkflowEditor from "../pages/WorkflowEditor/WorkflowEditor.jsx";
 import HackerVerification from "../pages/HackerVerification.jsx";
 import OrganizationVerification from "../pages/OrganizationVerification.jsx";
-import Onboarding from "../pages/Onboarding.jsx";
 import ErrorPage from "../pages/ErrorPage.jsx";
-<<<<<<< HEAD
 import Projects from "../pages/Projects.jsx";
 import ProjectWorkspace from "../pages/ProjectWorkspace.jsx";
+
+// Phase 2 Marketplace Imports
+import DiscoverProjects from "../pages/DiscoverProjects.jsx";
+import MyApplications from "../pages/MyApplications.jsx";
 
 // Phase 17 Onboarding Imports
 import OnboardingGuard from "../components/OnboardingGuard.jsx";
@@ -33,9 +33,6 @@ import OrgOnboarding from "../pages/Onboarding/OrgOnboarding.jsx";
 import ApprovalsDashboard from "../pages/Admin/ApprovalsDashboard.jsx";
 import OperatorReview from "../pages/Admin/OperatorReview.jsx";
 import OrgReview from "../pages/Admin/OrgReview.jsx";
-=======
-import LegalAgreementCreate from "../pages/LegalAgreementCreate.jsx";
->>>>>>> origin/main
 
 const router = createBrowserRouter([
   {
@@ -56,10 +53,6 @@ const router = createBrowserRouter([
         element: <OnboardingGuard><HackerProfile /></OnboardingGuard>,
       },
       {
-        path: "hacker-dashboard",
-        element: <HackerDashboard />,
-      },
-      {
         path: "hacker-verification",
         element: <OnboardingGuard><HackerVerification /></OnboardingGuard>,
       },
@@ -68,16 +61,8 @@ const router = createBrowserRouter([
         element: <OnboardingGuard><OrganizationProfile /></OnboardingGuard>,
       },
       {
-        path: "organization-dashboard",
-        element: <OrganizationDashboard />,
-      },
-      {
         path: "organization-verification/:organizationId",
         element: <OnboardingGuard><OrganizationVerification /></OnboardingGuard>,
-      },
-      {
-        path: "onboarding",
-        element: <Onboarding />,
       },
       {
         path: "workflows/:workflowId",
@@ -118,8 +103,12 @@ const router = createBrowserRouter([
         element: <OnboardingGuard><OrgReview /></OnboardingGuard>,
       },
       {
-        path: "legal-agreements/new",
-        element: <LegalAgreementCreate />,
+        path: "marketplace",
+        element: <OnboardingGuard><DiscoverProjects /></OnboardingGuard>,
+      },
+      {
+        path: "my-applications",
+        element: <OnboardingGuard><MyApplications /></OnboardingGuard>,
       },
       {
         element: <AuthLayout />,
