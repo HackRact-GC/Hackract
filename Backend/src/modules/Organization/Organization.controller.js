@@ -141,7 +141,146 @@ class OrganizationController {
     const result = await organizationService.deleteAllOrganizations(req.user);
     res.status(200).json({
       success: true,
+<<<<<<< HEAD
+      ...result
+    });
+  });
+
+  updateMember = asyncHandler(async (req, res) => {
+    const paramsValidation = memberIdSchema.validate(req.params);
+    if (paramsValidation.error) {
+      return res.status(400).json({
+        success: false,
+        error: paramsValidation.error.details[0].message
+      });
+    }
+
+    const bodyValidation = updateMemberSchema.validate(req.body);
+    if (bodyValidation.error) {
+      return res.status(400).json({
+        success: false,
+        error: bodyValidation.error.details[0].message
+      });
+    }
+
+    const member = await organizationService.updateMember(
+      paramsValidation.value.organizationId,
+      paramsValidation.value.memberId,
+      bodyValidation.value,
+      req.user.id
+    );
+
+    res.status(200).json({
+      success: true,
+      message: 'Member updated successfully',
+      data: member
+    });
+  });
+
+  removeMember = asyncHandler(async (req, res) => {
+    const { error, value } = memberIdSchema.validate(req.params);
+    if (error) {
+      return res.status(400).json({
+        success: false,
+        error: error.details[0].message
+      });
+    }
+
+    await organizationService.removeMember(
+      value.organizationId,
+      value.memberId,
+      req.user.id
+    );
+
+    res.status(200).json({
+      success: true,
+      message: 'Member removed successfully'
+    });
+  });
+
+ 
+  searchOrganizations = asyncHandler(async (req, res) => {
+    const { error, value } = paginationSchema.validate(req.query);
+    if (error) {
+      return res.status(400).json({
+        success: false,
+        error: error.details[0].message
+      });
+    }
+
+    const result = await organizationRepository.getAllOrganizations(value);
+
+    res.status(200).json({
+      success: true,
+      ...result
+    });
+  });
+
+  submitVerification = asyncHandler(async (req, res) => {
+    const paramsValidation = organizationIdSchema.validate(req.params);
+    if (paramsValidation.error) {
+      return res.status(400).json({
+        success: false,
+        error: paramsValidation.error.details[0].message
+      });
+    }
+
+    const bodyValidation = submitVerificationSchema.validate(req.body);
+    if (bodyValidation.error) {
+      return res.status(400).json({
+        success: false,
+        error: bodyValidation.error.details[0].message
+      });
+    }
+
+    const organization = await organizationService.submitVerification(
+      paramsValidation.value.organizationId,
+      bodyValidation.value,
+      req.user.id
+    );
+
+    res.status(200).json({
+      success: true,
+      message: 'Organization verification submitted successfully',
+      data: organization
+    });
+  });
+
+  approve = asyncHandler(async (req, res) => {
+    const { error, value } = organizationIdSchema.validate(req.params);
+    if (error) {
+      return res.status(400).json({ success: false, error: error.details[0].message });
+    }
+    const organization = await organizationService.approveOrganization(value.organizationId, req.user.id);
+    res.status(200).json({ success: true, message: 'Organization approved', data: organization });
+  });
+
+  reject = asyncHandler(async (req, res) => {
+    const { error, value } = organizationIdSchema.validate(req.params);
+    if (error) {
+      return res.status(400).json({ success: false, error: error.details[0].message });
+    }
+    const organization = await organizationService.rejectOrganization(value.organizationId, req.user.id);
+    res.status(200).json({ success: true, message: 'Organization rejected', data: organization });
+  });
+
+  validateDomain = asyncHandler(async (req, res) => {
+    const { error, value } = organizationIdSchema.validate(req.params);
+    if (error) {
+      return res.status(400).json({
+        success: false,
+        error: error.details[0].message
+      });
+    }
+
+    const result = await organizationService.validateDomain(value.organizationId, req.user.id);
+
+    res.status(200).json({
+      success: true,
+      message: 'Domain validation successful',
+=======
       message: 'All organizations deleted successfully',
+>>>>>>> origin/main
       data: result
     });
   });

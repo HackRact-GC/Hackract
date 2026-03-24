@@ -19,7 +19,23 @@ import HackerVerification from "../pages/HackerVerification.jsx";
 import OrganizationVerification from "../pages/OrganizationVerification.jsx";
 import Onboarding from "../pages/Onboarding.jsx";
 import ErrorPage from "../pages/ErrorPage.jsx";
+<<<<<<< HEAD
+import Projects from "../pages/Projects.jsx";
+import ProjectWorkspace from "../pages/ProjectWorkspace.jsx";
+
+// Phase 17 Onboarding Imports
+import OnboardingGuard from "../components/OnboardingGuard.jsx";
+import OnboardingLayout from "../layouts/OnboardingLayout.jsx";
+import HackerOnboarding from "../pages/Onboarding/HackerOnboarding.jsx";
+import OrgOnboarding from "../pages/Onboarding/OrgOnboarding.jsx";
+
+// Phase 18 Admin Imports
+import ApprovalsDashboard from "../pages/Admin/ApprovalsDashboard.jsx";
+import OperatorReview from "../pages/Admin/OperatorReview.jsx";
+import OrgReview from "../pages/Admin/OrgReview.jsx";
+=======
 import LegalAgreementCreate from "../pages/LegalAgreementCreate.jsx";
+>>>>>>> origin/main
 
 const router = createBrowserRouter([
   {
@@ -33,11 +49,11 @@ const router = createBrowserRouter([
       },
       {
         path: "dashboard",
-        element: <Home />,
+        element: <OnboardingGuard><Home /></OnboardingGuard>,
       },
       {
         path: "hacker-profile",
-        element: <HackerProfile />,
+        element: <OnboardingGuard><HackerProfile /></OnboardingGuard>,
       },
       {
         path: "hacker-dashboard",
@@ -45,11 +61,11 @@ const router = createBrowserRouter([
       },
       {
         path: "hacker-verification",
-        element: <HackerVerification />,
+        element: <OnboardingGuard><HackerVerification /></OnboardingGuard>,
       },
       {
         path: "organization-profile",
-        element: <OrganizationProfile />,
+        element: <OnboardingGuard><OrganizationProfile /></OnboardingGuard>,
       },
       {
         path: "organization-dashboard",
@@ -57,7 +73,7 @@ const router = createBrowserRouter([
       },
       {
         path: "organization-verification/:organizationId",
-        element: <OrganizationVerification />,
+        element: <OnboardingGuard><OrganizationVerification /></OnboardingGuard>,
       },
       {
         path: "onboarding",
@@ -65,7 +81,41 @@ const router = createBrowserRouter([
       },
       {
         path: "workflows/:workflowId",
-        element: <WorkflowEditor />,
+        element: <OnboardingGuard><WorkflowEditor /></OnboardingGuard>,
+      },
+      {
+        path: "projects",
+        element: <OnboardingGuard><Projects /></OnboardingGuard>,
+      },
+      {
+        path: "projects/:projectId",
+        element: <OnboardingGuard><ProjectWorkspace /></OnboardingGuard>,
+      },
+      {
+        path: "onboarding",
+        element: <OnboardingGuard><OnboardingLayout /></OnboardingGuard>,
+        children: [
+            {
+                path: "hacker",
+                element: <HackerOnboarding />,
+            },
+            {
+                path: "organization",
+                element: <OrgOnboarding />,
+            }
+        ]
+      },
+      {
+        path: "admin/approvals",
+        element: <OnboardingGuard><ApprovalsDashboard /></OnboardingGuard>,
+      },
+      {
+        path: "admin/approvals/hacker/:id",
+        element: <OnboardingGuard><OperatorReview /></OnboardingGuard>,
+      },
+      {
+        path: "admin/approvals/org/:id",
+        element: <OnboardingGuard><OrgReview /></OnboardingGuard>,
       },
       {
         path: "legal-agreements/new",

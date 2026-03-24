@@ -4,7 +4,10 @@ import { useAuth0 } from "@auth0/auth0-react";
 import { FcGoogle } from "react-icons/fc";
 import { FaGithub } from "react-icons/fa";
 import { useAuth } from "../context/authContext.jsx";
+<<<<<<< HEAD
+=======
 import api from "../api/axiosConfig";
+>>>>>>> origin/main
 
 const InputField = ({ label, type, placeholder, id, name, value, onChange, onBlur, required = true }) => (
   <div className="flex flex-col gap-2 group">
