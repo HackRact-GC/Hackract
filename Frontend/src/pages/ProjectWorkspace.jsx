@@ -5,6 +5,7 @@ import api from "../api/axiosConfig";
 import ProjectActivity from "../components/ProjectActivity.jsx";
 import KickoffChecklist from "../components/KickoffChecklist.jsx";
 import { useAuth } from "../context/authContext.jsx";
+import { FiDownload, FiExternalLink, FiFileText } from "react-icons/fi";
 
 const ProjectWorkspace = () => {
   const navigate = useNavigate();
@@ -171,17 +172,63 @@ const ProjectWorkspace = () => {
       )}
 
       {activeTab === "findings" && (
-        <div className="bg-white/5 border border-white/10 rounded-xl p-5">
-          <h3 className="font-semibold mb-3">Findings</h3>
+        <div className="bg-white/5 border border-white/10 rounded-xl p-6 space-y-6">
+          <div className="flex items-center justify-between">
+            <h3 className="font-semibold text-lg flex items-center gap-2">
+              <FiFileText className="text-[#00ff88]" />
+              Project Discoveries
+            </h3>
+            {canManage && (
+              <button 
+                onClick={async () => {
+                  try {
+                    const { data } = await api.get(`/findings/project/${projectId}/report`);
+                    const blob = new Blob([data.data], { type: 'text/markdown' });
+                    const url = window.URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = `Security_Report_${project.name.replace(/\s+/g, '_')}.md`;
+                    a.click();
+                    toast.success("Report generated successfully!");
+                  } catch (e) {
+                    toast.error("Failed to generate report");
+                  }
+                }}
+                className="flex items-center gap-2 px-4 py-2 bg-[#00ff88] text-black rounded-lg text-xs font-bold uppercase tracking-widest hover:scale-105 transition-all"
+              >
+                <FiDownload /> Export Security Report
+              </button>
+            )}
+          </div>
+
           {!project.findings?.length ? (
-            <p className="text-sm text-gray-400">No findings yet.</p>
+            <div className="py-12 text-center border border-white/5 bg-black/20 rounded-xl">
+               <p className="text-sm text-gray-500 font-mono uppercase tracking-widest">No vulnerabilities reported yet.</p>
+            </div>
           ) : (
-            <div className="space-y-2">
+            <div className="grid gap-4">
               {project.findings.map((f) => (
-                <div key={f.id} className="border border-white/10 rounded-md p-3 bg-black/30">
-                  <div className="text-sm font-semibold">{f.title}</div>
-                  <div className="text-xs text-gray-400 uppercase">
-                    {f.severity} • {f.status}
+                <div 
+                  key={f.id} 
+                  onClick={() => navigate(`/findings/${f.id}`)}
+                  className="group relative border border-white/10 rounded-xl p-4 bg-black/30 hover:border-[#00ff88]/50 hover:bg-black/50 transition-all cursor-pointer"
+                >
+                  <div className="flex items-center justify-between">
+                    <div className="space-y-1">
+                      <div className="text-sm font-bold group-hover:text-[#00ff88] transition-colors">{f.title}</div>
+                      <div className="flex items-center gap-3 text-[10px] font-mono uppercase tracking-tighter">
+                        <span className={`px-2 py-0.5 rounded border ${
+                          f.severity === 'CRITICAL' ? 'text-red-500 border-red-500/30 bg-red-500/10' :
+                          f.severity === 'HIGH' ? 'text-orange-500 border-orange-500/30 bg-orange-500/10' :
+                          'text-gray-400 border-white/10'
+                        }`}>
+                          {f.severity}
+                        </span>
+                        <span className="text-gray-500">•</span>
+                        <span className="text-gray-400">{f.status}</span>
+                      </div>
+                    </div>
+                    <FiExternalLink className="text-gray-600 group-hover:text-[#00ff88] transition-colors" />
                   </div>
                 </div>
               ))}
