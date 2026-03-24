@@ -3,7 +3,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { useAuth0 } from "@auth0/auth0-react";
 import { FcGoogle } from "react-icons/fc";
 import { FaGithub } from "react-icons/fa";
-import { useAuth } from "../context/AuthContext.jsx";
+import { useAuth } from "../context/authContext.jsx";
 
 const InputField = ({ label, type, placeholder, id, name, value, onChange }) => (
     <div className="flex flex-col gap-2 group">
@@ -55,7 +55,7 @@ const Login = () => {
         e.preventDefault();
         try {
             await login(form);
-            navigate("/");
+            navigate("/dashboard");
         } catch (error) {
             const errorCode = error?.response?.data?.code;
             const status = error?.response?.status;
