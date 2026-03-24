@@ -198,7 +198,7 @@ class OrganizationController {
     });
   });
 
- 
+
   searchOrganizations = asyncHandler(async (req, res) => {
     const { error, value } = paginationSchema.validate(req.query);
     if (error) {
