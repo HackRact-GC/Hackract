@@ -16,8 +16,8 @@ import WorkflowEditor from "../pages/WorkflowEditor/WorkflowEditor.jsx";
 import HackerVerification from "../pages/HackerVerification.jsx";
 import OrganizationVerification from "../pages/OrganizationVerification.jsx";
 import ErrorPage from "../pages/ErrorPage.jsx";
-import Projects from "../pages/Projects.jsx";
 import ProjectWorkspace from "../pages/ProjectWorkspace.jsx";
+import FindingDetails from "../pages/FindingDetails.jsx";
 
 // Phase 2 Marketplace Imports
 import DiscoverProjects from "../pages/DiscoverProjects.jsx";
@@ -75,6 +75,10 @@ const router = createBrowserRouter([
       {
         path: "projects/:projectId",
         element: <OnboardingGuard><ProjectWorkspace /></OnboardingGuard>,
+      },
+      {
+        path: "findings/:findingId",
+        element: <OnboardingGuard><FindingDetails /></OnboardingGuard>,
       },
       {
         path: "onboarding",
