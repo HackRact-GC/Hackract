@@ -74,7 +74,7 @@ RUN pip3 install --no-cache-dir --break-system-packages --ignore-installed -r /t
     rm /tmp/requirements.txt
 
 # Install additional web-focused tools via other package managers
-# Note: requests, bs4, lxml, colorama are in requirements.txt, so we only install extras here
+# Note: requests, colorama are in requirements.txt; extras installed below
 RUN pip3 install --no-cache-dir --break-system-packages \
     jwt pyjwt \
     urllib3 \

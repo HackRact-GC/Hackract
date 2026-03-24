@@ -9,7 +9,6 @@ dist/
 build/
 
 # Environment
-.env
 .venv
 env/
 venv/

@@ -3,6 +3,8 @@ export const AuthErrorCodes = {
     EMAIL_ALREADY_EXISTS: 'EMAIL_ALREADY_EXISTS',
     HANDLE_ALREADY_EXISTS: 'HANDLE_ALREADY_EXISTS',
     WEAK_PASSWORD: 'WEAK_PASSWORD',
+    ORG_EMAIL_REQUIRED: 'ORG_EMAIL_REQUIRED',
+    ORG_DETAILS_REQUIRED: 'ORG_DETAILS_REQUIRED',
 
     // Login errors
     INVALID_CREDENTIALS: 'INVALID_CREDENTIALS',
@@ -46,7 +48,7 @@ export const AuthErrorCodes = {
 export const TOKEN_EXPIRY = {
     EMAIL_VERIFICATION: 24 * 60 * 60 * 1000, // 24 hours
     PASSWORD_RESET: 60 * 60 * 1000, // 1 hour
-    ACCESS_TOKEN: '15m', // 15 minutes
+    ACCESS_TOKEN: '1h', // 1 hour
     REFRESH_TOKEN: '7d', // 7 days
 };
 

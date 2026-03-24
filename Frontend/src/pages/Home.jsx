@@ -18,7 +18,7 @@ const Home = () => {
         console.error('Failed to fetch profile status');
       }
     };
-    if (user?.roles?.[0]?.type === 'PENTESTER') {
+    if (user?.roles?.[0]?.type === 'PENTESTER' || user?.roles?.[0]?.type === 'PROJECT_ADMIN') {
       fetchStatus();
     }
     
@@ -32,8 +32,13 @@ const Home = () => {
     };
     if (user?.roles?.[0]?.type === 'ORG_ADMIN') {
       fetchOrgs();
+      navigate('/organization-dashboard');
+    } else if (user?.roles?.[0]?.type === 'PENTESTER' || user?.roles?.[0]?.type === 'PROJECT_ADMIN') {
+      navigate('/hacker-dashboard');
+    } else if (user) {
+      navigate('/onboarding');
     }
-  }, [user]);
+  }, [user, navigate]);
 
   const primaryRoleType = user?.roles?.[0]?.type;
   const isSuperAdmin = primaryRoleType === "SUPER_ADMIN" || user?.roles?.some(r => r.type === 'SUPER_ADMIN');
@@ -189,7 +194,7 @@ const Home = () => {
               </div>
             </div>
 
-            {primaryRoleType === 'PENTESTER' && profileStatus !== 'APPROVED' && (
+            {(primaryRoleType === 'PENTESTER' || primaryRoleType === 'PROJECT_ADMIN') && profileStatus !== 'APPROVED' && (
               <div className="bg-amber-500/10 border border-amber-500/30 rounded-2xl p-6 shadow-xl flex items-center justify-between gap-6 group">
                 <div className="flex items-center gap-4">
                   <div className="h-12 w-12 rounded-full bg-amber-500/20 flex items-center justify-center text-amber-500 text-xl">

@@ -12,7 +12,7 @@ CREATE TYPE user_status AS ENUM ('PENDING', 'ACTIVE', 'Suspended', 'BANNED');
 CREATE TYPE pentest_status AS ENUM ('PLANNING', 'IN_PROGRESS', 'REPORTING', 'CLOSED');
 CREATE TYPE finding_severity AS ENUM ('INFO', 'LOW', 'MEDIUM', 'HIGH', 'CRITICAL');
 CREATE TYPE finding_status AS ENUM ('OPEN', 'VERIFIED', 'FIXED', 'ACCEPTED_RISK');
-CREATE TYPE role_type AS ENUM ('SUPER_ADMIN', 'ORG_ADMIN', 'PENTESTER', 'ANALYST', 'VIEWER');
+CREATE TYPE role_type AS ENUM ('SUPER_ADMIN', 'ORG_ADMIN', 'PROJECT_ADMIN', 'PENTESTER');
 
 -- =====================================================
 -- 1️⃣ USERS
@@ -275,11 +275,27 @@ FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 -- Default Seed Data
 -- ============================
 INSERT INTO "Role" (id, name, type, description, permissions, created_at) VALUES
-(uuid_generate_v4(), 'Super Administrator', 'SUPER_ADMIN', 'Full system access', ARRAY['*'], NOW()),
-(uuid_generate_v4(), 'Organization Admin', 'ORG_ADMIN', 'Organization-level administration', ARRAY['org:manage', 'pentest:manage', 'user:manage'], NOW()),
-(uuid_generate_v4(), 'Pentester', 'PENTESTER', 'Professional pentester', ARRAY['pentest:create', 'finding:create', 'ai:use'], NOW()),
-(uuid_generate_v4(), 'Security Analyst', 'ANALYST', 'Security analysis and review', ARRAY['finding:read', 'report:generate'], NOW()),
-(uuid_generate_v4(), 'Viewer', 'VIEWER', 'Read-only access', ARRAY['pentest:read', 'finding:read'], NOW());
+(uuid_generate_v4(), 'Super Admin', 'SUPER_ADMIN', 'Full system access with all permissions', ARRAY['*'], NOW()),
+(uuid_generate_v4(), 'Organization Admin', 'ORG_ADMIN', 'Full access within their organization', ARRAY[
+  'org:read', 'org:write', 'org:manage', 'org:invite',
+  'pentest:read', 'pentest:write', 'pentest:delete', 'pentest:manage',
+  'finding:read', 'finding:write', 'finding:delete', 'finding:verify',
+  'user:read', 'ai:read', 'ai:write', 'ai:manage',
+  'audit:read', 'role:read'
+], NOW()),
+(uuid_generate_v4(), 'Project Admin', 'PROJECT_ADMIN', 'Project/pentest lead (scoped permissions)', ARRAY[
+  'pentest:read', 'pentest:write', 'pentest:manage',
+  'finding:read', 'finding:write', 'finding:delete', 'finding:verify',
+  'ai:read', 'ai:write',
+  'org:read', 'user:read',
+  'audit:read'
+], NOW()),
+(uuid_generate_v4(), 'Pentester', 'PENTESTER', 'Can perform penetration tests and manage findings', ARRAY[
+  'pentest:read', 'pentest:write',
+  'finding:read', 'finding:write', 'finding:delete',
+  'ai:read', 'ai:write',
+  'org:read', 'user:read'
+], NOW());
 
 INSERT INTO "AiAssistant" (id, name, model, system_prompt, capabilities, temperature, max_tokens, is_active, created_at) VALUES
 (uuid_generate_v4(), 'Hackract Security Assistant', 'gpt-4-turbo', 'You are a cybersecurity assistant specialized in penetration testing and vulnerability analysis.', ARRAY['vulnerability_analysis', 'report_generation', 'tool_recommendation', 'code_review'], 0.7, 4000, true, NOW());

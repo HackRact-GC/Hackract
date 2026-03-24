@@ -24,6 +24,8 @@ router.use("/users", UserRouter);
 router.use("/roles", RoleRouter);
 router.use("/organizations", OrganizationRouter);
 router.use("/organization-members", MemberRouter);
+// Alias to match Swagger docs and clients expecting /members
+router.use("/members", MemberRouter);
 router.use("/pentests", PentestRouter);
 router.use("/pentest-collaborators", CollaboratorRouter);
 router.use("/findings", FindingRouter);
