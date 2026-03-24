@@ -1,5 +1,5 @@
+export * from "./authContext.jsx";
 /* eslint-disable react-refresh/only-export-components */
-import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
 import { useAuth0 } from "@auth0/auth0-react";
 import toast from "react-hot-toast";
 import api from "../api/axiosConfig";
@@ -38,19 +38,18 @@ export const AuthProvider = ({ children }) => {
   }, []);
 
   const fetchProfile = useCallback(async () => {
-<<<<<<< HEAD
     if (!accessToken) {
       setIsBootstrapping(false);
       return;
     }
-=======
->>>>>>> origin/main
     try {
-      const { data } = await api.get("/auth/local/me");
+      const { data } = await api.get("/auth/local/me", {
+        headers: { Authorization: `Bearer ${accessToken}` },
+      });
       setUser(data?.data?.user || null);
     } catch (error) {
       console.error("Failed to load profile", error);
-      if (accessToken) persistTokens(null, refreshToken);
+      persistTokens(null, refreshToken);
       setUser(null);
     } finally {
       setIsBootstrapping(false);
@@ -102,7 +101,6 @@ export const AuthProvider = ({ children }) => {
         const { user: newUser, tokens, message: nestedMessage } = payloadData || {};
         const successMessage = nestedMessage || topMessage || "Registration successful. Please verify your email.";
 
-        // If backend returns tokens on register, keep them.
         if (tokens?.accessToken && tokens?.refreshToken) {
           persistTokens(tokens.accessToken, tokens.refreshToken);
           setUser(newUser);
@@ -158,6 +156,7 @@ export const AuthProvider = ({ children }) => {
       }
     }
   }, [persistTokens, refreshToken, isAuthenticated, auth0Logout]);
+  }, [persistTokens, refreshToken]);
 
   const value = useMemo(
     () => ({
@@ -170,13 +169,8 @@ export const AuthProvider = ({ children }) => {
       logout,
       refreshTokens,
       setUser,
-      refreshUser: fetchProfile,
     }),
-<<<<<<< HEAD
     [user, accessToken, refreshToken, loading, isBootstrapping, login, register, logout, refreshTokens]
-=======
-    [user, accessToken, refreshToken, loading, login, register, logout, refreshTokens, fetchProfile]
->>>>>>> origin/main
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
