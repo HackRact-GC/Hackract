@@ -2,7 +2,7 @@ import React from 'react';
 import { useReactFlow } from '@xyflow/react';
 import { FiPlus, FiMinus, FiMaximize, FiLock, FiUnlock } from 'react-icons/fi';
 
-const WorkflowControls = ({ isLocked, onToggleLock }) => {
+const WorkflowControls = ({ isLocked, onToggleLock, disabled }) => {
   const { zoomIn, zoomOut, fitView } = useReactFlow();
 
   const buttonClass = "w-10 h-10 flex items-center justify-center bg-[#161a23] border border-gray-800 text-gray-400 hover:text-[#00ff41] hover:border-[#00ff41]/50 hover:bg-[#00ff41]/10 transition-all duration-200 shadow-lg first:rounded-t-lg last:rounded-b-lg border-b-0 last:border-b";
@@ -32,8 +32,9 @@ const WorkflowControls = ({ isLocked, onToggleLock }) => {
       </button>
       <button 
         onClick={onToggleLock} 
-        className={`${buttonClass} ${isLocked ? 'text-[#00a3ff] border-[#00a3ff]/50 bg-[#00a3ff]/10' : ''}`} 
-        title={isLocked ? "Unlock Editor" : "Lock Editor"}
+        disabled={disabled}
+        className={`${buttonClass} ${isLocked ? 'text-[#00a3ff] border-[#00a3ff]/50 bg-[#00a3ff]/10' : ''} ${disabled ? 'opacity-30 cursor-not-allowed text-gray-700' : ''}`} 
+        title={disabled ? "Edit access restricted" : (isLocked ? "Unlock Editor" : "Lock Editor")}
       >
         {isLocked ? <FiLock size={18} /> : <FiUnlock size={18} />}
       </button>
