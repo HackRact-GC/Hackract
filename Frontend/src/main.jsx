@@ -20,15 +20,6 @@ ReactDOM.createRoot(document.getElementById("root")).render(
         audience: import.meta.env.VITE_AUTH0_AUDIENCE,
         scope: "openid profile email",
       }}
-      useRefreshTokens={true}
-      cacheLocation="localstorage"
-      onRedirectCallback={(appState) => {
-        window.history.replaceState(
-          {},
-          document.title,
-          appState?.returnTo || window.location.pathname
-        );
-      }}
     >
       <AuthProvider>
         <RouterProvider router={router} />
