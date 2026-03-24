@@ -229,7 +229,7 @@ router.route('/:organizationId')
     organizationController.deleteOrganization
   );
 
-<<<<<<< HEAD
+
 router.post('/:organizationId/submit-verification',
   organizationMiddleware.isOrganizationOwner,
   organizationController.submitVerification
@@ -418,6 +418,5 @@ router.post('/:organizationId/reject',
   organizationController.reject
 );
 
-=======
->>>>>>> origin/main
+
 export default router;
