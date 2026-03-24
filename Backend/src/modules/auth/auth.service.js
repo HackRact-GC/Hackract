@@ -22,6 +22,14 @@ const durationToMs = (input) => {
 
 const REFRESH_EXPIRY_MS = durationToMs(TOKEN_EXPIRY.REFRESH_TOKEN) || 7 * 24 * 60 * 60 * 1000;
 
+const USER_PROFILE_INCLUDE = {
+    roles: true,
+    hackerProfile: true,
+    organizations: {
+        include: { organization: true },
+    },
+};
+
 class AuthService {
     sanitizeUser(user) {
         const { passwordHash, ...safeUser } = user;
@@ -31,7 +39,7 @@ class AuthService {
     async getUserProfile(userId) {
         const user = await prisma.user.findUnique({
             where: { id: userId },
-            include: { roles: true },
+            include: USER_PROFILE_INCLUDE,
         });
 
         if (!user) return null;
@@ -42,7 +50,7 @@ class AuthService {
         if (!email) return null;
         const user = await prisma.user.findUnique({
             where: { email: email.toLowerCase() },
-            include: { roles: true },
+            include: USER_PROFILE_INCLUDE,
         });
         if (!user) return null;
         return this.sanitizeUser(user);
@@ -130,16 +138,6 @@ class AuthService {
         const verification = await this.createEmailVerificationToken(user.id);
         const frontendBase = process.env.FRONTEND_BASE_URL || 'http://localhost:5173';
         const verifyUrl = `${frontendBase}/verify-email?email=${encodeURIComponent(user.email)}`;
-
-        if (process.env.NODE_ENV === 'development') {
-            console.log(`\n=========================================`);
-            console.log(`[DEV EMAIL SIMULATION]`);
-            console.log(`To:    ${user.email}`);
-            console.log(`Code:  ${verification.token}`);
-            console.log(`Link:  ${verifyUrl}`);
-            console.log(`=========================================\n`);
-        }
-
         let delivered = true;
         try {
             await sendVerificationEmail({
@@ -165,7 +163,7 @@ class AuthService {
 
         const record = await prisma.emailVerificationToken.findFirst({
             where: { token, user: { email: email.toLowerCase() } },
-            include: { user: { include: { roles: true } } },
+            include: { user: { include: USER_PROFILE_INCLUDE } },
         });
 
         if (!record) {
@@ -195,7 +193,7 @@ class AuthService {
                 status: 'ACTIVE',
                 emailVerifiedAt: new Date(),
             },
-            include: { roles: true },
+            include: USER_PROFILE_INCLUDE,
         });
 
         await prisma.emailVerificationToken.deleteMany({ where: { userId: user.id } });
@@ -231,15 +229,6 @@ class AuthService {
         const reset = await this.createPasswordResetToken(user.id);
         const frontendBase = process.env.FRONTEND_BASE_URL || 'http://localhost:5173';
         const resetUrl = `${frontendBase}/reset-password?token=${reset.token}`;
-
-        if (process.env.NODE_ENV === 'development') {
-            console.log(`\n=========================================`);
-            console.log(`[DEV PASSWORD RESET SIMULATION]`);
-            console.log(`To:    ${user.email}`);
-            console.log(`Token: ${reset.token}`);
-            console.log(`Link:  ${resetUrl}`);
-            console.log(`=========================================\n`);
-        }
 
         await sendPasswordResetEmail({
             to: user.email,
@@ -310,11 +299,11 @@ class AuthService {
                 fullName: payload.fullName,
                 handle,
                 provider: 'local',
-                status: 'PENDING',
-                isVerified: false,
+                status: process.env.NODE_ENV === 'development' ? 'ACTIVE' : 'PENDING',
+                isVerified: process.env.NODE_ENV === 'development',
                 roles: selectedRole ? { connect: { id: selectedRole.id } } : undefined,
             },
-            include: { roles: true },
+            include: USER_PROFILE_INCLUDE,
         });
 
         const verification = await this.sendVerification(user, meta);
@@ -331,7 +320,7 @@ class AuthService {
         const email = payload.email.toLowerCase();
         const user = await prisma.user.findUnique({
             where: { email },
-            include: { roles: true },
+            include: USER_PROFILE_INCLUDE,
         });
 
         if (!user || !user.passwordHash) {
@@ -375,7 +364,7 @@ class AuthService {
 
         const stored = await prisma.refreshToken.findUnique({
             where: { token: refreshToken },
-            include: { user: { include: { roles: true } } },
+            include: { user: { include: USER_PROFILE_INCLUDE } },
         });
 
         if (!stored || stored.revoked) {

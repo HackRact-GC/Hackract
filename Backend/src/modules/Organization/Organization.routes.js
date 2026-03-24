@@ -1,6 +1,7 @@
 import express from 'express';
 import organizationController from './Organization.controller.js';
 import * as organizationMiddleware from './Organization.middleware.js';
+import { protect, restrictTo } from '../../middleware/Auth.middleware.js';
 
 const router = express.Router();
 
@@ -314,5 +315,18 @@ router.route('/:organizationId/members/:memberId')
 //   organizationMiddleware.isOrganizationMember,
 //   organizationController.getStatistics
 // );
+
+// Admin Verification Routes
+router.post('/:organizationId/approve',
+  protect,
+  restrictTo('SUPER_ADMIN'),
+  organizationController.approve
+);
+
+router.post('/:organizationId/reject',
+  protect,
+  restrictTo('SUPER_ADMIN'),
+  organizationController.reject
+);
 
 export default router;
