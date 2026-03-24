@@ -36,7 +36,7 @@ const OrganizationVerification = () => {
       }
     } catch (error) {
       toast.error('Failed to load organization status');
-      navigate('/dashboard');
+      navigate('/home');
     } finally {
       setLoading(false);
     }
