@@ -1,5 +1,6 @@
 /* eslint-disable react-refresh/only-export-components */
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
+import { useAuth0 } from "@auth0/auth0-react";
 import toast from "react-hot-toast";
 import api from "../api/axiosConfig";
 
@@ -11,10 +12,12 @@ const STORAGE_KEYS = {
 };
 
 export const AuthProvider = ({ children }) => {
+  const { isAuthenticated, logout: auth0Logout } = useAuth0();
   const [accessToken, setAccessToken] = useState(() => localStorage.getItem(STORAGE_KEYS.ACCESS));
   const [refreshToken, setRefreshToken] = useState(() => localStorage.getItem(STORAGE_KEYS.REFRESH));
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [isBootstrapping, setIsBootstrapping] = useState(() => Boolean(localStorage.getItem(STORAGE_KEYS.ACCESS)));
 
   const persistTokens = useCallback((nextAccess, nextRefresh) => {
     if (nextAccess) {
@@ -35,7 +38,10 @@ export const AuthProvider = ({ children }) => {
   }, []);
 
   const fetchProfile = useCallback(async () => {
-    if (!accessToken) return;
+    if (!accessToken) {
+      setIsBootstrapping(false);
+      return;
+    }
     try {
       const { data } = await api.get("/auth/local/me", {
         headers: { Authorization: `Bearer ${accessToken}` },
@@ -45,6 +51,8 @@ export const AuthProvider = ({ children }) => {
       console.error("Failed to load profile", error);
       persistTokens(null, refreshToken);
       setUser(null);
+    } finally {
+      setIsBootstrapping(false);
     }
   }, [accessToken, persistTokens, refreshToken]);
 
@@ -123,7 +131,8 @@ export const AuthProvider = ({ children }) => {
     return tokens.accessToken;
   }, [persistTokens, refreshToken]);
 
-  const logout = useCallback(async () => {
+  const logout = useCallback(async (options = {}) => {
+    const { skipAuth0Redirect = false } = options;
     try {
       if (refreshToken) {
         const { data } = await api.post("/auth/logout", { refreshToken });
@@ -138,22 +147,29 @@ export const AuthProvider = ({ children }) => {
     } finally {
       persistTokens(null, null);
       setUser(null);
+      if (isAuthenticated && !skipAuth0Redirect) {
+        auth0Logout({
+          logoutParams: {
+            returnTo: `${window.location.origin}/login`,
+          },
+        });
+      }
     }
-  }, [persistTokens, refreshToken]);
+  }, [persistTokens, refreshToken, isAuthenticated, auth0Logout]);
 
   const value = useMemo(
     () => ({
       user,
       accessToken,
       refreshToken,
-      loading,
+      loading: loading || isBootstrapping,
       login,
       register,
       logout,
       refreshTokens,
       setUser,
     }),
-    [user, accessToken, refreshToken, loading, login, register, logout, refreshTokens]
+    [user, accessToken, refreshToken, loading, isBootstrapping, login, register, logout, refreshTokens]
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
