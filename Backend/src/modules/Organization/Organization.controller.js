@@ -272,6 +272,24 @@ class OrganizationController {
     });
   });
 
+  approve = asyncHandler(async (req, res) => {
+    const { error, value } = organizationIdSchema.validate(req.params);
+    if (error) {
+      return res.status(400).json({ success: false, error: error.details[0].message });
+    }
+    const organization = await organizationService.approveOrganization(value.organizationId, req.user.id);
+    res.status(200).json({ success: true, message: 'Organization approved', data: organization });
+  });
+
+  reject = asyncHandler(async (req, res) => {
+    const { error, value } = organizationIdSchema.validate(req.params);
+    if (error) {
+      return res.status(400).json({ success: false, error: error.details[0].message });
+    }
+    const organization = await organizationService.rejectOrganization(value.organizationId, req.user.id);
+    res.status(200).json({ success: true, message: 'Organization rejected', data: organization });
+  });
+
   validateDomain = asyncHandler(async (req, res) => {
     const { error, value } = organizationIdSchema.validate(req.params);
     if (error) {

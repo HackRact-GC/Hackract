@@ -116,6 +116,26 @@ class OrganizationService {
     });
   }
 
+  async approveOrganization(id, adminId) {
+    const organization = await organizationRepository.getOrganizationById(id);
+    if (!organization) {
+        throw new AppError('Organization not found', 404);
+    }
+    return await organizationRepository.updateOrganization(id, {
+        verificationStatus: VerificationStatus.APPROVED
+    });
+  }
+
+  async rejectOrganization(id, adminId) {
+    const organization = await organizationRepository.getOrganizationById(id);
+    if (!organization) {
+        throw new AppError('Organization not found', 404);
+    }
+    return await organizationRepository.updateOrganization(id, {
+        verificationStatus: VerificationStatus.REJECTED
+    });
+  }
+
   async deleteOrganization(id, userId) {
     const member = await prisma.organizationMember.findFirst({
       where: {
