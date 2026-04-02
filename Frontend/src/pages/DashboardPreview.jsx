@@ -21,7 +21,6 @@ const DashboardPreview = () => {
 
       {/* SIDEBAR */}
       <div className={`fixed inset-y-0 left-0 z-50 w-64 bg-[#111111] border-r border-white/5 flex flex-col justify-between transform transition-transform duration-300 lg:relative lg:translate-x-0 ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full'}`}>
-        
         <div>
           {/* Logo */}
           <div className="p-6 flex justify-between items-center">
@@ -59,7 +58,7 @@ const DashboardPreview = () => {
 
       {/* MAIN CONTENT */}
       <div className="flex-1 flex flex-col">
-        
+
         {/* TOP NAVBAR */}
         <div className="flex items-center justify-between p-4 border-b border-white/5 bg-[#111111]">
           <div className="flex items-center gap-2">
@@ -78,6 +77,31 @@ const DashboardPreview = () => {
           <div className="flex items-center gap-4">
             <FiBell size={20} className="cursor-pointer hover:text-[#00ff88]" />
             <FiUser size={20} className="cursor-pointer hover:text-[#00ff88]" />
+          </div>
+        </div>
+
+        {/* DASHBOARD CARDS - Day 5 */}
+        <div className="p-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="bg-[#111111] p-4 rounded-lg flex items-center gap-4">
+            <FiFolder size={24} className="text-[#00ff88]" />
+            <div>
+              <p className="text-gray-400 text-sm">Total Projects</p>
+              <p className="text-white font-bold text-lg">12</p>
+            </div>
+          </div>
+          <div className="bg-[#111111] p-4 rounded-lg flex items-center gap-4">
+            <FiTool size={24} className="text-[#00ff88]" />
+            <div>
+              <p className="text-gray-400 text-sm">Active Scans</p>
+              <p className="text-white font-bold text-lg">5</p>
+            </div>
+          </div>
+          <div className="bg-[#111111] p-4 rounded-lg flex items-center gap-4">
+            <FiFileText size={24} className="text-[#00ff88]" />
+            <div>
+              <p className="text-gray-400 text-sm">Reports</p>
+              <p className="text-white font-bold text-lg">8</p>
+            </div>
           </div>
         </div>
 
