@@ -1,15 +1,11 @@
-import { useCallback, useMemo, useState } from "react";
+import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth0 } from "@auth0/auth0-react";
 import { FcGoogle } from "react-icons/fc";
 import { FaGithub } from "react-icons/fa";
 import { useAuth } from "../context/authContext.jsx";
-<<<<<<< HEAD
-=======
-import api from "../api/axiosConfig";
->>>>>>> origin/main
 
-const InputField = ({ label, type, placeholder, id, name, value, onChange, onBlur, required = true }) => (
+const InputField = ({ label, type, placeholder, id, name, value, onChange }) => (
   <div className="flex flex-col gap-2 group">
     <label
       htmlFor={id}
@@ -26,10 +22,9 @@ const InputField = ({ label, type, placeholder, id, name, value, onChange, onBlu
         placeholder={placeholder}
         value={value}
         onChange={onChange}
-        onBlur={onBlur}
         autoComplete={name}
         className="flex-1 bg-transparent outline-none text-sm font-mono placeholder-gray-400 text-gray-900 cursor-text"
-        required={required}
+        required
       />
     </div>
   </div>
@@ -51,31 +46,18 @@ const Register = () => {
   const navigate = useNavigate();
   const [form, setForm] = useState({
     fullName: "",
-    userName: "",
+    handle: "",
     email: "",
     password: "",
     confirmPassword: "",
   });
-  const [accountType, setAccountType] = useState("HACKER"); // HACKER | ORGANIZATION
-  const [organization, setOrganization] = useState({
-    name: "",
-    website: "",
-  });
+  const [roleType, setRoleType] = useState("PENTESTER"); // PENTESTER (Hacker) or ORG_ADMIN (Organization)
   const [successMessage, setSuccessMessage] = useState("");
   const [errorMessage, setErrorMessage] = useState("");
-  const [orgEmailStatus, setOrgEmailStatus] = useState({ state: "idle", reason: "" });
 
   const handleChange = (e) => {
     const { name, value } = e.target;
     setForm((prev) => ({ ...prev, [name]: value }));
-    if (name === "email" && accountType === "ORGANIZATION") {
-      setOrgEmailStatus({ state: "idle", reason: "" });
-    }
-  };
-
-  const handleOrgChange = (e) => {
-    const { name, value } = e.target;
-    setOrganization((prev) => ({ ...prev, [name]: value }));
   };
 
   const handleGoogleLogin = () => {
@@ -96,62 +78,20 @@ const Register = () => {
     });
   };
 
-  const canValidateOrgEmail = useMemo(() => {
-    return accountType === "ORGANIZATION" && typeof form.email === "string" && form.email.includes("@");
-  }, [accountType, form.email]);
-
-  const validateOrgEmail = useCallback(async () => {
-    if (!canValidateOrgEmail) return { isValid: true };
-    setOrgEmailStatus({ state: "loading", reason: "" });
-    try {
-      const { data } = await api.post("/auth/validate-org-email", { email: form.email });
-      const result = data?.data;
-      if (result?.isValid) {
-        setOrgEmailStatus({ state: "valid", reason: "" });
-      } else {
-        setOrgEmailStatus({
-          state: "invalid",
-          reason: result?.reason || "Organization accounts require a company email address.",
-        });
-      }
-      return result;
-    } catch {
-      setOrgEmailStatus({ state: "idle", reason: "" });
-      return { isValid: true };
-    }
-  }, [canValidateOrgEmail, form.email]);
-
   const handleSubmit = async (e) => {
     e.preventDefault();
     setSuccessMessage("");
     setErrorMessage("");
     try {
-      if (accountType === "ORGANIZATION" && !organization.name.trim()) {
-        setErrorMessage("Organization name is required.");
-        return;
-      }
-
-      if (accountType === "ORGANIZATION") {
-        const validation = await validateOrgEmail();
-        if (validation?.isValid === false) {
-          setErrorMessage(validation?.reason || "Organization accounts require a company email address.");
-          return;
-        }
-      }
-
-      const payload = {
-        ...form,
-        accountType,
-        ...(accountType === "ORGANIZATION" ? { organization } : {}),
-      };
+      const payload = { ...form, roleType };
       const result = await register(payload);
       
       setSuccessMessage(result?.message || "Registration successful. Check your email for verification code.");
       console.info("[ui] registration success", result);
 
-      // Redirect to login page (both Hacker and Organization)
+      // Redirect to OTP verification page
       setTimeout(() => {
-        navigate("/login");
+        navigate(`/verify-email?email=${encodeURIComponent(form.email)}`);
       }, 1500);
     } catch (err) {
       const backendError = err?.response?.data?.error || err?.response?.data?.message;
@@ -174,19 +114,15 @@ const Register = () => {
       {/* Role toggle */}
       <div className="flex gap-2 w-full">
         {[
-          { id: "HACKER", label: "Hacker" },
-          { id: "ORGANIZATION", label: "Organization" },
+          { id: "PENTESTER", label: "Hacker" },
+          { id: "ORG_ADMIN", label: "Organization" },
         ].map((option) => {
-          const isActive = accountType === option.id;
+          const isActive = roleType === option.id;
           return (
             <button
               key={option.id}
               type="button"
-              onClick={() => {
-                setAccountType(option.id);
-                setOrgEmailStatus({ state: "idle", reason: "" });
-                setErrorMessage("");
-              }}
+              onClick={() => setRoleType(option.id)}
               className={`flex-1 py-2.5 border text-xs font-mono uppercase tracking-widest rounded-sm transition-all duration-300 cursor-pointer ${
                 isActive
                   ? "bg-black text-[#00ff88] border-black shadow-lg shadow-[#00ff88]/30"
@@ -211,64 +147,32 @@ const Register = () => {
           </div>
         )}
         <InputField
-          label={accountType === "ORGANIZATION" ? "Owner Name" : "Full Name"}
+          label="Full Name"
           type="text"
           id="fullName"
           name="fullName"
-          placeholder={accountType === "ORGANIZATION" ? "Owner full name" : "Jane Doe"}
+          placeholder="Jane Doe"
           value={form.fullName}
           onChange={handleChange}
         />
         <InputField
-          label="Username"
+          label="Handle"
           type="text"
-          id="userName"
-          name="userName"
+          id="handle"
+          name="handle"
           placeholder="janedoe"
-          value={form.userName}
+          value={form.handle}
           onChange={handleChange}
-          required={false}
         />
         <InputField
-          label={accountType === "ORGANIZATION" ? "Organization Email" : "Email"}
+          label="Email"
           type="email"
           id="email"
           name="email"
           placeholder="username@domain.com"
           value={form.email}
           onChange={handleChange}
-          onBlur={accountType === "ORGANIZATION" ? validateOrgEmail : undefined}
         />
-        {accountType === "ORGANIZATION" && orgEmailStatus.state === "invalid" && (
-          <div className="-mt-4 text-xs font-mono text-red-700">{orgEmailStatus.reason}</div>
-        )}
-        {accountType === "ORGANIZATION" && orgEmailStatus.state === "valid" && (
-          <div className="-mt-4 text-xs font-mono text-green-700">Company email detected.</div>
-        )}
-
-        {accountType === "ORGANIZATION" && (
-          <>
-            <InputField
-              label="Organization Name"
-              type="text"
-              id="orgName"
-              name="name"
-              placeholder="Acme Security"
-              value={organization.name}
-              onChange={handleOrgChange}
-            />
-            <InputField
-              label="Website"
-              type="url"
-              id="orgWebsite"
-              name="website"
-              placeholder="https://acme.com"
-              value={organization.website}
-              onChange={handleOrgChange}
-              required={false}
-            />
-          </>
-        )}
         <InputField
           label="Password"
           type="password"
@@ -297,20 +201,24 @@ const Register = () => {
         </button>
       </form>
 
-      {accountType === "HACKER" && (
-        <>
-          <div className="flex items-center gap-4">
-            <div className="h-px flex-1 bg-gray-200"></div>
-            <span className="text-[10px] font-mono text-gray-400 uppercase tracking-widest">or connect via</span>
-            <div className="h-px flex-1 bg-gray-200"></div>
-          </div>
+      <div className="flex items-center gap-4">
+        <div className="h-px flex-1 bg-gray-200"></div>
+        <span className="text-[10px] font-mono text-gray-400 uppercase tracking-widest">or connect via</span>
+        <div className="h-px flex-1 bg-gray-200"></div>
+      </div>
 
-          <div className="flex gap-4 w-full">
-            <SocialButton icon={<FcGoogle />} label="Google" onClick={handleGoogleLogin} />
-            <SocialButton icon={<FaGithub />} label="Github" onClick={handleGithubLogin} />
-          </div>
-        </>
-      )}
+      <div className="flex gap-4 w-full">
+        <SocialButton
+          icon={<FcGoogle />}
+          label="Google"
+          onClick={handleGoogleLogin}
+        />
+        <SocialButton
+          icon={<FaGithub />}
+          label="Github"
+          onClick={handleGithubLogin}
+        />
+      </div>
 
       <div className="text-center text-xs font-mono text-gray-500 mt-4">
         Already have an account?{" "}

@@ -1,5 +1,6 @@
 // src/modules/organization/organization.controller.js
 import organizationService from './Organization.service.js';
+import * as memberService from '../OrgMembers/member.service.js';
 import {
   createOrganizationSchema,
   updateOrganizationSchema,
@@ -7,7 +8,6 @@ import {
   listOrganizationsQuerySchema,
   organizationNameQuerySchema,
   ownerNameQuerySchema
-
 } from './Organization.schema.js';
 import asyncHandler from '../../utils/AsyncHandler.js';
 
@@ -141,8 +141,8 @@ class OrganizationController {
     const result = await organizationService.deleteAllOrganizations(req.user);
     res.status(200).json({
       success: true,
-<<<<<<< HEAD
-      ...result
+      message: 'All organizations deleted successfully',
+      data: result
     });
   });
 
@@ -198,7 +198,7 @@ class OrganizationController {
     });
   });
 
- 
+
   searchOrganizations = asyncHandler(async (req, res) => {
     const { error, value } = paginationSchema.validate(req.query);
     if (error) {
@@ -278,14 +278,46 @@ class OrganizationController {
     res.status(200).json({
       success: true,
       message: 'Domain validation successful',
-=======
-      message: 'All organizations deleted successfully',
->>>>>>> origin/main
       data: result
     });
   });
 
+  getMembers = asyncHandler(async (req, res) => {
+    const { organizationId } = req.params;
+    const members = await memberService.listMembers(organizationId, req.user);
+    res.status(200).json({
+      success: true,
+      data: members
+    });
+  });
 
+  addMember = asyncHandler(async (req, res) => {
+    const { organizationId } = req.params;
+    const memberData = { ...req.body, organizationId };
+    const result = await memberService.addMember(memberData, req.user);
+    res.status(201).json({
+      success: true,
+      data: result
+    });
+  });
+
+  updateMember = asyncHandler(async (req, res) => {
+    const { organizationId, memberId } = req.params;
+    const result = await memberService.updateMember(organizationId, memberId, req.body, req.user);
+    res.status(200).json({
+      success: true,
+      data: result
+    });
+  });
+
+  removeMember = asyncHandler(async (req, res) => {
+    const { organizationId, memberId } = req.params;
+    await memberService.removeMember(organizationId, memberId, req.user);
+    res.status(200).json({
+      success: true,
+      message: 'Member removed successfully'
+    });
+  });
 }
 
 export default new OrganizationController();

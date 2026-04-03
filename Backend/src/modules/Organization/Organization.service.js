@@ -64,8 +64,26 @@ class OrganizationService {
       return organizationRepository.deleteOrganization(id);
     }
 
-<<<<<<< HEAD
+    const member = await prisma.organizationMember.findFirst({
+      where: {
+        organizationId: id,
+        userId: user.id,
+        role: 'owner',
+      },
+    });
+
+    if (!member) {
+      throw new AppError('Only organization owners can delete the organization', 403, OrganizationErrorCodes.UNAUTHORIZED);
+    }
+
+    return organizationRepository.deleteOrganization(id);
+  }
+
+  async submitVerification(id, data, userId) {
     const organization = await organizationRepository.getOrganizationById(id);
+    if (!organization) {
+        throw new AppError('Organization not found', 404);
+    }
     if (organization.verificationStatus === VerificationStatus.APPROVED) {
         return organization;
     }
@@ -94,24 +112,6 @@ class OrganizationService {
     return await organizationRepository.updateOrganization(id, {
         verificationStatus: VerificationStatus.REJECTED
     });
-  }
-
-  async deleteOrganization(id, userId) {
-=======
->>>>>>> origin/main
-    const member = await prisma.organizationMember.findFirst({
-      where: {
-        organizationId: id,
-        userId: user.id,
-        role: 'owner',
-      },
-    });
-
-    if (!member) {
-      throw new AppError('Only organization owners can delete the organization', 403, OrganizationErrorCodes.UNAUTHORIZED);
-    }
-
-    return organizationRepository.deleteOrganization(id);
   }
 
   async listOrganizations(query, user) {

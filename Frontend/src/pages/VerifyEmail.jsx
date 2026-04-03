@@ -1,5 +1,5 @@
-import { useEffect, useMemo, useState } from "react";
-import { Link, useLocation, useSearchParams } from "react-router-dom";
+import { useState } from "react";
+import { Link } from "react-router-dom";
 import toast from "react-hot-toast";
 import api from "../api/axiosConfig";
 import { useNavigate } from "react-router-dom";
@@ -18,7 +18,6 @@ const StatusBadge = ({ status, children }) => {
 
 const VerifyEmail = () => {
   const navigate = useNavigate();
-<<<<<<< HEAD
   const [searchParams] = useSearchParams();
   const [status, setStatus] = useState("idle");
   const [message, setMessage] = useState("Enter the 6-digit code we emailed you.");
@@ -26,31 +25,6 @@ const VerifyEmail = () => {
     email: searchParams.get("email") || "",
     code: "",
   });
-=======
-  const location = useLocation();
-  const [searchParams] = useSearchParams();
-  const [status, setStatus] = useState("idle");
-  const [message, setMessage] = useState("Enter the 6-digit code we emailed you.");
-  const tokenFromUrl = useMemo(() => {
-    const t = searchParams.get("token");
-    return t ? String(t).trim() : "";
-  }, [searchParams]);
-
-  const initialEmail = useMemo(() => {
-    const emailFromState = location?.state?.email;
-    return typeof emailFromState === "string" ? emailFromState : "";
-  }, [location?.state?.email]);
-
-  const [form, setForm] = useState({ email: initialEmail, code: tokenFromUrl || "" });
-
-  useEffect(() => {
-    setForm((prev) => ({
-      ...prev,
-      email: prev.email || initialEmail,
-      code: prev.code || tokenFromUrl,
-    }));
-  }, [initialEmail, tokenFromUrl]);
->>>>>>> origin/main
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -62,8 +36,7 @@ const VerifyEmail = () => {
     setStatus("loading");
     setMessage("Verifying...");
     try {
-      const payload = { token: form.code };
-      if (form.email) payload.email = form.email;
+      const payload = { email: form.email, token: form.code };
       const { data } = await api.post("/auth/verify-email", payload);
       setStatus("success");
       const successMsg = data?.message || "Email verified! You can now log in.";
@@ -97,7 +70,7 @@ const VerifyEmail = () => {
 
       <form className="space-y-6" onSubmit={handleSubmit}>
         <div className="flex flex-col gap-2">
-          <label className="text-xs font-bold tracking-widest uppercase text-gray-500 font-sans">Email (optional)</label>
+          <label className="text-xs font-bold tracking-widest uppercase text-gray-500 font-sans">Email</label>
           <div className="flex items-center w-full bg-gray-100 rounded-sm px-3 py-3 border border-transparent focus-within:border-black transition-all duration-300">
             <span className="text-xs font-mono text-gray-500 mr-2 select-none">root@hackract:~$</span>
             <input
@@ -105,6 +78,7 @@ const VerifyEmail = () => {
               name="email"
               value={form.email}
               onChange={handleChange}
+              required
               className="flex-1 bg-transparent outline-none text-sm font-mono placeholder-gray-400 text-gray-900 cursor-text"
               placeholder="username@domain.com"
             />
