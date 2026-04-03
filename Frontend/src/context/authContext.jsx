@@ -1,4 +1,4 @@
-export * from "./authContext.jsx";
+import React, { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react';
 /* eslint-disable react-refresh/only-export-components */
 import { useAuth0 } from "@auth0/auth0-react";
 import toast from "react-hot-toast";
@@ -156,7 +156,6 @@ export const AuthProvider = ({ children }) => {
       }
     }
   }, [persistTokens, refreshToken, isAuthenticated, auth0Logout]);
-  }, [persistTokens, refreshToken]);
 
   const value = useMemo(
     () => ({
