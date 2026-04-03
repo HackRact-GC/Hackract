@@ -2,6 +2,7 @@ import express from "express";
 import { protect } from "../../middleware/Auth.middleware.js";
 import prisma from "../../database/prismaClient.js";
 import AppError from "../../utils/AppError.js";
+import { logAction } from "../AuditLogs/auditLog.service.js";
 
 const router = express.Router();
 
@@ -44,6 +45,33 @@ router.get("/", async (req, res, next) => {
           },
         },
         workflows: { select: { id: true, name: true, updatedAt: true } },
+      },
+    });
+
+    res.json({ success: true, data: projects });
+  } catch (error) {
+    next(error);
+  }
+});
+
+router.get("/marketplace", async (req, res, next) => {
+  try {
+    // Marketplace shows only PLANNING projects
+    // For now, filtering projects where the user isn't already a collaborator/admin
+    const projects = await prisma.pentest.findMany({
+      where: {
+        status: "PLANNING",
+        NOT: {
+          OR: [
+            { collaborators: { some: { userId: req.user.id } } },
+            { leadPentesterId: req.user.id },
+          ],
+        },
+      },
+      orderBy: { createdAt: "desc" },
+      include: {
+        organization: { select: { id: true, name: true } },
+        _count: { select: { collaborators: true } },
       },
     });
 
@@ -149,6 +177,12 @@ router.post("/", async (req, res, next) => {
       },
     });
 
+    await logAction("PROJECT_CREATED", req.user.id, {
+        pentestId: project.id,
+        organizationId,
+        name
+    }, req);
+
     res.status(201).json({ success: true, data: fullProject, message: "Project created successfully" });
   } catch (error) {
     next(error);
@@ -205,6 +239,148 @@ router.post("/:projectId/hackers", async (req, res, next) => {
     });
 
     res.json({ success: true, message: "Hackers added successfully" });
+  } catch (error) {
+    next(error);
+  }
+});
+
+router.post("/:projectId/apply", async (req, res, next) => {
+  try {
+    const { projectId } = req.params;
+    const project = await prisma.pentest.findUnique({ where: { id: projectId } });
+    if (!project) throw new AppError("Project not found", 404);
+
+    if (project.status !== "PLANNING") {
+        throw new AppError("Applications are only open for projects in PLANNING status", 400);
+    }
+
+    const existing = await prisma.pentestCollaborator.findUnique({
+      where: { pentestId_userId: { pentestId: projectId, userId: req.user.id } },
+    });
+
+    if (existing) {
+      throw new AppError(`You are already a ${existing.role} in this project`, 400);
+    }
+
+    await prisma.pentestCollaborator.create({
+      data: {
+        pentestId: projectId,
+        userId: req.user.id,
+        role: "APPLICANT",
+      },
+    });
+
+    res.json({ success: true, message: "Application submitted successfully" });
+  } catch (error) {
+    next(error);
+  }
+});
+
+router.get("/:projectId/applicants", async (req, res, next) => {
+  try {
+    const { projectId } = req.params;
+    const project = await prisma.pentest.findUnique({ where: { id: projectId } });
+    if (!project) throw new AppError("Project not found", 404);
+
+    const canManage = await isOrgAdminMember(project.organizationId, req.user.id);
+    const isProjectAdmin = await prisma.pentestCollaborator.findFirst({
+        where: { pentestId: projectId, userId: req.user.id, role: "PROJECT_ADMIN" }
+    });
+
+    if (!canManage && !isProjectAdmin) {
+      throw new AppError("Only organization admin or project admin can view applicants", 403);
+    }
+
+    const applicants = await prisma.pentestCollaborator.findMany({
+      where: { pentestId: projectId, role: "APPLICANT" },
+      include: {
+        user: { select: { id: true, fullName: true, handle: true, email: true } },
+      },
+    });
+
+    res.json({ success: true, data: applicants });
+  } catch (error) {
+    next(error);
+  }
+});
+
+router.post("/:projectId/hire", async (req, res, next) => {
+  try {
+    const { projectId } = req.params;
+    const { userId } = req.body;
+    if (!userId) throw new AppError("userId is required", 400);
+
+    const project = await prisma.pentest.findUnique({ where: { id: projectId } });
+    if (!project) throw new AppError("Project not found", 404);
+
+    const canManage = await isOrgAdminMember(project.organizationId, req.user.id);
+    const isProjectAdmin = await prisma.pentestCollaborator.findFirst({
+        where: { pentestId: projectId, userId: req.user.id, role: "PROJECT_ADMIN" }
+    });
+
+    if (!canManage && !isProjectAdmin) {
+      throw new AppError("Only organization admin or project admin can hire hackers", 403);
+    }
+
+    await prisma.pentestCollaborator.update({
+      where: { pentestId_userId: { pentestId: projectId, userId } },
+      data: { role: "HACKER" },
+    });
+
+    await logAction("HACKER_HIRED", req.user.id, {
+        pentestId: projectId,
+        hiredUserId: userId
+    }, req);
+
+    res.json({ success: true, message: "Hacker hired successfully" });
+  } catch (error) {
+    next(error);
+  }
+});
+
+router.get("/:projectId/activity", async (req, res, next) => {
+  try {
+    const { projectId } = req.params;
+    const logs = await prisma.auditLog.findMany({
+      where: { pentestId: projectId },
+      orderBy: { createdAt: "desc" },
+      take: 50,
+      include: {
+        user: { select: { fullName: true, handle: true } }
+      }
+    });
+
+    res.json({ success: true, data: logs });
+  } catch (error) {
+    next(error);
+  }
+});
+
+router.post("/:projectId/kickoff", async (req, res, next) => {
+  try {
+    const { projectId } = req.params;
+    const project = await prisma.pentest.findUnique({ where: { id: projectId } });
+    if (!project) throw new AppError("Project not found", 404);
+
+    const canManage = await isOrgAdminMember(project.organizationId, req.user.id);
+    const isProjectAdmin = await prisma.pentestCollaborator.findFirst({
+        where: { pentestId: projectId, userId: req.user.id, role: "PROJECT_ADMIN" }
+    });
+
+    if (!canManage && !isProjectAdmin) {
+      throw new AppError("Only organization admin or project admin can perform kickoff", 403);
+    }
+
+    await prisma.pentest.update({
+      where: { id: projectId },
+      data: { status: "IN_PROGRESS" }
+    });
+
+    await logAction("PROJECT_KICKOFF", req.user.id, {
+        pentestId: projectId
+    }, req);
+
+    res.json({ success: true, message: "Project kicked off successfully" });
   } catch (error) {
     next(error);
   }

@@ -45,7 +45,6 @@ const Login = () => {
     const { loginWithRedirect } = useAuth0();
     const { login, loading } = useAuth();
     const [form, setForm] = useState({ email: "", password: "" });
-    const [loginType, setLoginType] = useState("HACKER"); // HACKER | ORGANIZATION
 
     const handleChange = (e) => {
         const { name, value } = e.target;
@@ -55,24 +54,7 @@ const Login = () => {
     const handleSubmit = async (e) => {
         e.preventDefault();
         try {
-<<<<<<< HEAD
             await login(form);
-=======
-            const result = await login(form);
-            const primaryRole = result?.user?.roles?.[0]?.type;
-            if (primaryRole === "PENTESTER" || primaryRole === "PROJECT_ADMIN") {
-                navigate("/hacker-profile", {
-                    state: { requiresEmailVerification: !!result?.requiresEmailVerification },
-                });
-                return;
-            }
-            if (primaryRole === "ORG_ADMIN") {
-                navigate("/organization-profile", {
-                    state: { requiresEmailVerification: !!result?.requiresEmailVerification },
-                });
-                return;
-            }
->>>>>>> origin/main
             navigate("/dashboard");
         } catch (error) {
             const errorCode = error?.response?.data?.code;
@@ -80,7 +62,7 @@ const Login = () => {
             // toast handled in context
             if (errorCode === 'EMAIL_NOT_VERIFIED' || status === 403) {
                 setTimeout(() => {
-                    navigate("/verify-email", { state: { email: form.email } });
+                    navigate(`/verify-email?email=${encodeURIComponent(form.email)}`);
                 }, 1500);
             }
         }
@@ -111,27 +93,6 @@ const Login = () => {
                 <p className="text-gray-500 text-xs font-mono tracking-wide">
                     Enter your email and password to access your account
                 </p>
-            </div>
-
-            <div className="flex items-center justify-center md:justify-start gap-2">
-                <button
-                    type="button"
-                    onClick={() => setLoginType("HACKER")}
-                    className={`px-4 py-2 text-xs font-mono uppercase tracking-widest border rounded-sm transition-all duration-300 ${
-                        loginType === "HACKER" ? "bg-black text-[#00ff88] border-black" : "bg-white text-gray-600 border-gray-300 hover:border-black"
-                    }`}
-                >
-                    Hacker
-                </button>
-                <button
-                    type="button"
-                    onClick={() => setLoginType("ORGANIZATION")}
-                    className={`px-4 py-2 text-xs font-mono uppercase tracking-widest border rounded-sm transition-all duration-300 ${
-                        loginType === "ORGANIZATION" ? "bg-black text-[#00ff88] border-black" : "bg-white text-gray-600 border-gray-300 hover:border-black"
-                    }`}
-                >
-                    Organization
-                </button>
             </div>
 
             <form className="flex flex-col gap-6" onSubmit={handleSubmit}>
@@ -169,20 +130,24 @@ const Login = () => {
                 </button>
             </form>
 
-            {loginType === "HACKER" && (
-                <>
-                    <div className="flex items-center gap-4">
-                        <div className="h-px flex-1 bg-gray-200"></div>
-                        <span className="text-[10px] font-mono text-gray-400 uppercase tracking-widest">or connect via</span>
-                        <div className="h-px flex-1 bg-gray-200"></div>
-                    </div>
+            <div className="flex items-center gap-4">
+                <div className="h-px flex-1 bg-gray-200"></div>
+                <span className="text-[10px] font-mono text-gray-400 uppercase tracking-widest">or connect via</span>
+                <div className="h-px flex-1 bg-gray-200"></div>
+            </div>
 
-                    <div className="flex gap-4 w-full">
-                        <SocialButton icon={<FcGoogle />} label="Google" onClick={handleGoogleLogin} />
-                        <SocialButton icon={<FaGithub />} label="Github" onClick={handleGithubLogin} />
-                    </div>
-                </>
-            )}
+            <div className="flex gap-4 w-full">
+                <SocialButton
+                    icon={<FcGoogle />}
+                    label="Google"
+                    onClick={handleGoogleLogin}
+                />
+                <SocialButton
+                    icon={<FaGithub />}
+                    label="Github"
+                    onClick={handleGithubLogin}
+                />
+            </div>
 
             <div className="text-center text-xs font-mono text-gray-500 mt-4">
                 New here?{" "}
