@@ -2,351 +2,145 @@ import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/authContext.jsx";
 import api from "../api/axiosConfig";
+import { motion } from "framer-motion";
+import { FiSearch, FiBell, FiLock } from "react-icons/fi";
+
+import HackerDashboardView from "./HackerDashboardView.jsx";
+import OrganizationDashboardView from "./OrganizationDashboardView.jsx";
 
 const Home = () => {
   const navigate = useNavigate();
-  const { user, logout } = useAuth();
+  const { user } = useAuth();
   const [profileStatus, setProfileStatus] = useState(null);
-  const [orgs, setOrgs] = useState([]);
 
   useEffect(() => {
-    const fetchStatus = async () => {
+    const fetchData = async () => {
       try {
-        const { data } = await api.get('/hacker-profiles/me/status');
-        setProfileStatus(data.data.profile?.status);
+        if (user?.roles?.some(r => r.type === 'PENTESTER')) {
+          const { data } = await api.get('/hacker-profiles/me/status');
+          setProfileStatus(data.data.profile?.status);
+        }
       } catch (err) {
-        console.error('Failed to fetch profile status');
+        console.error('Handshake synchronization failed', err);
       }
     };
-    if (user?.roles?.[0]?.type === 'PENTESTER') {
-      fetchStatus();
-    }
-    
-    const fetchOrgs = async () => {
-      try {
-        const { data } = await api.get('/organizations/me');
-        setOrgs(data.data || []);
-      } catch (err) {
-        console.error('Failed to fetch organizations');
-      }
-    };
-    if (user?.roles?.[0]?.type === 'ORG_ADMIN') {
-      fetchOrgs();
-    }
+    fetchData();
   }, [user]);
 
   const primaryRoleType = user?.roles?.[0]?.type;
-  const isSuperAdmin = primaryRoleType === "SUPER_ADMIN" || user?.roles?.some(r => r.type === 'SUPER_ADMIN');
-  const isOrgView = primaryRoleType === "ORG_ADMIN" || (!isSuperAdmin && user?.roles?.some(r => r.type === 'ORG_ADMIN'));
+  const isSuperAdmin = user?.roles?.some((r) => r.type === "SUPER_ADMIN");
+  const isOrgView = user?.roles?.some((r) => r.type === "ORG_ADMIN") && !isSuperAdmin;
 
-  let navItems = [
-      { label: "Dashboard", active: true, route: '/dashboard' },
-      { label: "Marketplace", route: '/marketplace' },
-      { label: "My Applications", route: '/my-applications' },
-      { label: "Projects", route: '/projects' },
-      { label: "Reports", route: '/reports' },
-      { label: "Findings", route: '/findings' },
-      { label: "Settings", route: '/settings' },
-  ];
+    return (
+    <div className="min-h-screen bg-black text-white flex flex-col relative overflow-hidden font-sans selection:bg-[#00ff88]/30 selection:text-black">
+        {/* Background Accents */}
+        <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-[#00ff88]/5 rounded-full blur-[120px] -mr-64 -mt-64 pointer-events-none" />
+        <div className="absolute bottom-0 left-0 w-[400px] h-[400px] bg-white/5 rounded-full blur-[100px] -ml-40 -mb-40 pointer-events-none" />
 
-  if (isOrgView) {
-      navItems = [
-          { label: "Org Overview", active: true, route: '/dashboard' },
-          { label: "Teams", route: '/teams' },
-          { label: "Projects", route: '/projects' },
-          { label: "Compliance", route: '/compliance' },
-          { label: "Settings", route: '/settings' },
-      ];
-  }
-
-  if (isSuperAdmin) {
-      navItems.push({ label: "Approvals Pipeline", route: '/admin/approvals', adminOnly: true });
-  }
-
-  const quickActions = isOrgView
-    ? [
-      { title: "Create Program", description: "Define a new security program" },
-      { title: "Invite Pentester", description: "Bring in an external operator" },
-      { title: "Review Findings", description: "Prioritize open issues" },
-    ]
-    : [
-      { title: "Discover Projects", description: "Find new security engagements", route: "/marketplace" },
-      { title: "New Pentest", description: "Kick off a scoped engagement" },
-      { title: "Upload Evidence", description: "Attach screenshots or logs" },
-    ];
-
-  const highlights = isOrgView
-    ? [
-      { title: "Active Programs", value: "4", tone: "bg-emerald-50 text-emerald-800" },
-      { title: "Vulns Awaiting Triage", value: "18", tone: "bg-amber-50 text-amber-800" },
-      { title: "Vendors Engaged", value: "6", tone: "bg-sky-50 text-sky-800" },
-    ]
-    : [
-      { title: "Open Findings", value: "12", tone: "bg-amber-50 text-amber-800" },
-      { title: "In Progress", value: "3", tone: "bg-blue-50 text-blue-800" },
-      { title: "Reports Due", value: "2", tone: "bg-rose-50 text-rose-800" },
-    ];
-
-  const activity = isOrgView
-    ? [
-      { title: "New vendor added to program", time: "1h ago" },
-      { title: "Policy exception approved", time: "5h ago" },
-      { title: "Quarterly report exported", time: "Yesterday" },
-    ]
-    : [
-      { title: "SQLi discovered on login", time: "2h ago" },
-      { title: "Report draft exported", time: "6h ago" },
-      { title: "New collaborator added", time: "Yesterday" },
-    ];
-
-  const handleLogout = async () => {
-    await logout();
-    navigate("/login");
-  };
-
-  return (
-    <div className="min-h-screen bg-[#0a0a0a] text-white flex">
-      {/* Left sidebar */}
-      <aside className="hidden lg:flex w-64 flex-col border-r border-white/10 bg-black/40 backdrop-blur">
-        <div className="px-6 py-6 text-xl font-mono font-bold tracking-[0.2em]">HACKRACT</div>
-        <nav className="flex-1 px-4 space-y-1 mt-4">
-          {navItems.map((item) => (
-            <button
-              key={item.label}
-              onClick={() => navigate(item.route)}
-              className={`w-full text-left px-4 py-3 rounded-lg font-mono text-sm transition-all duration-200 flex items-center justify-between ${
-                  item.active
-                  ? "bg-[#00ff88] text-black shadow-lg shadow-[#00ff88]/30"
-                  : item.adminOnly 
-                    ? "text-[#00ff88] hover:bg-[#00ff88]/10 border border-[#00ff88]/30 mt-8"
-                    : "text-gray-300 hover:bg-white/5"
-                }`}
-            >
-              {item.label}
-              {item.adminOnly && <span className="text-[10px] bg-[#00ff88]/20 px-2 py-0.5 rounded uppercase tracking-widest">Admin</span>}
-            </button>
-          ))}
-        </nav>
-        <div className="px-6 py-6 text-xs text-gray-500 font-mono">Secure • Offensive • Precise</div>
-      </aside>
-
-      {/* Main content */}
-      <div className="flex-1 flex flex-col">
-        {/* Top nav */}
-        <header className="h-16 border-b border-white/10 flex items-center justify-between px-6 bg-black/30 backdrop-blur">
-          <div className="flex items-center gap-3">
-            <div className="h-9 w-9 rounded-lg bg-[#00ff88]/20 border border-[#00ff88]/40 flex items-center justify-center text-[#00ff88] font-bold">
-              λ
-            </div>
+        <header className="h-20 border-b border-white/10 flex items-center justify-between px-10 bg-black/40 backdrop-blur-xl relative z-10">
+          <div className="flex items-center gap-6">
             <div>
-              <div className="text-sm font-mono text-gray-300">
-                {isOrgView ? "Organization view" : "Operator console"}
+              <div className="flex items-center gap-2 mb-0.5">
+                <span className="w-2 h-2 rounded-full bg-[#00ff88] animate-pulse shadow-[0_0_8px_rgba(0,255,136,0.65)]" />
+                <h2 className="text-sm font-black uppercase tracking-[0.2em] text-[#00ff88]/80">
+                    {isOrgView ? "Enterprise Node" : "Operative Console"}
+                </h2>
               </div>
-              <div className="text-lg font-semibold">
-                {isOrgView ? "Security program overview" : "Your command center"}
-              </div>
+              <h1 className="text-xl font-bold text-white tracking-tight">
+                {isOrgView ? "Security Posture Dashboard" : "Operational Command Center"}
+              </h1>
             </div>
           </div>
-          <div className="flex items-center gap-3">
-            <input
-              type="text"
-              placeholder="Search assets, findings..."
-              className="bg-white/5 border border-white/10 rounded-md px-3 py-2 text-sm w-64 focus:outline-none focus:border-[#00ff88]"
-            />
-            <div className="h-10 w-10 rounded-full bg-white/10 border border-white/20 flex items-center justify-center font-semibold">
-              {user?.fullName?.[0]?.toUpperCase() || user?.handle?.[0]?.toUpperCase() || "U"}
+          
+          <div className="flex items-center gap-4">
+            <div className="relative group hidden md:block">
+              <FiSearch className="absolute left-4 top-1/2 -translate-y-1/2 text-white/40 group-focus-within:text-[#00ff88] transition-colors" />
+              <input
+                type="text"
+                placeholder="Search assets, findings, history..."
+                className="bg-black/50 border border-white/10 rounded-xl px-12 py-2.5 text-sm w-80 focus:outline-none focus:border-[#00ff88]/50 transition-all placeholder:text-white/40 text-white"
+              />
             </div>
-            <button
-              onClick={handleLogout}
-              className="px-4 py-2 bg-white/10 border border-white/20 rounded-md text-xs font-mono uppercase tracking-widest hover:border-[#00ff88] transition-colors"
-            >
-              Logout
+            <button className="relative p-3 rounded-xl bg-black border border-white/10 text-white/60 hover:border-[#00ff88]/30 hover:text-[#00ff88] transition-all">
+                <FiBell size={18} />
+                <span className="absolute top-2.5 right-2.5 w-2 h-2 bg-[#00ff88] rounded-full border-2 border-black" />
             </button>
           </div>
         </header>
 
-        <div className="flex-1 grid grid-cols-1 xl:grid-cols-[2fr_1fr] gap-6 p-6">
-          {/* Center content */}
-          <div className="space-y-6">
-            <div className="bg-white/5 border border-white/10 rounded-2xl p-6 shadow-xl shadow-black/40">
-              <div className="flex items-center justify-between mb-6">
-                <div>
-                  <div className="text-sm text-gray-400 font-mono">Pipeline</div>
-                  <h2 className="text-2xl font-bold">Active engagements</h2>
-                </div>
-                <button
-                  onClick={() => navigate("/projects")}
-                  className="px-4 py-2 bg-[#00ff88] text-black rounded-md font-mono text-xs tracking-widest uppercase shadow-lg shadow-[#00ff88]/30"
-                >
-                  New project
-                </button>
-              </div>
-              <div className="grid sm:grid-cols-3 gap-4">
-                {highlights.map((card) => (
-                  <div key={card.title} className={`rounded-xl px-4 py-5 border border-white/10 ${card.tone}`}>
-                    <div className="text-xs font-mono uppercase tracking-wide opacity-80">{card.title}</div>
-                    <div className="text-3xl font-bold mt-2">{card.value}</div>
-                  </div>
-                ))}
-              </div>
-            </div>
-
+        <main className="flex-1 p-10 overflow-y-auto relative z-10 custom-scrollbar">
+          <div className="max-w-7xl mx-auto space-y-10">
+            
+            {/* Critical Status Banner */}
             {primaryRoleType === 'PENTESTER' && profileStatus !== 'APPROVED' && (
-              <div className="bg-amber-500/10 border border-amber-500/30 rounded-2xl p-6 shadow-xl flex items-center justify-between gap-6 group">
-                <div className="flex items-center gap-4">
-                  <div className="h-12 w-12 rounded-full bg-amber-500/20 flex items-center justify-center text-amber-500 text-xl">
-                    ⚠️
+              <motion.div 
+                initial={{ opacity: 0, scale: 0.98 }}
+                animate={{ opacity: 1, scale: 1 }}
+                className="bg-white/5 border border-[#00ff88]/20 rounded-4xl p-8 flex flex-col md:flex-row items-center justify-between gap-8 backdrop-blur shadow-2xl shadow-black/20"
+              >
+                <div className="flex items-center gap-6">
+                  <div className="h-16 w-16 rounded-2xl bg-[#00ff88]/10 flex items-center justify-center text-[#00ff88] border border-[#00ff88]/20">
+                    <FiLock size={32} />
                   </div>
-                  <div>
-                    <h3 className="font-bold text-amber-500 uppercase tracking-tighter text-sm">Action Required: Operator Identity Pending</h3>
-                    <p className="text-xs text-gray-400 max-w-lg">
-                      To participate in organization engagements, you must provide legal proof of identity and sign our MNDA. 
-                      Your status is currently <span className="text-amber-500 font-mono font-bold">[{profileStatus || 'UNVERIFIED'}]</span>.
+                  <div className="space-y-1">
+                    <h3 className="font-bold text-[#00ff88] uppercase tracking-widest">Identity Verification Pending</h3>
+                    <p className="text-sm text-white/70 max-w-xl">
+                      Access to open security tenders is restricted until your identification documents are validated. Current status: <span className="font-mono text-white">[{profileStatus || 'AWAITING_DATA'}]</span>
                     </p>
                   </div>
                 </div>
                 <button 
                   onClick={() => navigate('/hacker-verification')}
-                  className="bg-amber-500 hover:bg-amber-600 text-black px-4 py-2 rounded-lg text-xs font-mono font-bold uppercase tracking-widest transition-all active:scale-95 whitespace-nowrap"
+                  className="w-full md:w-auto px-8 py-3 bg-[#00ff88] hover:bg-white text-black font-black text-xs uppercase tracking-widest rounded-xl transition-all shadow-xl shadow-black/20 active:scale-95"
                 >
-                  Verify Now →
+                  Initiate Verification
                 </button>
-              </div>
+              </motion.div>
             )}
 
-            {isOrgView && orgs.some(o => o.verificationStatus !== 'APPROVED') && (
-              <div className="bg-sky-500/10 border border-sky-500/30 rounded-2xl p-6 shadow-xl flex items-center justify-between gap-6 group">
-                <div className="flex items-center gap-4">
-                  <div className="h-12 w-12 rounded-full bg-sky-500/20 flex items-center justify-center text-sky-500 text-xl">
-                    🏢
-                  </div>
-                  <div>
-                    <h3 className="font-bold text-sky-400 uppercase tracking-tighter text-sm">Business Entity Verification Required</h3>
-                    <p className="text-xs text-gray-400 max-w-lg">
-                      Your organization **{orgs.find(o => o.verificationStatus !== 'APPROVED')?.name}** must be verified before you can launch security programs or invite testers.
-                    </p>
-                  </div>
-                </div>
-                <button 
-                  onClick={() => navigate(`/organization-verification/${orgs.find(o => o.verificationStatus !== 'APPROVED')?.id}`)}
-                  className="bg-sky-500 hover:bg-sky-600 text-white px-4 py-2 rounded-lg text-xs font-mono font-bold uppercase tracking-widest transition-all active:scale-95 whitespace-nowrap"
-                >
-                  Complete Profile →
-                </button>
-              </div>
-            )}
+            {/* Core Dashboard View */}
+            <motion.section
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.5 }}
+            >
+                {isOrgView ? <OrganizationDashboardView /> : <HackerDashboardView />}
+            </motion.section>
 
-            <div className="bg-white/5 border border-white/10 rounded-2xl p-6 shadow-xl shadow-black/40">
-              <h3 className="text-xl font-semibold mb-4">Quick actions</h3>
-              <div className="grid md:grid-cols-3 gap-4">
-                {quickActions.map((action) => (
-                  <button
-                    key={action.title}
-                    onClick={() => action.route ? navigate(action.route) : null}
-                    className="group border border-white/10 bg-black/40 rounded-xl p-4 text-left hover:border-[#00ff88]/60 hover:-translate-y-1 transition-all duration-200"
-                  >
-                    <div className="text-sm font-semibold mb-1 flex items-center gap-2">
-                      {action.title}
-                      <span className="text-[#00ff88] opacity-0 group-hover:opacity-100 transition-opacity">→</span>
-                    </div>
-                    <p className="text-xs text-gray-400">{action.description}</p>
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* Recommended Software Panel */}
-            <div className="bg-[#00ff41]/5 border border-[#00ff41]/20 rounded-2xl p-6 shadow-xl shadow-black/40">
-              <div className="flex items-center justify-between mb-4">
-                <div className="flex items-center gap-2">
-                  <div className="w-2 h-2 bg-[#00ff41] rounded-full animate-pulse shadow-[0_0_8px_#00ff41]" />
-                  <h3 className="text-sm font-mono font-bold uppercase tracking-widest text-[#00ff41]">
-                    [SYSTEM_INIT] - Recommended Software
-                  </h3>
+            {/* Platform Insights / Tooling Section (Universal) */}
+            <section className="bg-linear-to-r from-black via-white/5 to-black border border-white/10 rounded-4xl p-10 relative overflow-hidden shadow-2xl">
+              <div className="absolute top-0 right-0 w-[600px] h-full bg-[#00ff88]/5 blur-[80px] -mr-40 pointer-events-none" />
+                <div className="relative z-10 grid md:grid-cols-[1fr_auto] items-center gap-12">
+                   <div className="space-y-6">
+                      <div className="space-y-2">
+                        <h3 className="text-2xl font-bold text-white tracking-tight">Technical Resource Arsenal</h3>
+                  <p className="text-white/70 max-w-lg leading-relaxed">
+                            Access recommended tools and specialized environments for your current security focus. 
+                            These resources are provisioned via our local container engine.
+                        </p>
+                      </div>
+                      <div className="flex flex-wrap gap-4">
+                        {["Burp Suite", "Metasploit", "Nmap", "Wireshark"].map(tool => (
+                    <div key={tool} className="px-5 py-2.5 bg-black rounded-xl border border-white/10 text-[11px] font-bold text-white font-mono flex items-center gap-3">
+                      <div className="w-1.5 h-1.5 bg-[#00ff88] rounded-full" />
+                                {tool.toUpperCase()}
+                            </div>
+                        ))}
+                      </div>
+                   </div>
+                   <div className="p-8 bg-black rounded-4xl border border-white/10 text-center space-y-4 shadow-3xl">
+                  <div className="text-[10px] font-black text-white/60 uppercase tracking-widest">Platform Sync</div>
+                  <div className="text-4xl font-black text-[#00ff88] tracking-tighter">99.9%</div>
+                  <p className="text-xs text-white/50 font-mono">ENCRYPTED TELEMETRY</p>
+                  <button className="px-6 py-2 bg-white/10 hover:bg-[#00ff88] hover:text-black text-white rounded-lg text-[10px] font-bold uppercase tracking-widest transition-all border border-white/10 hover:border-[#00ff88]">
+                            Refresh Feed
+                        </button>
+                   </div>
                 </div>
-                <span className="text-[10px] font-mono text-[#00ff41]/60 uppercase tracking-tighter">
-                  v{new Date().toISOString().split('T')[0].replace(/-/g, '.')}
-                </span>
-              </div>
-              
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                {(isOrgView 
-                  ? [
-                      { name: "OpenVAS", category: "Scanner", status: "PENDING" },
-                      { name: "Splunk", category: "SIEM", status: "CONFIGURED" },
-                      { name: "CrowdStrike", category: "EDR", status: "PENDING" },
-                      { name: "Nessus", category: "Audit", status: "PENDING" }
-                    ]
-                  : [
-                      { name: "Burp Suite", category: "Web Proxy", status: "CONFIGURED" },
-                      { name: "Metasploit", category: "Exploit", status: "PENDING" },
-                      { name: "Ghidra", category: "RE", status: "PENDING" },
-                      { name: "Nmap", category: "Scanner", status: "CONFIGURED" }
-                    ]
-                ).map((tool) => (
-                  <div key={tool.name} className="bg-black/40 border border-white/5 p-4 rounded-xl hover:border-[#00ff41]/40 transition-colors group cursor-pointer relative overflow-hidden">
-                    <div className="absolute top-0 right-0 p-2 opacity-10 group-hover:opacity-40 transition-opacity">
-                      <div className="text-[30px] font-mono font-bold leading-none select-none">
-                        {tool.name[0]}
-                      </div>
-                    </div>
-                    <div className="relative z-10">
-                      <div className="text-[10px] font-mono text-[#00ff41] mb-1 opacity-70">{tool.category}</div>
-                      <div className="font-bold text-sm tracking-tight mb-3">{tool.name}</div>
-                      <div className="flex items-center gap-2">
-                        <div className={`text-[9px] font-mono px-2 py-0.5 rounded-sm ${
-                          tool.status === 'CONFIGURED' 
-                            ? 'bg-[#00ff41]/20 text-[#00ff41]' 
-                            : 'bg-white/5 text-gray-500'
-                        }`}>
-                          {tool.status}
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
+            </section>
+
           </div>
-
-          {/* Right sidebar */}
-          <aside className="space-y-6">
-            <div className="bg-white/5 border border-white/10 rounded-2xl p-5 shadow-xl shadow-black/40">
-              <div className="flex items-center gap-3">
-                <div className="h-12 w-12 rounded-full bg-[#00ff88]/20 border border-[#00ff88]/50 flex items-center justify-center text-lg font-bold text-[#00ff88]">
-                  U
-                </div>
-                <div>
-                  <div className="text-sm font-semibold">Your profile</div>
-                  <div className="text-xs text-gray-400">Keep credentials fresh</div>
-                </div>
-              </div>
-              <div className="mt-4 text-xs text-gray-300 font-mono space-y-1">
-                <div>Status: <span className="text-[#00ff88]">Operational</span></div>
-                <div>MFA: Enabled</div>
-                <div>Last login: Today</div>
-              </div>
-              <button
-                onClick={() => navigate(isOrgView ? "/organization-profile" : "/hacker-profile")}
-                className="mt-4 w-full py-2 bg-white/10 border border-white/20 rounded-md text-xs font-mono uppercase tracking-widest hover:border-[#00ff88] transition-colors">
-                {isOrgView ? "Org profile" : "Hacker profile"}
-              </button>
-            </div>
-
-            <div className="bg-white/5 border border-white/10 rounded-2xl p-5 shadow-xl shadow-black/40">
-              <h4 className="text-sm font-semibold mb-3">Recent activity</h4>
-              <div className="space-y-3">
-                {activity.map((item) => (
-                  <div key={item.title} className="flex justify-between text-xs text-gray-300">
-                    <span>{item.title}</span>
-                    <span className="text-gray-500">{item.time}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </aside>
-        </div>
-      </div>
+        </main>
     </div>
   );
 };
