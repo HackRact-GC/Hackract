@@ -171,10 +171,10 @@ const HackerProfile = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="flex flex-col items-center gap-4">
-          <div className="w-10 h-10 border-4 border-indigo-200 border-t-indigo-600 rounded-full animate-spin" />
-          <p className="text-sm font-medium text-gray-500">Retrieving operative data...</p>
+      <div className="min-h-screen bg-[#050505] flex items-center justify-center">
+        <div className="flex flex-col items-center gap-6">
+          <div className="w-12 h-12 rounded-full border-2 border-white/5 border-t-[#00ff88] animate-spin shadow-[0_0_20px_rgba(0,255,136,0.2)]" />
+          <p className="text-[10px] font-mono font-black text-[#00ff88] uppercase tracking-[0.4em] animate-pulse">Syncing Operative Node...</p>
         </div>
       </div>
     );
@@ -182,28 +182,28 @@ const HackerProfile = () => {
 
   // ── Helper Components ───────────────────────────────────────────────────────
   const Field = ({ label, children, error: fieldError }) => (
-    <div className="space-y-1.5">
-      <label className="block text-[11px] font-bold text-gray-400 uppercase tracking-widest ml-0.5">
+    <div className="space-y-2">
+      <label className="block text-[10px] font-mono font-black text-gray-500 uppercase tracking-[0.2em] ml-1">
         {label}
       </label>
       {children}
-      {fieldError && <p className="text-[11px] text-rose-500 font-medium ml-0.5">{fieldError}</p>}
+      {fieldError && <p className="text-[10px] font-mono text-rose-500 font-bold ml-1 uppercase tracking-widest">{fieldError}</p>}
     </div>
   );
 
   const Input = (props) => (
     <input
       {...props}
-      className="w-full bg-white border border-gray-200 rounded-xl px-4 py-2.5 text-sm text-gray-800 placeholder-gray-400 
-        focus:outline-none focus:ring-2 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all shadow-sm"
+      className="w-full bg-white/[0.02] border border-white/10 rounded-2xl px-5 py-3.5 text-sm text-white placeholder-gray-600 
+        focus:outline-none focus:border-[#00ff88]/50 focus:ring-1 focus:ring-[#00ff88]/20 transition-all font-mono shadow-inner"
     />
   );
 
   const TextArea = (props) => (
     <textarea
       {...props}
-      className="w-full bg-white border border-gray-200 rounded-xl px-4 py-2.5 text-sm text-gray-800 placeholder-gray-400 
-        focus:outline-none focus:ring-2 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all shadow-sm resize-none"
+      className="w-full bg-white/[0.02] border border-white/10 rounded-2xl px-5 py-3.5 text-sm text-white placeholder-gray-600 
+        focus:outline-none focus:border-[#00ff88]/50 focus:ring-1 focus:ring-[#00ff88]/20 transition-all font-mono shadow-inner resize-none"
     />
   );
 
@@ -211,15 +211,16 @@ const HackerProfile = () => {
     <motion.div
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
-      className="bg-white border border-gray-200 rounded-2xl shadow-sm overflow-hidden mb-6"
+      className="bg-white/[0.02] border border-white/5 rounded-[32px] overflow-hidden mb-8 relative group"
     >
-      <div className="px-6 py-5 border-b border-gray-100 flex items-center justify-between bg-gray-50/50">
+      <div className="absolute top-0 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-[#00ff88]/30 to-transparent" />
+      <div className="px-8 py-6 border-b border-white/5 flex items-center justify-between bg-white/[0.01]">
         <div>
-          <h2 className="text-sm font-bold text-gray-800 uppercase tracking-tight">{title}</h2>
-          <p className="text-xs text-gray-500 mt-0.5">{subtitle}</p>
+          <h2 className="text-[11px] font-mono font-black text-white uppercase tracking-[0.3em] group-hover:text-[#00ff88] transition-colors">{title}</h2>
+          <p className="text-[9px] font-mono text-gray-600 mt-1 uppercase tracking-widest">{subtitle}</p>
         </div>
       </div>
-      <div className="p-6">{children}</div>
+      <div className="p-8">{children}</div>
     </motion.div>
   );
 
@@ -229,17 +230,17 @@ const HackerProfile = () => {
       case "identity":
         return (
           <div className="space-y-6">
-            <SectionCard title="Basic Identity" subtitle="Personal details that define your hacker profile.">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                <Field label="Specialization">
-                  <Input name="specialization" value={form.specialization} onChange={handleChange} placeholder="e.g. Web Application Security" />
+            <SectionCard title="Core Identity" subtitle="Primary metrics and descriptors for mission identification.">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                <Field label="Tactical Specialization">
+                  <Input name="specialization" value={form.specialization} onChange={handleChange} placeholder="e.g. Web Security Operative" />
                 </Field>
-                <Field label="Years of Experience">
+                <Field label="Years of Deployment">
                   <Input type="number" name="yearsOfExperience" value={form.yearsOfExperience} onChange={handleChange} placeholder="e.g. 5" />
                 </Field>
                 <div className="md:col-span-2">
-                  <Field label="Bio / Mission Directive">
-                    <TextArea name="bio" value={form.bio} onChange={handleChange} rows={4} placeholder="Tell us about your background and passion..." />
+                  <Field label="Directive Manifest / Bio">
+                    <TextArea name="bio" value={form.bio} onChange={handleChange} rows={4} placeholder="Declare your professional intent and operational history..." />
                   </Field>
                 </div>
               </div>
@@ -248,14 +249,14 @@ const HackerProfile = () => {
         );
       case "arsenal":
         return (
-          <SectionCard title="Technical Arsenal" subtitle="List the tools and technologies you have mastered.">
-            <div className="space-y-5">
-              <Field label="Core Skills (Comma separated)">
-                <TextArea name="primarySkills" value={form.primarySkills} onChange={handleChange} rows={3} placeholder="Python, Nmap, Burp Suite, Metasploit..." />
+          <SectionCard title="Technical Arsenal" subtitle="Integrated technologies and mastered exploitation vectors.">
+            <div className="space-y-8">
+              <Field label="Mastered Tech (Comma separated)">
+                <TextArea name="primarySkills" value={form.primarySkills} onChange={handleChange} rows={3} placeholder="Nmap, Burp, Metasploit, Python, React..." />
               </Field>
-              <div className="flex flex-wrap gap-2 pt-2">
+              <div className="flex flex-wrap gap-3 pt-2">
                 {form.primarySkills.split(",").map((s, i) => s.trim() && (
-                  <span key={i} className="px-3 py-1 bg-indigo-50 text-indigo-600 rounded-full text-xs font-bold border border-indigo-100">
+                  <span key={i} className="px-4 py-1.5 bg-[#00ff88]/10 text-[#00ff88] rounded-xl text-[10px] font-mono font-black border border-[#00ff88]/20 uppercase tracking-widest shadow-[0_0_15px_rgba(0,255,136,0.05)]">
                     {s.trim()}
                   </span>
                 ))}
@@ -265,27 +266,27 @@ const HackerProfile = () => {
         );
       case "credentials":
         return (
-          <SectionCard title="Certifications" subtitle="Professional badges of honor and technical certifications.">
+          <SectionCard title="Operator Credentials" subtitle="Validated badges of honor and elite technical certifications.">
             <Field label="Earned Certifications">
-              <TextArea name="certifications" value={form.certifications} onChange={handleChange} rows={4} placeholder="OSCP, GWAPT, CISSP, eWPTX..." />
+              <TextArea name="certifications" value={form.certifications} onChange={handleChange} rows={4} placeholder="OSCP, OSCE, CISSP, GWAPT..." />
             </Field>
           </SectionCard>
         );
       case "network":
         return (
-          <SectionCard title="Public Network" subtitle="Where can organizations find your previous work?">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-              <Field label="GitHub Handle">
+          <SectionCard title="Network Presence" subtitle="Digital footprints across the global intelligence grid.">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+              <Field label="GitHub Directive">
                 <Input name="github" value={form.github} onChange={handleChange} placeholder="e.g. jdoe-root" />
               </Field>
-              <Field label="LinkedIn Profile">
+              <Field label="LinkedIn ID">
                 <Input name="linkedin" value={form.linkedin} onChange={handleChange} placeholder="e.g. john-doe-pentester" />
               </Field>
-              <Field label="Twitter / X">
+              <Field label="Twitter / X Alias">
                 <Input name="twitter" value={form.twitter} onChange={handleChange} placeholder="e.g. @root_access" />
               </Field>
-              <Field label="Portfolio / Blog">
-                <Input name="portfolioLinks" value={form.portfolioLinks} onChange={handleChange} placeholder="https://myblog.com" />
+              <Field label="Intel Blog / Portfolio">
+                <Input name="portfolioLinks" value={form.portfolioLinks} onChange={handleChange} placeholder="https://intel.core" />
               </Field>
             </div>
           </SectionCard>
@@ -296,86 +297,89 @@ const HackerProfile = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 font-sans text-gray-900">
+    <div className="min-h-screen bg-[#050505] font-sans text-white selection:bg-[#00ff88]/30 selection:text-[#00ff88]">
+      <div className="fixed top-1/4 left-1/4 w-96 h-96 bg-[#00ff88]/5 rounded-full blur-[140px] pointer-events-none" />
+
       {/* ── Top Bar ────────────────────────────────────────────────────────── */}
-      <header className="bg-white border-b border-gray-200 h-16 flex items-center px-8 sticky top-0 z-40 shadow-sm">
-        <div className="flex items-center gap-3 text-xs text-gray-500 font-bold uppercase tracking-widest">
-          <button onClick={() => navigate("/dashboard")} className="hover:text-indigo-600 transition-colors">
-            Hacker Dashboard
-          </button>
+      <header className="h-20 bg-black/40 backdrop-blur-3xl border-b border-white/5 flex items-center px-10 sticky top-0 z-[60] gap-8">
+        <div className="flex items-center gap-3">
+          <button onClick={() => navigate("/dashboard")} className="text-[10px] font-mono font-black text-gray-500 hover:text-[#00ff88] transition-colors uppercase tracking-[0.2em]">Hacker Dashboard</button>
           <Icons.ChevronRight />
-          <span className="text-gray-900 border-b-2 border-indigo-500 pb-0.5">Identity Settings</span>
+          <span className="text-[10px] font-mono font-black text-white uppercase tracking-[0.2em]">Identity Matrix</span>
         </div>
 
-        <div className="ml-auto flex items-center gap-4">
-          <button className="flex items-center gap-2 px-4 py-2 border border-gray-200 rounded-xl text-xs font-bold text-gray-600 hover:bg-gray-50 transition-all">
+        <div className="ml-auto flex items-center gap-6">
+          <button className="flex items-center gap-3 px-6 py-2.5 bg-white/[0.02] border border-white/10 rounded-2xl text-[10px] font-mono font-black text-gray-500 hover:text-white hover:border-[#00ff88]/30 transition-all uppercase tracking-widest shadow-inner">
             <Icons.Eye />
-            Preview Public Profile
+            Preview Node 
           </button>
-          <div className="w-10 h-10 rounded-full bg-indigo-600 flex items-center justify-center text-white font-black text-xs">
+          <div className="w-10 h-10 rounded-xl bg-black border border-[#00ff88]/30 text-[#00ff88] flex items-center justify-center font-mono font-black text-xs shadow-inner shadow-[#00ff88]/10">
             {initials(form.bio || "H")}
           </div>
         </div>
       </header>
 
-      <div className="max-w-[1240px] mx-auto flex gap-10 px-8 py-10">
+      <div className="max-w-[1400px] mx-auto flex gap-10 px-10 py-12">
         {/* ── Sidebar ──────────────────────────────────────────────────────── */}
-        <aside className="w-72 flex flex-col shrink-0">
-          <div className="bg-white border border-gray-200 rounded-3xl p-8 mb-6 shadow-sm flex flex-col items-center">
-            <div className="relative group mb-6">
-              <div className="w-24 h-24 rounded-3xl bg-indigo-50 border-2 border-indigo-100 flex items-center justify-center overflow-hidden shadow-inner">
+        <aside className="w-80 flex flex-col shrink-0 sticky top-32 h-fit">
+          <div className="bg-white/[0.02] border border-white/5 rounded-[40px] p-10 mb-8 shadow-2xl flex flex-col items-center relative overflow-hidden group">
+            <div className="absolute top-0 right-0 w-24 h-24 bg-[#00ff88]/5 rounded-full -mr-12 -mt-12 blur-2xl group-hover:bg-[#00ff88]/10 transition-all" />
+            
+            <div className="relative group mb-8">
+              <div className="w-28 h-28 rounded-[32px] bg-black border border-[#00ff88]/20 flex items-center justify-center overflow-hidden shadow-inner shadow-[#00ff88]/10 group-hover:border-[#00ff88]/50 transition-all">
                 {logoPreview ? (
                   <img src={logoPreview} alt="avatar" className="w-full h-full object-cover" />
                 ) : (
-                  <span className="text-4xl font-black text-indigo-200">{initials(form.bio || "H")}</span>
+                  <span className="text-4xl font-black font-mono text-[#00ff88] drop-shadow-[0_0_10px_rgba(0,255,136,0.3)]">{initials(form.bio || "H")}</span>
                 )}
               </div>
               <button
                 onClick={() => fileInputRef.current?.click()}
-                className="absolute -bottom-2 -right-2 w-9 h-9 rounded-full bg-indigo-600 text-white border-4 border-white shadow-lg flex items-center justify-center hover:bg-indigo-700 transition-all group-hover:scale-110"
+                className="absolute -bottom-2 -right-2 w-10 h-10 rounded-2xl bg-[#00ff88] text-black border-4 border-[#050505] shadow-2xl flex items-center justify-center hover:scale-110 transition-all z-10"
               >
                 <Icons.Camera />
               </button>
               <input ref={fileInputRef} type="file" className="hidden" accept="image/*" onChange={handleLogoChange} />
             </div>
 
-            <h3 className="text-xl font-black text-gray-900 text-center leading-none mb-1">Operative Node</h3>
-            <p className="text-xs font-bold text-indigo-500 uppercase tracking-widest mb-4">Level 1 Operator</p>
+            <h3 className="text-2xl font-black text-white text-center leading-none mb-2 uppercase tracking-tight">Operator Node</h3>
+            <p className="text-[10px] font-mono font-black text-[#00ff88] uppercase tracking-[0.3em] mb-8 animate-pulse shadow-glow">Elite Operative</p>
             
-            <div className="flex items-center gap-4 w-full pt-4 border-t border-gray-50">
-               <div className="flex-1 text-center">
-                 <p className="text-lg font-black text-gray-800">12</p>
-                 <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Vulns</p>
+            <div className="flex items-center gap-6 w-full pt-8 border-t border-white/5">
+               <div className="flex-1 text-center group/stat">
+                 <p className="text-2xl font-black text-white group-hover/stat:text-[#00ff88] transition-colors leading-none mb-1">12</p>
+                 <p className="text-[9px] font-mono font-black text-gray-600 uppercase tracking-widest">Findings</p>
                </div>
-               <div className="w-px h-8 bg-gray-100" />
-               <div className="flex-1 text-center">
-                 <p className="text-lg font-black text-gray-800">2.4k</p>
-                 <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Rep</p>
+               <div className="w-[1px] h-10 bg-white/5" />
+               <div className="flex-1 text-center group/stat">
+                 <p className="text-2xl font-black text-white group-hover/stat:text-[#00ff88] transition-colors leading-none mb-1">2.4k</p>
+                 <p className="text-[9px] font-mono font-black text-gray-600 uppercase tracking-widest">Rank</p>
                </div>
             </div>
           </div>
 
-          <nav className="space-y-1.5 px-2">
+          <nav className="space-y-2 px-2">
             {NAV_ITEMS.map((item) => (
               <button
                 key={item.key}
                 onClick={() => setActiveNav(item.key)}
-                className={`w-full flex items-center gap-4 px-5 py-3.5 rounded-2xl text-sm font-bold transition-all
+                className={`w-full flex items-center gap-5 px-8 py-4.5 rounded-[24px] text-[11px] font-mono font-black uppercase tracking-[0.2em] transition-all relative overflow-hidden group
                   ${activeNav === item.key 
-                    ? "bg-indigo-600 text-white shadow-indigo-200 shadow-xl" 
-                    : "text-gray-500 hover:bg-white hover:text-gray-900 border border-transparent hover:border-gray-100"}`}
+                    ? "bg-white/[0.04] text-[#00ff88] shadow-2xl border border-[#00ff88]/20 -translate-x-2" 
+                    : "text-gray-500 hover:bg-white/[0.02] hover:text-white hover:translate-x-1"}`}
               >
-                <item.Icon />
+                <span className={activeNav === item.key ? "text-[#00ff88] drop-shadow-[0_0_8px_rgba(0,255,136,0.6)]" : "text-gray-600 group-hover:text-gray-400"}><item.Icon /></span>
                 {item.label}
+                {activeNav === item.key && <div className="ml-auto w-1.5 h-1.5 rounded-full bg-[#00ff88] shadow-[0_0_10px_#00ff88] animate-pulse"/>}
               </button>
             ))}
             
             <button
               onClick={() => navigate("/dashboard")}
-              className="w-full flex items-center gap-4 px-5 py-3.5 rounded-2xl text-sm font-bold text-gray-400 hover:bg-rose-50 hover:text-rose-600 transition-all mt-10"
+              className="w-full flex items-center gap-5 px-8 py-4.5 rounded-[24px] text-[10px] font-mono font-black text-gray-600 hover:text-rose-500 hover:bg-rose-500/5 transition-all uppercase tracking-widest mt-12 border border-transparent hover:border-rose-500/10"
             >
               <Icons.LogOut />
-              Back to Dashboard
+              Terminate Link
             </button>
           </nav>
         </aside>
@@ -390,34 +394,34 @@ const HackerProfile = () => {
               exit={{ opacity: 0, x: -20 }}
               transition={{ duration: 0.2 }}
             >
-              <div className="mb-8 pl-1">
-                <h1 className="text-3xl font-black text-gray-900 tracking-tight">
+              <div className="mb-12 pl-1">
+                <h1 className="text-4xl font-black text-white uppercase tracking-tight">
                   {NAV_ITEMS.find(n => n.key === activeNav)?.label}
                 </h1>
-                <p className="text-sm text-gray-500 mt-1 font-medium">Update your professional dossier to maintain operational readiness.</p>
+                <p className="text-[11px] font-mono text-gray-600 mt-2 uppercase tracking-[0.3em] font-bold">Synchronize operative metadata / Core.v2</p>
               </div>
 
               <form onSubmit={handleSubmit}>
                 {renderContent()}
 
-                <div className="flex items-center gap-4 mt-10 pl-1">
+                <div className="flex items-center gap-6 mt-12 pl-1 bg-white/[0.01] p-10 rounded-[40px] border border-white/5 shadow-inner">
                   <button
                     type="submit"
                     disabled={saving}
-                    className="flex items-center gap-3 px-10 py-4 bg-indigo-600 text-white rounded-2xl text-sm font-black uppercase tracking-widest shadow-xl shadow-indigo-100 hover:bg-indigo-700 hover:-translate-y-0.5 transition-all disabled:opacity-50"
+                    className="flex items-center gap-4 px-10 py-5 bg-[#00ff88] text-black rounded-2xl text-[11px] font-mono font-black uppercase tracking-widest shadow-[0_0_30px_rgba(0,255,136,0.2)] hover:scale-105 active:scale-95 transition-all disabled:opacity-50"
                   >
-                    {saving ? "Synchronizing..." : <><Icons.Save /> Save Configuration</>}
+                    {saving ? "Transmitting..." : <><Icons.Save /> Commit Changes</>}
                   </button>
                   
                   {success && (
-                    <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-sm font-bold text-emerald-600 flex items-center gap-2">
-                      <Icons.Check /> {success}
-                    </motion.p>
+                    <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} className="px-6 py-4 bg-emerald-500/10 border border-emerald-500/30 rounded-2xl text-[10px] font-mono font-black text-emerald-400 uppercase tracking-widest flex items-center gap-3">
+                      <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 shadow-[0_0_8px_#34d399] animate-pulse"/> {success}
+                    </motion.div>
                   )}
                   {error && (
-                    <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-sm font-bold text-rose-600 flex items-center gap-2">
+                    <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} className="px-6 py-4 bg-rose-500/10 border border-rose-500/30 rounded-2xl text-[10px] font-mono font-black text-rose-400 uppercase tracking-widest flex items-center gap-3">
                        <Icons.AlertCircle /> {error}
-                    </motion.p>
+                    </motion.div>
                   )}
                 </div>
               </form>
