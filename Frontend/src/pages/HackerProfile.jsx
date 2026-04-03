@@ -1,84 +1,46 @@
 import { useEffect, useRef, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { FiUser, FiCode, FiAward, FiGlobe, FiChevronRight, FiCamera, FiSave } from "react-icons/fi";
 import api from "../api/axiosConfig";
-import { motion, AnimatePresence } from "framer-motion";
-
-// ── Icons ───────────────────────────────────────────────────────────────────
-const Icons = {
-  User: () => (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-5 h-5">
-      <path strokeLinecap="round" strokeLinejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-    </svg>
-  ),
-  Code: () => (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-5 h-5">
-      <path strokeLinecap="round" strokeLinejoin="round" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" />
-    </svg>
-  ),
-  Award: () => (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-5 h-5">
-      <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z" />
-    </svg>
-  ),
-  Globe: () => (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-5 h-5">
-      <circle cx="12" cy="12" r="10" />
-      <line x1="2" y1="12" x2="22" y2="12" />
-      <path strokeLinecap="round" d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
-    </svg>
-  ),
-  Check: () => (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="w-4 h-4">
-      <polyline points="20 6 9 17 4 12" />
-    </svg>
-  ),
-  Camera: () => (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-4 h-4">
-      <path strokeLinecap="round" strokeLinejoin="round" d="M3 9a2 2 0 0 1 2-2h.93a2 2 0 0 0 1.664-.89l.812-1.22A2 2 0 0 1 10.07 4h3.86a2 2 0 0 1 1.664.89l.812 1.22A2 2 0 0 0 18.07 7H19a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V9z" />
-      <circle cx="12" cy="13" r="3" />
-    </svg>
-  ),
-  ChevronRight: () => (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="w-3.5 h-3.5">
-      <polyline points="9 18 15 12 9 6" />
-    </svg>
-  ),
-  LogOut: () => (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-5 h-5">
-      <path strokeLinecap="round" d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9" />
-    </svg>
-  ),
-  AlertCircle: () => (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-5 h-5">
-      <circle cx="12" cy="12" r="10" />
-      <line x1="12" y1="8" x2="12" y2="12" />
-      <line x1="12" y1="16" x2="12.01" y2="16" />
-    </svg>
-  ),
-  Eye: () => (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-5 h-5">
-      <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
-      <circle cx="12" cy="12" r="3" />
-    </svg>
-  ),
-  Save: () => (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-5 h-5">
-      <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z" />
-      <polyline points="17 21 17 13 7 13 7 21" />
-      <polyline points="7 3 7 8 15 8" />
-    </svg>
-  ),
-};
 
 const NAV_ITEMS = [
-  { key: "identity", label: "Identity", Icon: Icons.User },
-  { key: "arsenal", label: "Technical Arsenal", Icon: Icons.Code },
-  { key: "credentials", label: "Credentials", Icon: Icons.Award },
-  { key: "network", label: "Public Network", Icon: Icons.Globe },
+  { key: "identity", label: "Identity", icon: FiUser },
+  { key: "arsenal", label: "Technical Arsenal", icon: FiCode },
+  { key: "credentials", label: "Credentials", icon: FiAward },
+  { key: "network", label: "Public Network", icon: FiGlobe },
 ];
 
+const Field = ({ label, children }) => (
+  <div className="space-y-2">
+    <label className="block text-[11px] text-white/60 uppercase tracking-[0.14em] font-mono">{label}</label>
+    {children}
+  </div>
+);
+
+const Input = (props) => (
+  <input
+    {...props}
+    className="w-full bg-black/40 border border-white/10 rounded-lg px-4 py-2.5 text-sm text-white placeholder:text-white/35 focus:outline-none focus:border-[#00ff88] transition-colors"
+  />
+);
+
+const TextArea = (props) => (
+  <textarea
+    {...props}
+    className="w-full bg-black/40 border border-white/10 rounded-lg px-4 py-2.5 text-sm text-white placeholder:text-white/35 focus:outline-none focus:border-[#00ff88] transition-colors resize-none"
+  />
+);
+
+const SectionCard = ({ title, subtitle, children }) => (
+  <div className="bg-black/40 border border-white/10 rounded-2xl overflow-hidden">
+    <div className="px-6 py-4 border-b border-white/10 bg-white/5">
+      <h2 className="text-sm font-bold uppercase tracking-[0.08em] text-white">{title}</h2>
+      <p className="text-xs text-white/55 mt-1">{subtitle}</p>
+    </div>
+    <div className="p-6">{children}</div>
+  </div>
+);
+
 const HackerProfile = () => {
-  const navigate = useNavigate();
   const fileInputRef = useRef(null);
   const [activeNav, setActiveNav] = useState("identity");
   const [loading, setLoading] = useState(true);
@@ -106,6 +68,7 @@ const HackerProfile = () => {
         setLoading(true);
         const { data } = await api.get("/hacker-profiles/me");
         const profile = data?.data?.profile;
+
         if (profile) {
           setForm({
             bio: profile.bio || "",
@@ -119,56 +82,66 @@ const HackerProfile = () => {
             linkedin: profile.linkedin || "",
             twitter: profile.twitter || "",
           });
-          if (profile.avatar) setLogoPreview(profile.avatar);
+
+          if (profile.avatar) {
+            setLogoPreview(profile.avatar);
+          }
         }
-      } catch (err) {
-        console.error("Failed to fetch profile", err);
+      } catch (fetchErr) {
+        console.error("Failed to fetch profile", fetchErr);
       } finally {
         setLoading(false);
       }
     };
+
     fetchProfile();
   }, []);
 
-  const handleChange = (e) => {
-    const { name, value } = e.target;
+  const handleChange = (event) => {
+    const { name, value } = event.target;
     setForm((prev) => ({ ...prev, [name]: value }));
   };
 
-  const handleLogoChange = (e) => {
-    const file = e.target.files[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => setLogoPreview(reader.result);
-      reader.readAsDataURL(file);
+  const handleLogoChange = (event) => {
+    const file = event.target.files?.[0];
+    if (!file) {
+      return;
     }
+
+    const reader = new FileReader();
+    reader.onloadend = () => setLogoPreview(reader.result);
+    reader.readAsDataURL(file);
   };
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
+  const handleSubmit = async (event) => {
+    event.preventDefault();
     setError("");
     setSuccess("");
     setSaving(true);
+
     try {
       const payload = {
         ...form,
-        primarySkills: form.primarySkills.split(",").map(s => s.trim()).filter(Boolean),
-        certifications: form.certifications.split(",").map(s => s.trim()).filter(Boolean),
-        portfolioLinks: form.portfolioLinks.split(",").map(s => s.trim()).filter(Boolean),
+        primarySkills: form.primarySkills.split(",").map((s) => s.trim()).filter(Boolean),
+        certifications: form.certifications.split(",").map((s) => s.trim()).filter(Boolean),
+        portfolioLinks: form.portfolioLinks.split(",").map((s) => s.trim()).filter(Boolean),
         yearsOfExperience: form.yearsOfExperience ? Number(form.yearsOfExperience) : null,
       };
+
       await api.put("/hacker-profiles/me", payload);
       setSuccess("Profile synchronized successfully.");
       setTimeout(() => setSuccess(""), 3000);
-    } catch (err) {
-      setError(err?.response?.data?.message || "Failed to update profile.");
+    } catch (submitErr) {
+      setError(submitErr?.response?.data?.message || "Failed to update profile.");
     } finally {
       setSaving(false);
     }
   };
 
-  const initials = (name = "") => name.slice(0, 2).toUpperCase() || "H";
+  const initials = (value = "") => value.slice(0, 2).toUpperCase() || "H";
+  const navIndex = NAV_ITEMS.findIndex((item) => item.key === activeNav);
 
+<<<<<<< HEAD
   if (loading) {
     return (
       <div className="min-h-screen bg-[#050505] flex items-center justify-center">
@@ -225,10 +198,13 @@ const HackerProfile = () => {
   );
 
   // ── Page Sections ───────────────────────────────────────────────────────────
+=======
+>>>>>>> origin/main
   const renderContent = () => {
     switch (activeNav) {
       case "identity":
         return (
+<<<<<<< HEAD
           <div className="space-y-6">
             <SectionCard title="Core Identity" subtitle="Primary metrics and descriptors for mission identification.">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
@@ -243,12 +219,47 @@ const HackerProfile = () => {
                     <TextArea name="bio" value={form.bio} onChange={handleChange} rows={4} placeholder="Declare your professional intent and operational history..." />
                   </Field>
                 </div>
+=======
+          <SectionCard title="Primary Identity" subtitle="Core profile details used across mission workflows.">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+              <Field label="Specialization">
+                <Input
+                  name="specialization"
+                  value={form.specialization}
+                  onChange={handleChange}
+                  placeholder="e.g. Web Application Security"
+                />
+              </Field>
+              <Field label="Country">
+                <Input name="country" value={form.country} onChange={handleChange} placeholder="e.g. Estonia" />
+              </Field>
+              <Field label="Years of Experience">
+                <Input
+                  type="number"
+                  name="yearsOfExperience"
+                  value={form.yearsOfExperience}
+                  onChange={handleChange}
+                  placeholder="e.g. 5"
+                />
+              </Field>
+              <div className="md:col-span-2">
+                <Field label="Mission Profile (Bio)">
+                  <TextArea
+                    name="bio"
+                    value={form.bio}
+                    onChange={handleChange}
+                    rows={4}
+                    placeholder="Describe your background, approach, and areas of expertise..."
+                  />
+                </Field>
+>>>>>>> origin/main
               </div>
-            </SectionCard>
-          </div>
+            </div>
+          </SectionCard>
         );
       case "arsenal":
         return (
+<<<<<<< HEAD
           <SectionCard title="Technical Arsenal" subtitle="Integrated technologies and mastered exploitation vectors.">
             <div className="space-y-8">
               <Field label="Mastered Tech (Comma separated)">
@@ -260,20 +271,59 @@ const HackerProfile = () => {
                     {s.trim()}
                   </span>
                 ))}
+=======
+          <SectionCard title="Technical Arsenal" subtitle="Your stack, tools, and capabilities.">
+            <div className="space-y-5">
+              <Field label="Primary Skills (Comma separated)">
+                <TextArea
+                  name="primarySkills"
+                  value={form.primarySkills}
+                  onChange={handleChange}
+                  rows={3}
+                  placeholder="Python, Nmap, Burp Suite, Metasploit..."
+                />
+              </Field>
+              <div className="flex flex-wrap gap-2 pt-1">
+                {form.primarySkills
+                  .split(",")
+                  .map((skill) => skill.trim())
+                  .filter(Boolean)
+                  .map((skill) => (
+                    <span
+                      key={skill}
+                      className="px-3 py-1 border border-[#00ff88]/35 bg-[#00ff88]/10 text-[#00ff88] rounded-full text-[11px] font-mono uppercase tracking-wide"
+                    >
+                      {skill}
+                    </span>
+                  ))}
+>>>>>>> origin/main
               </div>
             </div>
           </SectionCard>
         );
       case "credentials":
         return (
+<<<<<<< HEAD
           <SectionCard title="Operator Credentials" subtitle="Validated badges of honor and elite technical certifications.">
             <Field label="Earned Certifications">
               <TextArea name="certifications" value={form.certifications} onChange={handleChange} rows={4} placeholder="OSCP, OSCE, CISSP, GWAPT..." />
+=======
+          <SectionCard title="Credentials" subtitle="Certifications and technical validations.">
+            <Field label="Certifications (Comma separated)">
+              <TextArea
+                name="certifications"
+                value={form.certifications}
+                onChange={handleChange}
+                rows={4}
+                placeholder="OSCP, GWAPT, eWPTX, PNPT..."
+              />
+>>>>>>> origin/main
             </Field>
           </SectionCard>
         );
       case "network":
         return (
+<<<<<<< HEAD
           <SectionCard title="Network Presence" subtitle="Digital footprints across the global intelligence grid.">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
               <Field label="GitHub Directive">
@@ -281,12 +331,36 @@ const HackerProfile = () => {
               </Field>
               <Field label="LinkedIn ID">
                 <Input name="linkedin" value={form.linkedin} onChange={handleChange} placeholder="e.g. john-doe-pentester" />
+=======
+          <SectionCard title="Public Network" subtitle="External links that represent your work.">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+              <Field label="GitHub">
+                <Input name="github" value={form.github} onChange={handleChange} placeholder="e.g. defsec0" />
+              </Field>
+              <Field label="LinkedIn">
+                <Input
+                  name="linkedin"
+                  value={form.linkedin}
+                  onChange={handleChange}
+                  placeholder="e.g. john-doe-pentester"
+                />
+>>>>>>> origin/main
               </Field>
               <Field label="Twitter / X Alias">
                 <Input name="twitter" value={form.twitter} onChange={handleChange} placeholder="e.g. @root_access" />
               </Field>
+<<<<<<< HEAD
               <Field label="Intel Blog / Portfolio">
                 <Input name="portfolioLinks" value={form.portfolioLinks} onChange={handleChange} placeholder="https://intel.core" />
+=======
+              <Field label="Portfolio / Blog">
+                <Input
+                  name="portfolioLinks"
+                  value={form.portfolioLinks}
+                  onChange={handleChange}
+                  placeholder="https://myblog.com"
+                />
+>>>>>>> origin/main
               </Field>
             </div>
           </SectionCard>
@@ -296,7 +370,16 @@ const HackerProfile = () => {
     }
   };
 
+  if (loading) {
+    return (
+      <div className="w-full h-64 flex items-center justify-center font-mono text-[#00ff88] animate-pulse">
+        [SYSTEM]: Retrieving operative data...
+      </div>
+    );
+  }
+
   return (
+<<<<<<< HEAD
     <div className="min-h-screen bg-[#050505] font-sans text-white selection:bg-[#00ff88]/30 selection:text-[#00ff88]">
       <div className="fixed top-1/4 left-1/4 w-96 h-96 bg-[#00ff88]/5 rounded-full blur-[140px] pointer-events-none" />
 
@@ -422,12 +505,117 @@ const HackerProfile = () => {
                     <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} className="px-6 py-4 bg-rose-500/10 border border-rose-500/30 rounded-2xl text-[10px] font-mono font-black text-rose-400 uppercase tracking-widest flex items-center gap-3">
                        <Icons.AlertCircle /> {error}
                     </motion.div>
+=======
+    <div className="w-full min-h-screen bg-black text-white px-4 sm:px-8 py-8">
+      <div className="mx-auto w-full max-w-7xl bg-white/5 border border-white/10 rounded-2xl p-6 sm:p-8 shadow-2xl backdrop-blur-md">
+        <div className="mb-8">
+          <h1 className="text-3xl sm:text-4xl font-bold tracking-tight">Operative Settings</h1>
+          <p className="mt-2 text-sm text-white/60">Maintain your profile dossier and keep mission metadata current.</p>
+
+          <div className="mt-6 flex flex-wrap items-center gap-3 text-[11px] font-mono uppercase tracking-[0.16em] text-white/45">
+            {NAV_ITEMS.map((item, index) => (
+              <div key={item.key} className="flex items-center gap-3">
+                <span className={index <= navIndex ? "text-[#00ff88]" : "text-white/45"}>
+                  {index + 1}. {item.label}
+                </span>
+                {index < NAV_ITEMS.length - 1 && <FiChevronRight className="text-white/35" />}
+              </div>
+            ))}
+          </div>
+
+          <div className="h-1 w-full bg-white/10 rounded-full overflow-hidden mt-5">
+            <div
+              className="h-full bg-[#00ff88] transition-all duration-500 ease-out"
+              style={{ width: `${((navIndex + 1) / NAV_ITEMS.length) * 100}%` }}
+            />
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 xl:grid-cols-[260px_1fr] gap-6">
+          <aside className="space-y-4">
+            <div className="bg-black/45 border border-white/10 rounded-2xl p-6">
+              <div className="relative w-max mx-auto">
+                <div className="w-24 h-24 rounded-2xl bg-black border border-white/15 flex items-center justify-center overflow-hidden">
+                  {logoPreview ? (
+                    <img src={logoPreview} alt="avatar" className="w-full h-full object-cover" />
+                  ) : (
+                    <span className="text-3xl font-black text-[#00ff88]">{initials(form.bio || "H")}</span>
+>>>>>>> origin/main
                   )}
                 </div>
-              </form>
-            </motion.div>
-          </AnimatePresence>
-        </main>
+
+                <button
+                  onClick={() => fileInputRef.current?.click()}
+                  className="absolute -bottom-2 -right-2 w-8 h-8 rounded-full bg-[#00ff88] text-black border-2 border-black flex items-center justify-center hover:bg-[#00cc6e] transition-colors"
+                >
+                  <FiCamera className="w-4 h-4" />
+                </button>
+                <input ref={fileInputRef} type="file" className="hidden" accept="image/*" onChange={handleLogoChange} />
+              </div>
+
+              <h3 className="text-center mt-4 text-lg font-bold">Operative Node</h3>
+              <p className="text-center text-[11px] text-[#00ff88] uppercase font-mono tracking-[0.14em] mt-1">Active Profile</p>
+            </div>
+
+            <nav className="space-y-2">
+              {NAV_ITEMS.map((item) => {
+                const Icon = item.icon;
+                return (
+                  <button
+                    key={item.key}
+                    onClick={() => setActiveNav(item.key)}
+                    className={`w-full text-left px-4 py-3.5 rounded-xl border transition-all flex items-center gap-3 text-sm font-semibold ${
+                      activeNav === item.key
+                        ? "bg-[#00ff88]/10 border-[#00ff88]/35 text-[#00ff88]"
+                        : "bg-black/30 border-white/10 text-white/70 hover:text-white hover:border-white/20"
+                    }`}
+                  >
+                    <Icon />
+                    {item.label}
+                  </button>
+                );
+              })}
+            </nav>
+          </aside>
+
+          <main className="min-w-0">
+              <div key={activeNav}>
+                <div className="mb-5">
+                  <h2 className="text-2xl font-semibold">{NAV_ITEMS.find((item) => item.key === activeNav)?.label}</h2>
+                  <p className="text-sm text-white/55 mt-1">
+                    Update your configuration to keep your operator profile deploy-ready.
+                  </p>
+                </div>
+
+                <form onSubmit={handleSubmit} className="space-y-6">
+                  {renderContent()}
+
+                  <div className="flex flex-wrap items-center gap-4 pt-2">
+                    <button
+                      type="submit"
+                      disabled={saving}
+                      className="flex items-center gap-2 px-7 py-3 bg-[#00ff88] text-black rounded-lg text-xs font-mono font-bold uppercase tracking-[0.16em] hover:bg-[#00cc6e] transition-colors disabled:opacity-50"
+                    >
+                      <FiSave className="w-4 h-4" />
+                      {saving ? "SAVING..." : "SAVE CONFIGURATION"}
+                    </button>
+
+                    {success && (
+                      <p className="text-xs font-mono uppercase tracking-[0.12em] text-[#00ff88] border border-[#00ff88]/30 bg-[#00ff88]/10 px-3 py-2 rounded">
+                        {success}
+                      </p>
+                    )}
+
+                    {error && (
+                      <p className="text-xs font-mono uppercase tracking-[0.12em] text-white border border-white/20 bg-white/5 px-3 py-2 rounded">
+                        {error}
+                      </p>
+                    )}
+                  </div>
+                </form>
+              </div>
+          </main>
+        </div>
       </div>
     </div>
   );
