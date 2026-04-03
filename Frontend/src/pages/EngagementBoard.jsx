@@ -41,7 +41,7 @@ const EngagementBoard = () => {
     }
   };
 
-  const filteredProjects = projects.filter(p => 
+  const filteredProjects = projects.filter(p =>
     p.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
     p.organization?.name.toLowerCase().includes(searchQuery.toLowerCase())
   );
@@ -87,7 +87,7 @@ const EngagementBoard = () => {
 
           <AnimatePresence mode="wait">
             {loading ? (
-              <motion.div 
+              <motion.div
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
@@ -97,7 +97,7 @@ const EngagementBoard = () => {
                 <span className="text-[10px] uppercase tracking-[0.3em] animate-pulse">Synchronizing Engagement Feed</span>
               </motion.div>
             ) : filteredProjects.length === 0 ? (
-              <motion.div 
+              <motion.div
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 className="py-24 text-center border border-white/10 border-dashed rounded-3xl bg-black/50 text-white/60"
@@ -119,7 +119,7 @@ const EngagementBoard = () => {
                     <div className="absolute top-0 right-0 p-8 opacity-[0.03] group-hover:opacity-[0.08] transition-opacity pointer-events-none">
                         <FiCpu size={80} />
                     </div>
-                    
+
                     <div className="flex flex-col md:flex-row items-start justify-between gap-6 relative z-10">
                       <div className="space-y-4 flex-1">
                         <div className="space-y-1">
@@ -133,7 +133,7 @@ const EngagementBoard = () => {
                                 {project.name}
                             </h3>
                         </div>
-                        
+
                         <p className="text-white/70 text-sm line-clamp-2 leading-relaxed max-w-2xl">
                           {project.description || "Detailed scope documentation available upon engagement activation."}
                         </p>
@@ -197,12 +197,12 @@ const EngagementBoard = () => {
                     ))}
                 </div>
             </div>
-            
-            <button 
+
+            <button
                 onClick={() => navigate("/my-applications")}
                 className="w-full py-5 bg-black/70 backdrop-blur-md border border-white/10 rounded-3xl font-bold text-xs uppercase tracking-widest text-white/70 hover:text-black hover:bg-[#00ff88] hover:border-[#00ff88] transition-all flex items-center justify-center gap-3 group"
             >
-                Pending Proposals 
+                Pending Proposals
                 <div className="w-5 h-5 bg-white/10 group-hover:bg-black/10 rounded-md flex items-center justify-center transition-colors">
                   <FiArrowRight className="group-hover:text-black" />
                 </div>
