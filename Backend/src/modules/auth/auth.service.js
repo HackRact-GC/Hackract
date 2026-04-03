@@ -22,7 +22,6 @@ const durationToMs = (input) => {
 
 const REFRESH_EXPIRY_MS = durationToMs(TOKEN_EXPIRY.REFRESH_TOKEN) || 7 * 24 * 60 * 60 * 1000;
 
-<<<<<<< HEAD
 const USER_PROFILE_INCLUDE = {
     roles: true,
     hackerProfile: true,
@@ -31,7 +30,6 @@ const USER_PROFILE_INCLUDE = {
     },
 };
 
-=======
 const DEFAULT_PUBLIC_EMAIL_DOMAINS = new Set([
     'gmail.com',
     'googlemail.com',
@@ -83,7 +81,7 @@ const slugify = (value) =>
         .replace(/-+/g, '-')
         .trim();
 
->>>>>>> origin/main
+
 class AuthService {
     validateOrganizationEmail(email) {
         const { ok, domain } = isCompanyEmail(email);
@@ -248,9 +246,7 @@ class AuthService {
     async sendVerification(user, meta) {
         const verification = await this.createEmailVerificationToken(user.id);
         const frontendBase = process.env.FRONTEND_BASE_URL || 'http://localhost:5173';
-<<<<<<< HEAD
-        const verifyUrl = `${frontendBase}/verify-email?email=${encodeURIComponent(user.email)}`;
-=======
+
         const verifyUrl = `${frontendBase}/verify-email?token=${encodeURIComponent(verification.token)}`;
 
         if (process.env.NODE_ENV === 'development') {
@@ -262,7 +258,7 @@ class AuthService {
             console.log(`=========================================\n`);
         }
 
->>>>>>> origin/main
+
         let delivered = true;
         try {
             await sendVerificationEmail({
@@ -286,22 +282,16 @@ class AuthService {
             throw new AppError('Verification code is required', 400, AuthErrorCodes.VERIFICATION_TOKEN_INVALID);
         }
 
-<<<<<<< HEAD
-        const record = await prisma.emailVerificationToken.findFirst({
-            where: { token, user: { email: email.toLowerCase() } },
-            include: { user: { include: USER_PROFILE_INCLUDE } },
-        });
-=======
+
         const record = email
             ? await prisma.emailVerificationToken.findFirst({
                   where: { token, user: { email: email.toLowerCase() } },
-                  include: { user: { include: { roles: true } } },
+                  include: { user: { include: USER_PROFILE_INCLUDE } },
               })
             : await prisma.emailVerificationToken.findUnique({
                   where: { token },
-                  include: { user: { include: { roles: true } } },
+                  include: { user: { include: USER_PROFILE_INCLUDE } },
               });
->>>>>>> origin/main
 
         if (!record) {
             throw new AppError('Invalid or expired verification token', 400, AuthErrorCodes.VERIFICATION_TOKEN_INVALID);
@@ -448,20 +438,7 @@ class AuthService {
 
         const passwordHash = await bcrypt.hash(payload.password, SALT_ROUNDS);
 
-<<<<<<< HEAD
-        let user = await prisma.user.create({
-            data: {
-                email,
-                passwordHash,
-                fullName: payload.fullName,
-                handle,
-                provider: 'local',
-                status: process.env.NODE_ENV === 'development' ? 'ACTIVE' : 'PENDING',
-                isVerified: process.env.NODE_ENV === 'development',
-                roles: selectedRole ? { connect: { id: selectedRole.id } } : undefined,
-            },
-            include: USER_PROFILE_INCLUDE,
-=======
+
         const { user, organization } = await prisma.$transaction(async (tx) => {
             const selectedRole = await tx.role.upsert({
                 where: { type: requestedRoleType },
@@ -484,11 +461,11 @@ class AuthService {
                     fullName: payload.fullName,
                     handle,
                     provider: 'local',
-                    status: 'PENDING',
-                    isVerified: false,
+                    status: process.env.NODE_ENV === 'development' ? 'ACTIVE' : 'PENDING',
+                    isVerified: process.env.NODE_ENV === 'development',
                     roles: selectedRole ? { connect: { id: selectedRole.id } } : undefined,
                 },
-                include: { roles: true },
+                include: USER_PROFILE_INCLUDE,
             });
 
             let createdOrganization = null;
@@ -538,7 +515,7 @@ class AuthService {
             }
 
             return { user: createdUser, organization: createdOrganization };
->>>>>>> origin/main
+
         });
 
         const verification = await this.sendVerification(user, meta);
