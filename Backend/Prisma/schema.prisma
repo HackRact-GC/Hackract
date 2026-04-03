@@ -99,6 +99,11 @@ model User {
   refreshTokens           RefreshToken[]
   workflowHistories       WorkflowHistory[]
   findingComments         FindingComment[]
+  
+  wallet                  Wallet?
+  transactions            Transaction[]
+  reviewsWritten          Review[] @relation("ReviewAuthor")
+  reviewsReceived         Review[] @relation("ReviewSubject")
 
   // Hacker profile (for PENTESTER users)
   hackerProfile          HackerProfile?
