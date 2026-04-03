@@ -51,7 +51,7 @@ const Home = () => {
               </h1>
             </div>
           </div>
-          
+
           <div className="flex items-center gap-4">
             <div className="relative group hidden md:block">
               <FiSearch className="absolute left-4 top-1/2 -translate-y-1/2 text-white/40 group-focus-within:text-[#00ff88] transition-colors" />
@@ -70,10 +70,10 @@ const Home = () => {
 
         <main className="flex-1 p-10 overflow-y-auto relative z-10 custom-scrollbar">
           <div className="max-w-7xl mx-auto space-y-10">
-            
+
             {/* Critical Status Banner */}
             {primaryRoleType === 'PENTESTER' && profileStatus !== 'APPROVED' && (
-              <motion.div 
+              <motion.div
                 initial={{ opacity: 0, scale: 0.98 }}
                 animate={{ opacity: 1, scale: 1 }}
                 className="bg-white/5 border border-[#00ff88]/20 rounded-4xl p-8 flex flex-col md:flex-row items-center justify-between gap-8 backdrop-blur shadow-2xl shadow-black/20"
@@ -89,7 +89,7 @@ const Home = () => {
                     </p>
                   </div>
                 </div>
-                <button 
+                <button
                   onClick={() => navigate('/hacker-verification')}
                   className="w-full md:w-auto px-8 py-3 bg-[#00ff88] hover:bg-white text-black font-black text-xs uppercase tracking-widest rounded-xl transition-all shadow-xl shadow-black/20 active:scale-95"
                 >
@@ -115,7 +115,7 @@ const Home = () => {
                       <div className="space-y-2">
                         <h3 className="text-2xl font-bold text-white tracking-tight">Technical Resource Arsenal</h3>
                   <p className="text-white/70 max-w-lg leading-relaxed">
-                            Access recommended tools and specialized environments for your current security focus. 
+                            Access recommended tools and specialized environments for your current security focus.
                             These resources are provisioned via our local container engine.
                         </p>
                       </div>
