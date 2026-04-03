@@ -38,13 +38,10 @@ export const AuthProvider = ({ children }) => {
   }, []);
 
   const fetchProfile = useCallback(async () => {
-<<<<<<< HEAD
     if (!accessToken) {
       setIsBootstrapping(false);
       return;
     }
-=======
->>>>>>> origin/main
     try {
       const { data } = await api.get("/auth/local/me");
       setUser(data?.data?.user || null);
@@ -172,11 +169,7 @@ export const AuthProvider = ({ children }) => {
       setUser,
       refreshUser: fetchProfile,
     }),
-<<<<<<< HEAD
-    [user, accessToken, refreshToken, loading, isBootstrapping, login, register, logout, refreshTokens]
-=======
-    [user, accessToken, refreshToken, loading, login, register, logout, refreshTokens, fetchProfile]
->>>>>>> origin/main
+    [user, accessToken, refreshToken, loading, isBootstrapping, login, register, logout, refreshTokens, fetchProfile]
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
