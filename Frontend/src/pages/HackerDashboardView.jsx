@@ -1,8 +1,8 @@
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import api from "../api/axiosConfig";
-import { 
-  FiTarget, FiZap, FiAward, FiShield, FiClock, FiActivity, FiDollarSign 
+import {
+  FiTarget, FiZap, FiAward, FiShield, FiClock, FiActivity, FiDollarSign
 } from "react-icons/fi";
 
 const StatCard = ({ label, value, trend, icon: Icon, color }) => (
