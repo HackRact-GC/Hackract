@@ -28,6 +28,8 @@ UI_TOOL_OUTPUT_MAX_CHARS = 120_000
 LLM_STREAM_EMIT_INTERVAL_SEC = 0.07
 # Avoid huge WebSocket frames while streaming (tail of response is shown).
 WS_THINKING_DISPLAY_MAX_CHARS = 100_000
+# GitHub Models: keep tool result history small so the next LLM request stays under ~8k input tokens.
+GITHUB_TOOL_RESULT_MAX_CHARS = 6_000
 
 
 class Agent:
@@ -382,33 +384,46 @@ Params: `query` (string), `max_results` (int)."""
                 
                 # Get the async generator from the LLM
                 stream_gen = await self.llm.chat(messages, stream=True)
+                try:
+                    async for chunk in stream_gen:
+                        if self.stop_requested:
+                            break
+                        # Check for error in stream
+                        if chunk.startswith("Error:"):
+                            raise Exception(chunk)
 
-                async for chunk in stream_gen:
-                    # Check for error in stream
-                    if chunk.startswith("Error:"):
-                        raise Exception(chunk)
-
-                    print(f"{Fore.BLUE}{chunk}{Style.RESET_ALL}", end="", flush=True)
-                    agent_response += chunk
-                    # Live "thinking" in the ProcessGroup UI (throttled for WebSocket)
-                    now = time.monotonic()
-                    if now >= stream_emit_next:
-                        disp = agent_response
-                        if len(disp) > WS_THINKING_DISPLAY_MAX_CHARS:
-                            disp = (
-                                "… (earlier stream truncated for UI)\n\n"
-                                + disp[-WS_THINKING_DISPLAY_MAX_CHARS:]
+                        print(f"{Fore.BLUE}{chunk}{Style.RESET_ALL}", end="", flush=True)
+                        agent_response += chunk
+                        # Live "thinking" in the ProcessGroup UI (throttled for WebSocket)
+                        now = time.monotonic()
+                        if now >= stream_emit_next:
+                            disp = agent_response
+                            if len(disp) > WS_THINKING_DISPLAY_MAX_CHARS:
+                                disp = (
+                                    "… (earlier stream truncated for UI)\n\n"
+                                    + disp[-WS_THINKING_DISPLAY_MAX_CHARS:]
+                                )
+                            await self._emit_status(
+                                "thinking",
+                                disp,
+                                {
+                                    "iteration": self.iteration,
+                                    "streaming": True,
+                                    "chat_model": self.config.model.chat_model,
+                                },
                             )
-                        await self._emit_status(
-                            "thinking",
-                            disp,
-                            {
-                                "iteration": self.iteration,
-                                "streaming": True,
-                                "chat_model": self.config.model.chat_model,
-                            },
-                        )
-                        stream_emit_next = now + LLM_STREAM_EMIT_INTERVAL_SEC
+                            stream_emit_next = now + LLM_STREAM_EMIT_INTERVAL_SEC
+                finally:
+                    aclose = getattr(stream_gen, "aclose", None)
+                    if callable(aclose):
+                        try:
+                            await stream_gen.aclose()
+                        except Exception:
+                            pass
+
+                if self.stop_requested:
+                    await self._emit_status("status", "🛑 Stopped.", {"iteration": self.iteration})
+                    return "🛑 Agent execution stopped by user request."
 
                 # Final flush so the UI has the complete model text before JSON parse
                 disp_final = agent_response
