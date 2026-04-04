@@ -1,11 +1,13 @@
 import { useState } from "react";
+import { FaEye, FaEyeSlash } from "react-icons/fa";
+import { validatePassword } from "../utils/validators";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth0 } from "@auth0/auth0-react";
 import { FcGoogle } from "react-icons/fc";
 import { FaGithub } from "react-icons/fa";
 import { useAuth } from "../context/AuthContext.jsx";
 
-const InputField = ({ label, type, placeholder, id, name, value, onChange }) => (
+const InputField = ({ label, type, placeholder, id, name, value, onChange, icon, onIconClick }) => (
   <div className="flex flex-col gap-2 group">
     <label
       htmlFor={id}
@@ -26,6 +28,16 @@ const InputField = ({ label, type, placeholder, id, name, value, onChange }) => 
         className="flex-1 bg-transparent outline-none text-sm font-mono placeholder-gray-400 text-gray-900 cursor-text"
         required
       />
+      {icon && (
+        <span
+          className="ml-2 cursor-pointer text-gray-500 hover:text-black"
+          onClick={onIconClick}
+          tabIndex={0}
+          role="button"
+        >
+          {icon}
+        </span>
+      )}
     </div>
   </div>
 );
@@ -54,10 +66,22 @@ const Register = () => {
   const [roleType, setRoleType] = useState("PENTESTER"); // PENTESTER (Hacker) or ORG_ADMIN (Organization)
   const [successMessage, setSuccessMessage] = useState("");
   const [errorMessage, setErrorMessage] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [passwordError, setPasswordError] = useState("");
 
   const handleChange = (e) => {
     const { name, value } = e.target;
     setForm((prev) => ({ ...prev, [name]: value }));
+    if (name === "password") {
+      if (!validatePassword(value)) {
+        setPasswordError(
+          "Password must be at least 8 characters, include uppercase, lowercase, and a special character."
+        );
+      } else {
+        setPasswordError("");
+      }
+    }
   };
 
   const handleGoogleLogin = () => {
@@ -82,14 +106,17 @@ const Register = () => {
     e.preventDefault();
     setSuccessMessage("");
     setErrorMessage("");
+    if (!validatePassword(form.password)) {
+      setPasswordError(
+        "Password must be at least 8 characters, include uppercase, lowercase, and a special character."
+      );
+      return;
+    }
     try {
       const payload = { ...form, roleType };
       const result = await register(payload);
-      
       setSuccessMessage(result?.message || "Registration successful. Check your email for verification code.");
       console.info("[ui] registration success", result);
-
-      // Redirect to OTP verification page
       setTimeout(() => {
         navigate(`/verify-email?email=${encodeURIComponent(form.email)}`);
       }, 1500);
@@ -175,21 +202,28 @@ const Register = () => {
         />
         <InputField
           label="Password"
-          type="password"
+          type={showPassword ? "text" : "password"}
           id="password"
           name="password"
           placeholder="At least 8 characters"
           value={form.password}
           onChange={handleChange}
+          icon={showPassword ? <FaEyeSlash /> : <FaEye />}
+          onIconClick={() => setShowPassword((prev) => !prev)}
         />
+        {passwordError && (
+          <div className="text-red-500 text-xs font-mono mt-1">{passwordError}</div>
+        )}
         <InputField
           label="Confirm Password"
-          type="password"
+          type={showConfirmPassword ? "text" : "password"}
           id="confirmPassword"
           name="confirmPassword"
           placeholder="Re-enter password"
           value={form.confirmPassword}
           onChange={handleChange}
+          icon={showConfirmPassword ? <FaEyeSlash /> : <FaEye />}
+          onIconClick={() => setShowConfirmPassword((prev) => !prev)}
         />
 
         <button
