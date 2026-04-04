@@ -5,6 +5,7 @@
     'use strict';
 
     const EXPAND_KEY = 'hackract_pg_expand_mode';
+    const TRACK_VIEW_KEY = 'hackract_pg_track_view';
 
     function esc(s) {
         if (s == null) return '';
@@ -274,9 +275,46 @@
             btn.addEventListener('click', () => this.openStepModal(payload));
         }
 
-        _stepsRoot() {
+        /** Steps container for LLM stream + reasoning + status utilities */
+        _thinkingRoot() {
             if (!this.activeGroupEl) return null;
-            return this.activeGroupEl.querySelector('.pg-steps');
+            return this.activeGroupEl.querySelector('[data-pg-steps-thinking]');
+        }
+
+        /** Steps container for tool calls + terminal output */
+        _toolsRoot() {
+            if (!this.activeGroupEl) return null;
+            return this.activeGroupEl.querySelector('[data-pg-steps-tools]');
+        }
+
+        _applyTrackView(groupEl) {
+            if (!groupEl) return;
+            const sel = groupEl.querySelector('[data-pg-track-select]');
+            if (!sel) return;
+            const v = sel.value || 'all';
+            const think = groupEl.querySelector('[data-pg-track-panel="thinking"]');
+            const tools = groupEl.querySelector('[data-pg-track-panel="tools"]');
+            if (think) think.hidden = v === 'tools';
+            if (tools) tools.hidden = v === 'thinking';
+        }
+
+        _bindTrackSelect(groupEl) {
+            const sel = groupEl && groupEl.querySelector('[data-pg-track-select]');
+            if (!sel) return;
+            try {
+                sel.value = localStorage.getItem(TRACK_VIEW_KEY) || 'all';
+            } catch (e) {
+                sel.value = 'all';
+            }
+            sel.addEventListener('change', () => {
+                try {
+                    localStorage.setItem(TRACK_VIEW_KEY, sel.value);
+                } catch (err) {
+                    /* ignore */
+                }
+                this._applyTrackView(groupEl);
+            });
+            this._applyTrackView(groupEl);
         }
 
         _groupHeaderEls() {
@@ -297,9 +335,8 @@
         }
 
         _refreshGroupStats() {
-            const root = this._stepsRoot();
-            if (!root || !this.activeGroupEl) return;
-            const n = root.querySelectorAll('.pg-step').length;
+            if (!this.activeGroupEl) return;
+            const n = this.activeGroupEl.querySelectorAll('.pg-group-body .pg-step').length;
             const { stats, time } = this._groupHeaderEls();
             const elapsed = Date.now() - this.groupStartTime;
             if (stats) stats.textContent = n + ' step' + (n === 1 ? '' : 's') + ' · ' + formatDuration(elapsed);
@@ -335,30 +372,32 @@
 
         _applyExpandModeToAllGroups() {
             this.chatContainer.querySelectorAll('.pg-group').forEach((group) => {
-                const root = group.querySelector('[data-pg-steps]');
-                if (!root) return;
-                const steps = Array.from(root.querySelectorAll('.pg-step'));
-                steps.forEach((step, i) => {
-                    const body = step.querySelector('.pg-step-body');
-                    if (!body) return;
-                    const isLast = i === steps.length - 1;
-                    body.classList.remove('pg-step-body-collapsed');
-                    if (this.expandMode === 'collapsed') {
-                        body.classList.add('pg-step-body-collapsed');
-                    } else if (this.expandMode === 'current') {
-                        // Keep LLM stream + reasoning visible; collapse older terminals only.
-                        if (!this._isThinkingStep(step) && !isLast) {
+                ['[data-pg-steps-thinking]', '[data-pg-steps-tools]'].forEach((sel) => {
+                    const root = group.querySelector(sel);
+                    if (!root) return;
+                    const steps = Array.from(root.querySelectorAll('.pg-step'));
+                    steps.forEach((step, i) => {
+                        const body = step.querySelector('.pg-step-body');
+                        if (!body) return;
+                        const isLast = i === steps.length - 1;
+                        body.classList.remove('pg-step-body-collapsed');
+                        if (this.expandMode === 'collapsed') {
                             body.classList.add('pg-step-body-collapsed');
+                        } else if (this.expandMode === 'current') {
+                            if (!this._isThinkingStep(step) && !isLast) {
+                                body.classList.add('pg-step-body-collapsed');
+                            }
                         }
-                    }
+                    });
                 });
             });
         }
 
         _onNewStep(stepEl) {
-            const root = this._stepsRoot();
-            if (!root || !stepEl) return;
-            const steps = Array.from(root.querySelectorAll('.pg-step'));
+            if (!stepEl) return;
+            const track = stepEl.closest('[data-pg-steps-thinking], [data-pg-steps-tools]');
+            if (!track) return;
+            const steps = Array.from(track.querySelectorAll('.pg-step'));
             const last = steps[steps.length - 1];
             if (this.expandMode === 'all') {
                 steps.forEach((s) => {
@@ -409,9 +448,33 @@
                 '<span class="pg-group-stats" data-pg-group-stats>0 steps</span>' +
                 '</div></div></button>' +
                 '<div class="pg-group-body" data-pg-group-body>' +
-                '<div class="pg-steps" data-pg-steps></div></div>';
+                '<div class="pg-track-toolbar">' +
+                '<label class="pg-track-toolbar-label" for="">View</label>' +
+                '<select class="pg-track-select" data-pg-track-select title="Show thinking, tools, or both">' +
+                '<option value="all">All: thinking + tools</option>' +
+                '<option value="thinking">Thinking only</option>' +
+                '<option value="tools">Tools only</option>' +
+                '</select></div>' +
+                '<div class="pg-track-panels" data-pg-track-panels>' +
+                '<section class="pg-track-panel" data-pg-track-panel="thinking">' +
+                '<div class="pg-track-panel-head"><span class="pg-track-panel-title">Thinking</span>' +
+                '<span class="pg-track-panel-hint">LLM · reasoning</span></div>' +
+                '<div class="pg-steps pg-steps-track" data-pg-steps-thinking></div>' +
+                '</section>' +
+                '<section class="pg-track-panel" data-pg-track-panel="tools">' +
+                '<div class="pg-track-panel-head"><span class="pg-track-panel-title">Tool execution</span>' +
+                '<span class="pg-track-panel-hint">Commands · output</span></div>' +
+                '<div class="pg-steps pg-steps-track" data-pg-steps-tools></div>' +
+                '</section></div></div>';
             const headerBtn = el.querySelector('[data-pg-toggle]');
             const body = el.querySelector('[data-pg-group-body]');
+            const trackLabel = el.querySelector('.pg-track-toolbar-label');
+            const trackSelect = el.querySelector('[data-pg-track-select]');
+            if (trackLabel && trackSelect) {
+                const tid = 'pg_track_' + String(this.groupStartTime) + '_' + Math.random().toString(36).slice(2, 8);
+                trackSelect.id = tid;
+                trackLabel.setAttribute('for', tid);
+            }
             headerBtn.addEventListener('click', () => {
                 const open = headerBtn.getAttribute('aria-expanded') === 'true';
                 headerBtn.setAttribute('aria-expanded', open ? 'false' : 'true');
@@ -422,6 +485,7 @@
             if (timeEl) timeEl.textContent = new Date(this.groupStartTime).toLocaleTimeString();
             this.chatContainer.appendChild(el);
             this.activeGroupEl = el;
+            this._bindTrackSelect(el);
             this._refreshGroupStats();
             this._scroll();
             return el;
@@ -474,7 +538,7 @@
 
         addUtility(text, meta) {
             if (!this.activeGroupEl) return;
-            const root = this._stepsRoot();
+            const root = this._thinkingRoot();
             if (!root) return;
             const id = 'st_' + ++this.stepCounter;
             const step = document.createElement('div');
@@ -501,7 +565,7 @@
             if (!this.activeGroupEl) return null;
             const it = iteration != null ? iteration : 0;
             if (this._genStepByIteration.has(it)) return this._genStepByIteration.get(it);
-            const root = this._stepsRoot();
+            const root = this._thinkingRoot();
             if (!root) return null;
             const id = 'st_' + ++this.stepCounter;
             const step = document.createElement('div');
@@ -551,7 +615,7 @@
 
         addReasonStep(text, meta) {
             if (!this.activeGroupEl) return;
-            const root = this._stepsRoot();
+            const root = this._thinkingRoot();
             if (!root) return;
             const id = 'st_' + ++this.stepCounter;
             const step = document.createElement('div');
@@ -585,7 +649,7 @@
 
         addExeStep(commandLine, meta, outputText) {
             if (!this.activeGroupEl) return;
-            const root = this._stepsRoot();
+            const root = this._toolsRoot();
             if (!root) return;
             const id = 'st_' + ++this.stepCounter;
             const step = document.createElement('div');
@@ -637,7 +701,7 @@
         }
 
         appendExeOutput(commandLine, meta, moreOutput) {
-            const root = this._stepsRoot();
+            const root = this._toolsRoot();
             if (!root) return;
             const steps = root.querySelectorAll('.pg-step-exe');
             const last = steps[steps.length - 1];
@@ -675,7 +739,7 @@
          */
         appendTerminalStream(chunk, meta) {
             if (!this.activeGroupEl || chunk == null) return;
-            const root = this._stepsRoot();
+            const root = this._toolsRoot();
             if (!root) return;
             const steps = root.querySelectorAll('.pg-step-exe');
             const last = steps[steps.length - 1];
@@ -757,6 +821,7 @@
 
     window.HackrActProcessGroup = {
         EXPAND_KEY: EXPAND_KEY,
+        TRACK_VIEW_KEY: TRACK_VIEW_KEY,
         ProcessGroupUI: ProcessGroupUI,
     };
 })();

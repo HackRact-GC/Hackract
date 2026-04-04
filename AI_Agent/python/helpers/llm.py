@@ -71,6 +71,16 @@ class LLM:
             # GitHub models are accessed via OpenAI client in litellm
             if not self.model.startswith("openai/"):
                 self.model = f"openai/{self.model}"
+        elif provider == "groq":
+            if api_key:
+                os.environ["GROQ_API_KEY"] = api_key
+            if not self.model.startswith("groq/"):
+                self.model = f"groq/{self.model}"
+        elif provider == "mistral":
+            if api_key:
+                os.environ["MISTRAL_API_KEY"] = api_key
+            if not self.model.startswith("mistral/"):
+                self.model = f"mistral/{self.model}"
         elif provider == "custom":
             # For custom endpoints
             if custom_api_base:
@@ -89,6 +99,9 @@ class LLM:
         
         temp = temperature if temperature is not None else self.temperature
         max_tok = max_tokens if max_tokens is not None else self.max_tokens
+        if self.provider == "github":
+            # GitHub Models total request budget is tight; keep completion small
+            max_tok = min(max_tok, 2048)
         
         try:
             if stream:

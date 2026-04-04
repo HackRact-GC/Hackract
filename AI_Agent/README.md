@@ -1,337 +1,240 @@
 # HackrAct AI Agent
 
-**Autonomous AI Penetration Tester powered by Large Language Models**
+**Autonomous AI security agent powered by large language models**
 
-HackrAct is an AI-powered cybersecurity agent designed for penetration testing, vulnerability assessment, and security research. It combines autonomous reasoning with professional security tools.
+HackrAct is an AI-driven assistant for **authorized** security testing, vulnerability assessment, and security research. It reasons in a loop, calls tools (shell / Python / Node.js), optional web search, and a vector memory store.
 
-> **LEGAL DISCLAIMER**: This tool is for authorized security testing and educational purposes ONLY. Unauthorized access to computer systems is illegal. Always obtain explicit written permission before testing any systems.
+> **LEGAL DISCLAIMER**: For **authorized** security testing and education **only**. Unauthorized access to systems is illegal. Obtain **explicit written permission** before testing any target.
+
+---
 
 ## Features
 
-- **Autonomous Pentesting**: AI-driven security testing with minimal human intervention
-- **Comprehensive Tool Suite**: Integrated with Kali Linux tools (nmap, metasploit, sqlmap, john, hashcat, nikto, and more)
-- **Memory System**: Stores exploits, vulnerabilities, and findings for reuse
-- **Code Execution**: Run shell commands, Python, and Node.js scripts
-- **Methodical Approach**: Follows industry-standard frameworks (OWASP, PTES, MITRE ATT&CK)
-- **Professional Reporting**: Technical, detailed security reports
+- **Web UI (React)**: Chat interface with live **process viewer** (LLM thinking stream, tool calls, terminal output), settings panel, and session persistence in the browser.
+- **FastAPI + WebSocket**: Real-time updates; REST endpoints for health, settings, and memory.
+- **Agent loop**: Streaming LLM responses, JSON tool plans, tool execution with stop/cancel support.
+- **Code execution**: Shell, Python, and Node.js (tools like `nmap` can be installed inside the container with `apt` when needed).
+- **Memory (optional)**: ChromaDB-backed recall/save for findings when enabled.
+- **Multiple LLM backends**: OpenRouter, OpenAI, Anthropic, Gemini, **GitHub Models**, Ollama, Groq, Mistral, DeepSeek, custom OpenAI-compatible APIs (via LiteLLM).
+- **Docker**: Default image is **minimal Debian** (fast builds); optional **`Dockerfile.full`** for a heavier tool-focused image.
+
+---
 
 ## Architecture
 
 ```
-HackrAct AI Agent
-├── Core Agent (agent.py)
-│   ├── LLM Integration (Claude, GPT-4, etc.)
-│   ├── Reasoning Loop
-│   └── Tool Orchestration
-├── Tools
-│   ├── code_execution_tool - Run security tools
-│   ├── memory_save/load - Store findings
-│   ├── search - Threat intelligence
-│   └── response - User communication
-├── Memory System (ChromaDB)
-│   └── Vector storage for exploits & findings
-├── Prompts
-│   ├── Role: Penetration tester personality
-│   ├── Environment: Kali Linux context
-│   ├── Solving: Methodology & approach
-│   └── Tools: Tool usage instructions
-└── Docker Environment
-    └── Kali Linux with security tools
+HackrAct
+├── frontend/              # React (Vite) SPA
+│   └── npm run build → ../static_build/
+├── api_server.py          # FastAPI: REST + WebSocket /ws/{session_id}
+├── agent.py               # Reasoning loop, streaming, tool orchestration
+├── config.py              # .env / provider limits (e.g. GitHub ~8k input)
+├── python/helpers/llm.py  # LiteLLM integration
+├── python/tools/          # code_execution, memory_*, search, response
+├── prompts/               # System prompts (lite mode for small contexts)
+├── static_build/          # Production UI (served by FastAPI; gitignored build output)
+└── Dockerfile             # Multi-stage: Node build + Debian slim runtime
 ```
 
-## Installation
-
-### Prerequisites
-
-- Docker and Docker Compose
-- API key for LLM provider (OpenRouter, OpenAI, etc.)
-
-### Quick Start
-
-1. **Clone and navigate to the project:**
-   ```bash
-   cd hackract_AI_agent
-   ```
-
-2. **Configure environment:**
-   ```bash
-   cp .env.example .env
-   nano .env  # Add your API_KEY
-   ```
-
-3. **Build and run with Docker:**
-   ```bash
-   docker-compose up --build
-   ```
-
-4. **Or build and run manually:**
-   ```bash
-   docker build -t hackract-ai .
-   docker run -it --rm \
-     --cap-add=NET_ADMIN --cap-add=NET_RAW \
-     -v $(pwd)/memory:/hackract/memory \
-     -v $(pwd)/logs:/hackract/logs \
-     -v $(pwd)/.env:/hackract/.env \
-     hackract-ai
-   ```
-
-### Local Installation (without Docker)
-
-On Kali Linux or similar:
-
-```bash
-# Install Python dependencies
-pip3 install -r requirements.txt
-
-# Install Playwright browsers
-playwright install chromium
-
-# Configure environment
-cp .env.example .env
-nano .env
-
-# Run
-python3 run_cli.py
-```
-
-## Usage
-
-### Interactive Mode
-
-```
-You: Scan localhost for open ports
-
-HackrAct: I'll perform a port scan on localhost using nmap...
-
-[Agent executes: nmap -sV -sC localhost]
-
-Found 3 open ports:
-- Port 22 (SSH): OpenSSH 8.9
-- Port 80 (HTTP): Apache 2.4.52
-- Port 3306 (MySQL): MySQL 8.0.32 - CRITICAL: Exposed remotely!
-
-The MySQL exposure is a critical security issue...
-```
-
-### Example Tasks
-
-**Network Scanning:**
-```
-"Scan 192.168.1.0/24 for live hosts and open ports"
-"Identify the OS and services running on 192.168.1.100"
-```
-
-**Web Application Testing:**
-```
-"Test http://testsite.com for SQL injection vulnerabilities"
-"Scan http://example.com with nikto and report findings"
-"Enumerate directories on http://target.com"
-```
-
-**Password Cracking:**
-```
-"Crack the hashes in hashes.txt using john the ripper"
-"Brute force SSH on 192.168.1.50 with user admin"
-```
-
-**Information Gathering:**
-```
-"What are common SQL injection payloads?"
-"Find recent CVEs for Apache 2.4.29"
-"Recall previous MySQL exploits from memory"
-```
-
-**Exploitation:**
-```
-"Search for exploits for vsftpd 2.3.4"
-"Use metasploit to exploit the identified vulnerability"
-```
-
-## Available Tools
-
-### Security Tools (via code_execution_tool)
-
-**Network Scanning:**
-- `nmap` - Port scanning, service detection
-- `masscan` - Fast port scanner
-- `netcat` - Network connections
-
-**Web Testing:**
-- `nikto` - Web server scanner
-- `sqlmap` - SQL injection automation
-- `gobuster`, `dirb` - Directory brute forcing
-- `wfuzz` - Web fuzzer
-
-**Exploitation:**
-- `metasploit-framework` - Exploitation framework
-- `searchsploit` - Exploit database
-
-**Password Cracking:**
-- `john` - John the Ripper
-- `hashcat` - GPU password cracking
-- `hydra` - Network login brute forcer
-
-**Wireless:**
-- `aircrack-ng` - Wireless security tools
-
-**Other:**
-- `enum4linux` - SMB enumeration
-- `curl`, `wget` - HTTP clients
-- Python, Node.js - Custom scripting
-
-### Agent Tools
-
-- **code_execution_tool**: Execute shell, Python, or Node.js code
-- **memory_save**: Save exploits, vulnerabilities, credentials
-- **memory_load**: Recall previously saved information
-- **search**: Search for threat intelligence and CVEs
-- **response**: Send formatted responses to user
-
-## Memory System
-
-HackrAct remembers what it learns:
-
-**Save a finding:**
-```
-Agent automatically saves: "SQL injection found in /login.php using payload: ' OR '1'='1' --"
-Category: exploit
-```
-
-**Recall later:**
-```
-You: "What SQL injection techniques have worked before?"
-Agent: [Recalls from memory] "I found a successful SQL injection payload..."
-```
-
-**Categories:**
-- `exploit` - Working exploits
-- `vulnerability` - Security weaknesses found
-- `credential` - Discovered credentials
-- `technique` - Successful attack methods
-- `finding` - General security findings
-
-## Configuration
-
-Edit `.env` file:
-
-```bash
-# LLM Configuration
-LLM_PROVIDER=openrouter
-API_KEY=your_api_key_here
-
-# Models
-CHAT_MODEL=anthropic/claude-3.5-sonnet
-UTILITY_MODEL=anthropic/claude-3-haiku
-EMBEDDING_MODEL=text-embedding-3-small
-
-# Memory
-MEMORY_DIR=./memory
-MEMORY_ENABLED=true
-
-# Agent
-AGENT_NAME=HackrAct
-MAX_ITERATIONS=25
-```
-
-### Supported LLM Providers
-
-- **OpenRouter** (recommended): Access to Claude, GPT-4, Gemini, and many others through one API
-- **OpenAI**: GPT-4, GPT-4-turbo, GPT-3.5
-- **Anthropic**: Claude models (Opus, Sonnet, Haiku)
-- **Ollama**: Local models (Llama 3.1, Mistral, CodeLlama, etc.) - **FREE & PRIVATE!**
-- **Custom**: Self-hosted or other compatible APIs
-
-> **New to LLMs?** Check out [LLM_PROVIDER_GUIDE.md](LLM_PROVIDER_GUIDE.md) for detailed setup instructions for each provider.
-
-## Security & Ethics
-
-### Legal and Ethical Use
-
-**DO:**
-- Use on systems you own
-- Use with explicit written authorization
-- Use for educational purposes in controlled environments
-- Use for authorized penetration testing engagements
-- Report vulnerabilities responsibly
-
-**DON'T:**
-- Test systems without authorization - This is illegal!
-- Cause damage or disruption
-- Exploit found vulnerabilities maliciously
-- Share or publish sensitive findings without permission
-- Use for any illegal activities
-
-### Safety Measures
-
-1. **Run in Docker**: Isolates the agent from your host system
-2. **Network Isolation**: Use separate network for testing
-3. **Authorized Scope**: Only test systems you have permission for
-4. **Data Protection**: Protect any credentials/data discovered
-
-## Graduation Project Usage
-
-This project was created as a graduation project focused on AI-powered cybersecurity. It demonstrates:
-
-1. **AI Agent Architecture**: Autonomous reasoning and tool use
-2. **LLM Integration**: Using large language models for security tasks
-3. **Cybersecurity Automation**: Automated vulnerability assessment
-4. **Memory Systems**: Vector databases for knowledge retention
-5. **Docker Containerization**: Reproducible security testing environments
-
-### Academic Use
-
-For academic presentations:
-- The architecture demonstrates agentic AI systems
-- Shows practical application of LLMs in cybersecurity
-- Illustrates RAG (Retrieval Augmented Generation) with memory system
-- Demonstrates tool use and function calling
-- Shows ethical AI deployment considerations
-
-## Examples
-
-See [EXAMPLES.md](EXAMPLES.md) for detailed usage scenarios and walkthroughs.
-
-## Contributing
-
-This is a graduation project, but improvements are welcome:
-1. Fork the repository
-2. Create a feature branch
-3. Make your changes
-4. Submit a pull request
-
-## License
-
-This project is for educational purposes. Use responsibly and legally.
-
-## Acknowledgments
-
-- Powered by Kali Linux and its comprehensive security tools
-- LLM integration via LiteLLM
-
-## Troubleshooting
-
-**"API Key Error":**
-- Check your `.env` file has valid `API_KEY`
-- Verify your LLM provider is correctly set
-
-**"Tool not found":**
-- Ensure running in Docker with Kali Linux
-- Or install missing tools: `apt-get install <tool>`
-
-**"Permission denied":**
-- Docker containers run as root by default
-- For local install, may need sudo for some tools
-
-**"No module named 'X'":**
-- Install Python deps: `pip3 install -r requirements.txt`
-
-## Support
-
-For issues and questions:
-- Check the documentation
-- Review example usage in EXAMPLES.md
-- Check project documentation for framework details
+**Runtime flow**
+
+1. Browser loads UI from `static_build/` (or `static/` fallback).
+2. User messages go over **WebSocket**; agent streams `thinking`, `thought`, `tool`, `terminal_stream`, `tool_output`, then `response`.
+3. UI shows a **process group** under each user turn: scrollable card, **Thinking** / **Tool execution** sections (each can be minimized).
 
 ---
 
-**Remember: With great power comes great responsibility. Use HackrAct ethically and legally!**
+## Quick start (Docker)
+
+### Prerequisites
+
+- Docker & Docker Compose
+- An API key for your LLM provider (or local **Ollama**)
+
+### Steps
+
+1. **Clone and enter the project directory** (repository path may vary):
+
+   ```bash
+   cd AI_Agent
+   ```
+
+2. **Environment**
+
+   ```bash
+   cp .env.example .env
+   # Edit .env: LLM_PROVIDER, API_KEY (or GITHUB_TOKEN for GitHub Models), CHAT_MODEL, etc.
+   ```
+
+3. **Run**
+
+   ```bash
+   docker compose up --build
+   ```
+
+4. **Open the app**
+
+   - **UI**: [http://localhost:8008](http://localhost:8008)  
+   - **Health**: [http://localhost:8008/api/health](http://localhost:8008/api/health)  
+   - **OpenAPI**: [http://localhost:8008/docs](http://localhost:8008/docs)
+
+Default API port is **8008** (`AI_AGENT_PORT` / `PORT` in `.env`).
+
+### Optional: full tool image
+
+`docker-compose.yml` can be pointed at `Dockerfile.full` for a larger image with more preinstalled tooling (see comments in the compose file).
+
+---
+
+## Local development (no Docker)
+
+### Backend / CLI
+
+```bash
+pip3 install -r requirements.txt
+cp .env.example .env
+# API + web UI (serves static_build if present)
+python3 run_api.py
+# Or interactive CLI only:
+python3 run_cli.py
+```
+
+Without a prior `npm run build`, ensure `static_build/` exists or the server falls back to legacy `static/`.
+
+### Frontend (React)
+
+```bash
+cd frontend
+npm ci   # or npm install
+npm run dev    # Vite dev server; proxies /api and /ws to http://localhost:8008
+npm run build  # Writes production assets to ../static_build/
+```
+
+Run `python3 run_api.py` on **8008** while using `npm run dev` so API and WebSocket calls work.
+
+---
+
+## Web UI overview
+
+| Area | Purpose |
+|------|--------|
+| **Chat** | Messages, composer, **Stop** (cancels agent task + running subprocess where supported). |
+| **Process group** | Per user message: task title, badges, **Thinking** (LLM stream + reasoning), **Tool execution** (commands + terminal). Inner **scroll** keeps long runs compact; **Minimize** on each section hides that track. |
+| **New chat** | Clears messages + process groups for the session (browser `localStorage`). |
+| **Settings** | Provider, models, memory, test connection, save to `.env` (API key not echoed back). |
+
+Step bodies in the process viewer are **always fully expanded** (no global “expand mode” toggle).
+
+---
+
+## Configuration (`.env`)
+
+See **`.env.example`** for the full list. Common variables:
+
+| Variable | Notes |
+|----------|--------|
+| `LLM_PROVIDER` | e.g. `openrouter`, `openai`, `anthropic`, `github`, `ollama`, … |
+| `API_KEY` | Provider secret; for GitHub Models a PAT with models access works |
+| `GITHUB_TOKEN` | Optional alias if `API_KEY` is empty and provider is `github` |
+| `CHAT_MODEL` | Model id as required by the provider |
+| `GITHUB_MAX_CONTEXT_TOKENS`, `GITHUB_MAX_INPUT_BUDGET`, … | Tune if GitHub returns “request body too large” (~8k input limit) |
+| `AI_AGENT_PORT` | HTTP port (default `8008`) |
+| `MEMORY_ENABLED`, `MEMORY_DIR`, collection name | Via settings API / env |
+
+---
+
+## Agent tools (built-in)
+
+| Tool | Role |
+|------|------|
+| **code_execution_tool** | Run shell / Python / Node.js (timeouts, streaming stdout/stderr to UI). |
+| **memory_save** / **memory_load** | Store and recall text findings (if memory enabled). |
+| **search** | Web search (when configured). |
+| **response** | Final natural-language reply to the user. |
+
+Security scanners and exploit frameworks are **not** bundled in the default Docker image; the agent may install packages with **`apt`** / **`pip`** / **`npm`** inside the container when appropriate for your engagement.
+
+---
+
+## Memory system
+
+When enabled, the agent can save structured notes and recall them in later turns. Categories include exploit, vulnerability, credential, technique, finding (see agent prompts). ChromaDB stores embeddings under `memory/`.
+
+---
+
+## Security & ethics
+
+**Do:** test only systems you own or are **authorized** to test; use isolated lab networks; handle leaked credentials responsibly.
+
+**Don’t:** probe third-party systems without permission; use findings maliciously; skip responsible disclosure where it applies.
+
+Running in **Docker** reduces host exposure; still scope network access carefully.
+
+---
+
+## Graduation / academic use
+
+Suitable to demonstrate: agentic loops, tool use, LLM streaming, WebSocket UX, optional RAG/memory, containerized deployment, and ethical-use framing.
+
+---
+
+## Troubleshooting
+
+| Issue | What to check |
+|-------|----------------|
+| **API / LLM auth errors** | `.env` `API_KEY` / `GITHUB_TOKEN`, provider name, model id. Use **Settings → Test connection**. |
+| **GitHub Models “body too large”** | Reduce context: see `GITHUB_*` vars in `.env.example`; agent uses a lite prompt and truncation for GitHub. |
+| **Blank or old UI** | Run `cd frontend && npm run build`; hard-refresh browser; Docker volume should mount project so `static_build/` updates. |
+| **WebSocket disconnected** | Server running; correct host/port; reverse proxy must support WebSocket upgrade. |
+| **Stop doesn’t feel instant** | Backend cancels the asyncio task and kills the active code-execution subprocess; very slow provider calls may still take a moment. |
+| **Python import errors** | `pip3 install -r requirements.txt` |
+
+---
+
+## Project layout (reference)
+
+```
+AI_Agent/
+├── agent.py
+├── api_server.py
+├── config.py
+├── run_api.py
+├── run_cli.py
+├── requirements.txt
+├── Dockerfile
+├── Dockerfile.full          # optional heavier image
+├── docker-compose.yml
+├── frontend/                # React source
+├── static_build/            # production UI build (generated)
+├── prompts/
+├── python/
+├── memory/, logs/, work_dir/
+└── README.md
+```
+
+---
+
+## Further reading
+
+- **[LLM_PROVIDER_GUIDE.md](LLM_PROVIDER_GUIDE.md)** — provider-specific setup  
+- **[EXAMPLES.md](EXAMPLES.md)** — example prompts and scenarios  
+- **[API_DOCUMENTATION.md](API_DOCUMENTATION.md)** / **[API_QUICKSTART.md](API_QUICKSTART.md)** — REST & WebSocket details  
+
+---
+
+## Contributing
+
+Fork → feature branch → PR. Keep changes compatible with Docker and the React build pipeline.
+
+---
+
+## License & acknowledgments
+
+Educational / research use; comply with local laws and provider terms.
+
+- LLM routing via **LiteLLM**  
+- UI: **React**, **Vite**, **marked** + **DOMPurify** for assistant markdown  
+
+---
+
+**Use HackrAct ethically and only where you have permission.**
