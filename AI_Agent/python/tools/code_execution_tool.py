@@ -21,14 +21,16 @@ class CodeExecutionTool(Tool):
         )
         self.work_dir = agent.config.work_dir
         os.makedirs(self.work_dir, exist_ok=True)
-<<<<<<< HEAD
         self._running_process: Optional[asyncio.subprocess.Process] = None
 
     def kill_running(self) -> None:
         """Kill the currently running subprocess (called by Agent.stop())."""
         proc = self._running_process
-        self._running_process = None
-        self._kill_proc(proc)
+        if proc and proc.returncode is None:
+            try:
+                proc.kill()
+            except ProcessLookupError:
+                pass
 
     async def _emit_stream_chunk(self, text: str, is_stderr: bool = False) -> None:
         """Forward process output to the web UI in real time."""
@@ -36,9 +38,6 @@ class CodeExecutionTool(Tool):
             return
         await self.agent.emit_terminal_chunk(text, is_stderr=is_stderr)
 
-=======
-        
->>>>>>> origin/main
     async def execute(
         self,
         language: str = "shell",
@@ -157,23 +156,19 @@ class CodeExecutionTool(Tool):
             async def read_stream(stream, is_stderr=False):
                 nonlocal output_str, error_str
                 while True:
-<<<<<<< HEAD
                     if self.agent.stop_requested:
                         break
                     chunk = await stream.read(4096)
                     if not chunk:
-=======
-                    line = await stream.readline()
-                    if not line:
->>>>>>> origin/main
                         break
-                    decoded_line = line.decode('utf-8', errors='ignore')
+                    decoded = chunk.decode("utf-8", errors="replace")
                     if is_stderr:
-                        error_str += decoded_line
-                        print(f"{Fore.RED}{decoded_line}{Style.RESET_ALL}", end="", flush=True)
+                        error_str += decoded
+                        print(f"{Fore.RED}{decoded}{Style.RESET_ALL}", end="", flush=True)
                     else:
-                        output_str += decoded_line
-                        print(f"{Fore.LIGHTBLACK_EX}{decoded_line}{Style.RESET_ALL}", end="", flush=True)
+                        output_str += decoded
+                        print(f"{Fore.LIGHTBLACK_EX}{decoded}{Style.RESET_ALL}", end="", flush=True)
+                    await self._emit_stream_chunk(decoded, is_stderr=is_stderr)
 
             # Wait for completion with timeout
             try:
@@ -181,9 +176,9 @@ class CodeExecutionTool(Tool):
                     asyncio.gather(
                         read_stream(process.stdout),
                         read_stream(process.stderr, is_stderr=True),
-                        process.wait()
+                        process.wait(),
                     ),
-                    timeout=timeout
+                    timeout=timeout,
                 )
             except asyncio.TimeoutError:
                 process.kill()
@@ -227,6 +222,7 @@ class CodeExecutionTool(Tool):
                             if summary:
                                 parsed_output = "\n\n[Parsed Nmap Summary]:\n" + "\n".join(summary)
                                 output_str += parsed_output
+                                await self._emit_stream_chunk(parsed_output, is_stderr=False)
                 except Exception as parse_err:
                     # Don't fail the execution if parsing fails, just log it
                     error_str += f"\n[Warning: Failed to parse Nmap XML: {str(parse_err)}]"
@@ -243,6 +239,7 @@ class CodeExecutionTool(Tool):
                             if "Parameter:" in line or "Type:" in line or "Title:" in line:
                                 summary += line.strip() + "\n"
                         output_str += summary
+                        await self._emit_stream_chunk(summary, is_stderr=False)
                 except Exception:
                     pass
 
@@ -271,7 +268,9 @@ class CodeExecutionTool(Tool):
                                         summary.append(f"Status: {status} | Size: {length} | URL: {url}")
                             
                             if len(summary) > 1:
-                                output_str += "\n".join(summary)
+                                extra = "\n".join(summary)
+                                output_str += extra
+                                await self._emit_stream_chunk(extra, is_stderr=False)
                 except Exception:
                     pass
 
@@ -281,6 +280,7 @@ class CodeExecutionTool(Tool):
                 "output": output_str,
                 "error": error_str,
                 "exit_code": process.returncode,
+                "streamed_to_ui": True,
             }
 
         except asyncio.TimeoutError:
@@ -300,15 +300,9 @@ class CodeExecutionTool(Tool):
             return
         try:
             if os.name != "nt" and hasattr(os, "killpg"):
-                try:
-                    pgid = os.getpgid(proc.pid)
-                    if pgid == proc.pid:
-                        # Process is its own group leader (started with start_new_session=True)
-                        os.killpg(pgid, signal.SIGKILL)
-                        return
-                except (ProcessLookupError, PermissionError, OSError):
-                    pass
-            proc.kill()
+                os.killpg(os.getpgid(proc.pid), signal.SIGKILL)
+            else:
+                proc.kill()
         except (ProcessLookupError, PermissionError, OSError):
             pass
 
@@ -321,13 +315,12 @@ class CodeExecutionTool(Tool):
         
         try:
             process = await asyncio.create_subprocess_exec(
-                'python3' if os.name != 'nt' else 'python',
+                "python3" if os.name != "nt" else "python",
                 temp_file,
                 stdout=asyncio.subprocess.PIPE,
                 stderr=asyncio.subprocess.PIPE,
                 cwd=self.work_dir,
             )
-<<<<<<< HEAD
             self._running_process = process
             out_acc = ""
             err_acc = ""
@@ -356,21 +349,14 @@ class CodeExecutionTool(Tool):
                 timeout=timeout,
             )
             self._running_process = None
-=======
-            
-            stdout, stderr = await asyncio.wait_for(
-                process.communicate(),
-                timeout=timeout
-            )
-            
->>>>>>> origin/main
             return {
                 "success": process.returncode == 0,
-                "output": stdout.decode('utf-8', errors='ignore'),
-                "error": stderr.decode('utf-8', errors='ignore'),
+                "output": out_acc,
+                "error": err_acc,
                 "exit_code": process.returncode,
+                "streamed_to_ui": True,
             }
-            
+
         except asyncio.TimeoutError:
             self._kill_proc(process)
             self._running_process = None
@@ -394,13 +380,12 @@ class CodeExecutionTool(Tool):
         
         try:
             process = await asyncio.create_subprocess_exec(
-                'node',
+                "node",
                 temp_file,
                 stdout=asyncio.subprocess.PIPE,
                 stderr=asyncio.subprocess.PIPE,
                 cwd=self.work_dir,
             )
-<<<<<<< HEAD
             self._running_process = process
             out_acc = ""
             err_acc = ""
@@ -429,21 +414,14 @@ class CodeExecutionTool(Tool):
                 timeout=timeout,
             )
             self._running_process = None
-=======
-            
-            stdout, stderr = await asyncio.wait_for(
-                process.communicate(),
-                timeout=timeout
-            )
-            
->>>>>>> origin/main
             return {
                 "success": process.returncode == 0,
-                "output": stdout.decode('utf-8', errors='ignore'),
-                "error": stderr.decode('utf-8', errors='ignore'),
+                "output": out_acc,
+                "error": err_acc,
                 "exit_code": process.returncode,
+                "streamed_to_ui": True,
             }
-            
+
         except asyncio.TimeoutError:
             self._kill_proc(process)
             self._running_process = None
