@@ -26,11 +26,8 @@ class CodeExecutionTool(Tool):
     def kill_running(self) -> None:
         """Kill the currently running subprocess (called by Agent.stop())."""
         proc = self._running_process
-        if proc and proc.returncode is None:
-            try:
-                proc.kill()
-            except ProcessLookupError:
-                pass
+        self._running_process = None
+        self._kill_proc(proc)
 
     async def _emit_stream_chunk(self, text: str, is_stderr: bool = False) -> None:
         """Forward process output to the web UI in real time."""
@@ -300,9 +297,15 @@ class CodeExecutionTool(Tool):
             return
         try:
             if os.name != "nt" and hasattr(os, "killpg"):
-                os.killpg(os.getpgid(proc.pid), signal.SIGKILL)
-            else:
-                proc.kill()
+                try:
+                    pgid = os.getpgid(proc.pid)
+                    if pgid == proc.pid:
+                        # Process is its own group leader (started with start_new_session=True)
+                        os.killpg(pgid, signal.SIGKILL)
+                        return
+                except (ProcessLookupError, PermissionError, OSError):
+                    pass
+            proc.kill()
         except (ProcessLookupError, PermissionError, OSError):
             pass
 
