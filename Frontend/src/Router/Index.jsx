@@ -16,10 +16,7 @@ import WorkflowEditor from "../pages/WorkflowEditor/WorkflowEditor.jsx";
 import HackerVerification from "../pages/HackerVerification.jsx";
 import OrganizationVerification from "../pages/OrganizationVerification.jsx";
 import ErrorPage from "../pages/ErrorPage.jsx";
-<<<<<<< HEAD
-import Projects from "../pages/Projects.jsx";
-=======
->>>>>>> origin/main
+
 import ProjectWorkspace from "../pages/ProjectWorkspace.jsx";
 import FindingDetails from "../pages/FindingDetails.jsx";
 import UserLayout from "../layouts/UserLayout.jsx";
@@ -39,10 +36,7 @@ import OrgOnboarding from "../pages/Onboarding/OrgOnboarding.jsx";
 import ApprovalsDashboard from "../pages/Admin/ApprovalsDashboard.jsx";
 import OperatorReview from "../pages/Admin/OperatorReview.jsx";
 import OrgReview from "../pages/Admin/OrgReview.jsx";
-<<<<<<< HEAD
-import LegalAgreementCreate from "../pages/LegalAgreementCreate.jsx";
-=======
->>>>>>> origin/main
+
 
 const router = createBrowserRouter([
   {
