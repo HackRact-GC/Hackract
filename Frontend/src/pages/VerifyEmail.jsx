@@ -1,10 +1,6 @@
-<<<<<<< HEAD
 import { useEffect, useMemo, useState } from "react";
 import { Link, useLocation, useSearchParams, useNavigate } from "react-router-dom";
-=======
-import { useState } from "react";
-import { Link } from "react-router-dom";
->>>>>>> origin/main
+
 import toast from "react-hot-toast";
 import api from "../api/axiosConfig";
 
@@ -21,7 +17,6 @@ const StatusBadge = ({ status, children }) => {
 
 const VerifyEmail = () => {
   const navigate = useNavigate();
-<<<<<<< HEAD
   const location = useLocation();
   const [searchParams] = useSearchParams();
   const [status, setStatus] = useState("idle");
@@ -45,15 +40,7 @@ const VerifyEmail = () => {
       code: prev.code || tokenFromUrl,
     }));
   }, [initialEmail, tokenFromUrl]);
-=======
-  const [searchParams] = useSearchParams();
-  const [status, setStatus] = useState("idle");
-  const [message, setMessage] = useState("Enter the 6-digit code we emailed you.");
-  const [form, setForm] = useState({
-    email: searchParams.get("email") || "",
-    code: "",
-  });
->>>>>>> origin/main
+
 
   const handleChange = (e) => {
     const { name, value } = e.target;

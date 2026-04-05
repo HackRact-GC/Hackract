@@ -2,15 +2,15 @@ import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/authContext.jsx";
 import api from "../api/axiosConfig";
-import { motion } from "framer-motion";
-import { FiSearch, FiBell, FiLock } from "react-icons/fi";
+import { motion, AnimatePresence } from "framer-motion";
+import { FiSearch, FiBell, FiLock, FiChevronRight, FiLogOut, FiExternalLink, FiCpu, FiShield } from "react-icons/fi";
 
 import HackerDashboardView from "./HackerDashboardView.jsx";
 import OrganizationDashboardView from "./OrganizationDashboardView.jsx";
 
 const Home = () => {
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user, logout } = useAuth();
   const [profileStatus, setProfileStatus] = useState(null);
 
   useEffect(() => {
@@ -31,62 +31,61 @@ const Home = () => {
   const isSuperAdmin = user?.roles?.some((r) => r.type === "SUPER_ADMIN");
   const isOrgView = user?.roles?.some((r) => r.type === "ORG_ADMIN") && !isSuperAdmin;
 
-    return (
-    <div className="min-h-screen bg-black text-white flex flex-col relative overflow-hidden font-sans selection:bg-[#00ff88]/30 selection:text-black">
-        {/* Background Accents */}
-        <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-[#00ff88]/5 rounded-full blur-[120px] -mr-64 -mt-64 pointer-events-none" />
-        <div className="absolute bottom-0 left-0 w-[400px] h-[400px] bg-white/5 rounded-full blur-[100px] -ml-40 -mb-40 pointer-events-none" />
-
-<<<<<<< HEAD
-  if (isOrgView) {
-      navItems = [
-          { label: "Org Overview", active: true, route: '/dashboard' },
-          { label: "Teams", route: '/teams' },
-          { label: "Projects", route: '/projects' },
-          { label: "Compliance", route: '/compliance' },
-          { label: "Settings", route: '/settings' },
+  let navItems = isOrgView
+    ? [
+        { label: "Org Overview", active: true, route: '/dashboard' },
+        { label: "Teams", route: '/teams' },
+        { label: "Projects", route: '/projects' },
+        { label: "Compliance", route: '/compliance' },
+        { label: "Settings", route: '/organization-profile' },
+      ]
+    : [
+        { label: "Dashboard", active: true, route: '/dashboard' },
+        { label: "Engagements", route: '/engagements' },
+        { label: "Projects", route: '/projects' },
+        { label: "Findings", route: '/findings' },
+        { label: "Settings", route: '/hacker-profile' },
       ];
-  }
 
   if (isSuperAdmin) {
-      navItems.push({ label: "Approvals Pipeline", route: '/admin/approvals', adminOnly: true });
+    navItems.push({ label: "Approvals Pipeline", route: '/admin/approvals', adminOnly: true });
   }
 
   const quickActions = isOrgView
     ? [
-      { title: "Create Program", description: "Define a new security program" },
-      { title: "Invite Pentester", description: "Bring in an external operator" },
-      { title: "Review Findings", description: "Prioritize open issues" },
-    ]
+        { title: "Create Program", description: "Define a new security program" },
+        { title: "Invite Pentester", description: "Bring in an external operator" },
+        { title: "Review Findings", description: "Prioritize open issues" },
+      ]
     : [
-      { title: "New Pentest", description: "Kick off a scoped engagement" },
-      { title: "Upload Evidence", description: "Attach screenshots or logs" },
-      { title: "Invite Teammate", description: "Collaborate on findings" },
-    ];
+        { title: "New Pentest", description: "Kick off a scoped engagement" },
+        { title: "Upload Evidence", description: "Attach screenshots or logs" },
+        { title: "Invite Teammate", description: "Collaborate on findings" },
+      ];
 
   const highlights = isOrgView
     ? [
-      { title: "Active Programs", value: "4", tone: "bg-emerald-50 text-emerald-800" },
-      { title: "Vulns Awaiting Triage", value: "18", tone: "bg-amber-50 text-amber-800" },
-      { title: "Vendors Engaged", value: "6", tone: "bg-sky-50 text-sky-800" },
-    ]
+        { title: "Active Programs", value: "4", tone: "bg-emerald-50 text-emerald-800" },
+        { title: "Vulns Awaiting Triage", value: "18", tone: "bg-amber-50 text-amber-800" },
+        { title: "Vendors Engaged", value: "6", tone: "bg-sky-50 text-sky-800" },
+      ]
     : [
-      { title: "Open Findings", value: "12", tone: "bg-amber-50 text-amber-800" },
-      { title: "In Progress", value: "3", tone: "bg-blue-50 text-blue-800" },
-      { title: "Reports Due", value: "2", tone: "bg-rose-50 text-rose-800" },
-    ];
+        { title: "Open Findings", value: "12", tone: "bg-amber-50 text-amber-800" },
+        { title: "In Progress", value: "3", tone: "bg-blue-50 text-blue-800" },
+        { title: "Reports Due", value: "2", tone: "bg-rose-50 text-rose-800" },
+      ];
 
   const activity = isOrgView
     ? [
-      { title: "New vendor added to program", time: "1h ago" },
-      { title: "Policy exception approved", time: "5h ago" },
-      { title: "Quarterly report exported", time: "Yesterday" },
-    ]
+        { title: "New vendor added to program", time: "1h ago" },
+        { title: "Policy exception approved", time: "5h ago" },
+        { title: "Quarterly report exported", time: "Yesterday" },
+      ]
     : [
-      { title: "SQLi discovered on login", time: "2h ago" },
-      { title: "Report draft exported", time: "6h ago" },
-      { title: "New collaborator added", time: "Yesterday" },
-    ];
+        { title: "SQLi discovered on login", time: "2h ago" },
+        { title: "Report draft exported", time: "6h ago" },
+        { title: "New collaborator added", time: "Yesterday" },
+      ];
 
   const handleLogout = async () => {
     await logout();
@@ -95,7 +94,7 @@ const Home = () => {
 
   return (
     <div className="min-h-screen bg-[#050505] text-white flex overflow-hidden selection:bg-[#00ff88]/30 selection:text-[#00ff88]">
-      {/* Subtle Background Orbs to match Landing Page */}
+      {/* Subtle Background Orbs */}
       <div className="fixed top-1/4 left-1/4 w-96 h-96 bg-[#00ff88]/5 rounded-full blur-[128px] pointer-events-none mix-blend-screen" />
       <div className="fixed bottom-1/4 right-1/4 w-96 h-96 bg-emerald-600/5 rounded-full blur-[128px] pointer-events-none mix-blend-screen" />
 
@@ -155,24 +154,10 @@ const Home = () => {
               </div>
               <div className="text-xl font-bold tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-white to-gray-400">
                 {isOrgView ? "Security Console" : "Command Center"}
-=======
-        <header className="h-20 border-b border-white/10 flex items-center justify-between px-10 bg-black/40 backdrop-blur-xl relative z-10">
-          <div className="flex items-center gap-6">
-            <div>
-              <div className="flex items-center gap-2 mb-0.5">
-                <span className="w-2 h-2 rounded-full bg-[#00ff88] animate-pulse shadow-[0_0_8px_rgba(0,255,136,0.65)]" />
-                <h2 className="text-sm font-black uppercase tracking-[0.2em] text-[#00ff88]/80">
-                    {isOrgView ? "Enterprise Node" : "Operative Console"}
-                </h2>
->>>>>>> origin/main
               </div>
-              <h1 className="text-xl font-bold text-white tracking-tight">
-                {isOrgView ? "Security Posture Dashboard" : "Operational Command Center"}
-              </h1>
             </div>
           </div>
 
-<<<<<<< HEAD
           <div className="flex items-center gap-5">
             <div className="relative group hidden md:block">
               <input
@@ -204,42 +189,15 @@ const Home = () => {
         <div className="flex-1 grid grid-cols-1 xl:grid-cols-[2fr_1fr] gap-8 p-8">
           {/* Center content */}
           <div className="space-y-8 h-fit">
-            {/* HERO SECTION */}
-            <div className="relative overflow-hidden bg-black/40 border border-white/5 rounded-[32px] p-8 shadow-2xl group transition-all duration-500 hover:border-[#00ff88]/20">
-              <div className="absolute top-0 right-0 p-8 opacity-5 group-hover:opacity-10 transition-opacity">
-                <div className="text-[120px] font-mono font-black select-none">Σ</div>
-              </div>
-              
-              <div className="relative z-10 flex items-center justify-between mb-10">
-                <div>
-                  <div className="inline-flex items-center gap-2 px-3 py-1 mb-4 rounded-full border border-[#00ff88]/20 bg-[#00ff88]/5 backdrop-blur-md">
-                    <span className="w-1.5 h-1.5 rounded-full bg-[#00ff88] animate-pulse"></span>
-                    <span className="text-[10px] font-mono tracking-widest text-[#00ff88] uppercase">System Latency: 4ms</span>
-                  </div>
-                  <h2 className="text-3xl font-extrabold tracking-tight">Active Engagements</h2>
-                </div>
-                <button
-                  onClick={() => navigate("/projects")}
-                  className="group relative px-6 py-3 rounded-xl bg-[#00ff88] text-black font-mono font-bold text-[11px] uppercase tracking-widest transition-all duration-300 hover:scale-105 hover:shadow-[0_0_20px_rgba(0,255,136,0.4)]"
+            <AnimatePresence mode="wait">
+                <motion.section
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.5 }}
                 >
-                  New Project [+]
-                </button>
-              </div>
-
-              <div className="grid sm:grid-cols-3 gap-6">
-                {highlights.map((card) => (
-                  <div key={card.title} className="relative p-6 rounded-2xl bg-white/[0.02] border border-white/5 hover:border-white/10 hover:bg-white/[0.04] transition-all group/card">
-                    <div className="text-[10px] font-mono uppercase tracking-widest text-gray-500 mb-3 group-hover/card:text-[#00ff88] transition-colors">{card.title}</div>
-                    <div className="text-4xl font-black tracking-tight">{card.value}</div>
-                    <div className="absolute bottom-4 right-4 w-6 h-6 rounded-lg bg-white/5 flex items-center justify-center opacity-0 group-hover/card:opacity-100 transition-all">
-                      <svg className="w-3 h-3 text-[#00ff88]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M13 7l5 5m0 0l-5 5m5-5H6" />
-                      </svg>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
+                    {isOrgView ? <OrganizationDashboardView /> : <HackerDashboardView />}
+                </motion.section>
+            </AnimatePresence>
 
             {/* ACTION BANNER */}
             {(primaryRoleType === 'PENTESTER' || primaryRoleType === 'PROJECT_ADMIN') && profileStatus !== 'APPROVED' && (
@@ -247,7 +205,7 @@ const Home = () => {
                 <div className="absolute -left-12 -top-12 w-48 h-48 bg-amber-500/10 rounded-full blur-[80px] pointer-events-none" />
                 <div className="flex items-center gap-6 relative z-10">
                   <div className="h-16 w-16 rounded-2xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-amber-500 text-2xl shadow-[0_0_20px_rgba(245,158,11,0.1)]">
-                    ☢
+                    <FiLock />
                   </div>
                   <div>
                     <h3 className="font-extrabold text-amber-500 font-mono uppercase tracking-widest text-sm mb-2">Restricted Access: Identity Pending</h3>
@@ -262,55 +220,10 @@ const Home = () => {
                   className="relative z-10 bg-amber-500 hover:bg-amber-600 text-black px-8 py-3.5 rounded-xl text-[10px] font-mono font-bold uppercase tracking-widest transition-all active:scale-95 whitespace-nowrap shadow-lg shadow-amber-500/20"
                 >
                   Start Verification Loop →
-=======
-          <div className="flex items-center gap-4">
-            <div className="relative group hidden md:block">
-              <FiSearch className="absolute left-4 top-1/2 -translate-y-1/2 text-white/40 group-focus-within:text-[#00ff88] transition-colors" />
-              <input
-                type="text"
-                placeholder="Search assets, findings, history..."
-                className="bg-black/50 border border-white/10 rounded-xl px-12 py-2.5 text-sm w-80 focus:outline-none focus:border-[#00ff88]/50 transition-all placeholder:text-white/40 text-white"
-              />
-            </div>
-            <button className="relative p-3 rounded-xl bg-black border border-white/10 text-white/60 hover:border-[#00ff88]/30 hover:text-[#00ff88] transition-all">
-                <FiBell size={18} />
-                <span className="absolute top-2.5 right-2.5 w-2 h-2 bg-[#00ff88] rounded-full border-2 border-black" />
-            </button>
-          </div>
-        </header>
-
-        <main className="flex-1 p-10 overflow-y-auto relative z-10 custom-scrollbar">
-          <div className="max-w-7xl mx-auto space-y-10">
-
-            {/* Critical Status Banner */}
-            {primaryRoleType === 'PENTESTER' && profileStatus !== 'APPROVED' && (
-              <motion.div
-                initial={{ opacity: 0, scale: 0.98 }}
-                animate={{ opacity: 1, scale: 1 }}
-                className="bg-white/5 border border-[#00ff88]/20 rounded-4xl p-8 flex flex-col md:flex-row items-center justify-between gap-8 backdrop-blur shadow-2xl shadow-black/20"
-              >
-                <div className="flex items-center gap-6">
-                  <div className="h-16 w-16 rounded-2xl bg-[#00ff88]/10 flex items-center justify-center text-[#00ff88] border border-[#00ff88]/20">
-                    <FiLock size={32} />
-                  </div>
-                  <div className="space-y-1">
-                    <h3 className="font-bold text-[#00ff88] uppercase tracking-widest">Identity Verification Pending</h3>
-                    <p className="text-sm text-white/70 max-w-xl">
-                      Access to open security tenders is restricted until your identification documents are validated. Current status: <span className="font-mono text-white">[{profileStatus || 'AWAITING_DATA'}]</span>
-                    </p>
-                  </div>
-                </div>
-                <button
-                  onClick={() => navigate('/hacker-verification')}
-                  className="w-full md:w-auto px-8 py-3 bg-[#00ff88] hover:bg-white text-black font-black text-xs uppercase tracking-widest rounded-xl transition-all shadow-xl shadow-black/20 active:scale-95"
-                >
-                  Initiate Verification
->>>>>>> origin/main
                 </button>
-              </motion.div>
+              </div>
             )}
 
-<<<<<<< HEAD
             {/* QUICK ACTIONS */}
             <div className="bg-black/40 border border-white/5 rounded-[32px] p-8">
               <h3 className="text-lg font-bold mb-6 tracking-tight flex items-center gap-3">
@@ -324,9 +237,7 @@ const Home = () => {
                     className="group relative border border-white/5 bg-white/[0.02] rounded-2xl p-6 text-left hover:border-[#00ff88]/40 hover:-translate-y-1 transition-all duration-300 overflow-hidden"
                   >
                     <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-20 transition-opacity">
-                      <svg className="w-12 h-12" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4" />
-                      </svg>
+                      <FiCpu size={48} />
                     </div>
                     <div className="relative z-10">
                       <div className="text-xs font-bold font-mono tracking-widest text-[#00ff88] mb-2 uppercase opacity-80">{action.title}</div>
@@ -337,7 +248,7 @@ const Home = () => {
               </div>
             </div>
 
-            {/* RECOMENDED SCRIPTS */}
+            {/* Platform Insights / Tooling Section */}
             <div className="bg-[#00ff88]/[0.02] border border-[#00ff88]/10 rounded-[32px] p-8 relative overflow-hidden">
               <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-[#00ff88]/30 to-transparent" />
               
@@ -392,7 +303,7 @@ const Home = () => {
               
               <div className="flex items-center gap-4 relative z-10 mb-8">
                 <div className="h-16 w-16 rounded-2xl bg-gradient-to-br from-[#00ff88]/20 to-emerald-500/10 border border-[#00ff88]/40 flex items-center justify-center text-2xl font-black text-[#00ff88] shadow-inner shadow-[#00ff88]/10">
-                  {user?.fullName?.[0]?.toUpperCase() || "O"}
+                  {user?.fullName?.[0]?.toUpperCase() || user?.handle?.[0]?.toUpperCase() || "O"}
                 </div>
                 <div>
                   <div className="text-[10px] font-mono text-gray-500 uppercase tracking-widest mb-1">Authenticated</div>
@@ -445,7 +356,7 @@ const Home = () => {
               </div>
             </div>
 
-            {/* AD BANNER OR STATUS INFOGRAPHIC */}
+            {/* UPGRADE BANNER */}
             <div className="p-8 rounded-[32px] bg-gradient-to-br from-[#00ff88]/20 to-emerald-900/40 border border-[#00ff88]/20 text-white relative overflow-hidden group">
                <div className="absolute top-0 right-0 w-48 h-48 bg-[#00ff88]/10 rounded-full -mr-24 -mt-24 blur-[60px] opacity-50" />
                <div className="relative z-10">
@@ -466,51 +377,6 @@ const Home = () => {
           }
         }
       `}</style>
-=======
-            {/* Core Dashboard View */}
-            <motion.section
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.5 }}
-            >
-                {isOrgView ? <OrganizationDashboardView /> : <HackerDashboardView />}
-            </motion.section>
-
-            {/* Platform Insights / Tooling Section (Universal) */}
-            <section className="bg-linear-to-r from-black via-white/5 to-black border border-white/10 rounded-4xl p-10 relative overflow-hidden shadow-2xl">
-              <div className="absolute top-0 right-0 w-[600px] h-full bg-[#00ff88]/5 blur-[80px] -mr-40 pointer-events-none" />
-                <div className="relative z-10 grid md:grid-cols-[1fr_auto] items-center gap-12">
-                   <div className="space-y-6">
-                      <div className="space-y-2">
-                        <h3 className="text-2xl font-bold text-white tracking-tight">Technical Resource Arsenal</h3>
-                  <p className="text-white/70 max-w-lg leading-relaxed">
-                            Access recommended tools and specialized environments for your current security focus.
-                            These resources are provisioned via our local container engine.
-                        </p>
-                      </div>
-                      <div className="flex flex-wrap gap-4">
-                        {["Burp Suite", "Metasploit", "Nmap", "Wireshark"].map(tool => (
-                    <div key={tool} className="px-5 py-2.5 bg-black rounded-xl border border-white/10 text-[11px] font-bold text-white font-mono flex items-center gap-3">
-                      <div className="w-1.5 h-1.5 bg-[#00ff88] rounded-full" />
-                                {tool.toUpperCase()}
-                            </div>
-                        ))}
-                      </div>
-                   </div>
-                   <div className="p-8 bg-black rounded-4xl border border-white/10 text-center space-y-4 shadow-3xl">
-                  <div className="text-[10px] font-black text-white/60 uppercase tracking-widest">Platform Sync</div>
-                  <div className="text-4xl font-black text-[#00ff88] tracking-tighter">99.9%</div>
-                  <p className="text-xs text-white/50 font-mono">ENCRYPTED TELEMETRY</p>
-                  <button className="px-6 py-2 bg-white/10 hover:bg-[#00ff88] hover:text-black text-white rounded-lg text-[10px] font-bold uppercase tracking-widest transition-all border border-white/10 hover:border-[#00ff88]">
-                            Refresh Feed
-                        </button>
-                   </div>
-                </div>
-            </section>
-
-          </div>
-        </main>
->>>>>>> origin/main
     </div>
   );
 };
