@@ -7,16 +7,13 @@ import {
   organizationIdSchema,
   listOrganizationsQuerySchema,
   organizationNameQuerySchema,
-<<<<<<< HEAD
   ownerNameQuerySchema,
   submitVerificationSchema,
   addMemberSchema,
   updateMemberSchema,
   paginationSchema,
   memberIdSchema
-=======
-  ownerNameQuerySchema
->>>>>>> origin/main
+
 } from './Organization.schema.js';
 import asyncHandler from '../../utils/AsyncHandler.js';
 
@@ -151,11 +148,8 @@ class OrganizationController {
     res.status(200).json({
       success: true,
       message: 'All organizations deleted successfully',
-<<<<<<< HEAD
-      ...result
-=======
       data: result
->>>>>>> origin/main
+
     });
   });
 

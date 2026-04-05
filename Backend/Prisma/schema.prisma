@@ -129,13 +129,16 @@ model HackerProfile {
   user   User   @relation(fields: [userId], references: [id])
   userId String @unique
 
-  bio               String
+  bio               String?
   country           String?
   yearsOfExperience Int?
   primarySkills     String[]
   certifications    String[]
   portfolioLinks    String[]
-
+  specialization    String?
+  github            String?
+  linkedin          String?
+  twitter           String?
 
   status      VerificationStatus @default(DRAFT)
   reviewNotes String?
@@ -598,4 +601,63 @@ model WorkflowHistory {
   @@index([workflowId])
   @@index([userId])
   @@index([createdAt])
+}
+
+// =====================================
+// 1️⃣8️⃣ Wallet
+// =====================================
+model Wallet {
+  id      String @id @default(uuid())
+  balance Float  @default(0)
+
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId String @unique
+
+  transactions Transaction[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// =====================================
+// 1️⃣9️⃣ Transaction
+// =====================================
+model Transaction {
+  id          String   @id @default(uuid())
+  type        String   // e.g. "CREDIT", "DEBIT", "PAYOUT"
+  amount      Float
+  description String?
+  reference   String?
+
+  wallet   Wallet @relation(fields: [walletId], references: [id], onDelete: Cascade)
+  walletId String
+
+  user   User   @relation(fields: [userId], references: [id])
+  userId String
+
+  createdAt DateTime @default(now())
+
+  @@index([walletId])
+  @@index([userId])
+}
+
+// =====================================
+// 2️⃣0️⃣ Review
+// =====================================
+model Review {
+  id      String @id @default(uuid())
+  rating  Int    // 1-5 stars
+  comment String?
+
+  author   User   @relation("ReviewAuthor", fields: [authorId], references: [id])
+  authorId String
+
+  subject   User   @relation("ReviewSubject", fields: [subjectId], references: [id])
+  subjectId String
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([authorId])
+  @@index([subjectId])
 }
