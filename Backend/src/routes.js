@@ -15,6 +15,7 @@ import UserSignatureRouter from "./modules/UserSignature/userSignature.routes.js
 import WorkflowRouter from "./modules/Workflow/workflow.routes.js";
 import WorkflowHistoryRouter from "./modules/WorkflowHistory/workflowHistory.routes.js";
 import HackerProfileRouter from "./modules/HackerProfile/hackerProfile.routes.js";
+import ProjectRouter from "./modules/Project/project.routes.js";
 
 const router = express.Router();
 
@@ -34,5 +35,6 @@ router.use("/user-signatures", UserSignatureRouter);
 router.use("/workflows", WorkflowRouter);
 router.use("/workflows", WorkflowHistoryRouter);
 router.use("/hacker-profiles", HackerProfileRouter);
+router.use("/projects", ProjectRouter);
 
 export default router;

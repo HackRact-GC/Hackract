@@ -31,3 +31,18 @@ export const logAction = async (action, userId, details = {}, req = null) => {
 
     return await createAuditLog(logData);
 };
+
+export const generateAuditReport = async (filters) => {
+    const logs = await getAuditLogs(filters);
+    return {
+        reportType: 'Compliance Audit',
+        generatedAt: new Date(),
+        totalEntries: logs.length,
+        entries: logs.map(log => ({
+            id: log.id,
+            timestamp: log.createdAt,
+            action: log.action,
+            metadata: log.details
+        }))
+    };
+};

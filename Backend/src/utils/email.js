@@ -1,73 +1,248 @@
-import { Resend } from 'resend';
-import sgMail from '@sendgrid/mail';
+import nodemailer from 'nodemailer';
 import dayjs from 'dayjs';
 import AppError from './AppError.js';
 import { AuthErrorCodes } from '../modules/auth/auth.constants.js';
 
-const buildContent = ({ friendlyName, verifyUrl, expiresLabel, metaDetails, code }) => {
-    const text = [
-        `Hi ${friendlyName},`,
-        '',
-        'Please verify your email to activate your Hackract account.',
-        code ? `Verification code: ${code}` : null,
-        verifyUrl ? `Or use the link: ${verifyUrl}` : null,
-        '',
-        expiresLabel ? `This link expires on ${expiresLabel}.` : 'This link will expire soon.',
-        '',
-        metaDetails ? `Request details: ${metaDetails}` : null,
-        'If you did not request this, you can ignore this email.',
-    ]
-        .filter(Boolean)
-        .join('\n');
-
-    const html = `
-        <div style="font-family: Arial, sans-serif; line-height: 1.6; color: #0f172a;">
-            <p>Hi ${friendlyName},</p>
-            <p>Please verify your email to activate your Hackract account.</p>
-            ${code ? `<p style="font-size: 24px; letter-spacing: 8px; font-weight: bold;">${code}</p>` : ''}
-            ${verifyUrl ? `<p><a href="${verifyUrl}" style="background: #111827; color: #10b981; padding: 10px 16px; text-decoration: none; border-radius: 6px;">Verify email</a></p>` : ''}
-            ${verifyUrl ? `<p>Or copy and paste this link: <br /><span style="word-break: break-all;">${verifyUrl}</span></p>` : ''}
-            <p>${expiresLabel ? `This code expires on ${expiresLabel}.` : 'This code will expire soon.'}</p>
-            ${metaDetails ? `<p style="color:#6b7280; font-size: 12px;">Request details: ${metaDetails}</p>` : ''}
-            <p style="color:#6b7280; font-size: 12px;">If you did not request this, you can ignore this email.</p>
-        </div>
-    `;
-
-    return { text, html };
+const BRAND = {
+        name: 'Hackract',
+        headerBg: '#111827',
+        headerText: '#ffffff',
+        accent: '#10b981',
+        bodyText: '#0f172a',
+        mutedText: '#6b7280',
+        border: '#e5e7eb',
+        surface: '#ffffff',
+        surfaceMuted: '#f9fafb',
+        pageBg: '#0f172a',
 };
 
-const getProviders = () => {
-    const providers = [];
+const escapeHtml = (value) =>
+        String(value ?? '')
+                .replaceAll('&', '&amp;')
+                .replaceAll('<', '&lt;')
+                .replaceAll('>', '&gt;')
+                .replaceAll('"', '&quot;')
+                .replaceAll("'", '&#39;');
 
-    if (process.env.RESEND_API_KEY && process.env.RESEND_FROM) {
-        const resend = new Resend(process.env.RESEND_API_KEY);
-        providers.push({
-            name: 'Resend',
-            send: (payload) => resend.emails.send({ ...payload, from: process.env.RESEND_FROM }),
+const buildEmailTemplate = ({
+        preheader,
+        title,
+        greeting,
+        intro,
+        codeLabel,
+        code,
+        ctaLabel,
+        ctaUrl,
+        fallbackLabel,
+        fallbackUrl,
+        expiresLabel,
+        metaDetails,
+        securityNote,
+}) => {
+        const safeGreeting = escapeHtml(greeting);
+        const safeTitle = escapeHtml(title);
+        const safeIntro = escapeHtml(intro);
+        const safePreheader = escapeHtml(preheader);
+
+        const safeCodeLabel = codeLabel ? escapeHtml(codeLabel) : null;
+        const safeCode = code ? escapeHtml(code) : null;
+
+        const safeCtaLabel = ctaLabel ? escapeHtml(ctaLabel) : null;
+        const safeCtaUrl = ctaUrl ? escapeHtml(ctaUrl) : null;
+        const safeFallbackLabel = fallbackLabel ? escapeHtml(fallbackLabel) : null;
+        const safeFallbackUrl = fallbackUrl ? escapeHtml(fallbackUrl) : null;
+
+        const safeExpiresLabel = expiresLabel ? escapeHtml(expiresLabel) : null;
+        const safeMetaDetails = metaDetails ? escapeHtml(metaDetails) : null;
+        const safeSecurityNote = securityNote ? escapeHtml(securityNote) : null;
+
+        const textLines = [
+                `Hi ${greeting},`,
+                '',
+                intro,
+                safeCode ? `${codeLabel || 'Code'}: ${code}` : null,
+                ctaUrl ? `${ctaLabel || 'Open link'}: ${ctaUrl}` : null,
+                '',
+                expiresLabel ? `Expires: ${expiresLabel}` : null,
+                '',
+                securityNote || null,
+                '',
+                metaDetails ? `Request details: ${metaDetails}` : null,
+                'If you did not request this, you can ignore this email.',
+                '',
+                `— ${BRAND.name}`,
+        ]
+                .filter(Boolean)
+                .join('\n');
+
+        const html = `
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <meta name="x-apple-disable-message-reformatting" />
+        <title>${safeTitle}</title>
+    </head>
+    <body style="margin:0;padding:0;background:${BRAND.pageBg};">
+        <div style="display:none;max-height:0;overflow:hidden;opacity:0;color:transparent;">
+            ${safePreheader}
+        </div>
+
+        <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="background:${BRAND.pageBg};width:100%;">
+            <tr>
+                <td align="center" style="padding:24px 12px;">
+                    <table role="presentation" width="600" cellspacing="0" cellpadding="0" border="0" style="width:100%;max-width:600px;background:${BRAND.surface};border:1px solid ${BRAND.border};border-radius:14px;overflow:hidden;">
+                        <tr>
+                            <td style="padding:18px 22px;background:${BRAND.headerBg};color:${BRAND.headerText};font-family:Arial,sans-serif;">
+                                <div style="font-size:18px;font-weight:700;letter-spacing:0.2px;">${BRAND.name}</div>
+                                <div style="font-size:12px;opacity:0.85;margin-top:2px;">${safeTitle}</div>
+                            </td>
+                        </tr>
+
+                        <tr>
+                            <td style="padding:22px;font-family:Arial,sans-serif;color:${BRAND.bodyText};line-height:1.55;">
+                                <p style="margin:0 0 12px 0;">Hi ${safeGreeting},</p>
+                                <p style="margin:0 0 18px 0;">${safeIntro}</p>
+
+                                ${safeCode ? `
+                                <div style="margin:0 0 18px 0;padding:14px 16px;border:1px solid ${BRAND.border};background:${BRAND.surfaceMuted};border-radius:12px;">
+                                    <div style="font-size:12px;color:${BRAND.mutedText};margin-bottom:6px;">${safeCodeLabel || 'Code'}</div>
+                                    <div style="font-size:28px;font-weight:800;letter-spacing:8px;color:${BRAND.bodyText};">${safeCode}</div>
+                                </div>
+                                ` : ''}
+
+                                ${safeCtaUrl ? `
+                                <div style="margin:0 0 16px 0;">
+                                    <a href="${safeCtaUrl}" style="display:inline-block;background:${BRAND.headerBg};color:${BRAND.accent};text-decoration:none;padding:12px 16px;border-radius:10px;font-weight:700;">
+                                        ${safeCtaLabel || 'Open'}
+                                    </a>
+                                </div>
+                                ` : ''}
+
+                                ${safeFallbackUrl ? `
+                                <p style="margin:0 0 14px 0;font-size:13px;color:${BRAND.mutedText};">
+                                    ${safeFallbackLabel || 'If the button does not work, copy and paste this link:'}<br />
+                                    <span style="word-break:break-all;">${safeFallbackUrl}</span>
+                                </p>
+                                ` : ''}
+
+                                ${safeExpiresLabel ? `
+                                <p style="margin:0 0 14px 0;font-size:13px;color:${BRAND.mutedText};">Expires: ${safeExpiresLabel}</p>
+                                ` : ''}
+
+                                ${safeSecurityNote ? `
+                                <p style="margin:0 0 14px 0;font-size:13px;color:${BRAND.mutedText};">${safeSecurityNote}</p>
+                                ` : ''}
+
+                                ${safeMetaDetails ? `
+                                <p style="margin:0;font-size:12px;color:${BRAND.mutedText};">Request details: ${safeMetaDetails}</p>
+                                ` : ''}
+                            </td>
+                        </tr>
+
+                        <tr>
+                            <td style="padding:16px 22px;background:${BRAND.surfaceMuted};border-top:1px solid ${BRAND.border};font-family:Arial,sans-serif;color:${BRAND.mutedText};font-size:12px;line-height:1.5;">
+                                <p style="margin:0;">If you did not request this, you can ignore this email.</p>
+                            </td>
+                        </tr>
+                    </table>
+
+                    <div style="max-width:600px;width:100%;font-family:Arial,sans-serif;color:${BRAND.mutedText};font-size:12px;line-height:1.4;padding:12px 6px 0 6px;">
+                        <div>${BRAND.name} • Security workflows & pentest collaboration</div>
+                    </div>
+                </td>
+            </tr>
+        </table>
+    </body>
+</html>
+`;
+
+        return { text: textLines, html };
+};
+
+const buildVerificationContent = ({ friendlyName, verifyUrl, expiresLabel, metaDetails, code }) => {
+        return buildEmailTemplate({
+                preheader: 'Your Hackract verification code is inside.',
+                title: 'Verify your email',
+                greeting: friendlyName,
+                intro: 'Use the 6-digit code below to verify your email and activate your Hackract account.',
+                codeLabel: 'Verification code',
+                code,
+                ctaLabel: 'Verify email',
+                ctaUrl: verifyUrl,
+                fallbackLabel: 'If the button does not work, copy and paste this link:',
+                fallbackUrl: verifyUrl,
+                expiresLabel: expiresLabel || null,
+                metaDetails,
+                securityNote: 'Never share this code with anyone — Hackract support will never ask for it.',
         });
-    }
+};
 
-    if (process.env.SENDGRID_API_KEY && process.env.SENDGRID_FROM) {
-        sgMail.setApiKey(process.env.SENDGRID_API_KEY);
-        providers.push({
-            name: 'SendGrid',
-            send: (payload) => sgMail.send({ ...payload, from: process.env.SENDGRID_FROM }),
+const buildPasswordResetContent = ({ friendlyName, resetUrl, expiresLabel, metaDetails }) => {
+        return buildEmailTemplate({
+                preheader: 'Reset your Hackract password securely.',
+                title: 'Reset your password',
+                greeting: friendlyName,
+                intro: 'We received a request to reset your Hackract password. Use the button below to continue.',
+                ctaLabel: 'Reset password',
+                ctaUrl: resetUrl,
+                fallbackLabel: 'If the button does not work, copy and paste this link:',
+                fallbackUrl: resetUrl,
+                expiresLabel: expiresLabel || null,
+                metaDetails,
+                securityNote: 'If you did not request a reset, you can ignore this email. Your password will not change.',
         });
-    }
+};
 
-    if (providers.length === 0) {
+const getSmtpTransport = () => {
+    const requiredVars = ['SMTP_HOST', 'SMTP_PORT', 'SMTP_USER', 'SMTP_PASS'];
+    const missing = requiredVars.filter((key) => !process.env[key]);
+
+    if (missing.length > 0) {
         throw new AppError(
-            'Email is not configured. Please contact support.',
+            'Email is not configured: missing SMTP settings',
+            500,
+            AuthErrorCodes.EMAIL_DELIVERY_FAILED,
+            { missing }
+        );
+    }
+
+    const port = Number(process.env.SMTP_PORT);
+    if (!Number.isFinite(port) || port <= 0) {
+        throw new AppError(
+            'Email is not configured: invalid SMTP_PORT',
+            500,
+            AuthErrorCodes.EMAIL_DELIVERY_FAILED,
+            { SMTP_PORT: process.env.SMTP_PORT }
+        );
+    }
+
+    const secure = String(process.env.SMTP_SECURE || '').toLowerCase() === 'true' || port === 465;
+    const transporter = nodemailer.createTransport({
+        host: process.env.SMTP_HOST,
+        port,
+        secure,
+        auth: {
+            user: process.env.SMTP_USER,
+            pass: process.env.SMTP_PASS,
+        },
+    });
+
+    const from = process.env.SMTP_FROM || process.env.SMTP_USER;
+    if (!from) {
+        throw new AppError(
+            'Email is not configured: missing SMTP_FROM',
             500,
             AuthErrorCodes.EMAIL_DELIVERY_FAILED
         );
     }
 
-    return providers;
+    return { transporter, from };
 };
 
 export const sendVerificationEmail = async ({ to, name, verifyUrl, code, expiresAt, ipAddress, userAgent }) => {
-    const providers = getProviders();
+    const { transporter, from } = getSmtpTransport();
 
     const friendlyName = name || 'there';
     const expiresLabel = expiresAt ? dayjs(expiresAt).format('MMM D, YYYY h:mm A Z') : null;
@@ -75,29 +250,31 @@ export const sendVerificationEmail = async ({ to, name, verifyUrl, code, expires
         .filter(Boolean)
         .join(' | ');
 
-    const { text, html } = buildContent({ friendlyName, verifyUrl, expiresLabel, metaDetails, code });
+    const { text, html } = buildVerificationContent({ friendlyName, verifyUrl, expiresLabel, metaDetails, code });
 
-    let lastError = null;
-    for (const provider of providers) {
-        try {
-            await provider.send({ to, subject: 'Verify your email', text, html });
-            return; // success
-        } catch (error) {
-            console.error(`${provider.name} error`, error);
-            lastError = error;
-        }
+    try {
+        const resolvedTo = Array.isArray(to) ? to.join(',') : to;
+        await transporter.sendMail({
+            from,
+            to: resolvedTo,
+            subject: 'Verify your email',
+            text,
+            html,
+        });
+        return;
+    } catch (error) {
+        console.error('SMTP error', error);
+        throw new AppError(
+            'We could not send the verification email. Please try again later.',
+            500,
+            AuthErrorCodes.EMAIL_DELIVERY_FAILED,
+            error?.message ? { reason: error.message } : null
+        );
     }
-
-    throw new AppError(
-        'We could not send the verification email. Please try again later.',
-        500,
-        AuthErrorCodes.EMAIL_DELIVERY_FAILED,
-        lastError?.message ? { reason: lastError.message } : null
-    );
 };
 
 export const sendPasswordResetEmail = async ({ to, name, resetUrl, expiresAt, ipAddress, userAgent }) => {
-    const providers = getProviders();
+    const { transporter, from } = getSmtpTransport();
 
     const friendlyName = name || 'there';
     const expiresLabel = expiresAt ? dayjs(expiresAt).format('MMM D, YYYY h:mm A Z') : null;
@@ -105,47 +282,25 @@ export const sendPasswordResetEmail = async ({ to, name, resetUrl, expiresAt, ip
         .filter(Boolean)
         .join(' | ');
 
-    const text = [
-        `Hi ${friendlyName},`,
-        '',
-        'You requested a password reset for your Hackract account.',
-        resetUrl ? `Reset link: ${resetUrl}` : null,
-        '',
-        expiresLabel ? `This link expires on ${expiresLabel}.` : 'This link will expire soon.',
-        '',
-        metaDetails ? `Request details: ${metaDetails}` : null,
-        'If you did not request this, you can ignore this email.',
-    ]
-        .filter(Boolean)
-        .join('\n');
+    const { text, html } = buildPasswordResetContent({ friendlyName, resetUrl, expiresLabel, metaDetails });
 
-    const html = `
-        <div style="font-family: Arial, sans-serif; line-height: 1.6; color: #0f172a;">
-            <p>Hi ${friendlyName},</p>
-            <p>You requested a password reset for your Hackract account.</p>
-            ${resetUrl ? `<p><a href="${resetUrl}" style="background: #111827; color: #10b981; padding: 10px 16px; text-decoration: none; border-radius: 6px;">Reset password</a></p>` : ''}
-            ${resetUrl ? `<p>Or copy and paste this link: <br /><span style="word-break: break-all;">${resetUrl}</span></p>` : ''}
-            <p>${expiresLabel ? `This link expires on ${expiresLabel}.` : 'This link will expire soon.'}</p>
-            ${metaDetails ? `<p style="color:#6b7280; font-size: 12px;">Request details: ${metaDetails}</p>` : ''}
-            <p style="color:#6b7280; font-size: 12px;">If you did not request this, you can ignore this email.</p>
-        </div>
-    `;
-
-    let lastError = null;
-    for (const provider of providers) {
-        try {
-            await provider.send({ to, subject: 'Reset your password', text, html });
-            return;
-        } catch (error) {
-            console.error(`${provider.name} error`, error);
-            lastError = error;
-        }
+    try {
+        const resolvedTo = Array.isArray(to) ? to.join(',') : to;
+        await transporter.sendMail({
+            from,
+            to: resolvedTo,
+            subject: 'Reset your password',
+            text,
+            html,
+        });
+        return;
+    } catch (error) {
+        console.error('SMTP error', error);
+        throw new AppError(
+            'We could not send the reset email. Please try again later.',
+            500,
+            AuthErrorCodes.EMAIL_DELIVERY_FAILED,
+            error?.message ? { reason: error.message } : null
+        );
     }
-
-    throw new AppError(
-        'We could not send the reset email. Please try again later.',
-        500,
-        AuthErrorCodes.EMAIL_DELIVERY_FAILED,
-        lastError?.message ? { reason: lastError.message } : null
-    );
 };

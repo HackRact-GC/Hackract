@@ -13,7 +13,28 @@ import ResetPassword from "../pages/ResetPassword.jsx";
 import HackerProfile from "../pages/HackerProfile.jsx";
 import OrganizationProfile from "../pages/OrganizationProfile.jsx";
 import WorkflowEditor from "../pages/WorkflowEditor/WorkflowEditor.jsx";
+import HackerVerification from "../pages/HackerVerification.jsx";
+import OrganizationVerification from "../pages/OrganizationVerification.jsx";
 import ErrorPage from "../pages/ErrorPage.jsx";
+import ProjectWorkspace from "../pages/ProjectWorkspace.jsx";
+import FindingDetails from "../pages/FindingDetails.jsx";
+import UserLayout from "../layouts/UserLayout.jsx";
+
+// Phase 2 Marketplace Imports
+import EngagementBoard from "../pages/EngagementBoard.jsx";
+import MyApplications from "../pages/MyApplications.jsx";
+import Projects from "../pages/Projects.jsx";
+
+// Phase 17 Onboarding Imports
+import OnboardingGuard from "../components/OnboardingGuard.jsx";
+import OnboardingLayout from "../layouts/OnboardingLayout.jsx";
+import HackerOnboarding from "../pages/Onboarding/HackerOnboarding.jsx";
+import OrgOnboarding from "../pages/Onboarding/OrgOnboarding.jsx";
+
+// Phase 18 Admin Imports
+import ApprovalsDashboard from "../pages/Admin/ApprovalsDashboard.jsx";
+import OperatorReview from "../pages/Admin/OperatorReview.jsx";
+import OrgReview from "../pages/Admin/OrgReview.jsx";
 
 const router = createBrowserRouter([
   {
@@ -26,20 +47,79 @@ const router = createBrowserRouter([
         element: <Landing />,
       },
       {
-        path: "dashboard",
-        element: <Home />,
+        element: <OnboardingGuard><UserLayout /></OnboardingGuard>,
+        children: [
+          {
+            path: "dashboard",
+            element: <Home />,
+          },
+          {
+            path: "hacker-profile",
+            element: <HackerProfile />,
+          },
+          {
+            path: "hacker-verification",
+            element: <HackerVerification />,
+          },
+          {
+            path: "organization-profile",
+            element: <OrganizationProfile />,
+          },
+          {
+            path: "organization-verification/:organizationId",
+            element: <OrganizationVerification />,
+          },
+          {
+            path: "workflows/:workflowId",
+            element: <WorkflowEditor />,
+          },
+          {
+            path: "projects",
+            element: <Projects />,
+          },
+          {
+            path: "projects/:projectId",
+            element: <ProjectWorkspace />,
+          },
+          {
+            path: "findings/:findingId",
+            element: <FindingDetails />,
+          },
+          {
+            path: "engagements",
+            element: <EngagementBoard />,
+          },
+          {
+            path: "my-applications",
+            element: <MyApplications />,
+          },
+        ],
       },
       {
-        path: "hacker-profile",
-        element: <HackerProfile />,
+        path: "onboarding",
+        element: <OnboardingGuard><OnboardingLayout /></OnboardingGuard>,
+        children: [
+            {
+                path: "hacker",
+                element: <HackerOnboarding />,
+            },
+            {
+                path: "organization",
+                element: <OrgOnboarding />,
+            }
+        ]
       },
       {
-        path: "organization-profile",
-        element: <OrganizationProfile />,
+        path: "admin/approvals",
+        element: <OnboardingGuard><ApprovalsDashboard /></OnboardingGuard>,
       },
       {
-        path: "workflows/:workflowId",
-        element: <WorkflowEditor />,
+        path: "admin/approvals/hacker/:id",
+        element: <OnboardingGuard><OperatorReview /></OnboardingGuard>,
+      },
+      {
+        path: "admin/approvals/org/:id",
+        element: <OnboardingGuard><OrgReview /></OnboardingGuard>,
       },
       {
         element: <AuthLayout />,
