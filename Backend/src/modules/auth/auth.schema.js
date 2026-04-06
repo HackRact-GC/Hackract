@@ -1,10 +1,50 @@
 import Joi from 'joi';
 import { PASSWORD_REGEX } from './auth.constants.js';
 
+const ACCOUNT_TYPES = ['HACKER', 'ORGANIZATION'];
+
+const handleSchema = Joi.string()
+    .pattern(/^[a-zA-Z0-9_-]+$/)
+    .min(3)
+    .max(30)
+    .messages({
+        'string.pattern.base': 'Handle may contain letters, numbers, underscores, or hyphens',
+        'string.min': 'Handle must be at least 3 characters long',
+        'string.max': 'Handle must not exceed 30 characters',
+    });
+
+const organizationSchema = Joi.object({
+    name: Joi.string().min(2).max(150).required().messages({
+        'string.min': 'Organization name must be at least 2 characters long',
+        'string.max': 'Organization name must not exceed 150 characters',
+        'any.required': 'Organization name is required',
+    }),
+    description: Joi.string().max(500).optional().allow('', null),
+    website: Joi.string().uri().optional().allow('', null),
+    industry: Joi.string().max(100).optional().allow('', null),
+    size: Joi.string().max(50).optional().allow('', null),
+    phoneNumber: Joi.string().max(50).optional().allow('', null),
+    country: Joi.string().max(80).optional().allow('', null),
+    city: Joi.string().max(80).optional().allow('', null),
+    addressLine1: Joi.string().max(200).optional().allow('', null),
+    addressLine2: Joi.string().max(200).optional().allow('', null),
+    state: Joi.string().max(80).optional().allow('', null),
+    postalCode: Joi.string().max(30).optional().allow('', null),
+    registrationNumber: Joi.string().max(80).optional().allow('', null),
+    taxId: Joi.string().max(80).optional().allow('', null),
+}).required();
+
 /**
  * Registration validation schema
  */
 export const registerSchema = Joi.object({
+    accountType: Joi.string()
+        .valid(...ACCOUNT_TYPES)
+        .default('HACKER')
+        .messages({
+            'any.only': 'Invalid account type. Choose Hacker or Organization.',
+        }),
+
     email: Joi.string()
         .email()
         .required()
@@ -39,28 +79,30 @@ export const registerSchema = Joi.object({
             'any.required': 'Full name is required',
         }),
 
-    handle: Joi.string()
-        .pattern(/^[a-zA-Z0-9_-]+$/)
-        .min(3)
-        .max(30)
-        .optional()
-        .allow('', null)
-        .messages({
-            'string.pattern.base': 'Handle may contain letters, numbers, underscores, or hyphens',
-            'string.min': 'Handle must be at least 3 characters long',
-            'string.max': 'Handle must not exceed 30 characters',
-        }),
+    // Preferred field name used across the backend
+    handle: handleSchema.optional().allow('', null),
 
-    /**
-     * Optional primary role type for the user.
-     * If not provided, backend will default to PENTESTER.
-     */
-    roleType: Joi.string()
-        .valid('PENTESTER', 'ORG_ADMIN')
-        .optional()
-        .messages({
-            'any.only': 'Invalid role selected. Choose Hacker or Organization.',
+    // Legacy alias for handle (kept for backward compatibility)
+    userName: handleSchema.optional().allow('', null),
+
+    // Organization details only apply when accountType=ORGANIZATION
+    organization: Joi.when('accountType', {
+        is: 'ORGANIZATION',
+        then: organizationSchema,
+        otherwise: Joi.forbidden().messages({
+            'any.unknown': 'Organization details are only allowed for Organization accounts',
         }),
+    }),
+});
+
+/**
+ * Validate that an email looks like a company email (non-public domain)
+ */
+export const validateOrgEmailSchema = Joi.object({
+    email: Joi.string().email().required().messages({
+        'string.email': 'Please provide a valid email address',
+        'any.required': 'Email is required',
+    }),
 });
 
 /**
@@ -86,20 +128,20 @@ export const loginSchema = Joi.object({
  * Email verification schema
  */
 export const verifyEmailSchema = Joi.object({
-    email: Joi.string()
-        .email()
-        .required()
-        .messages({
-            'string.email': 'Please provide a valid email address',
-            'any.required': 'Email is required',
-        }),
-
     token: Joi.string()
         .pattern(/^\d{6}$/)
         .required()
         .messages({
             'string.pattern.base': 'Verification code must be a 6-digit number',
             'any.required': 'Verification code is required',
+        }),
+
+    email: Joi.string()
+        .email()
+        .optional()
+        .allow(null)
+        .messages({
+            'string.email': 'Please provide a valid email address',
         }),
 });
 
@@ -152,6 +194,16 @@ export const refreshTokenSchema = Joi.object({
         .messages({
             'any.required': 'Refresh token is required',
         }),
+});
+
+/**
+ * Assign initial role schema (onboarding)
+ */
+export const assignInitialRoleSchema = Joi.object({
+    role: Joi.string().valid('PENTESTER').required().messages({
+        'any.only': 'Invalid role selection',
+        'any.required': 'Role selection is required',
+    }),
 });
 
 /**

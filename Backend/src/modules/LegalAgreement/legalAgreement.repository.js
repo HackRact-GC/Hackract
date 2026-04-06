@@ -15,7 +15,7 @@ class LegalAgreementRepository {
     }
 
     async findAll(filters = {}) {
-        const { type, isActive = true } = filters;
+        const { type, isActive } = filters;
         const where = {};
 
         if (type) where.type = type;

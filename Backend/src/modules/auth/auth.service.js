@@ -22,7 +22,107 @@ const durationToMs = (input) => {
 
 const REFRESH_EXPIRY_MS = durationToMs(TOKEN_EXPIRY.REFRESH_TOKEN) || 7 * 24 * 60 * 60 * 1000;
 
+const USER_PROFILE_INCLUDE = {
+    roles: true,
+    hackerProfile: true,
+    organizations: {
+        include: { organization: true },
+    },
+};
+
+const DEFAULT_PUBLIC_EMAIL_DOMAINS = new Set([
+    'gmail.com', 'googlemail.com', 'yahoo.com', 'yahoo.co.uk',
+    'outlook.com', 'hotmail.com', 'live.com', 'msn.com',
+    'icloud.com', 'aol.com', 'proton.me', 'protonmail.com',
+    'zoho.com', 'gmx.com',
+]);
+
+const getEmailDomain = (email) => {
+    if (!email || typeof email !== 'string') return null;
+    const atIndex = email.lastIndexOf('@');
+    if (atIndex === -1) return null;
+    return email.slice(atIndex + 1).trim().toLowerCase();
+};
+
+const getPublicEmailDomains = () => {
+    const raw = process.env.PUBLIC_EMAIL_DOMAINS;
+    if (!raw) return DEFAULT_PUBLIC_EMAIL_DOMAINS;
+    return new Set(
+        raw.split(',').map((d) => d.trim().toLowerCase()).filter(Boolean)
+    );
+};
+
+const isCompanyEmail = (email) => {
+    const domain = getEmailDomain(email);
+    if (!domain) return { ok: false, domain: null };
+    const publicDomains = getPublicEmailDomains();
+    return { ok: !publicDomains.has(domain), domain };
+};
+
+const slugify = (value) =>
+    String(value || '').toLowerCase()
+        .replace(/[^a-z0-9\s-]/g, '')
+        .replace(/\s+/g, '-')
+        .replace(/-+/g, '-')
+        .trim();
 class AuthService {
+    validateOrganizationEmail(email) {
+        const { ok, domain } = isCompanyEmail(email);
+        if (!domain) {
+            return { isValid: false, domain: null, reason: 'Invalid email format' };
+        }
+        if (!ok) {
+            return {
+                isValid: false,
+                domain,
+                reason: 'Public email domains are not allowed for Organization accounts',
+            };
+        }
+        return { isValid: true, domain, reason: null };
+    }
+
+    async assignInitialRole(userId, roleType) {
+        // Validate role type
+        if (!['PENTESTER'].includes(roleType)) {
+            throw new AppError('Invalid role selection', 400);
+        }
+
+        const user = await prisma.user.findUnique({
+            where: { id: userId },
+            include: { roles: true },
+        });
+
+        if (!user) {
+            throw new AppError('User not found', 404);
+        }
+
+        // Prevent reassignment if user already has roles
+        if (user.roles?.length > 0) {
+            throw new AppError('Role already assigned to this account', 409);
+        }
+
+        const role = await prisma.role.upsert({
+            where: { type: roleType },
+            update: {},
+            create: {
+                name: 'Pentester',
+                type: roleType,
+                description: 'Ethical hacking and security research',
+                permissions: [],
+            },
+        });
+
+        const updatedUser = await prisma.user.update({
+            where: { id: userId },
+            data: {
+                roles: { connect: { id: role.id } },
+            },
+            include: { roles: true },
+        });
+
+        return this.sanitizeUser(updatedUser);
+    }
+
     sanitizeUser(user) {
         const { passwordHash, ...safeUser } = user;
         return safeUser;
@@ -31,7 +131,7 @@ class AuthService {
     async getUserProfile(userId) {
         const user = await prisma.user.findUnique({
             where: { id: userId },
-            include: { roles: true },
+            include: USER_PROFILE_INCLUDE,
         });
 
         if (!user) return null;
@@ -42,7 +142,7 @@ class AuthService {
         if (!email) return null;
         const user = await prisma.user.findUnique({
             where: { email: email.toLowerCase() },
-            include: { roles: true },
+            include: USER_PROFILE_INCLUDE,
         });
         if (!user) return null;
         return this.sanitizeUser(user);
@@ -129,7 +229,16 @@ class AuthService {
     async sendVerification(user, meta) {
         const verification = await this.createEmailVerificationToken(user.id);
         const frontendBase = process.env.FRONTEND_BASE_URL || 'http://localhost:5173';
-        const verifyUrl = `${frontendBase}/verify-email?email=${encodeURIComponent(user.email)}`;
+        const verifyUrl = `${frontendBase}/verify-email?email=${encodeURIComponent(user.email)}&token=${encodeURIComponent(verification.token)}`;
+
+        if (process.env.NODE_ENV === 'development') {
+            console.log(`\n=========================================`);
+            console.log(`[DEV EMAIL SIMULATION]`);
+            console.log(`To:    ${user.email}`);
+            console.log(`Code:  ${verification.token}`);
+            console.log(`Link:  ${verifyUrl}`);
+            console.log(`=========================================\n`);
+        }
         let delivered = true;
         try {
             await sendVerificationEmail({
@@ -149,13 +258,13 @@ class AuthService {
     }
 
     async verifyEmail(token, email) {
-        if (!token || !email) {
-            throw new AppError('Verification code and email are required', 400, AuthErrorCodes.VERIFICATION_TOKEN_INVALID);
+        if (!token) {
+            throw new AppError('Verification code is required', 400, AuthErrorCodes.VERIFICATION_TOKEN_INVALID);
         }
 
         const record = await prisma.emailVerificationToken.findFirst({
-            where: { token, user: { email: email.toLowerCase() } },
-            include: { user: { include: { roles: true } } },
+            where: { token, user: { email: email?.toLowerCase() } },
+            include: { user: { include: USER_PROFILE_INCLUDE } },
         });
 
         if (!record) {
@@ -185,7 +294,7 @@ class AuthService {
                 status: 'ACTIVE',
                 emailVerifiedAt: new Date(),
             },
-            include: { roles: true },
+            include: USER_PROFILE_INCLUDE,
         });
 
         await prisma.emailVerificationToken.deleteMany({ where: { userId: user.id } });
@@ -266,8 +375,30 @@ class AuthService {
 
     async registerLocal(payload, meta) {
         const email = payload.email.toLowerCase();
-        const handle = payload.handle?.toLowerCase() || email.split('@')[0];
-        const requestedRoleType = payload.roleType === 'ORG_ADMIN' ? 'ORG_ADMIN' : 'PENTESTER';
+        const rawHandle = (payload.handle || payload.userName || '').trim();
+        const handle = (rawHandle ? rawHandle : email.split('@')[0]).toLowerCase();
+        const accountType = payload.accountType === 'ORGANIZATION' ? 'ORGANIZATION' : 'HACKER';
+        const requestedRoleType = accountType === 'ORGANIZATION' ? 'ORG_ADMIN' : 'PENTESTER';
+
+        if (accountType === 'ORGANIZATION') {
+            const domainCheck = this.validateOrganizationEmail(email);
+            if (!domainCheck.isValid) {
+                throw new AppError(
+                    'Organization registration requires a company email address (no public email domains).',
+                    422,
+                    AuthErrorCodes.ORG_EMAIL_REQUIRED,
+                    { domain: domainCheck.domain, reason: domainCheck.reason }
+                );
+            }
+
+            if (!payload.organization || !payload.organization.name) {
+                throw new AppError(
+                    'Organization details are required for Organization accounts.',
+                    422,
+                    AuthErrorCodes.ORG_DETAILS_REQUIRED
+                );
+            }
+        }
 
         const existingByEmail = await prisma.user.findUnique({ where: { email } });
         if (existingByEmail) {
@@ -280,28 +411,96 @@ class AuthService {
         }
 
         const passwordHash = await bcrypt.hash(payload.password, SALT_ROUNDS);
-        const selectedRole =
-            (await prisma.role.findUnique({ where: { type: requestedRoleType } })) ||
-            (await prisma.role.findUnique({ where: { type: 'PENTESTER' } }));
 
-        let user = await prisma.user.create({
-            data: {
-                email,
-                passwordHash,
-                fullName: payload.fullName,
-                handle,
-                provider: 'local',
-                status: process.env.NODE_ENV === 'development' ? 'ACTIVE' : 'PENDING',
-                isVerified: process.env.NODE_ENV === 'development',
-                roles: selectedRole ? { connect: { id: selectedRole.id } } : undefined,
-            },
-            include: { roles: true },
+        const { user, organization } = await prisma.$transaction(async (tx) => {
+            const selectedRole = await tx.role.upsert({
+                where: { type: requestedRoleType },
+                update: {},
+                create: {
+                    name: requestedRoleType === 'ORG_ADMIN' ? 'Organization Admin' : 'Pentester',
+                    type: requestedRoleType,
+                    description: requestedRoleType === 'ORG_ADMIN' 
+                        ? 'Full access within their organization' 
+                        : 'Default pentester role for new users',
+                    permissions: [],
+                },
+            });
+
+            const createdUser = await tx.user.create({
+                data: {
+                    email,
+                    passwordHash,
+                    fullName: payload.fullName,
+                    handle,
+                    provider: 'local',
+                    status: process.env.NODE_ENV === 'development' ? 'ACTIVE' : 'PENDING',
+                    isVerified: process.env.NODE_ENV === 'development',
+                    roles: { connect: { id: selectedRole.id } },
+                },
+                include: USER_PROFILE_INCLUDE,
+            });
+
+            let createdOrganization = null;
+            if (accountType === 'ORGANIZATION') {
+                const orgInput = payload.organization || {};
+                const baseSlug = slugify(orgInput.name);
+                let slug = baseSlug;
+                let counter = 1;
+
+                while (true) {
+                    const existing = await tx.organization.findUnique({ where: { slug } });
+                    if (!existing) break;
+                    slug = `${baseSlug}-${counter}`;
+                    counter++;
+                }
+
+                createdOrganization = await tx.organization.create({
+                    data: {
+                        name: orgInput.name,
+                        slug,
+                        description: orgInput.description,
+                        industry: orgInput.industry,
+                        size: orgInput.size,
+                        website: orgInput.website,
+                        primaryEmail: email,
+                        phoneNumber: orgInput.phoneNumber,
+                        addressLine1: orgInput.addressLine1,
+                        addressLine2: orgInput.addressLine2,
+                        city: orgInput.city,
+                        state: orgInput.state,
+                        postalCode: orgInput.postalCode,
+                        country: orgInput.country,
+                        registrationNumber: orgInput.registrationNumber,
+                        taxId: orgInput.taxId,
+                    },
+                });
+
+                await tx.organizationMember.create({
+                    data: {
+                        organizationId: createdOrganization.id,
+                        userId: createdUser.id,
+                        role: 'owner',
+                        canCreatePentests: true,
+                        canInviteMembers: true,
+                    },
+                });
+            }
+
+            return { user: createdUser, organization: createdOrganization };
         });
 
         const verification = await this.sendVerification(user, meta);
 
+        const auth = await this.issueTokens(user, meta);
+
         return {
-            user: this.sanitizeUser(user),
+            ...auth,
+            requiresEmailVerification: true,
+            verification: {
+                delivered: verification.delivered,
+                expiresAt: verification.expiresAt,
+            },
+            organization,
             message: verification.delivered
                 ? 'Registration successful. Please check your email for the 6-digit verification code.'
                 : 'Registration successful, but we could not send the verification code. Please request a new one or contact support.',
@@ -312,7 +511,7 @@ class AuthService {
         const email = payload.email.toLowerCase();
         const user = await prisma.user.findUnique({
             where: { email },
-            include: { roles: true },
+            include: USER_PROFILE_INCLUDE,
         });
 
         if (!user || !user.passwordHash) {
@@ -327,18 +526,27 @@ class AuthService {
             throw new AppError('Account is banned', 403, AuthErrorCodes.ACCOUNT_BANNED);
         }
 
-        if (!user.isVerified) {
-            await this.sendVerification(user, meta);
-            throw new AppError(
-                'Please verify your email. We just sent you a new 6-digit code.',
-                403,
-                AuthErrorCodes.EMAIL_NOT_VERIFIED
-            );
-        }
-
         const isValid = await bcrypt.compare(payload.password, user.passwordHash);
         if (!isValid) {
             throw new AppError('Invalid credentials', 401, AuthErrorCodes.INVALID_CREDENTIALS);
+        }
+
+        // If email is not verified yet, still issue tokens for onboarding flows,
+        // but tell the client to enforce verification before privileged actions.
+        if (!user.isVerified) {
+            const verification = await this.sendVerification(user, meta);
+            const auth = await this.issueTokens(user, meta);
+            return {
+                ...auth,
+                requiresEmailVerification: true,
+                verification: {
+                    delivered: verification.delivered,
+                    expiresAt: verification.expiresAt,
+                },
+                message: verification.delivered
+                    ? 'Email not verified. We sent you a new 6-digit verification code.'
+                    : 'Email not verified, and we could not send a new verification code. Please try again later.',
+            };
         }
 
         await prisma.user.update({
@@ -346,7 +554,10 @@ class AuthService {
             data: { lastLoginAt: new Date() },
         });
 
-        return this.issueTokens(user, meta);
+        return {
+            ...(await this.issueTokens(user, meta)),
+            requiresEmailVerification: false,
+        };
     }
 
     async refresh(refreshToken, meta) {
@@ -356,7 +567,7 @@ class AuthService {
 
         const stored = await prisma.refreshToken.findUnique({
             where: { token: refreshToken },
-            include: { user: { include: { roles: true } } },
+            include: { user: { include: USER_PROFILE_INCLUDE } },
         });
 
         if (!stored || stored.revoked) {

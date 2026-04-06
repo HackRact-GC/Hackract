@@ -29,7 +29,22 @@ export const createOrganizationSchema = Joi.object({
     .optional()
     .messages({
       'string.max': 'Description cannot exceed 500 characters'
-    })
+    }),
+  industry: Joi.string().max(100).optional(),
+  size: Joi.string().max(50).optional(),
+  website: Joi.string().uri().optional(),
+  primaryEmail: Joi.string().email().optional(),
+  phoneNumber: Joi.string().max(20).optional(),
+  addressLine1: Joi.string().max(255).optional(),
+  addressLine2: Joi.string().max(255).optional(),
+  city: Joi.string().max(100).optional(),
+  state: Joi.string().max(100).optional(),
+  postalCode: Joi.string().max(20).optional(),
+  country: Joi.string().max(100).optional(),
+  timezone: Joi.string().max(100).optional(),
+  currency: Joi.string().max(10).optional(),
+  registrationNumber: Joi.string().max(100).optional(),
+  taxId: Joi.string().max(100).optional()
 });
 
 export const updateOrganizationSchema = Joi.object({
@@ -58,9 +73,35 @@ export const updateOrganizationSchema = Joi.object({
     .optional()
     .messages({
       'string.max': 'Description cannot exceed 500 characters'
-    })
+    }),
+
+  industry: Joi.string().max(100).optional(),
+  size: Joi.string().max(50).optional(),
+  website: Joi.string().uri().optional(),
+  primaryEmail: Joi.string().email().optional(),
+  phoneNumber: Joi.string().max(20).optional(),
+  addressLine1: Joi.string().max(255).optional(),
+  addressLine2: Joi.string().max(255).optional(),
+  city: Joi.string().max(100).optional(),
+  state: Joi.string().max(100).optional(),
+  postalCode: Joi.string().max(20).optional(),
+  country: Joi.string().max(100).optional(),
+  timezone: Joi.string().max(100).optional(),
+  currency: Joi.string().max(10).optional(),
+  registrationNumber: Joi.string().max(100).optional(),
+  taxId: Joi.string().max(100).optional()
+
 }).min(1).messages({
   'object.min': 'At least one field must be provided for update'
+});
+
+
+export const submitVerificationSchema = Joi.object({
+  taxId: Joi.string().required(),
+  industry: Joi.string().required(),
+  companySize: Joi.string().required(),
+  website: Joi.string().uri().required(),
+  address: Joi.string().required(),
 });
 
 export const addMemberSchema = Joi.object({
@@ -148,19 +189,21 @@ export const organizationIdSchema = Joi.object({
     })
 });
 
-export const memberIdSchema = Joi.object({
-  organizationId: Joi.string()
-    .uuid()
-    .required()
-    .messages({
-      'string.guid': 'Invalid organization ID format',
-      'any.required': 'Organization ID is required'
-    }),
-  memberId: Joi.string()
-    .uuid()
-    .required()
-    .messages({
-      'string.guid': 'Invalid member ID format',
-      'any.required': 'Member ID is required'
-    })
+export const listOrganizationsQuerySchema = Joi.object({
+  name: Joi.string().max(100).optional(),
+  ownerName: Joi.string().max(100).optional(),
+  page: Joi.number().integer().min(1).default(1),
+  limit: Joi.number().integer().min(1).max(100).default(20)
+});
+
+export const organizationNameQuerySchema = Joi.object({
+  name: Joi.string().min(1).max(100).required(),
+  page: Joi.number().integer().min(1).default(1),
+  limit: Joi.number().integer().min(1).max(100).default(20)
+});
+
+export const ownerNameQuerySchema = Joi.object({
+  ownerName: Joi.string().min(1).max(100).required(),
+  page: Joi.number().integer().min(1).default(1),
+  limit: Joi.number().integer().min(1).max(100).default(20)
 });

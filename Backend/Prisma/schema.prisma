@@ -37,20 +37,22 @@ enum FindingSeverity {
 
 enum FindingStatus {
   OPEN
-  VERIFIED
+  TRIAGED
   FIXED
+  PENDING_RETEST
+  VALIDATED
+  REOPENED
   ACCEPTED_RISK
 }
 
 enum RoleType {
   SUPER_ADMIN
   ORG_ADMIN
+  PROJECT_ADMIN
   PENTESTER
-  ANALYST
-  VIEWER
 }
 
-enum HackerProfileStatus {
+enum VerificationStatus {
   DRAFT
   SUBMITTED
   UNDER_REVIEW
@@ -69,6 +71,7 @@ model User {
   handle       String     @unique
   status       UserStatus @default(PENDING)
   isVerified   Boolean    @default(false)
+  trustScore   Int        @default(100)
 
   // OAuth fields
   provider   String? // 'local', 'google', 'github', etc.
@@ -95,9 +98,15 @@ model User {
   passwordResetTokens     PasswordResetToken[]
   refreshTokens           RefreshToken[]
   workflowHistories       WorkflowHistory[]
+  findingComments         FindingComment[]
+  
+  wallet                  Wallet?
+  transactions            Transaction[]
+  reviewsWritten          Review[] @relation("ReviewAuthor")
+  reviewsReceived         Review[] @relation("ReviewSubject")
 
   // Hacker profile (for PENTESTER users)
-  hackerProfile        HackerProfile?
+  hackerProfile          HackerProfile?
   reviewedHackerProfiles HackerProfile[] @relation("HackerProfileReviewedBy")
 
   // Timestamps
@@ -116,18 +125,19 @@ model User {
 // =====================================
 
 model HackerProfile {
-  id        String              @id @default(uuid())
-  user      User                @relation(fields: [userId], references: [id])
-  userId    String              @unique
+  id     String @id @default(uuid())
+  user   User   @relation(fields: [userId], references: [id])
+  userId String @unique
 
-  bio                String
-  country            String?
-  yearsOfExperience  Int?
-  primarySkills      String[]
-  certifications     String[]
-  portfolioLinks     String[]
+  bio               String
+  country           String?
+  yearsOfExperience Int?
+  primarySkills     String[]
+  certifications    String[]
+  portfolioLinks    String[]
 
-  status      HackerProfileStatus @default(DRAFT)
+
+  status      VerificationStatus @default(DRAFT)
   reviewNotes String?
 
   reviewedBy   User?   @relation("HackerProfileReviewedBy", fields: [reviewedById], references: [id])
@@ -167,11 +177,37 @@ model Organization {
   name String
   slug String @unique
 
+  // Profile Information
+  description  String?
+  industry     String?
+  size         String?
+  website      String?
+  primaryEmail String?
+  phoneNumber  String?
+
+  // International / Location Info
+  addressLine1 String?
+  addressLine2 String?
+  city         String?
+  state        String?
+  postalCode   String?
+  country      String?
+  timezone     String?
+  currency     String?
+
+  // Legal / Tax Info
+  registrationNumber String?
+  taxId              String?
+
   // Relations
   members   OrganizationMember[]
   pentests  Pentest[]
   auditLogs AuditLog[]
 
+  // Verification Details
+  companySize       String?
+  verificationStatus VerificationStatus @default(DRAFT)
+  
   // Timestamps
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -282,6 +318,8 @@ model Finding {
   reporter   User?   @relation("FindingReporter", fields: [reporterId], references: [id])
   reporterId String?
 
+  comments FindingComment[]
+
   // Timestamps
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -289,6 +327,28 @@ model Finding {
   @@index([pentestId])
   @@index([severity])
   @@index([status])
+}
+
+// =====================================
+// 7.1 FindingComment
+// =====================================
+model FindingComment {
+  id      String @id @default(uuid())
+  content String
+
+  // Relations
+  finding   Finding @relation(fields: [findingId], references: [id], onDelete: Cascade)
+  findingId String
+
+  user   User   @relation(fields: [userId], references: [id])
+  userId String
+
+  // Timestamps
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([findingId])
+  @@index([userId])
 }
 
 // =====================================

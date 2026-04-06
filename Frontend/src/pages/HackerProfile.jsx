@@ -1,13 +1,54 @@
-import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useEffect, useRef, useState } from "react";
+import { FiUser, FiCode, FiAward, FiGlobe, FiChevronRight, FiCamera, FiSave } from "react-icons/fi";
 import api from "../api/axiosConfig";
 
+const NAV_ITEMS = [
+  { key: "identity", label: "Identity", icon: FiUser },
+  { key: "arsenal", label: "Technical Arsenal", icon: FiCode },
+  { key: "credentials", label: "Credentials", icon: FiAward },
+  { key: "network", label: "Public Network", icon: FiGlobe },
+];
+
+const Field = ({ label, children }) => (
+  <div className="space-y-2">
+    <label className="block text-[11px] text-white/60 uppercase tracking-[0.14em] font-mono">{label}</label>
+    {children}
+  </div>
+);
+
+const Input = (props) => (
+  <input
+    {...props}
+    className="w-full bg-black/40 border border-white/10 rounded-lg px-4 py-2.5 text-sm text-white placeholder:text-white/35 focus:outline-none focus:border-[#00ff88] transition-colors"
+  />
+);
+
+const TextArea = (props) => (
+  <textarea
+    {...props}
+    className="w-full bg-black/40 border border-white/10 rounded-lg px-4 py-2.5 text-sm text-white placeholder:text-white/35 focus:outline-none focus:border-[#00ff88] transition-colors resize-none"
+  />
+);
+
+const SectionCard = ({ title, subtitle, children }) => (
+  <div className="bg-black/40 border border-white/10 rounded-2xl overflow-hidden">
+    <div className="px-6 py-4 border-b border-white/10 bg-white/5">
+      <h2 className="text-sm font-bold uppercase tracking-[0.08em] text-white">{title}</h2>
+      <p className="text-xs text-white/55 mt-1">{subtitle}</p>
+    </div>
+    <div className="p-6">{children}</div>
+  </div>
+);
+
 const HackerProfile = () => {
-  const navigate = useNavigate();
+  const fileInputRef = useRef(null);
+  const [activeNav, setActiveNav] = useState("identity");
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
+  const [logoPreview, setLogoPreview] = useState(null);
+
   const [form, setForm] = useState({
     bio: "",
     country: "",
@@ -15,6 +56,10 @@ const HackerProfile = () => {
     primarySkills: "",
     certifications: "",
     portfolioLinks: "",
+    specialization: "",
+    github: "",
+    linkedin: "",
+    twitter: "",
   });
 
   useEffect(() => {
@@ -23,6 +68,7 @@ const HackerProfile = () => {
         setLoading(true);
         const { data } = await api.get("/hacker-profiles/me");
         const profile = data?.data?.profile;
+
         if (profile) {
           setForm({
             bio: profile.bio || "",
@@ -31,261 +77,306 @@ const HackerProfile = () => {
             primarySkills: (profile.primarySkills || []).join(", "),
             certifications: (profile.certifications || []).join(", "),
             portfolioLinks: (profile.portfolioLinks || []).join(", "),
+            specialization: profile.specialization || "",
+            github: profile.github || "",
+            linkedin: profile.linkedin || "",
+            twitter: profile.twitter || "",
           });
+
+          if (profile.avatar) {
+            setLogoPreview(profile.avatar);
+          }
         }
-      } catch {
-        // ignore; user might not have a profile yet
+      } catch (fetchErr) {
+        console.error("Failed to fetch profile", fetchErr);
       } finally {
         setLoading(false);
       }
     };
+
     fetchProfile();
   }, []);
 
-  const handleChange = (e) => {
-    const { name, value } = e.target;
+  const handleChange = (event) => {
+    const { name, value } = event.target;
     setForm((prev) => ({ ...prev, [name]: value }));
   };
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
+  const handleLogoChange = (event) => {
+    const file = event.target.files?.[0];
+    if (!file) {
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onloadend = () => setLogoPreview(reader.result);
+    reader.readAsDataURL(file);
+  };
+
+  const handleSubmit = async (event) => {
+    event.preventDefault();
     setError("");
     setSuccess("");
     setSaving(true);
+
     try {
       const payload = {
-        bio: form.bio,
-        country: form.country || null,
+        ...form,
+        primarySkills: form.primarySkills.split(",").map((s) => s.trim()).filter(Boolean),
+        certifications: form.certifications.split(",").map((s) => s.trim()).filter(Boolean),
+        portfolioLinks: form.portfolioLinks.split(",").map((s) => s.trim()).filter(Boolean),
         yearsOfExperience: form.yearsOfExperience ? Number(form.yearsOfExperience) : null,
-        primarySkills: form.primarySkills
-          .split(",")
-          .map((s) => s.trim())
-          .filter(Boolean),
-        certifications: form.certifications
-          .split(",")
-          .map((s) => s.trim())
-          .filter(Boolean),
-        portfolioLinks: form.portfolioLinks
-          .split(",")
-          .map((s) => s.trim())
-          .filter(Boolean),
-        status: "DRAFT",
       };
-      const { data } = await api.put("/hacker-profiles/me", payload);
-      setSuccess(data?.message || "Profile saved.");
-    } catch (err) {
-      const msg =
-        err?.response?.data?.error ||
-        err?.response?.data?.message ||
-        "Failed to save profile. Please try again.";
-      setError(msg);
+
+      await api.put("/hacker-profiles/me", payload);
+      setSuccess("Profile synchronized successfully.");
+      setTimeout(() => setSuccess(""), 3000);
+    } catch (submitErr) {
+      setError(submitErr?.response?.data?.message || "Failed to update profile.");
     } finally {
       setSaving(false);
     }
   };
 
-  const handleSubmitForReview = async () => {
-    setError("");
-    setSuccess("");
-    setSaving(true);
-    try {
-      const { data } = await api.post("/hacker-profiles/me/submit");
-      setSuccess(data?.message || "Profile submitted for review.");
-      setTimeout(() => navigate("/"), 800);
-    } catch (err) {
-      const msg =
-        err?.response?.data?.error ||
-        err?.response?.data?.message ||
-        "Failed to submit profile. Please try again.";
-      setError(msg);
-    } finally {
-      setSaving(false);
+  const initials = (value = "") => value.slice(0, 2).toUpperCase() || "H";
+  const navIndex = NAV_ITEMS.findIndex((item) => item.key === activeNav);
+
+  const renderContent = () => {
+    switch (activeNav) {
+      case "identity":
+        return (
+          <SectionCard title="Primary Identity" subtitle="Core profile details used across mission workflows.">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+              <Field label="Specialization">
+                <Input
+                  name="specialization"
+                  value={form.specialization}
+                  onChange={handleChange}
+                  placeholder="e.g. Web Application Security"
+                />
+              </Field>
+              <Field label="Country">
+                <Input name="country" value={form.country} onChange={handleChange} placeholder="e.g. Estonia" />
+              </Field>
+              <Field label="Years of Experience">
+                <Input
+                  type="number"
+                  name="yearsOfExperience"
+                  value={form.yearsOfExperience}
+                  onChange={handleChange}
+                  placeholder="e.g. 5"
+                />
+              </Field>
+              <div className="md:col-span-2">
+                <Field label="Mission Profile (Bio)">
+                  <TextArea
+                    name="bio"
+                    value={form.bio}
+                    onChange={handleChange}
+                    rows={4}
+                    placeholder="Describe your background, approach, and areas of expertise..."
+                  />
+                </Field>
+              </div>
+            </div>
+          </SectionCard>
+        );
+      case "arsenal":
+        return (
+          <SectionCard title="Technical Arsenal" subtitle="Your stack, tools, and capabilities.">
+            <div className="space-y-5">
+              <Field label="Primary Skills (Comma separated)">
+                <TextArea
+                  name="primarySkills"
+                  value={form.primarySkills}
+                  onChange={handleChange}
+                  rows={3}
+                  placeholder="Python, Nmap, Burp Suite, Metasploit..."
+                />
+              </Field>
+              <div className="flex flex-wrap gap-2 pt-1">
+                {form.primarySkills
+                  .split(",")
+                  .map((skill) => skill.trim())
+                  .filter(Boolean)
+                  .map((skill) => (
+                    <span
+                      key={skill}
+                      className="px-3 py-1 border border-[#00ff88]/35 bg-[#00ff88]/10 text-[#00ff88] rounded-full text-[11px] font-mono uppercase tracking-wide"
+                    >
+                      {skill}
+                    </span>
+                  ))}
+              </div>
+            </div>
+          </SectionCard>
+        );
+      case "credentials":
+        return (
+          <SectionCard title="Credentials" subtitle="Certifications and technical validations.">
+            <Field label="Certifications (Comma separated)">
+              <TextArea
+                name="certifications"
+                value={form.certifications}
+                onChange={handleChange}
+                rows={4}
+                placeholder="OSCP, GWAPT, eWPTX, PNPT..."
+              />
+            </Field>
+          </SectionCard>
+        );
+      case "network":
+        return (
+          <SectionCard title="Public Network" subtitle="External links that represent your work.">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+              <Field label="GitHub">
+                <Input name="github" value={form.github} onChange={handleChange} placeholder="e.g. defsec0" />
+              </Field>
+              <Field label="LinkedIn">
+                <Input
+                  name="linkedin"
+                  value={form.linkedin}
+                  onChange={handleChange}
+                  placeholder="e.g. john-doe-pentester"
+                />
+              </Field>
+              <Field label="Twitter / X">
+                <Input name="twitter" value={form.twitter} onChange={handleChange} placeholder="e.g. @root_access" />
+              </Field>
+              <Field label="Portfolio / Blog">
+                <Input
+                  name="portfolioLinks"
+                  value={form.portfolioLinks}
+                  onChange={handleChange}
+                  placeholder="https://myblog.com"
+                />
+              </Field>
+            </div>
+          </SectionCard>
+        );
+      default:
+        return null;
     }
   };
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-[#0a0a0a]">
-        <div className="flex flex-col items-center gap-4">
-          <div className="w-12 h-12 border-4 border border-[#00ff88]/20 border-t-[#00ff88] rounded-full animate-spin"></div>
-          <p className="text-sm font-mono text-[#00ff88] animate-pulse">Initializing neural link...</p>
-        </div>
+      <div className="w-full h-64 flex items-center justify-center font-mono text-[#00ff88] animate-pulse">
+        [SYSTEM]: Retrieving operative data...
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-[#0a0a0a] font-sans text-gray-200 flex items-center justify-center px-4 py-12 relative overflow-hidden">
-      {/* Background ambient glows */}
-      <div className="absolute top-1/4 -left-32 w-96 h-96 bg-[#00ff88] rounded-full mix-blend-screen filter blur-[150px] opacity-10 pointer-events-none"></div>
-      <div className="absolute bottom-1/4 -right-32 w-96 h-96 bg-blue-500 rounded-full mix-blend-screen filter blur-[150px] opacity-5 pointer-events-none"></div>
+    <div className="w-full min-h-screen bg-black text-white px-4 sm:px-8 py-8">
+      <div className="mx-auto w-full max-w-7xl bg-white/5 border border-white/10 rounded-2xl p-6 sm:p-8 shadow-2xl backdrop-blur-md">
+        <div className="mb-8">
+          <h1 className="text-3xl sm:text-4xl font-bold tracking-tight">Operative Settings</h1>
+          <p className="mt-2 text-sm text-white/60">Maintain your profile dossier and keep mission metadata current.</p>
 
-      {/* Grid overlay */}
-      <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxwYXRoIGQ9Ik0wIDEwaDQwTTAgMjBoNDBNMCAzMGg0ME0xMCAwdjQwTTIwIDB2NDBNMzAgMHY0MCIgc3Ryb2tlPSJyZ2JhKDI1NSwyNTUsMjU1LDAuMDMpIiBmaWxsPSJub25lIiAvPgo8L3N2Zz4=')] opacity-50 pointer-events-none"></div>
+          <div className="mt-6 flex flex-wrap items-center gap-3 text-[11px] font-mono uppercase tracking-[0.16em] text-white/45">
+            {NAV_ITEMS.map((item, index) => (
+              <div key={item.key} className="flex items-center gap-3">
+                <span className={index <= navIndex ? "text-[#00ff88]" : "text-white/45"}>
+                  {index + 1}. {item.label}
+                </span>
+                {index < NAV_ITEMS.length - 1 && <FiChevronRight className="text-white/35" />}
+              </div>
+            ))}
+          </div>
 
-      <div className="w-full max-w-4xl relative z-10 bg-[#111111] border border-gray-800 rounded-2xl p-8 md:p-12 shadow-2xl backdrop-blur-xl">
-
-        <div className="mb-8 border-b border-gray-800 pb-6">
-          <h1 className="text-3xl md:text-4xl font-bold text-white mb-2 flex items-center gap-3 tracking-tight">
-            <span className="text-[#00ff88] font-mono text-2xl md:text-3xl">~/</span>
-            Hacker Identity
-          </h1>
-          <p className="text-sm font-mono text-gray-400">
-            Define your arsenal. Establish trust. Prepare for deployment.
-          </p>
+          <div className="h-1 w-full bg-white/10 rounded-full overflow-hidden mt-5">
+            <div
+              className="h-full bg-[#00ff88] transition-all duration-500 ease-out"
+              style={{ width: `${((navIndex + 1) / NAV_ITEMS.length) * 100}%` }}
+            />
+          </div>
         </div>
 
-        {error && (
-          <div className="mb-6 flex items-start gap-3 bg-red-500/10 border border-red-500/50 px-4 py-3 rounded-lg text-red-400 font-mono text-sm shadow-[0_0_15px_rgba(239,68,68,0.1)]">
-            <svg className="w-5 h-5 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
-            <p>{error}</p>
-          </div>
-        )}
-        {success && (
-          <div className="mb-6 flex items-start gap-3 bg-[#00ff88]/10 border border-[#00ff88]/50 px-4 py-3 rounded-lg text-[#00ff88] font-mono text-sm shadow-[0_0_15px_rgba(0,255,136,0.1)]">
-            <svg className="w-5 h-5 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
-            <p>{success}</p>
-          </div>
-        )}
+        <div className="grid grid-cols-1 xl:grid-cols-[260px_1fr] gap-6">
+          <aside className="space-y-4">
+            <div className="bg-black/45 border border-white/10 rounded-2xl p-6">
+              <div className="relative w-max mx-auto">
+                <div className="w-24 h-24 rounded-2xl bg-black border border-white/15 flex items-center justify-center overflow-hidden">
+                  {logoPreview ? (
+                    <img src={logoPreview} alt="avatar" className="w-full h-full object-cover" />
+                  ) : (
+                    <span className="text-3xl font-black text-[#00ff88]">{initials(form.bio || "H")}</span>
+                  )}
+                </div>
 
-        <form className="space-y-6" onSubmit={handleSubmit}>
+                <button
+                  onClick={() => fileInputRef.current?.click()}
+                  className="absolute -bottom-2 -right-2 w-8 h-8 rounded-full bg-[#00ff88] text-black border-2 border-black flex items-center justify-center hover:bg-[#00cc6e] transition-colors"
+                >
+                  <FiCamera className="w-4 h-4" />
+                </button>
+                <input ref={fileInputRef} type="file" className="hidden" accept="image/*" onChange={handleLogoChange} />
+              </div>
 
-          <div className="space-y-2 group">
-            <label className="flex items-center gap-2 text-xs font-mono uppercase tracking-widest text-gray-500 group-focus-within:text-[#00ff88] transition-colors">
-              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>
-              Bio / Directive
-            </label>
-            <textarea
-              name="bio"
-              rows={4}
-              value={form.bio}
-              onChange={handleChange}
-              required
-              className="w-full bg-[#1a1a1a] border border-gray-800 rounded-lg px-4 py-3 text-sm text-gray-300 font-mono focus:outline-none focus:border-[#00ff88] focus:ring-1 focus:ring-[#00ff88] focus:bg-[#0a0a0a] transition-all placeholder-gray-600 resize-none"
-              placeholder="Briefly describe your experience, specialties, and approach to ethical hacking..."
-            />
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="space-y-2 group">
-              <label className="flex items-center gap-2 text-xs font-mono uppercase tracking-widest text-gray-500 group-focus-within:text-[#00ff88] transition-colors">
-                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-                Location / Node
-              </label>
-              <input
-                type="text"
-                name="country"
-                value={form.country}
-                onChange={handleChange}
-                className="w-full bg-[#1a1a1a] border border-gray-800 rounded-lg px-4 py-3 text-sm text-gray-300 font-mono focus:outline-none focus:border-[#00ff88] focus:ring-1 focus:ring-[#00ff88] focus:bg-[#0a0a0a] transition-all placeholder-gray-600"
-                placeholder="e.g. Germany"
-              />
+              <h3 className="text-center mt-4 text-lg font-bold">Operative Node</h3>
+              <p className="text-center text-[11px] text-[#00ff88] uppercase font-mono tracking-[0.14em] mt-1">Active Profile</p>
             </div>
-            <div className="space-y-2 group">
-              <label className="flex items-center gap-2 text-xs font-mono uppercase tracking-widest text-gray-500 group-focus-within:text-[#00ff88] transition-colors">
-                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-                Years Active
-              </label>
-              <input
-                type="number"
-                name="yearsOfExperience"
-                value={form.yearsOfExperience}
-                onChange={handleChange}
-                min={0}
-                max={60}
-                className="w-full bg-[#1a1a1a] border border-gray-800 rounded-lg px-4 py-3 text-sm text-gray-300 font-mono focus:outline-none focus:border-[#00ff88] focus:ring-1 focus:ring-[#00ff88] focus:bg-[#0a0a0a] transition-all placeholder-gray-600"
-                placeholder="e.g. 3"
-              />
-            </div>
-          </div>
 
-          <div className="space-y-2 group">
-            <label className="flex items-center gap-2 text-xs font-mono uppercase tracking-widest text-gray-500 group-focus-within:text-[#00ff88] transition-colors">
-              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" /></svg>
-              Core Capabilities (Skills)
-            </label>
-            <input
-              type="text"
-              name="primarySkills"
-              value={form.primarySkills}
-              onChange={handleChange}
-              required
-              className="w-full bg-[#1a1a1a] border border-gray-800 rounded-lg px-4 py-3 text-sm text-gray-300 font-mono focus:outline-none focus:border-[#00ff88] focus:ring-1 focus:ring-[#00ff88] focus:bg-[#0a0a0a] transition-all placeholder-gray-600"
-              placeholder="e.g. web app pentesting, mobile, cloud"
-            />
-            <p className="text-[10px] text-gray-600 font-mono ml-1 mt-1">Separate entries with commas</p>
-          </div>
+            <nav className="space-y-2">
+              {NAV_ITEMS.map((item) => {
+                const Icon = item.icon;
+                return (
+                  <button
+                    key={item.key}
+                    onClick={() => setActiveNav(item.key)}
+                    className={`w-full text-left px-4 py-3.5 rounded-xl border transition-all flex items-center gap-3 text-sm font-semibold ${
+                      activeNav === item.key
+                        ? "bg-[#00ff88]/10 border-[#00ff88]/35 text-[#00ff88]"
+                        : "bg-black/30 border-white/10 text-white/70 hover:text-white hover:border-white/20"
+                    }`}
+                  >
+                    <Icon />
+                    {item.label}
+                  </button>
+                );
+              })}
+            </nav>
+          </aside>
 
-          <div className="space-y-2 group">
-            <label className="flex items-center gap-2 text-xs font-mono uppercase tracking-widest text-gray-500 group-focus-within:text-[#00ff88] transition-colors">
-              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z" /></svg>
-              Certifications
-            </label>
-            <input
-              type="text"
-              name="certifications"
-              value={form.certifications}
-              onChange={handleChange}
-              className="w-full bg-[#1a1a1a] border border-gray-800 rounded-lg px-4 py-3 text-sm text-gray-300 font-mono focus:outline-none focus:border-[#00ff88] focus:ring-1 focus:ring-[#00ff88] focus:bg-[#0a0a0a] transition-all placeholder-gray-600"
-              placeholder="e.g. OSCP, CEH, eWPTX"
-            />
-          </div>
+          <main className="min-w-0">
+              <div key={activeNav}>
+                <div className="mb-5">
+                  <h2 className="text-2xl font-semibold">{NAV_ITEMS.find((item) => item.key === activeNav)?.label}</h2>
+                  <p className="text-sm text-white/55 mt-1">
+                    Update your configuration to keep your operator profile deploy-ready.
+                  </p>
+                </div>
 
-          <div className="space-y-2 group">
-            <label className="flex items-center gap-2 text-xs font-mono uppercase tracking-widest text-gray-500 group-focus-within:text-[#00ff88] transition-colors">
-              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" /></svg>
-              Portfolio / Vectors
-            </label>
-            <input
-              type="text"
-              name="portfolioLinks"
-              value={form.portfolioLinks}
-              onChange={handleChange}
-              className="w-full bg-[#1a1a1a] border border-gray-800 rounded-lg px-4 py-3 text-sm text-gray-300 font-mono focus:outline-none focus:border-[#00ff88] focus:ring-1 focus:ring-[#00ff88] focus:bg-[#0a0a0a] transition-all placeholder-gray-600"
-              placeholder="e.g. https://github.com/you, https://blog.example.com"
-            />
-          </div>
+                <form onSubmit={handleSubmit} className="space-y-6">
+                  {renderContent()}
 
-          <div className="flex flex-col sm:flex-row items-center gap-4 pt-4 mt-8 border-t border-gray-800">
-            <button
-              type="submit"
-              disabled={saving}
-              className="w-full sm:w-auto px-8 py-3 bg-[#00ff88] text-black font-bold font-mono text-sm uppercase tracking-wider rounded-lg hover:bg-[#00e67a] hover:shadow-[0_0_20px_rgba(0,255,136,0.4)] transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-            >
-              {saving ? (
-                <>
-                  <div className="w-4 h-4 border-2 border-black border-t-transparent rounded-full animate-spin"></div>
-                  Saving...
-                </>
-              ) : (
-                <>
-                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4" /></svg>
-                  Save Draft
-                </>
-              )}
-            </button>
-            <button
-              type="button"
-              disabled={saving}
-              onClick={handleSubmitForReview}
-              className="w-full sm:w-auto px-8 py-3 bg-transparent border border-[#00ff88]/50 text-[#00ff88] font-bold font-mono text-sm uppercase tracking-wider rounded-lg hover:bg-[#00ff88]/10 hover:border-[#00ff88] transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-            >
-              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" /></svg>
-              Submit for Review
-            </button>
-            <button
-              type="button"
-              onClick={() => navigate("/")}
-              className="w-full sm:w-auto px-8 py-3 bg-transparent border border-gray-600 text-gray-300 font-bold font-mono text-sm uppercase tracking-wider rounded-lg hover:border-[#00ff88] hover:text-[#00ff88] transition-all flex items-center justify-center gap-2"
-            >
-              Dashboard
-            </button>
-          </div>
-        </form>
+                  <div className="flex flex-wrap items-center gap-4 pt-2">
+                    <button
+                      type="submit"
+                      disabled={saving}
+                      className="flex items-center gap-2 px-7 py-3 bg-[#00ff88] text-black rounded-lg text-xs font-mono font-bold uppercase tracking-[0.16em] hover:bg-[#00cc6e] transition-colors disabled:opacity-50"
+                    >
+                      <FiSave className="w-4 h-4" />
+                      {saving ? "SAVING..." : "SAVE CONFIGURATION"}
+                    </button>
+
+                    {success && (
+                      <p className="text-xs font-mono uppercase tracking-[0.12em] text-[#00ff88] border border-[#00ff88]/30 bg-[#00ff88]/10 px-3 py-2 rounded">
+                        {success}
+                      </p>
+                    )}
+
+                    {error && (
+                      <p className="text-xs font-mono uppercase tracking-[0.12em] text-white border border-white/20 bg-white/5 px-3 py-2 rounded">
+                        {error}
+                      </p>
+                    )}
+                  </div>
+                </form>
+              </div>
+          </main>
+        </div>
       </div>
     </div>
   );

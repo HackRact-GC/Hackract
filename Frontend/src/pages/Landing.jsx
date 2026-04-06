@@ -1,14 +1,19 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { useAuth } from "../context/authContext.jsx";
 import MatrixRain from "../components/MatrixRain";
 
 const Landing = () => {
     const navigate = useNavigate();
+    const { user, loading } = useAuth();
     const [mounted, setMounted] = useState(false);
 
     useEffect(() => {
         setMounted(true);
-    }, []);
+        if (user && !loading) {
+            navigate("/dashboard");
+        }
+    }, [user, loading, navigate]);
 
     return (
         <div className="relative min-h-screen bg-[#050505] text-white overflow-hidden selection:bg-[#00ff88]/30 selection:text-[#00ff88]">
@@ -133,6 +138,7 @@ const Landing = () => {
                 {/* Feature Highlights - Grid Section */}
                 <div id="features" className={`mt-16 grid md:grid-cols-4 gap-6 max-w-7xl mx-auto w-full px-8 transition-all duration-1000 delay-1000 transform ${mounted ? 'translate-y-0 opacity-100' : 'translate-y-12 opacity-0'}`}>
                     {[
+                        
                         {
                             title: "Visual Workflow Builder",
                             desc: "Drag-and-drop mind-map interface for complex attack path mapping and asset relationship visualization.",

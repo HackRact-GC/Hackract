@@ -12,6 +12,50 @@ const buildFallbackEmail = (auth0Id, nickname) => {
   return `${localPart || safeId}@placeholder.hackract.local`;
 };
 
+const getOrCreateRole = async (roleType = 'PENTESTER') => {
+  const metaByType = {
+    SUPER_ADMIN: {
+      name: 'Super Admin',
+      description: 'Full system access with all permissions',
+    },
+    ORG_ADMIN: {
+      name: 'Organization Admin',
+      description: 'Full access within their organization',
+    },
+    PROJECT_ADMIN: {
+      name: 'Project Admin',
+      description: 'Project/pentest lead (scoped permissions)',
+    },
+    PENTESTER: {
+      name: 'Pentester',
+      description: 'Default pentester role for new users',
+    },
+  };
+
+  const meta = metaByType[roleType] || metaByType.PENTESTER;
+
+  return prisma.role.upsert({
+    where: { type: roleType },
+    update: {},
+    create: {
+      name: meta.name,
+      type: roleType,
+      description: meta.description,
+      permissions: [],
+    },
+  });
+};
+
+const ensureUserHasRole = async (user, fallbackRole = 'PENTESTER') => {
+  // If the user already has roles, just return them
+  if (user?.roles?.length) return user;
+  
+  // NOTE: We used to automatically assign PENTESTER role here.
+  // We've removed this to support the post-social-login onboarding flow.
+  // Users now choose their role on the frontend.
+  return user;
+};
+
 // Auth0 JWT validation middleware
 const checkJwt = auth({
   audience: process.env.AUTH0_AUDIENCE,
@@ -38,11 +82,12 @@ const tryLocalToken = async (req) => {
   });
 
   if (!user) return null;
+  const hydratedUser = await ensureUserHasRole(user);
   if (user.status === 'SUSPENDED' || user.status === 'BANNED') {
     throw new AppError('Account is suspended or banned', 403);
   }
 
-  return user;
+  return hydratedUser;
 };
 
 export const validateLocal = async (req, res, next) => {
@@ -145,9 +190,7 @@ export const protect = async (req, res, next) => {
             include: { roles: true }
           });
         } else {
-          const defaultRole = await prisma.role.findUnique({
-            where: { type: 'PENTESTER' },
-          });
+          // REMOVED: const defaultRole = await getOrCreateRole('PENTESTER');
 
           let baseHandle = (nickname || email.split('@')[0]).toLowerCase().replace(/[^a-z0-9_]/g, '');
           let handle = baseHandle || `user${Date.now()}`;
@@ -168,10 +211,8 @@ export const protect = async (req, res, next) => {
               handle,
               avatar: picture,
               status: 'ACTIVE',
-              isVerified: emailVerified || false,
-              roles: defaultRole ? {
-                connect: { id: defaultRole.id },
-              } : undefined,
+               isVerified: emailVerified || false,
+              // roles: defaultRole ? { connect: { id: defaultRole.id } } : undefined, // REMOVED
             },
             include: { roles: true }
           });
@@ -186,7 +227,7 @@ export const protect = async (req, res, next) => {
         return next(new AppError('Account is suspended or banned', 403));
       }
 
-      req.user = user;
+      req.user = await ensureUserHasRole(user);
       next();
     } catch (dbError) {
       next(dbError);
@@ -199,12 +240,43 @@ export const restrictTo = (...allowedRoles) => {
     if (!req.user || !req.user.roles) {
       return next(new AppError('User not authenticated correctly', 401));
     }
-    const hasPermission = req.user.roles.some(role => allowedRoles.includes(role.type));
+
+    const hasPermission = req.user.roles.some((role) => allowedRoles.includes(role.type));
 
     if (!hasPermission) {
-      return next(new AppError('You do not have permission to perform this action', 403));
+      return next(new AppError(`You do not have permission to perform this action. Required: ${allowedRoles.join(', ')}. Found: ${req.user.roles.map(r => r.type).join(', ')}`, 403));
     }
 
     next();
   };
+};
+
+/**
+ * Middleware to ensure that a PENTESTER has an APPROVED hacker profile
+ * before accessing certain project-related routes.
+ */
+export const ensureHackerVerified = async (req, res, next) => {
+  try {
+    if (!req.user || !req.user.roles) {
+      return next(new AppError('Authentication required', 401));
+    }
+
+    // Only apply to hacker-type roles
+    const isHackerRole = req.user.roles.some((role) => role.type === 'PENTESTER' || role.type === 'PROJECT_ADMIN');
+    if (!isHackerRole) {
+      return next();
+    }
+
+    const profile = await prisma.hackerProfile.findUnique({
+      where: { userId: req.user.id }
+    });
+
+    if (!profile || profile.status !== 'APPROVED') {
+      return next(new AppError('Access denied. Your hacker profile must be APPROVED to participate in projects.', 403));
+    }
+
+    next();
+  } catch (error) {
+    next(error);
+  }
 };
