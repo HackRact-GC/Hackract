@@ -1,5 +1,6 @@
 import { useEffect, useState, useCallback } from 'react';
 import { io } from 'socket.io-client';
+import { useAuth } from '../context/authContext.jsx';
 
 const SOCKET_URL = import.meta.env.VITE_SOCKET_URL || 'http://localhost:3000';
 
@@ -13,10 +14,24 @@ export const useWorkflowSocket = (workflowId, initialNodes = [], initialEdges = 
   const [nodes, setNodes] = useState(initialNodes);
   const [edges, setEdges] = useState(initialEdges);
 
-  const [localUser] = useState({
-    name: `User_${Math.floor(Math.random() * 1000)}`,
+  const { user: authUser } = useAuth(); // get real profile
+
+  // If there's a logged in user, use their real name, otherwise fallback to anonymous Hacker
+  const [localUser, setLocalUser] = useState({
+    id: authUser?._id || authUser?.id || `anon_${Math.floor(Math.random() * 1000)}`,
+    name: authUser?.name || authUser?.username || `Hacker_${Math.floor(Math.random() * 1000)}`,
     color: `hsl(${Math.random() * 360}, 70%, 50%)`,
   });
+
+  useEffect(() => {
+    if (authUser) {
+      setLocalUser(prev => ({
+        ...prev,
+        id: authUser._id || authUser.id,
+        name: authUser.name || authUser.username || prev.name
+      }));
+    }
+  }, [authUser]);
 
   useEffect(() => {
     if (!workflowId) return;
