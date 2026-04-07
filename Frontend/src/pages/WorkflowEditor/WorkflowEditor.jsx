@@ -117,15 +117,15 @@ const WorkflowEditor = ({ workflowId: propWorkflowId, pentestId: propPentestId }
             type: data.pentest?.type || 'Audit'
           });
         }
-        
+
         // RBAC Check
         const collaborators = data.pentest?.collaborators || [];
-        const isCollaborator = collaborators.some(c => 
-          c.userId === localUser.id && 
+        const isCollaborator = collaborators.some(c =>
+          c.userId === localUser.id &&
           ["HACKER", "PROJECT_ADMIN", "ORG_ADMIN"].includes(c.role)
         );
         const isSuperAdmin = localUser.roles?.some(r => r.type === "SUPER_ADMIN");
-        
+
         if (!isCollaborator && !isSuperAdmin) {
           setCanEdit(false);
           setIsLocked(true);
@@ -388,7 +388,7 @@ const WorkflowEditor = ({ workflowId: propWorkflowId, pentestId: propPentestId }
                    style={{ zIndex: 10 + index }}
                    title={collab.user || 'Online Hacker'}
                 >
-                   <div 
+                   <div
                      className="w-8 h-8 rounded-full border-2 border-[#0b0f19] flex items-center justify-center text-xs font-bold shadow-lg"
                      style={{ backgroundColor: collab.color || '#00ff41', color: '#fff' }}
                    >
@@ -453,9 +453,9 @@ const WorkflowEditor = ({ workflowId: propWorkflowId, pentestId: propPentestId }
                 className="bg-[#07090e]"
               />
               <Panel position="bottom-left">
-                <WorkflowControls 
-                  isLocked={isLocked} 
-                  onToggleLock={() => canEdit && setIsLocked(!isLocked)} 
+                <WorkflowControls
+                  isLocked={isLocked}
+                  onToggleLock={() => canEdit && setIsLocked(!isLocked)}
                   disabled={!canEdit}
                 />
               </Panel>
