@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { FiUser, FiCode, FiAward, FiGlobe, FiChevronRight, FiCamera, FiSave } from "react-icons/fi";
 import api from "../api/axiosConfig";
+import { useAuth } from "../context/authContext.jsx";
 
 const NAV_ITEMS = [
   { key: "identity", label: "Identity", icon: FiUser },
@@ -41,6 +42,7 @@ const SectionCard = ({ title, subtitle, children }) => (
 );
 
 const HackerProfile = () => {
+  const { user } = useAuth();
   const fileInputRef = useRef(null);
   const [activeNav, setActiveNav] = useState("identity");
   const [loading, setLoading] = useState(true);
@@ -48,6 +50,7 @@ const HackerProfile = () => {
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const [logoPreview, setLogoPreview] = useState(null);
+  const [isOnline, setIsOnline] = useState(() => (typeof navigator === "undefined" ? true : navigator.onLine));
 
   const [form, setForm] = useState({
     bio: "",
@@ -97,6 +100,19 @@ const HackerProfile = () => {
     fetchProfile();
   }, []);
 
+  useEffect(() => {
+    const handleOnline = () => setIsOnline(true);
+    const handleOffline = () => setIsOnline(false);
+
+    window.addEventListener("online", handleOnline);
+    window.addEventListener("offline", handleOffline);
+
+    return () => {
+      window.removeEventListener("online", handleOnline);
+      window.removeEventListener("offline", handleOffline);
+    };
+  }, []);
+
   const handleChange = (event) => {
     const { name, value } = event.target;
     setForm((prev) => ({ ...prev, [name]: value }));
@@ -139,6 +155,7 @@ const HackerProfile = () => {
   };
 
   const initials = (value = "") => value.slice(0, 2).toUpperCase() || "H";
+  const displayName = user?.fullName?.trim() || user?.handle?.trim() || user?.email?.split("@")?.[0] || "Operative Node";
   const navIndex = NAV_ITEMS.findIndex((item) => item.key === activeNav);
 
   const renderContent = () => {
@@ -301,7 +318,7 @@ const HackerProfile = () => {
                   {logoPreview ? (
                     <img src={logoPreview} alt="avatar" className="w-full h-full object-cover" />
                   ) : (
-                    <span className="text-3xl font-black text-[#00ff88]">{initials(form.bio || "H")}</span>
+                    <span className="text-3xl font-black text-[#00ff88]">{initials(displayName)}</span>
                   )}
                 </div>
 
@@ -314,8 +331,11 @@ const HackerProfile = () => {
                 <input ref={fileInputRef} type="file" className="hidden" accept="image/*" onChange={handleLogoChange} />
               </div>
 
-              <h3 className="text-center mt-4 text-lg font-bold">Operative Node</h3>
-              <p className="text-center text-[11px] text-[#00ff88] uppercase font-mono tracking-[0.14em] mt-1">Active Profile</p>
+              <h3 className="text-center mt-4 text-lg font-bold">{displayName}</h3>
+              <div className="mt-1 flex items-center justify-center gap-2 text-[11px] font-mono uppercase tracking-[0.14em]">
+                <span className={`h-2.5 w-2.5 rounded-full ${isOnline ? "bg-[#00ff88] shadow-[0_0_10px_rgba(0,255,136,0.8)]" : "bg-white/35"}`} />
+                <span className={isOnline ? "text-[#00ff88]" : "text-white/55"}>{isOnline ? "Online" : "Offline"}</span>
+              </div>
             </div>
 
             <nav className="space-y-2">
