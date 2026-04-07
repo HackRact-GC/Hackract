@@ -51,9 +51,9 @@ const MyApplications = () => {
   if (selectedProjectId) {
     return (
       <div className="min-h-screen bg-black text-white p-6 md:p-10 font-sans selection:bg-[#00ff88]/30 selection:text-black">
-        <WorkspaceView 
-          projectId={selectedProjectId} 
-          onBack={() => setSelectedProjectId(null)} 
+        <WorkspaceView
+          projectId={selectedProjectId}
+          onBack={() => setSelectedProjectId(null)}
         />
       </div>
     );
@@ -179,7 +179,7 @@ const MyApplications = () => {
                                 <button
                                     onClick={() => setSelectedProjectId(project.id)}
                                   className={`flex-1 md:flex-none px-6 py-3.5 rounded-2xl text-[10px] font-bold uppercase tracking-[0.2em] transition-all border shadow-lg shadow-black/20 flex items-center gap-3 active:scale-95 ${
-                                    isLab 
+                                    isLab
                                     ? 'bg-[#00ff88]/10 hover:bg-[#00ff88] text-[#00ff88] hover:text-black border-[#00ff88]/20 hover:border-[#00ff88]'
                                     : 'bg-white/10 hover:bg-[#00ff88] text-white/70 hover:text-black border-white/10 hover:border-[#00ff88]'
                                   }`}
