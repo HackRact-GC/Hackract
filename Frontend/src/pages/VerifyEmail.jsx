@@ -123,7 +123,7 @@ const VerifyEmail = () => {
             Go to login
           </Link>
           <Link
-            to="/register"
+            to="/register/hacker"
             className="px-4 py-2 border border-gray-900 text-gray-900 rounded-sm font-bold uppercase tracking-widest hover:bg-gray-900 hover:text-white transition-all duration-300"
           >
             Register

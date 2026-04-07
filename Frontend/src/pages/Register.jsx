@@ -141,7 +141,7 @@ const Register = () => {
       }
 
       const result = await register(payload);
-      
+
       setSuccessMessage(result?.message || "Registration successful. Check your email for verification code.");
       console.info("[ui] registration success", result);
 
