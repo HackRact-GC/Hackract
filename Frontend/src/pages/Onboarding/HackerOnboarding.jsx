@@ -73,11 +73,7 @@ const HackerOnboarding = () => {
   };
 
   const handleSubmit = async () => {
-    if (missingAgreements.length > 0) {
-      toast.error('You must sign all mandatory agreements first.');
-      return;
-    }
-    
+    // NDA is no longer required at onboarding — only when joining an org project
     setSubmitting(true);
     try {
       const payload = {
@@ -249,12 +245,12 @@ const HackerOnboarding = () => {
               <FiFileText className="text-[#00ff88]" /> Legal Compliance
             </h2>
             
-            <div className="bg-amber-500/5 border border-amber-500/20 rounded-xl p-4 mb-6">
-                <div className="flex items-center gap-2 text-amber-500 text-sm font-bold mb-2">
-                  <FiAlertTriangle /> Critical Legal Requirement
+            <div className="bg-sky-500/5 border border-sky-500/20 rounded-xl p-4 mb-6">
+                <div className="flex items-center gap-2 text-sky-400 text-sm font-bold mb-2">
+                  <FiFileText /> Legal Compliance Info
                 </div>
                 <p className="text-xs text-gray-400 leading-relaxed">
-                  Participation in organization-hosted pentests requires validating the Mutual Non-Disclosure Agreement (MNDA). Your digital signature legally binds you to maintaining strict confidentiality regarding vulnerabilities discovered.
+                  Signing agreements is <span className="text-white font-bold">optional</span> for personal labs and practice. However, when you apply to an organization-hosted security program, the platform will require you to sign the NDA before your application is submitted.
                 </p>
             </div>
 
@@ -310,7 +306,7 @@ const HackerOnboarding = () => {
         ) : (
             <button 
                 onClick={handleSubmit}
-                disabled={submitting || missingAgreements.length > 0}
+                disabled={submitting}
                 className="flex items-center gap-2 px-6 py-2.5 bg-[#00ff88] text-black rounded-lg text-sm font-mono font-bold uppercase tracking-widest hover:bg-[#00cc6e] transition-all active:scale-95 shadow-lg shadow-[#00ff88]/20 disabled:opacity-50 disabled:cursor-not-allowed"
             >
                 {submitting ? 'PROCESSING...' : 'COMPLETE ONBOARDING'} <FiCheckCircle />
