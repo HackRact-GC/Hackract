@@ -429,8 +429,8 @@ class AuthService {
                 create: {
                     name: requestedRoleType === 'ORG_ADMIN' ? 'Organization Admin' : 'Pentester',
                     type: requestedRoleType,
-                    description: requestedRoleType === 'ORG_ADMIN' 
-                        ? 'Full access within their organization' 
+                    description: requestedRoleType === 'ORG_ADMIN'
+                        ? 'Full access within their organization'
                         : 'Default pentester role for new users',
                     permissions: [],
                 },
@@ -607,11 +607,11 @@ class AuthService {
         return this.issueTokens(user, meta);
     }
 
-    async logout(refreshToken) {
+    async logout(refreshToken, userId) {
         if (!refreshToken) return;
         try {
-            await prisma.refreshToken.update({
-                where: { token: refreshToken },
+            await prisma.refreshToken.updateMany({
+                where: { token: refreshToken, userId },
                 data: { revoked: true, revokedAt: new Date() },
             });
         } catch (error) {
