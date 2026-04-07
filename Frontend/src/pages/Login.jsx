@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useAuth0 } from "@auth0/auth0-react";
 import { FcGoogle } from "react-icons/fc";
 import { FaGithub } from "react-icons/fa";
@@ -42,9 +42,12 @@ const SocialButton = ({ icon, label, onClick }) => (
 
 const Login = () => {
     const navigate = useNavigate();
+    const location = useLocation();
     const { loginWithRedirect } = useAuth0();
     const { login, loading } = useAuth();
     const [form, setForm] = useState({ email: "", password: "" });
+
+    const redirectTo = location.state?.from?.pathname || "/dashboard";
 
     const handleChange = (e) => {
         const { name, value } = e.target;
@@ -55,6 +58,7 @@ const Login = () => {
         e.preventDefault();
         try {
             const result = await login(form);
+<<<<<<< HEAD
             const primaryRole = result?.user?.roles?.[0]?.type;
             if (primaryRole === "PENTESTER" || primaryRole === "PROJECT_ADMIN") {
                 navigate("/hacker-profile", {
@@ -70,6 +74,13 @@ const Login = () => {
             }
 
             navigate("/dashboard");
+=======
+            if (result?.requiresEmailVerification) {
+                navigate(`/verify-email?email=${encodeURIComponent(form.email)}`);
+                return;
+            }
+            navigate(redirectTo, { replace: true });
+>>>>>>> 29cf968ad6e921e78b6c17cae03c9ce911d6c293
         } catch (error) {
             const errorCode = error?.response?.data?.code;
             const status = error?.response?.status;
@@ -165,7 +176,7 @@ const Login = () => {
 
             <div className="text-center text-xs font-mono text-gray-500 mt-4">
                 New here?{" "}
-                <Link to="/register" className="underline hover:text-black transition-colors font-bold uppercase">
+                <Link to="/register/hacker" className="underline hover:text-black transition-colors font-bold uppercase">
                     Create account
                 </Link>
             </div>

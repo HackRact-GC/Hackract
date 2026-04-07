@@ -64,7 +64,7 @@ const Landing = () => {
 
                     <div className="flex flex-col sm:flex-row items-center justify-center gap-5">
                         <button
-                            onClick={() => navigate("/register")}
+                            onClick={() => navigate("/register/hacker")}
                             className="group relative px-8 py-4 w-full sm:w-auto overflow-hidden rounded-xl bg-[#00ff88] text-black font-mono font-bold tracking-widest uppercase transition-all duration-300 hover:scale-105 hover:shadow-[0_0_30px_rgba(0,255,136,0.4)]"
                         >
                             <span className="relative z-10 flex items-center justify-center gap-2">

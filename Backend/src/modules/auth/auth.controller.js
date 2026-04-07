@@ -49,7 +49,7 @@ export const getMe = asyncHandler(async (req, res) => {
  */
 export const logout = asyncHandler(async (req, res) => {
     const { refreshToken } = req.body || {};
-    await authService.logout(refreshToken);
+    await authService.logout(refreshToken, req.user?.id);
     ApiResponse.success(res, null, 'Logged out from local session');
 });
 

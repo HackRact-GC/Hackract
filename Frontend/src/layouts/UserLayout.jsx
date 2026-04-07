@@ -37,9 +37,7 @@ const UserLayout = () => {
     return [
       { label: "Operational Center", route: "/dashboard", icon: FiGrid },
       { label: "Public Engagements", route: "/engagements", icon: FiTarget },
-      { label: "My Proposals", route: "/my-applications", icon: FiFileText },
-      { label: "Active Missions", route: "/projects", icon: FiShield },
-      { label: "Risk Reports", route: "/projects", icon: FiActivity },
+      { label: "Mission Hub", route: "/my-applications", icon: FiShield },
       { label: "Operative Settings", route: "/hacker-profile", icon: FiSettings },
     ];
   }, [isOrgView, primaryOrganizationId]);
@@ -100,9 +98,12 @@ const UserLayout = () => {
         </nav>
 
         <div className="p-8 border-t border-white/10">
-          <div className="flex items-center gap-3 p-3 bg-white/5 rounded-2xl border border-white/10">
-            <div className="w-8 h-8 rounded-full bg-black flex items-center justify-center text-xs font-bold text-white border border-white/10">
-              {user?.fullName?.[0] || user?.handle?.[0] || "U"}
+          <div className="flex items-center gap-3 p-3 bg-white/5 rounded-2xl border border-white/10 relative group">
+            <div className="relative">
+              <div className="w-9 h-9 rounded-full bg-black flex items-center justify-center text-sm font-bold text-[#00ff88] border border-white/20 shadow-lg">
+                {user?.fullName?.[0] || user?.handle?.[0] || "U"}
+              </div>
+              <span className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-[#00ff88] border-[1.5px] border-black rounded-full shadow-[0_0_8px_rgba(0,255,136,0.8)]" title="Online"></span>
             </div>
             <div className="min-w-0">
               <p className="text-xs font-bold text-white truncate">{user?.fullName || user?.handle}</p>

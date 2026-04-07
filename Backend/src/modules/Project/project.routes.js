@@ -2,6 +2,7 @@ import express from "express";
 import { protect } from "../../middleware/Auth.middleware.js";
 import prisma from "../../database/prismaClient.js";
 import AppError from "../../utils/AppError.js";
+import { checkLegalSignature } from "../../middleware/legalSignature.middleware.js";
 import { logAction } from "../AuditLogs/auditLog.service.js";
 
 const router = express.Router();
@@ -49,6 +50,50 @@ router.get("/", async (req, res, next) => {
     });
 
     res.json({ success: true, data: projects });
+  } catch (error) {
+    next(error);
+  }
+});
+
+/**
+ * POST /projects/personal
+ * Creates a personal (solo) pentest workspace for the requesting user.
+ * No organization required. NDA gate is bypassed on this project type.
+ */
+router.post("/personal", async (req, res, next) => {
+  try {
+    const { name, description } = req.body || {};
+    if (!name?.trim()) throw new AppError("Project name is required", 400);
+
+    const project = await prisma.pentest.create({
+      data: {
+        name: name.trim(),
+        description: description?.trim() || null,
+        isPersonal: true,
+        leadPentesterId: req.user.id,
+        status: "IN_PROGRESS",
+        workflows: {
+          create: {
+            name: `${name.trim()} — Workflow`,
+            nodes: [],
+            edges: [],
+          },
+        },
+      },
+      include: {
+        workflows: true,
+        collaborators: true,
+      },
+    });
+
+    // Auto-add creator as a HACKER collaborator so they can submit findings
+    await prisma.pentestCollaborator.create({
+      data: { pentestId: project.id, userId: req.user.id, role: "HACKER" },
+    });
+
+    await logAction("PERSONAL_WORKSPACE_CREATED", req.user.id, { pentestId: project.id, name }, req);
+
+    res.status(201).json({ success: true, data: project, message: "Personal workspace created" });
   } catch (error) {
     next(error);
   }
@@ -244,7 +289,7 @@ router.post("/:projectId/hackers", async (req, res, next) => {
   }
 });
 
-router.post("/:projectId/apply", async (req, res, next) => {
+router.post("/:projectId/apply", checkLegalSignature, async (req, res, next) => {
   try {
     const { projectId } = req.params;
     const project = await prisma.pentest.findUnique({ where: { id: projectId } });
@@ -386,4 +431,119 @@ router.post("/:projectId/kickoff", async (req, res, next) => {
   }
 });
 
+// ────────────────────────────────────────
+// NDA / Legal Authorization Gate
+// ────────────────────────────────────────
+
+/**
+ * GET /:projectId/nda-status
+ * Returns: { required: bool, signed: bool, agreement: {...} | null }
+ * Only relevant for hackers/collaborators. Org admins are exempt.
+ */
+router.get("/:projectId/nda-status", async (req, res, next) => {
+  try {
+    const { projectId } = req.params;
+    const userId = req.user.id;
+
+    const project = await prisma.pentest.findUnique({
+      where: { id: projectId },
+      select: { organizationId: true, leadPentesterId: true, isPersonal: true },
+    });
+    if (!project) throw new AppError("Project not found", 404);
+
+    // Personal workspaces never require an NDA
+    if (project.isPersonal) {
+      return res.json({ success: true, data: { required: false, signed: true, agreement: null } });
+    }
+
+    // Lead pentester (project owner) is exempt
+    if (project.leadPentesterId === userId) {
+      return res.json({ success: true, data: { required: false, signed: true, agreement: null } });
+    }
+
+    // Org admins / owners are exempt
+    if (project.organizationId) {
+      const isOrgMember = await prisma.organizationMember.findFirst({
+        where: { organizationId: project.organizationId, userId, role: { in: ["owner", "admin"] } },
+      });
+      if (isOrgMember) {
+        return res.json({ success: true, data: { required: false, signed: true, agreement: null } });
+      }
+    }
+
+    // Fetch the active platform NDA
+    const agreement = await prisma.legalAgreement.findFirst({
+      where: { type: "nda", isActive: true },
+      orderBy: { createdAt: "desc" },
+    });
+
+    if (!agreement) {
+      return res.json({ success: true, data: { required: false, signed: true, agreement: null } });
+    }
+
+    const signature = await prisma.userSignature.findUnique({
+      where: { userId_agreementId: { userId, agreementId: agreement.id } },
+    });
+
+    return res.json({
+      success: true,
+      data: {
+        required: true,
+        signed: Boolean(signature),
+        agreement,
+        signature: signature || null,
+      },
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+/**
+ * POST /:projectId/sign-nda
+ * Body: { agreementId }
+ * Signs the NDA for the given project. Logs the action.
+ */
+router.post("/:projectId/sign-nda", async (req, res, next) => {
+  try {
+    const { projectId } = req.params;
+    const { agreementId } = req.body;
+    const userId = req.user.id;
+
+    if (!agreementId) throw new AppError("agreementId is required", 400);
+
+    const project = await prisma.pentest.findUnique({ where: { id: projectId } });
+    if (!project) throw new AppError("Project not found", 404);
+
+    const agreement = await prisma.legalAgreement.findUnique({ where: { id: agreementId } });
+    if (!agreement) throw new AppError("Agreement not found", 404);
+    if (!agreement.isActive) throw new AppError("This agreement is no longer active", 400);
+
+    // Idempotent — don't error if already signed
+    const existing = await prisma.userSignature.findUnique({
+      where: { userId_agreementId: { userId, agreementId } },
+    });
+
+    if (existing) {
+      return res.json({ success: true, data: existing, message: "NDA already signed" });
+    }
+
+    const signature = await prisma.userSignature.create({
+      data: {
+        userId,
+        agreementId,
+        ipAddress: req.ip,
+        userAgent: req.get("user-agent"),
+      },
+    });
+
+    await logAction("NDA_SIGNED", userId, { pentestId: projectId, agreementId }, req);
+
+    res.status(201).json({ success: true, data: signature, message: "NDA signed successfully" });
+  } catch (error) {
+    next(error);
+  }
+});
+
 export default router;
+
