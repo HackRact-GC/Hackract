@@ -1,6 +1,6 @@
 // src/routes/index.jsx or similar
 
-import { createBrowserRouter } from "react-router-dom";
+import { createBrowserRouter, Navigate } from "react-router-dom";
 import App from "../App.jsx";
 import AuthLayout from "../layouts/AuthLayout.jsx";
 import Login from "../pages/Login.jsx";
@@ -69,17 +69,10 @@ const router = createBrowserRouter([
             path: "organization-verification/:organizationId",
             element: <OrganizationVerification />,
           },
-          {
-            path: "workflows/:workflowId",
-            element: <WorkflowEditor />,
-          },
+
           {
             path: "projects",
             element: <Projects />,
-          },
-          {
-            path: "projects/:projectId",
-            element: <ProjectWorkspace />,
           },
           {
             path: "findings/:findingId",
@@ -94,6 +87,10 @@ const router = createBrowserRouter([
             element: <MyApplications />,
           },
         ],
+      },
+      {
+        path: "workflows/:workflowId",
+        element: <OnboardingGuard><WorkflowEditor /></OnboardingGuard>,
       },
       {
         path: "onboarding",
@@ -130,6 +127,14 @@ const router = createBrowserRouter([
           },
           {
             path: "register",
+            element: <Navigate to="/register/hacker" replace />,
+          },
+          {
+            path: "register/hacker",
+            element: <Register />,
+          },
+          {
+            path: "register/organization",
             element: <Register />,
           },
           {
