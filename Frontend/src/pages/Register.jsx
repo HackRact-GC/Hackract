@@ -1,11 +1,23 @@
 import { useEffect, useState } from "react";
+import { FaEye, FaEyeSlash, FaGithub } from "react-icons/fa";
+import { FcGoogle } from "react-icons/fc";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useAuth0 } from "@auth0/auth0-react";
-import { FcGoogle } from "react-icons/fc";
-import { FaGithub } from "react-icons/fa";
 import { useAuth } from "../context/authContext.jsx";
+import { validatePassword } from "../utils/validators";
 
-const InputField = ({ label, type, placeholder, id, name, value, onChange, required = true }) => (
+const InputField = ({ 
+  label, 
+  type, 
+  placeholder, 
+  id, 
+  name, 
+  value, 
+  onChange, 
+  icon, 
+  onIconClick, 
+  required = true 
+}) => (
   <div className="flex flex-col gap-2 group">
     <label
       htmlFor={id}
@@ -26,6 +38,16 @@ const InputField = ({ label, type, placeholder, id, name, value, onChange, requi
         className="flex-1 bg-transparent outline-none text-sm font-mono placeholder-gray-400 text-gray-900 cursor-text"
         required={required}
       />
+      {icon && (
+        <span
+          className="ml-2 cursor-pointer text-gray-500 hover:text-black"
+          onClick={onIconClick}
+          tabIndex={0}
+          role="button"
+        >
+          {icon}
+        </span>
+      )}
     </div>
   </div>
 );
@@ -45,6 +67,7 @@ const Register = () => {
   const { loginWithRedirect } = useAuth0();
   const navigate = useNavigate();
   const location = useLocation();
+
   const [form, setForm] = useState({
     fullName: "",
     handle: "",
@@ -55,30 +78,43 @@ const Register = () => {
       name: "",
     },
   });
+
   const [accountType, setAccountType] = useState("HACKER"); // HACKER or ORGANIZATION
-    useEffect(() => {
-      if (location.pathname === "/register/organization") {
-        setAccountType("ORGANIZATION");
-        return;
-      }
-      setAccountType("HACKER");
-    }, [location.pathname]);
-
-    const handleAccountTypeChange = (nextAccountType) => {
-      setAccountType(nextAccountType);
-      if (nextAccountType === "ORGANIZATION") {
-        navigate("/register/organization");
-        return;
-      }
-      navigate("/register/hacker");
-    };
-
   const [successMessage, setSuccessMessage] = useState("");
   const [errorMessage, setErrorMessage] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [passwordError, setPasswordError] = useState("");
+
+  useEffect(() => {
+    if (location.pathname === "/register/organization") {
+      setAccountType("ORGANIZATION");
+    } else {
+      setAccountType("HACKER");
+    }
+  }, [location.pathname]);
+
+  const handleAccountTypeChange = (nextAccountType) => {
+    setAccountType(nextAccountType);
+    if (nextAccountType === "ORGANIZATION") {
+      navigate("/register/organization");
+    } else {
+      navigate("/register/hacker");
+    }
+  };
 
   const handleChange = (e) => {
     const { name, value } = e.target;
     setForm((prev) => ({ ...prev, [name]: value }));
+    if (name === "password") {
+      if (!validatePassword(value)) {
+        setPasswordError(
+          "Password must be at least 8 characters, include uppercase, lowercase, and a special character."
+        );
+      } else {
+        setPasswordError("");
+      }
+    }
   };
 
   const handleOrganizationChange = (e) => {
@@ -114,12 +150,20 @@ const Register = () => {
     e.preventDefault();
     setSuccessMessage("");
     setErrorMessage("");
-    try {
-      if (form.password !== form.confirmPassword) {
-        setErrorMessage("Passwords do not match.");
-        return;
-      }
 
+    if (!validatePassword(form.password)) {
+      setPasswordError(
+        "Password must be at least 8 characters, include uppercase, lowercase, and a special character."
+      );
+      return;
+    }
+
+    if (form.password !== form.confirmPassword) {
+      setErrorMessage("Passwords do not match.");
+      return;
+    }
+
+    try {
       const payload = {
         fullName: form.fullName,
         handle: form.handle,
@@ -134,7 +178,6 @@ const Register = () => {
           setErrorMessage("Organization name is required for organization registration.");
           return;
         }
-
         payload.organization = {
           name: form.organization.name,
         };
@@ -144,8 +187,6 @@ const Register = () => {
 
       setSuccessMessage(result?.message || "Registration successful. Check your email for verification code.");
       console.info("[ui] registration success", result);
-
-      // Redirect to OTP verification page
       setTimeout(() => {
         navigate(`/verify-email?email=${encodeURIComponent(form.email)}`);
       }, 1500);
@@ -169,7 +210,6 @@ const Register = () => {
         </p>
       </div>
 
-      {/* Role toggle */}
       <div className="flex gap-2 w-full">
         {[
           { id: "HACKER", label: "Hacker" },
@@ -204,6 +244,7 @@ const Register = () => {
             {errorMessage}
           </div>
         )}
+        
         <InputField
           label="Full Name"
           type="text"
@@ -233,21 +274,28 @@ const Register = () => {
         />
         <InputField
           label="Password"
-          type="password"
+          type={showPassword ? "text" : "password"}
           id="password"
           name="password"
           placeholder="At least 8 characters"
           value={form.password}
           onChange={handleChange}
+          icon={showPassword ? <FaEyeSlash /> : <FaEye />}
+          onIconClick={() => setShowPassword((prev) => !prev)}
         />
+        {passwordError && (
+          <div className="text-red-500 text-xs font-mono mt-1">{passwordError}</div>
+        )}
         <InputField
           label="Confirm Password"
-          type="password"
+          type={showConfirmPassword ? "text" : "password"}
           id="confirmPassword"
           name="confirmPassword"
           placeholder="Re-enter password"
           value={form.confirmPassword}
           onChange={handleChange}
+          icon={showConfirmPassword ? <FaEyeSlash /> : <FaEye />}
+          onIconClick={() => setShowConfirmPassword((prev) => !prev)}
         />
 
         {accountType === "ORGANIZATION" && (
