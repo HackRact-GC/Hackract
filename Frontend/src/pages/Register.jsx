@@ -1,11 +1,11 @@
-import { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { useEffect, useState } from "react";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useAuth0 } from "@auth0/auth0-react";
 import { FcGoogle } from "react-icons/fc";
 import { FaGithub } from "react-icons/fa";
 import { useAuth } from "../context/authContext.jsx";
 
-const InputField = ({ label, type, placeholder, id, name, value, onChange }) => (
+const InputField = ({ label, type, placeholder, id, name, value, onChange, required = true }) => (
   <div className="flex flex-col gap-2 group">
     <label
       htmlFor={id}
@@ -24,7 +24,7 @@ const InputField = ({ label, type, placeholder, id, name, value, onChange }) => 
         onChange={onChange}
         autoComplete={name}
         className="flex-1 bg-transparent outline-none text-sm font-mono placeholder-gray-400 text-gray-900 cursor-text"
-        required
+        required={required}
       />
     </div>
   </div>
@@ -44,20 +44,52 @@ const Register = () => {
   const { register, loading } = useAuth();
   const { loginWithRedirect } = useAuth0();
   const navigate = useNavigate();
+  const location = useLocation();
   const [form, setForm] = useState({
     fullName: "",
     handle: "",
     email: "",
     password: "",
     confirmPassword: "",
+    organization: {
+      name: "",
+    },
   });
-  const [roleType, setRoleType] = useState("PENTESTER"); // PENTESTER (Hacker) or ORG_ADMIN (Organization)
+  const [accountType, setAccountType] = useState("HACKER"); // HACKER or ORGANIZATION
+    useEffect(() => {
+      if (location.pathname === "/register/organization") {
+        setAccountType("ORGANIZATION");
+        return;
+      }
+      setAccountType("HACKER");
+    }, [location.pathname]);
+
+    const handleAccountTypeChange = (nextAccountType) => {
+      setAccountType(nextAccountType);
+      if (nextAccountType === "ORGANIZATION") {
+        navigate("/register/organization");
+        return;
+      }
+      navigate("/register/hacker");
+    };
+
   const [successMessage, setSuccessMessage] = useState("");
   const [errorMessage, setErrorMessage] = useState("");
 
   const handleChange = (e) => {
     const { name, value } = e.target;
     setForm((prev) => ({ ...prev, [name]: value }));
+  };
+
+  const handleOrganizationChange = (e) => {
+    const { name, value } = e.target;
+    setForm((prev) => ({
+      ...prev,
+      organization: {
+        ...prev.organization,
+        [name]: value,
+      },
+    }));
   };
 
   const handleGoogleLogin = () => {
@@ -83,7 +115,31 @@ const Register = () => {
     setSuccessMessage("");
     setErrorMessage("");
     try {
-      const payload = { ...form, roleType };
+      if (form.password !== form.confirmPassword) {
+        setErrorMessage("Passwords do not match.");
+        return;
+      }
+
+      const payload = {
+        fullName: form.fullName,
+        handle: form.handle,
+        email: form.email,
+        password: form.password,
+        confirmPassword: form.confirmPassword,
+        accountType,
+      };
+
+      if (accountType === "ORGANIZATION") {
+        if (!form.organization.name.trim()) {
+          setErrorMessage("Organization name is required for organization registration.");
+          return;
+        }
+
+        payload.organization = {
+          name: form.organization.name,
+        };
+      }
+
       const result = await register(payload);
       
       setSuccessMessage(result?.message || "Registration successful. Check your email for verification code.");
@@ -107,22 +163,24 @@ const Register = () => {
           Create account
         </h2>
         <p className="text-gray-500 text-xs font-mono tracking-wide">
-          Register with your email and password
+          {accountType === "ORGANIZATION"
+            ? "Register your organization account with company details"
+            : "Register your hacker account with email and password"}
         </p>
       </div>
 
       {/* Role toggle */}
       <div className="flex gap-2 w-full">
         {[
-          { id: "PENTESTER", label: "Hacker" },
-          { id: "ORG_ADMIN", label: "Organization" },
+          { id: "HACKER", label: "Hacker" },
+          { id: "ORGANIZATION", label: "Organization" },
         ].map((option) => {
-          const isActive = roleType === option.id;
+          const isActive = accountType === option.id;
           return (
             <button
               key={option.id}
               type="button"
-              onClick={() => setRoleType(option.id)}
+              onClick={() => handleAccountTypeChange(option.id)}
               className={`flex-1 py-2.5 border text-xs font-mono uppercase tracking-widest rounded-sm transition-all duration-300 cursor-pointer ${
                 isActive
                   ? "bg-black text-[#00ff88] border-black shadow-lg shadow-[#00ff88]/30"
@@ -169,7 +227,7 @@ const Register = () => {
           type="email"
           id="email"
           name="email"
-          placeholder="username@domain.com"
+          placeholder={accountType === "ORGANIZATION" ? "name@company.com" : "username@domain.com"}
           value={form.email}
           onChange={handleChange}
         />
@@ -191,6 +249,27 @@ const Register = () => {
           value={form.confirmPassword}
           onChange={handleChange}
         />
+
+        {accountType === "ORGANIZATION" && (
+          <>
+            <div className="pt-2 border-t border-gray-200">
+              <p className="text-[10px] font-mono uppercase tracking-widest text-gray-500 mb-4">Organization Details</p>
+            </div>
+
+            <InputField
+              label="Organization Name"
+              type="text"
+              id="organizationName"
+              name="name"
+              placeholder="Hackract Security Labs"
+              value={form.organization.name}
+              onChange={handleOrganizationChange}
+            />
+            <p className="text-[11px] font-mono text-amber-700 bg-amber-50 border border-amber-200 px-3 py-2 rounded">
+              Organization signup requires a company email (public domains are rejected by backend).
+            </p>
+          </>
+        )}
 
         <button
           type="submit"
