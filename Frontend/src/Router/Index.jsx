@@ -1,6 +1,6 @@
 // src/routes/index.jsx or similar
 
-import { createBrowserRouter } from "react-router-dom";
+import { createBrowserRouter, Navigate } from "react-router-dom";
 import App from "../App.jsx";
 import AuthLayout from "../layouts/AuthLayout.jsx";
 import Login from "../pages/Login.jsx";
@@ -16,7 +16,6 @@ import WorkflowEditor from "../pages/WorkflowEditor/WorkflowEditor.jsx";
 import HackerVerification from "../pages/HackerVerification.jsx";
 import OrganizationVerification from "../pages/OrganizationVerification.jsx";
 import ErrorPage from "../pages/ErrorPage.jsx";
-import ProjectWorkspace from "../pages/ProjectWorkspace.jsx";
 import FindingDetails from "../pages/FindingDetails.jsx";
 import UserLayout from "../layouts/UserLayout.jsx";
 
@@ -69,17 +68,10 @@ const router = createBrowserRouter([
             path: "organization-verification/:organizationId",
             element: <OrganizationVerification />,
           },
-          {
-            path: "workflows/:workflowId",
-            element: <WorkflowEditor />,
-          },
+
           {
             path: "projects",
             element: <Projects />,
-          },
-          {
-            path: "projects/:projectId",
-            element: <ProjectWorkspace />,
           },
           {
             path: "findings/:findingId",
@@ -94,6 +86,10 @@ const router = createBrowserRouter([
             element: <MyApplications />,
           },
         ],
+      },
+      {
+        path: "workflows/:workflowId",
+        element: <OnboardingGuard><WorkflowEditor /></OnboardingGuard>,
       },
       {
         path: "onboarding",
@@ -130,6 +126,14 @@ const router = createBrowserRouter([
           },
           {
             path: "register",
+            element: <Navigate to="/register/hacker" replace />,
+          },
+          {
+            path: "register/hacker",
+            element: <Register />,
+          },
+          {
+            path: "register/organization",
             element: <Register />,
           },
           {
