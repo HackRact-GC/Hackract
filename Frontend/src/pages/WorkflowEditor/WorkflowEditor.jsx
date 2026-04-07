@@ -1,5 +1,5 @@
 import React, { useState, useRef, useCallback, useEffect } from 'react';
-import { FiArrowLeft, FiSave, FiClock, FiMessageSquare } from 'react-icons/fi';
+import { FiArrowLeft, FiHome, FiSave, FiClock, FiMessageSquare } from 'react-icons/fi';
 import {
   ReactFlow,
   ReactFlowProvider,
@@ -13,6 +13,7 @@ import {
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 import { formatDistanceToNow } from 'date-fns';
+import { useNavigate } from 'react-router-dom';
 import { useParams } from 'react-router-dom';
 
 // Custom Nodes
@@ -39,6 +40,7 @@ const nodeTypes = {
 
 const WorkflowEditor = ({ workflowId: propWorkflowId, pentestId: propPentestId }) => {
   const params = useParams();
+  const navigate = useNavigate();
   const workflowId = propWorkflowId || params.workflowId || "mock-id-123";
   const pentestId = propPentestId || params.pentestId;
 
@@ -49,7 +51,7 @@ const WorkflowEditor = ({ workflowId: propWorkflowId, pentestId: propPentestId }
   const [isLocked, setIsLocked] = useState(false);
   const [canEdit, setCanEdit] = useState(true);
   const [findings, setFindings] = useState([]);
-  const [projectInfo, setProjectInfo] = useState({ name: 'Loading...', type: 'Audit' });
+  const [projectInfo, setProjectInfo] = useState({ name: 'Untitled Workflow', type: 'Audit' });
 
   const {
     socket,
@@ -109,21 +111,21 @@ const WorkflowEditor = ({ workflowId: propWorkflowId, pentestId: propPentestId }
         }
         if (data && data.edges) setEdges(data.edges);
         if (data && data.pentest?.findings) setFindings(data.pentest.findings);
-        if (data && data.pentest) {
+        if (data) {
           setProjectInfo({
-            name: data.pentest.name || data.pentest.title || 'Untitled Project',
-            type: data.pentest.type || 'Audit'
+            name: data.name || data.title || data.pentest?.name || data.pentest?.title || 'Untitled Workflow',
+            type: data.pentest?.type || 'Audit'
           });
         }
-        
+
         // RBAC Check
         const collaborators = data.pentest?.collaborators || [];
-        const isCollaborator = collaborators.some(c => 
-          c.userId === localUser.id && 
+        const isCollaborator = collaborators.some(c =>
+          c.userId === localUser.id &&
           ["HACKER", "PROJECT_ADMIN", "ORG_ADMIN"].includes(c.role)
         );
         const isSuperAdmin = localUser.roles?.some(r => r.type === "SUPER_ADMIN");
-        
+
         if (!isCollaborator && !isSuperAdmin) {
           setCanEdit(false);
           setIsLocked(true);
@@ -359,8 +361,14 @@ const WorkflowEditor = ({ workflowId: propWorkflowId, pentestId: propPentestId }
       {/* Top Header Bar */}
       <div className="h-14 border-b border-gray-800 flex items-center justify-between px-4 bg-[#0b0f19] z-20">
         <div className="flex items-center gap-4">
-          <button className="text-gray-400 hover:text-white flex items-center justify-center">
+          <button
+            onClick={() => navigate('/dashboard')}
+            className="text-gray-400 hover:text-white flex items-center gap-2 justify-center text-xs font-mono uppercase tracking-widest"
+            title="Back to Dashboard"
+          >
             <FiArrowLeft size={18} />
+            <FiHome size={16} />
+            Dashboard
           </button>
           <div className="font-bold font-mono text-xs uppercase tracking-widest text-[#00ff41]">{projectInfo.type} Workflow</div>
           <div className="font-bold font-mono max-w-[200px] truncate" title={projectInfo.name}>{projectInfo.name}</div>
@@ -380,7 +388,7 @@ const WorkflowEditor = ({ workflowId: propWorkflowId, pentestId: propPentestId }
                    style={{ zIndex: 10 + index }}
                    title={collab.user || 'Online Hacker'}
                 >
-                   <div 
+                   <div
                      className="w-8 h-8 rounded-full border-2 border-[#0b0f19] flex items-center justify-center text-xs font-bold shadow-lg"
                      style={{ backgroundColor: collab.color || '#00ff41', color: '#fff' }}
                    >
@@ -445,9 +453,9 @@ const WorkflowEditor = ({ workflowId: propWorkflowId, pentestId: propPentestId }
                 className="bg-[#07090e]"
               />
               <Panel position="bottom-left">
-                <WorkflowControls 
-                  isLocked={isLocked} 
-                  onToggleLock={() => canEdit && setIsLocked(!isLocked)} 
+                <WorkflowControls
+                  isLocked={isLocked}
+                  onToggleLock={() => canEdit && setIsLocked(!isLocked)}
                   disabled={!canEdit}
                 />
               </Panel>
