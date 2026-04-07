@@ -3,6 +3,19 @@ import AppError from '../../utils/AppError.js';
 import { HackerProfileErrorCodes, VerificationStatus } from './hackerProfile.constants.js';
 import { calculateTrustScore } from '../user/user.service.js';
 
+// ─── Helpers ────────────────────────────────────────────────────────────────
+
+/**
+ * Coerce a value that may be a comma-separated string or array into a clean array.
+ */
+const toArray = (value) => {
+  if (!value) return [];
+  if (Array.isArray(value)) return value.map(s => String(s).trim()).filter(Boolean);
+  return String(value).split(',').map(s => s.trim()).filter(Boolean);
+};
+
+// ─── Service Functions ───────────────────────────────────────────────────────
+
 export const getMyProfile = async (userId) => {
   const profile = await prisma.hackerProfile.findUnique({
     where: { userId },
@@ -28,21 +41,23 @@ export const upsertMyProfile = async (userId, payload) => {
 
   const data = {
     bio: payload.bio,
-    idDocumentNumber: payload.idDocumentNumber || null,
     country: payload.country || null,
-    yearsOfExperience: payload.yearsOfExperience ?? null,
-    primarySkills: payload.primarySkills,
-    certifications: payload.certifications || [],
-    portfolioLinks: payload.portfolioLinks || [],
+    yearsOfExperience: payload.yearsOfExperience ? Number(payload.yearsOfExperience) : null,
+    primarySkills: toArray(payload.primarySkills),
+    certifications: toArray(payload.certifications),
+    portfolioLinks: toArray(payload.portfolioLinks),
+
+    // Extended identity fields
+    idDocumentNumber: payload.idDocumentNumber || null,
+    githubUsername: payload.githubUsername || null,
+    linkedinProfile: payload.linkedinProfile || null,
+
     status: nextStatus,
   };
 
   const profile = await prisma.hackerProfile.upsert({
     where: { userId },
-    create: {
-      userId,
-      ...data,
-    },
+    create: { userId, ...data },
     update: data,
   });
 
@@ -51,18 +66,19 @@ export const upsertMyProfile = async (userId, payload) => {
   return profile;
 };
 
+/**
+ * Submit the hacker profile for platform review.
+ * NDA agreements are NO LONGER required at this stage —
+ * they are only enforced when applying to an organization project.
+ */
 export const submitMyProfile = async (userId) => {
   const profile = await prisma.hackerProfile.findUnique({ where: { userId } });
   if (!profile) {
     throw new AppError('Hacker profile not found', 404, HackerProfileErrorCodes.NOT_FOUND);
   }
+
   if (profile.status === VerificationStatus.APPROVED) {
     return profile;
-  }
-
-  const missing = await getMissingAgreements(userId);
-  if (missing.length > 0) {
-    throw new AppError(`Mandatory legal agreements must be signed: ${missing.join(', ')}`, 400);
   }
 
   const updated = await prisma.hackerProfile.update({
@@ -88,22 +104,29 @@ export const listProfilesForReview = async (statusFilter) => {
   });
 };
 
+/**
+ * Check which mandatory agreements the user has NOT yet signed.
+ * Used only for informational display — no longer blocks profile submission.
+ */
 export const getMissingAgreements = async (userId) => {
   const mandatoryAgreements = ['Mutual Non-Disclosure Agreement (MNDA)', 'Ethical Hacking Code of Conduct'];
 
   const signedAgreements = await prisma.userSignature.findMany({
     where: { userId },
-    include: { agreement: true }
+    include: { agreement: true },
   });
 
   const signedTitles = signedAgreements.map(s => s.agreement.title);
   return mandatoryAgreements.filter(title => !signedTitles.includes(title));
 };
 
+/**
+ * Sign a specific agreement by title (used from the onboarding UI).
+ */
 export const signAgreement = async (userId, agreementTitle, meta = {}) => {
   const agreement = await prisma.legalAgreement.findFirst({
     where: { title: agreementTitle, isActive: true },
-    orderBy: { version: 'desc' }
+    orderBy: { version: 'desc' },
   });
 
   if (!agreement) {
@@ -112,10 +135,7 @@ export const signAgreement = async (userId, agreementTitle, meta = {}) => {
 
   const signature = await prisma.userSignature.upsert({
     where: {
-      userId_agreementId: {
-        userId,
-        agreementId: agreement.id
-      }
+      userId_agreementId: { userId, agreementId: agreement.id },
     },
     create: {
       userId,
@@ -127,9 +147,31 @@ export const signAgreement = async (userId, agreementTitle, meta = {}) => {
       signedAt: new Date(),
       ipAddress: meta.ipAddress,
       userAgent: meta.userAgent,
-    }
+    },
   });
 
   return signature;
 };
 
+export const reviewProfile = async (profileId, reviewerId, action, notes) => {
+  const profile = await prisma.hackerProfile.findUnique({ where: { id: profileId } });
+  if (!profile) {
+    throw new AppError('Hacker profile not found', 404, HackerProfileErrorCodes.NOT_FOUND);
+  }
+
+  const newStatus = action === 'approve'
+    ? VerificationStatus.APPROVED
+    : VerificationStatus.REJECTED;
+
+  const updated = await prisma.hackerProfile.update({
+    where: { id: profileId },
+    data: {
+      status: newStatus,
+      reviewNotes: notes || null,
+      reviewedById: reviewerId,
+    },
+  });
+
+  await calculateTrustScore(profile.userId);
+  return updated;
+};
