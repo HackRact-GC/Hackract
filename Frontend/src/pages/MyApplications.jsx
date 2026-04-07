@@ -130,7 +130,7 @@ const MyApplications = () => {
                             animate={{ opacity: 1, x: 0 }}
                             transition={{ delay: idx * 0.05 }}
                             className={`bg-black/70 backdrop-blur-md border p-8 rounded-4xl flex flex-col md:flex-row items-center justify-between gap-8 group transition-all relative overflow-hidden ${
-                              isLab ? 'border-purple-500/20 hover:border-purple-500/40' : 'border-white/10 hover:border-[#00ff88]/30'
+                                  isLab ? 'border-[#00ff88]/20 hover:border-[#00ff88]/40' : 'border-white/10 hover:border-[#00ff88]/30'
                             }`}
                         >
                             <div className="absolute top-0 right-0 p-8 opacity-[0.03] group-hover:opacity-[0.08] transition-opacity">
@@ -139,17 +139,17 @@ const MyApplications = () => {
 
                             <div className="flex items-center gap-8 relative z-10 w-full md:w-auto">
                                 <div className={`h-14 w-14 rounded-2xl bg-black border flex items-center justify-center transition-all shadow-inner shrink-0 leading-none ${
-                                  isLab ? 'text-purple-400 border-purple-500/20 group-hover:text-purple-300' : 'text-white/60 group-hover:text-[#00ff88] border-white/10 group-hover:border-[#00ff88]/20'
+                                      isLab ? 'text-[#00ff88] border-[#00ff88]/20 group-hover:text-white' : 'text-white/60 group-hover:text-[#00ff88] border-white/10 group-hover:border-[#00ff88]/20'
                                 }`}>
                                     {isLab ? <FiTerminal size={24} /> : <FiBriefcase size={24} />}
                                 </div>
                                 <div className="min-w-0">
                                     <div className="flex items-center gap-3 mb-1.5">
                                     <h3 className={`text-xl font-bold transition-colors truncate ${
-                                      isLab ? 'text-purple-100 group-hover:text-purple-400' : 'text-white group-hover:text-[#00ff88]'
+                                          isLab ? 'text-white group-hover:text-[#00ff88]' : 'text-white group-hover:text-[#00ff88]'
                                     }`}>{project.name}</h3>
                                     <div className={`w-1.5 h-1.5 rounded-full shadow-lg ${
-                                      isLab ? 'bg-purple-500 shadow-purple-500/50' : 'bg-[#00ff88] shadow-[#00ff88]/50'
+                                          isLab ? 'bg-[#00ff88] shadow-[#00ff88]/50' : 'bg-[#00ff88] shadow-[#00ff88]/50'
                                     }`} />
                                     </div>
                                   <div className="flex items-center gap-3 text-[10px] font-bold text-white/60 uppercase tracking-widest">
@@ -164,12 +164,12 @@ const MyApplications = () => {
                                 <div className="text-left md:text-right hidden sm:block">
                                   <div className="text-[9px] font-black text-white/50 uppercase tracking-[0.2em] mb-2">Operational Status</div>
                                     {isPending ? (
-                                    <div className="flex items-center gap-2 text-amber-400 font-bold text-[10px] uppercase tracking-widest bg-amber-500/10 px-3 py-1.5 rounded-lg border border-amber-500/20">
+                                    <div className="flex items-center gap-2 text-white font-bold text-[10px] uppercase tracking-widest bg-white/5 px-3 py-1.5 rounded-lg border border-white/10">
                                             <FiClock /> Verification Pending
                                         </div>
                                     ) : (
                                     <div className={`flex items-center gap-2 font-bold text-[10px] uppercase tracking-widest px-3 py-1.5 rounded-lg border ${
-                                      isLab ? 'text-purple-400 bg-purple-500/10 border-purple-500/20' : 'text-[#00ff88] bg-[#00ff88]/10 border-[#00ff88]/20'
+                                      isLab ? 'text-[#00ff88] bg-[#00ff88]/10 border-[#00ff88]/20' : 'text-[#00ff88] bg-[#00ff88]/10 border-[#00ff88]/20'
                                     }`}>
                                             <FiCheckCircle /> {isLab ? 'Private Workspace' : 'Authorized Contract'}
                                         </div>
@@ -180,7 +180,7 @@ const MyApplications = () => {
                                     onClick={() => setSelectedProjectId(project.id)}
                                   className={`flex-1 md:flex-none px-6 py-3.5 rounded-2xl text-[10px] font-bold uppercase tracking-[0.2em] transition-all border shadow-lg shadow-black/20 flex items-center gap-3 active:scale-95 ${
                                     isLab 
-                                    ? 'bg-purple-500/10 hover:bg-purple-500 text-purple-400 hover:text-white border-purple-500/20 hover:border-purple-500'
+                                    ? 'bg-[#00ff88]/10 hover:bg-[#00ff88] text-[#00ff88] hover:text-black border-[#00ff88]/20 hover:border-[#00ff88]'
                                     : 'bg-white/10 hover:bg-[#00ff88] text-white/70 hover:text-black border-white/10 hover:border-[#00ff88]'
                                   }`}
                                 >
