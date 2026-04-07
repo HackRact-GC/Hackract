@@ -138,6 +138,7 @@ const Landing = () => {
                 {/* Feature Highlights - Grid Section */}
                 <div id="features" className={`mt-16 grid md:grid-cols-4 gap-6 max-w-7xl mx-auto w-full px-8 transition-all duration-1000 delay-1000 transform ${mounted ? 'translate-y-0 opacity-100' : 'translate-y-12 opacity-0'}`}>
                     {[
+                        
                         {
                             title: "Visual Workflow Builder",
                             desc: "Drag-and-drop mind-map interface for complex attack path mapping and asset relationship visualization.",
