@@ -2,6 +2,8 @@ import React from "react";
 import { Navigate, useLocation } from "react-router-dom";
 import { useAuth } from "../context/authContext.jsx";
 
+const HACKER_READY_STATUSES = new Set(["SUBMITTED", "UNDER_REVIEW", "APPROVED"]);
+
 const OnboardingGuard = ({ children }) => {
     const { user, loading } = useAuth();
     const location = useLocation();
@@ -29,7 +31,8 @@ const OnboardingGuard = ({ children }) => {
     if (isPentester) {
         // Evaluate HackerProfile status
         const profile = user.hackerProfile;
-        if (!profile || profile.status === 'PENDING') {
+        const status = profile?.status;
+        if (!profile || !HACKER_READY_STATUSES.has(status)) {
             needsOnboarding = true;
             targetOnboardingRoute = '/onboarding/hacker';
         }
