@@ -7,7 +7,7 @@ const AiAgentNode = ({ data, selected }) => {
   const showPresence = activeUsers.length > 0;
 
   return (
-    <div className={`bg-[#0b0f19] border rounded-lg w-[300px] font-mono text-sm transition-all relative ${selected || showPresence ? 'border-[#d000ff] shadow-[0_0_20px_rgba(208,0,255,0.6)]' : 'border-[#d000ff]/50 shadow-[0_0_10px_rgba(208,0,255,0.3)]'}`}>
+    <div className={`bg-[#0b0f19] border rounded-lg w-[300px] font-mono text-sm transition-all relative ${selected || showPresence ? 'border-[#00ff88] shadow-[0_0_20px_rgba(0,255,136,0.6)]' : 'border-[#00ff88]/50 shadow-[0_0_10px_rgba(0,255,136,0.3)]'}`}>
       {/* Presence Indicators */}
       {showPresence && (
         <div className="absolute -top-6 right-0 flex -space-x-2">
@@ -15,7 +15,7 @@ const AiAgentNode = ({ data, selected }) => {
             <div 
               key={i} 
               className="w-5 h-5 rounded-full border-2 border-[#0b0f19] flex items-center justify-center text-[10px] font-bold text-white shadow-lg animate-bounce"
-              style={{ backgroundColor: u.color || '#d000ff' }}
+              style={{ backgroundColor: u.color || '#00ff88' }}
               title={u.user}
             >
               {u.user?.[0] || 'U'}
@@ -24,7 +24,7 @@ const AiAgentNode = ({ data, selected }) => {
         </div>
       )}
       
-      <div className="p-2 flex justify-between items-center text-[#d000ff] border-b border-[#d000ff]/30 bg-[#1a1123] rounded-t-lg">
+      <div className="p-2 flex justify-between items-center text-[#00ff88] border-b border-[#00ff88]/30 bg-[#11231a] rounded-t-lg">
         <div className="flex items-center gap-2">
           <RiRobotLine size={16} />
           <span className="font-bold text-xs uppercase tracking-tighter">AI Agent</span>
@@ -48,13 +48,13 @@ const AiAgentNode = ({ data, selected }) => {
       <div className="p-3 space-y-3">
         <div className="flex items-center justify-between text-[10px] text-gray-500 uppercase tracking-widest">
            <div className="flex items-center gap-1">
-              <FiActivity size={10} className="text-[#d000ff]" />
+              <FiActivity size={10} className="text-[#00ff88]" />
               <span>Status: {data.status || 'Idle'}</span>
            </div>
            <span>v1.0.4-agent</span>
         </div>
 
-        <div className="w-full h-20 bg-black/50 border border-[#d000ff]/20 rounded p-2 text-[11px] text-[#d000ff]/80 font-mono overflow-y-auto">
+        <div className="w-full h-20 bg-black/50 border border-[#00ff88]/20 rounded p-2 text-[11px] text-[#00ff88]/80 font-mono overflow-y-auto">
            {data.logs?.map((log, i) => (
              <div key={i} className="flex gap-2">
                <span className="opacity-40">[{log.time}]</span>
@@ -66,19 +66,19 @@ const AiAgentNode = ({ data, selected }) => {
         </div>
 
         <div className="flex gap-2">
-           <button className="flex-1 bg-[#d000ff] hover:bg-[#b000db] text-black text-[10px] font-bold py-1.5 rounded transition-all active:scale-95 shadow-[0_0_10px_rgba(208,0,255,0.4)]">
+           <button className="flex-1 bg-[#00ff88] hover:bg-[#00cc33] text-black text-[10px] font-bold py-1.5 rounded transition-all active:scale-95 shadow-[0_0_10px_rgba(0,255,136,0.4)]">
               INITIALIZE
            </button>
-           <button className="flex-1 border border-[#d000ff]/50 text-[#d000ff] text-[10px] font-bold py-1.5 rounded hover:bg-[#d000ff]/10 transition-all">
+           <button className="flex-1 border border-[#00ff88]/50 text-[#00ff88] text-[10px] font-bold py-1.5 rounded hover:bg-[#00ff88]/10 transition-all">
               CONFIGURE
            </button>
         </div>
       </div>
 
-      <Handle type="target" position={Position.Left} className="w-3 h-3 bg-[#d000ff] border-2 border-[#0b0f19]" />
-      <Handle type="source" position={Position.Right} className="w-3 h-3 bg-[#d000ff] border-2 border-[#0b0f19]" />
-      <Handle type="target" position={Position.Top} id="top" className="w-3 h-3 bg-[#d000ff] border-2 border-[#0b0f19]" />
-      <Handle type="source" position={Position.Bottom} id="bottom" className="w-3 h-3 bg-[#d000ff] border-2 border-[#0b0f19]" />
+      <Handle type="target" position={Position.Left} className="w-3 h-3 bg-[#00ff88] border-2 border-[#0b0f19]" />
+      <Handle type="source" position={Position.Right} className="w-3 h-3 bg-[#00ff88] border-2 border-[#0b0f19]" />
+      <Handle type="target" position={Position.Top} id="top" className="w-3 h-3 bg-[#00ff88] border-2 border-[#0b0f19]" />
+      <Handle type="source" position={Position.Bottom} id="bottom" className="w-3 h-3 bg-[#00ff88] border-2 border-[#0b0f19]" />
     </div>
   );
 };
