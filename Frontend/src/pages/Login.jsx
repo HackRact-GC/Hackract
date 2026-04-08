@@ -58,29 +58,16 @@ const Login = () => {
         e.preventDefault();
         try {
             const result = await login(form);
-<<<<<<< HEAD
             const primaryRole = result?.user?.roles?.[0]?.type;
-            if (primaryRole === "PENTESTER" || primaryRole === "PROJECT_ADMIN") {
-                navigate("/hacker-profile", {
-                    state: { requiresEmailVerification: !!result?.requiresEmailVerification },
-                });
-                return;
-            }
-            if (primaryRole === "ORG_ADMIN") {
-                navigate("/organization-profile", {
-                    state: { requiresEmailVerification: !!result?.requiresEmailVerification },
-                });
-                return;
-            }
-
-            navigate("/dashboard");
-=======
             if (result?.requiresEmailVerification) {
                 navigate(`/verify-email?email=${encodeURIComponent(form.email)}`);
                 return;
             }
-            navigate(redirectTo, { replace: true });
->>>>>>> 29cf968ad6e921e78b6c17cae03c9ce911d6c293
+            if (primaryRole === "ORG_ADMIN") {
+                navigate("/org-dashboard", { replace: true });
+                return;
+            }
+            navigate("/dashboard", { replace: true });
         } catch (error) {
             const errorCode = error?.response?.data?.code;
             const status = error?.response?.status;

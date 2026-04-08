@@ -1,5 +1,3 @@
-// src/routes/index.jsx or similar
-
 import { createBrowserRouter, Navigate } from "react-router-dom";
 import App from "../App.jsx";
 import AuthLayout from "../layouts/AuthLayout.jsx";
@@ -16,13 +14,8 @@ import WorkflowEditor from "../pages/WorkflowEditor/WorkflowEditor.jsx";
 import HackerVerification from "../pages/HackerVerification.jsx";
 import OrganizationVerification from "../pages/OrganizationVerification.jsx";
 import ErrorPage from "../pages/ErrorPage.jsx";
-<<<<<<< HEAD
-
-import ProjectWorkspace from "../pages/ProjectWorkspace.jsx";
-=======
->>>>>>> 29cf968ad6e921e78b6c17cae03c9ce911d6c293
 import FindingDetails from "../pages/FindingDetails.jsx";
-import UserLayout from "../layouts/UserLayout.jsx";
+import HackerLayout from "../layouts/HackerLayout.jsx";
 
 // Phase 2 Marketplace Imports
 import EngagementBoard from "../pages/EngagementBoard.jsx";
@@ -56,12 +49,13 @@ const router = createBrowserRouter([
         index: true,
         element: <Landing />,
       },
+      // ── Hacker routes (sidebar layout) ──────────────────────────────
       {
-        element: <OnboardingGuard><UserLayout /></OnboardingGuard>,
+        element: <OnboardingGuard><HackerLayout /></OnboardingGuard>,
         children: [
           {
             path: "dashboard",
-            element: <Home />,
+            element: <DashboardPreview />,
           },
           {
             path: "hacker-profile",
@@ -71,15 +65,6 @@ const router = createBrowserRouter([
             path: "hacker-verification",
             element: <HackerVerification />,
           },
-          {
-            path: "organization-profile",
-            element: <OrganizationProfile />,
-          },
-          {
-            path: "organization-verification/:organizationId",
-            element: <OrganizationVerification />,
-          },
-
           {
             path: "projects",
             element: <Projects />,
@@ -97,6 +82,23 @@ const router = createBrowserRouter([
             element: <MyApplications />,
           },
         ],
+      },
+      // ── Org-admin routes (no hacker sidebar) ────────────────────────
+      {
+        element: <OnboardingGuard><Home /></OnboardingGuard>,
+        children: [],
+      },
+      {
+        path: "org-dashboard",
+        element: <OnboardingGuard><Home /></OnboardingGuard>,
+      },
+      {
+        path: "organization-profile",
+        element: <OnboardingGuard><OrganizationProfile /></OnboardingGuard>,
+      },
+      {
+        path: "organization-verification/:organizationId",
+        element: <OnboardingGuard><OrganizationVerification /></OnboardingGuard>,
       },
       {
         path: "workflows/:workflowId",
