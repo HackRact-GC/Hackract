@@ -129,24 +129,13 @@ model HackerProfile {
   user   User   @relation(fields: [userId], references: [id])
   userId String @unique
 
-  bio               String?
+  bio               String
   country           String?
   yearsOfExperience Int?
   primarySkills     String[]
   certifications    String[]
   portfolioLinks    String[]
-<<<<<<< HEAD
-  specialization    String?
-  github            String?
-  linkedin          String?
-  twitter           String?
-=======
 
-  // Extended identity fields
-  idDocumentNumber String?
-  githubUsername   String?
-  linkedinProfile  String?
->>>>>>> 29cf968ad6e921e78b6c17cae03c9ce911d6c293
 
   status      VerificationStatus @default(DRAFT)
   reviewNotes String?
@@ -261,12 +250,9 @@ model Pentest {
   description String?
   status      PentestStatus @default(PLANNING)
 
-  // Personal workspace flag — true for solo hacker projects, no org required
-  isPersonal Boolean @default(false)
-
   // Relations
-  organization   Organization? @relation(fields: [organizationId], references: [id])
-  organizationId String?
+  organization   Organization @relation(fields: [organizationId], references: [id])
+  organizationId String
 
   leadPentester   User?   @relation("LeadPentester", fields: [leadPentesterId], references: [id])
   leadPentesterId String?
@@ -284,7 +270,6 @@ model Pentest {
   @@index([organizationId])
   @@index([leadPentesterId])
   @@index([status])
-  @@index([isPersonal])
 }
 
 // =====================================
@@ -613,88 +598,4 @@ model WorkflowHistory {
   @@index([workflowId])
   @@index([userId])
   @@index([createdAt])
-}
-
-// =====================================
-<<<<<<< HEAD
-// 1️⃣8️⃣ Wallet
-=======
-// 1️⃣8️⃣ Wallet (Escrow / Balance)
->>>>>>> 29cf968ad6e921e78b6c17cae03c9ce911d6c293
-// =====================================
-model Wallet {
-  id      String @id @default(uuid())
-  balance Float  @default(0)
-
-<<<<<<< HEAD
-  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
-=======
-  user   User   @relation(fields: [userId], references: [id])
->>>>>>> 29cf968ad6e921e78b6c17cae03c9ce911d6c293
-  userId String @unique
-
-  transactions Transaction[]
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-}
-
-// =====================================
-// 1️⃣9️⃣ Transaction
-// =====================================
-model Transaction {
-<<<<<<< HEAD
-  id          String   @id @default(uuid())
-  type        String   // e.g. "CREDIT", "DEBIT", "PAYOUT"
-  amount      Float
-  description String?
-  reference   String?
-
-  wallet   Wallet @relation(fields: [walletId], references: [id], onDelete: Cascade)
-=======
-  id          String  @id @default(uuid())
-  amount      Float
-  type        String  // e.g. "CREDIT", "DEBIT", "ESCROW_HOLD", "ESCROW_RELEASE"
-  description String?
-  status      String  @default("COMPLETED")
-
-  wallet   Wallet @relation(fields: [walletId], references: [id])
->>>>>>> 29cf968ad6e921e78b6c17cae03c9ce911d6c293
-  walletId String
-
-  user   User   @relation(fields: [userId], references: [id])
-  userId String
-
-  createdAt DateTime @default(now())
-
-  @@index([walletId])
-  @@index([userId])
-}
-
-// =====================================
-// 2️⃣0️⃣ Review
-// =====================================
-model Review {
-  id      String @id @default(uuid())
-<<<<<<< HEAD
-  rating  Int    // 1-5 stars
-  comment String?
-
-  author   User   @relation("ReviewAuthor", fields: [authorId], references: [id])
-=======
-  rating  Int    // 1–5
-  comment String?
-
-  author   User   @relation("ReviewAuthor",  fields: [authorId],  references: [id])
->>>>>>> 29cf968ad6e921e78b6c17cae03c9ce911d6c293
-  authorId String
-
-  subject   User   @relation("ReviewSubject", fields: [subjectId], references: [id])
-  subjectId String
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  @@index([authorId])
-  @@index([subjectId])
 }

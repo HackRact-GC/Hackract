@@ -1,32 +1,15 @@
-import { useEffect, useState } from "react";
-import { FaEye, FaEyeSlash, FaGithub } from "react-icons/fa";
-import { FcGoogle } from "react-icons/fc";
-import { Link, useLocation, useNavigate } from "react-router-dom";
+import { useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
 import { useAuth0 } from "@auth0/auth0-react";
+import { FcGoogle } from "react-icons/fc";
+import { FaGithub } from "react-icons/fa";
 import { useAuth } from "../context/authContext.jsx";
-import { validatePassword } from "../utils/validators";
-
 <<<<<<< HEAD
-<<<<<<< HEAD
+import api from "../api/axiosConfig";
+=======
+>>>>>>> origin/main
 
 const InputField = ({ label, type, placeholder, id, name, value, onChange }) => (
-=======
-const InputField = ({ label, type, placeholder, id, name, value, onChange, icon, onIconClick }) => (
->>>>>>> a7a1de65b69231061612de7e72db6f45e70590a5
-=======
-const InputField = ({ 
-  label, 
-  type, 
-  placeholder, 
-  id, 
-  name, 
-  value, 
-  onChange, 
-  icon, 
-  onIconClick, 
-  required = true 
-}) => (
->>>>>>> 29cf968ad6e921e78b6c17cae03c9ce911d6c293
   <div className="flex flex-col gap-2 group">
     <label
       htmlFor={id}
@@ -45,18 +28,8 @@ const InputField = ({
         onChange={onChange}
         autoComplete={name}
         className="flex-1 bg-transparent outline-none text-sm font-mono placeholder-gray-400 text-gray-900 cursor-text"
-        required={required}
+        required
       />
-      {icon && (
-        <span
-          className="ml-2 cursor-pointer text-gray-500 hover:text-black"
-          onClick={onIconClick}
-          tabIndex={0}
-          role="button"
-        >
-          {icon}
-        </span>
-      )}
     </div>
   </div>
 );
@@ -75,66 +48,20 @@ const Register = () => {
   const { register, loading } = useAuth();
   const { loginWithRedirect } = useAuth0();
   const navigate = useNavigate();
-  const location = useLocation();
-
   const [form, setForm] = useState({
     fullName: "",
     handle: "",
     email: "",
     password: "",
     confirmPassword: "",
-    organization: {
-      name: "",
-    },
   });
-
-  const [accountType, setAccountType] = useState("HACKER"); // HACKER or ORGANIZATION
+  const [roleType, setRoleType] = useState("PENTESTER"); // PENTESTER (Hacker) or ORG_ADMIN (Organization)
   const [successMessage, setSuccessMessage] = useState("");
   const [errorMessage, setErrorMessage] = useState("");
-  const [showPassword, setShowPassword] = useState(false);
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-  const [passwordError, setPasswordError] = useState("");
-
-  useEffect(() => {
-    if (location.pathname === "/register/organization") {
-      setAccountType("ORGANIZATION");
-    } else {
-      setAccountType("HACKER");
-    }
-  }, [location.pathname]);
-
-  const handleAccountTypeChange = (nextAccountType) => {
-    setAccountType(nextAccountType);
-    if (nextAccountType === "ORGANIZATION") {
-      navigate("/register/organization");
-    } else {
-      navigate("/register/hacker");
-    }
-  };
 
   const handleChange = (e) => {
     const { name, value } = e.target;
     setForm((prev) => ({ ...prev, [name]: value }));
-    if (name === "password") {
-      if (!validatePassword(value)) {
-        setPasswordError(
-          "Password must be at least 8 characters, include uppercase, lowercase, and a special character."
-        );
-      } else {
-        setPasswordError("");
-      }
-    }
-  };
-
-  const handleOrganizationChange = (e) => {
-    const { name, value } = e.target;
-    setForm((prev) => ({
-      ...prev,
-      organization: {
-        ...prev.organization,
-        [name]: value,
-      },
-    }));
   };
 
   const handleGoogleLogin = () => {
@@ -159,43 +86,14 @@ const Register = () => {
     e.preventDefault();
     setSuccessMessage("");
     setErrorMessage("");
-
-    if (!validatePassword(form.password)) {
-      setPasswordError(
-        "Password must be at least 8 characters, include uppercase, lowercase, and a special character."
-      );
-      return;
-    }
-
-    if (form.password !== form.confirmPassword) {
-      setErrorMessage("Passwords do not match.");
-      return;
-    }
-
     try {
-      const payload = {
-        fullName: form.fullName,
-        handle: form.handle,
-        email: form.email,
-        password: form.password,
-        confirmPassword: form.confirmPassword,
-        accountType,
-      };
-
-      if (accountType === "ORGANIZATION") {
-        if (!form.organization.name.trim()) {
-          setErrorMessage("Organization name is required for organization registration.");
-          return;
-        }
-        payload.organization = {
-          name: form.organization.name,
-        };
-      }
-
+      const payload = { ...form, roleType };
       const result = await register(payload);
 
       setSuccessMessage(result?.message || "Registration successful. Check your email for verification code.");
       console.info("[ui] registration success", result);
+
+      // Redirect to OTP verification page
       setTimeout(() => {
         navigate(`/verify-email?email=${encodeURIComponent(form.email)}`);
       }, 1500);
@@ -213,28 +111,26 @@ const Register = () => {
           Create account
         </h2>
         <p className="text-gray-500 text-xs font-mono tracking-wide">
-          {accountType === "ORGANIZATION"
-            ? "Register your organization account with company details"
-            : "Register your hacker account with email and password"}
+          Register with your email and password
         </p>
       </div>
 
+      {/* Role toggle */}
       <div className="flex gap-2 w-full">
         {[
-          { id: "HACKER", label: "Hacker" },
-          { id: "ORGANIZATION", label: "Organization" },
+          { id: "PENTESTER", label: "Hacker" },
+          { id: "ORG_ADMIN", label: "Organization" },
         ].map((option) => {
-          const isActive = accountType === option.id;
+          const isActive = roleType === option.id;
           return (
             <button
               key={option.id}
               type="button"
-              onClick={() => handleAccountTypeChange(option.id)}
-              className={`flex-1 py-2.5 border text-xs font-mono uppercase tracking-widest rounded-sm transition-all duration-300 cursor-pointer ${
-                isActive
+              onClick={() => setRoleType(option.id)}
+              className={`flex-1 py-2.5 border text-xs font-mono uppercase tracking-widest rounded-sm transition-all duration-300 cursor-pointer ${isActive
                   ? "bg-black text-[#00ff88] border-black shadow-lg shadow-[#00ff88]/30"
                   : "bg-white text-gray-700 border-gray-300 hover:border-black hover:bg-gray-100"
-              }`}
+                }`}
             >
               {option.label}
             </button>
@@ -253,7 +149,6 @@ const Register = () => {
             {errorMessage}
           </div>
         )}
-        
         <InputField
           label="Full Name"
           type="text"
@@ -277,56 +172,28 @@ const Register = () => {
           type="email"
           id="email"
           name="email"
-          placeholder={accountType === "ORGANIZATION" ? "name@company.com" : "username@domain.com"}
+          placeholder="username@domain.com"
           value={form.email}
           onChange={handleChange}
         />
         <InputField
           label="Password"
-          type={showPassword ? "text" : "password"}
+          type="password"
           id="password"
           name="password"
           placeholder="At least 8 characters"
           value={form.password}
           onChange={handleChange}
-          icon={showPassword ? <FaEyeSlash /> : <FaEye />}
-          onIconClick={() => setShowPassword((prev) => !prev)}
         />
-        {passwordError && (
-          <div className="text-red-500 text-xs font-mono mt-1">{passwordError}</div>
-        )}
         <InputField
           label="Confirm Password"
-          type={showConfirmPassword ? "text" : "password"}
+          type="password"
           id="confirmPassword"
           name="confirmPassword"
           placeholder="Re-enter password"
           value={form.confirmPassword}
           onChange={handleChange}
-          icon={showConfirmPassword ? <FaEyeSlash /> : <FaEye />}
-          onIconClick={() => setShowConfirmPassword((prev) => !prev)}
         />
-
-        {accountType === "ORGANIZATION" && (
-          <>
-            <div className="pt-2 border-t border-gray-200">
-              <p className="text-[10px] font-mono uppercase tracking-widest text-gray-500 mb-4">Organization Details</p>
-            </div>
-
-            <InputField
-              label="Organization Name"
-              type="text"
-              id="organizationName"
-              name="name"
-              placeholder="Hackract Security Labs"
-              value={form.organization.name}
-              onChange={handleOrganizationChange}
-            />
-            <p className="text-[11px] font-mono text-amber-700 bg-amber-50 border border-amber-200 px-3 py-2 rounded">
-              Organization signup requires a company email (public domains are rejected by backend).
-            </p>
-          </>
-        )}
 
         <button
           type="submit"

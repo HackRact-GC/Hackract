@@ -1,6 +1,10 @@
+<<<<<<< HEAD
 import { useEffect, useMemo, useState } from "react";
 import { Link, useLocation, useSearchParams, useNavigate } from "react-router-dom";
-
+=======
+import { useState } from "react";
+import { Link } from "react-router-dom";
+>>>>>>> origin/main
 import toast from "react-hot-toast";
 import api from "../api/axiosConfig";
 
@@ -17,6 +21,7 @@ const StatusBadge = ({ status, children }) => {
 
 const VerifyEmail = () => {
   const navigate = useNavigate();
+<<<<<<< HEAD
   const location = useLocation();
   const [searchParams] = useSearchParams();
   const [status, setStatus] = useState("idle");
@@ -40,7 +45,15 @@ const VerifyEmail = () => {
       code: prev.code || tokenFromUrl,
     }));
   }, [initialEmail, tokenFromUrl]);
-
+=======
+  const [searchParams] = useSearchParams();
+  const [status, setStatus] = useState("idle");
+  const [message, setMessage] = useState("Enter the 6-digit code we emailed you.");
+  const [form, setForm] = useState({
+    email: searchParams.get("email") || "",
+    code: "",
+  });
+>>>>>>> origin/main
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -139,7 +152,7 @@ const VerifyEmail = () => {
             Go to login
           </Link>
           <Link
-            to="/register/hacker"
+            to="/register"
             className="px-4 py-2 border border-gray-900 text-gray-900 rounded-sm font-bold uppercase tracking-widest hover:bg-gray-900 hover:text-white transition-all duration-300"
           >
             Register
