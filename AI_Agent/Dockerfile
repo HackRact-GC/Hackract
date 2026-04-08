@@ -5,6 +5,7 @@ COPY frontend/package.json frontend/package-lock.json* ./
 RUN npm ci --ignore-scripts 2>/dev/null || npm install
 COPY frontend/ ./
 RUN npm run build
+RUN test -f /app/static_build/index.html
 
 # ---- Stage 2: API + agent (pure Debian, no Kali / pentest tool suite) ----
 FROM debian:bookworm-slim
@@ -37,7 +38,7 @@ RUN pip3 install --no-cache-dir --break-system-packages -r /tmp/requirements.txt
 
 COPY . /hackract/
 
-COPY --from=frontend-builder /app/static_build /hackract/static_build
+COPY --from=frontend-builder /app/static_build/ /hackract/static_build/
 
 RUN mkdir -p /hackract/memory /hackract/logs /hackract/work_dir
 
@@ -45,7 +46,7 @@ RUN chmod +x /hackract/run_cli.py
 RUN chmod +x /hackract/instruments/*/*.sh 2>/dev/null || true
 
 # Optional helper if you later apt-install something inside the container
-RUN printf '%s\n' '#!/bin/sh' 'set -e' 'apt-get update' 'apt-get install -y "$@"' > /usr/local/bin/install-tool && \
+RUN printf '%s\n' '#!/bin/sh' 'set -e' 'apt-get install -y "$@"' > /usr/local/bin/install-tool && \
     chmod +x /usr/local/bin/install-tool
 
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
