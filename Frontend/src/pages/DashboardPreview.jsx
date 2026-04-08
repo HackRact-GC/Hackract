@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   FiSearch,
   FiBell,
@@ -20,6 +21,7 @@ import {
 
 const DashboardPreview = () => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const navigate = useNavigate();
 
   return (
     <div className="flex h-screen bg-[#0a0a0a] text-gray-300 font-sans selection:bg-[#00ff88]/30 overflow-hidden">
@@ -175,7 +177,10 @@ const DashboardPreview = () => {
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 lg:gap-6 flex-wrap">
                 {/* Create New */}
-                <div className="bg-[#111111] border border-dashed border-white/20 hover:border-[#00ff88]/50 transition-colors rounded-2xl p-6 flex flex-col items-center justify-center text-center h-48 cursor-pointer group">
+                <div 
+                  onClick={() => navigate('/projects')}
+                  className="bg-[#111111] border border-dashed border-white/20 hover:border-[#00ff88]/50 transition-colors rounded-2xl p-6 flex flex-col items-center justify-center text-center h-48 cursor-pointer group"
+                >
                   <div className="w-12 h-12 rounded-full bg-white/5 group-hover:bg-[#00ff88]/10 flex items-center justify-center mb-4 transition-colors">
                     <FiPlus className="text-xl text-gray-400 group-hover:text-[#00ff88] transition-colors" />
                   </div>
