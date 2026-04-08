@@ -46,7 +46,7 @@ RUN chmod +x /hackract/run_cli.py
 RUN chmod +x /hackract/instruments/*/*.sh 2>/dev/null || true
 
 # Optional helper if you later apt-install something inside the container
-RUN printf '%s\n' '#!/bin/sh' 'set -e' 'apt-get update' 'apt-get install -y "$@"' > /usr/local/bin/install-tool && \
+RUN printf '%s\n' '#!/bin/sh' 'set -e' 'apt-get install -y "$@"' > /usr/local/bin/install-tool && \
     chmod +x /usr/local/bin/install-tool
 
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
