@@ -203,7 +203,7 @@ const EngagementBoard = () => {
   );
 
   return (
-    <div className="min-h-screen bg-black text-white p-6 md:p-10 space-y-8 font-sans selection:bg-[#00ff88]/30 selection:text-black">
+    <div className="p-6 md:p-10 max-w-7xl mx-auto w-full space-y-8">
       {/* NDA Modal */}
       <AnimatePresence>
         {ndaModal && (
@@ -222,19 +222,11 @@ const EngagementBoard = () => {
              <div className="h-8 w-8 bg-[#00ff88]/10 border border-[#00ff88]/20 rounded flex items-center justify-center text-[#00ff88]">
                 <FiShield size={18} />
              </div>
-             <h1 className="text-3xl font-bold tracking-tight text-white">Public Engagement Board</h1>
+             <h1 className="text-2xl font-bold tracking-tight text-white">Public Engagement Board</h1>
           </div>
           <p className="text-white/70 text-sm max-w-xl">
             Official repository of authorized security engagement opportunities within the Hackract network.
           </p>
-        </div>
-        <div className="flex items-center gap-3">
-            <button
-                onClick={() => navigate("/dashboard")}
-                className="px-5 py-2.5 bg-black border border-white/10 rounded-lg text-xs font-semibold uppercase tracking-widest hover:bg-[#00ff88] hover:text-black hover:border-[#00ff88] transition-all text-white/70"
-            >
-                Return to Command Center
-            </button>
         </div>
       </div>
 
