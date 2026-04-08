@@ -75,6 +75,8 @@ router.post('/local/login', validate(loginSchema), controller.loginLocal);
 router.post('/local/refresh', validate(refreshTokenSchema), controller.refreshToken);
 
 router.post('/verify-email', validate(verifyEmailSchema), controller.verifyEmail);
+<<<<<<< HEAD
+
 
 /**
  * @swagger
@@ -96,7 +98,8 @@ router.post('/verify-email', validate(verifyEmailSchema), controller.verifyEmail
  *       200:
  *         description: Reset email sent (if account exists)
  */
-
+=======
+>>>>>>> origin/main
 router.post('/forgot-password', validate(forgotPasswordSchema), controller.forgotPassword);
 router.post('/reset-password', validate(resetPasswordSchema), controller.resetPassword);
 
@@ -131,7 +134,7 @@ router.get('/local/me', validateLocal, controller.getMe);
  *       200:
  *         description: Logged out successfully
  */
-router.post('/logout', protect, controller.logout);
+router.post('/logout', controller.logout);
 
 /**
  * @swagger

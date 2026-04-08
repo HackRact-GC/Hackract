@@ -38,30 +38,27 @@ export const AuthProvider = ({ children }) => {
   }, []);
 
   const fetchProfile = useCallback(async () => {
-    const storedAccess = localStorage.getItem(STORAGE_KEYS.ACCESS);
-    if (!storedAccess) {
+    if (!accessToken) {
       setIsBootstrapping(false);
       return;
     }
     try {
-      // axiosConfig interceptor auto-attaches the Bearer token
-      const { data } = await api.get('/auth/local/me');
+      const { data } = await api.get("/auth/local/me", {
+        headers: { Authorization: `Bearer ${accessToken}` },
+      });
       setUser(data?.data?.user || null);
     } catch (error) {
-      console.error('[auth] fetchProfile failed — clearing session', error?.response?.status);
-      // Clear BOTH tokens so the refresh interceptor has nothing stale to retry
-      persistTokens(null, null);
+      console.error("Failed to load profile", error);
+      persistTokens(null, refreshToken);
       setUser(null);
     } finally {
       setIsBootstrapping(false);
     }
-  }, [persistTokens]);
+  }, [accessToken, persistTokens, refreshToken]);
 
-  // Only run once on mount — axiosConfig handles token attachment/refresh from here
   useEffect(() => {
     fetchProfile();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [fetchProfile]);
 
   const extractMessage = (error) => {
     const detail = error?.response?.data?.details?.errors?.[0]?.message;
@@ -172,8 +169,11 @@ export const AuthProvider = ({ children }) => {
       refreshTokens,
       setUser,
     }),
+<<<<<<< HEAD
     [user, accessToken, refreshToken, loading, isBootstrapping, login, register, logout, refreshTokens, fetchProfile]
-
+=======
+    [user, accessToken, refreshToken, loading, isBootstrapping, login, register, logout, refreshTokens]
+>>>>>>> origin/main
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

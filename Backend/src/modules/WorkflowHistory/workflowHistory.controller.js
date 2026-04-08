@@ -1,5 +1,7 @@
+import { PrismaClient } from '@prisma/client';
 import asyncHandler from 'express-async-handler';
-import prisma from '../../database/prismaClient.js';
+
+const prisma = new PrismaClient();
 
 // Record a new history event for a workflow
 export const recordHistory = asyncHandler(async (req, res) => {

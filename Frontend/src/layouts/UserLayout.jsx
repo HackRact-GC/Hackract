@@ -12,6 +12,7 @@ import {
   FiCheckCircle,
   FiLogOut,
   FiSearch,
+  FiPlusCircle,
 } from "react-icons/fi";
 
 const UserLayout = () => {
@@ -27,6 +28,7 @@ const UserLayout = () => {
     if (isOrgView) {
       return [
         { label: "Executive Overview", route: "/dashboard", icon: FiGrid },
+        { label: "Post Security Job", route: "/post-job", icon: FiPlusCircle },
         { label: "Security Programs", route: "/projects", icon: FiShield },
         { label: "Organization Profile", route: "/organization-profile", icon: FiBriefcase },
         { label: "Organization Verification", route: primaryOrganizationId ? `/organization-verification/${primaryOrganizationId}` : "/organization-profile", icon: FiCheckCircle },

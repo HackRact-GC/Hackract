@@ -1,6 +1,6 @@
 // src/routes/index.jsx or similar
 
-import { createBrowserRouter, Navigate } from "react-router-dom";
+import { createBrowserRouter } from "react-router-dom";
 import App from "../App.jsx";
 import AuthLayout from "../layouts/AuthLayout.jsx";
 import Login from "../pages/Login.jsx";
@@ -17,10 +17,10 @@ import HackerVerification from "../pages/HackerVerification.jsx";
 import OrganizationVerification from "../pages/OrganizationVerification.jsx";
 import ErrorPage from "../pages/ErrorPage.jsx";
 <<<<<<< HEAD
-
-import ProjectWorkspace from "../pages/ProjectWorkspace.jsx";
+import Projects from "../pages/Projects.jsx";
 =======
->>>>>>> 29cf968ad6e921e78b6c17cae03c9ce911d6c293
+>>>>>>> origin/main
+import ProjectWorkspace from "../pages/ProjectWorkspace.jsx";
 import FindingDetails from "../pages/FindingDetails.jsx";
 import UserLayout from "../layouts/UserLayout.jsx";
 
@@ -39,7 +39,10 @@ import OrgOnboarding from "../pages/Onboarding/OrgOnboarding.jsx";
 import ApprovalsDashboard from "../pages/Admin/ApprovalsDashboard.jsx";
 import OperatorReview from "../pages/Admin/OperatorReview.jsx";
 import OrgReview from "../pages/Admin/OrgReview.jsx";
-
+<<<<<<< HEAD
+import LegalAgreementCreate from "../pages/LegalAgreementCreate.jsx";
+=======
+>>>>>>> origin/main
 
 const router = createBrowserRouter([
   {
@@ -74,10 +77,17 @@ const router = createBrowserRouter([
             path: "organization-verification/:organizationId",
             element: <OrganizationVerification />,
           },
-
+          {
+            path: "workflows/:workflowId",
+            element: <WorkflowEditor />,
+          },
           {
             path: "projects",
             element: <Projects />,
+          },
+          {
+            path: "projects/:projectId",
+            element: <ProjectWorkspace />,
           },
           {
             path: "findings/:findingId",
@@ -94,21 +104,17 @@ const router = createBrowserRouter([
         ],
       },
       {
-        path: "workflows/:workflowId",
-        element: <OnboardingGuard><WorkflowEditor /></OnboardingGuard>,
-      },
-      {
         path: "onboarding",
         element: <OnboardingGuard><OnboardingLayout /></OnboardingGuard>,
         children: [
-            {
-                path: "hacker",
-                element: <HackerOnboarding />,
-            },
-            {
-                path: "organization",
-                element: <OrgOnboarding />,
-            }
+          {
+            path: "hacker",
+            element: <HackerOnboarding />,
+          },
+          {
+            path: "organization",
+            element: <OrgOnboarding />,
+          }
         ]
       },
       {
@@ -132,14 +138,6 @@ const router = createBrowserRouter([
           },
           {
             path: "register",
-            element: <Navigate to="/register/hacker" replace />,
-          },
-          {
-            path: "register/hacker",
-            element: <Register />,
-          },
-          {
-            path: "register/organization",
             element: <Register />,
           },
           {
