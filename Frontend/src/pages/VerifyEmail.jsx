@@ -1,9 +1,8 @@
-import { useState } from "react";
-import { Link } from "react-router-dom";
+import { useEffect, useMemo, useState } from "react";
+import { Link, useLocation, useSearchParams, useNavigate } from "react-router-dom";
+
 import toast from "react-hot-toast";
 import api from "../api/axiosConfig";
-import { useNavigate } from "react-router-dom";
-import { useSearchParams } from "react-router-dom";
 
 const StatusBadge = ({ status, children }) => {
   const colors = {
@@ -18,13 +17,30 @@ const StatusBadge = ({ status, children }) => {
 
 const VerifyEmail = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const [searchParams] = useSearchParams();
   const [status, setStatus] = useState("idle");
   const [message, setMessage] = useState("Enter the 6-digit code we emailed you.");
-  const [form, setForm] = useState({
-    email: searchParams.get("email") || "",
-    code: "",
-  });
+  const tokenFromUrl = useMemo(() => {
+    const t = searchParams.get("token");
+    return t ? String(t).trim() : "";
+  }, [searchParams]);
+
+  const initialEmail = useMemo(() => {
+    const emailFromState = location?.state?.email;
+    return typeof emailFromState === "string" ? emailFromState : "";
+  }, [location?.state?.email]);
+
+  const [form, setForm] = useState({ email: initialEmail, code: tokenFromUrl || "" });
+
+  useEffect(() => {
+    setForm((prev) => ({
+      ...prev,
+      email: prev.email || initialEmail,
+      code: prev.code || tokenFromUrl,
+    }));
+  }, [initialEmail, tokenFromUrl]);
+
 
   const handleChange = (e) => {
     const { name, value } = e.target;

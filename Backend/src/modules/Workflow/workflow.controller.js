@@ -1,7 +1,5 @@
-import { PrismaClient } from '@prisma/client';
 import asyncHandler from 'express-async-handler';
-
-const prisma = new PrismaClient();
+import prisma from '../../database/prismaClient.js';
 
 // Create a new Workflow
 export const create = asyncHandler(async (req, res) => {

@@ -16,6 +16,11 @@ import WorkflowEditor from "../pages/WorkflowEditor/WorkflowEditor.jsx";
 import HackerVerification from "../pages/HackerVerification.jsx";
 import OrganizationVerification from "../pages/OrganizationVerification.jsx";
 import ErrorPage from "../pages/ErrorPage.jsx";
+<<<<<<< HEAD
+
+import ProjectWorkspace from "../pages/ProjectWorkspace.jsx";
+=======
+>>>>>>> 29cf968ad6e921e78b6c17cae03c9ce911d6c293
 import FindingDetails from "../pages/FindingDetails.jsx";
 import UserLayout from "../layouts/UserLayout.jsx";
 
@@ -34,6 +39,8 @@ import OrgOnboarding from "../pages/Onboarding/OrgOnboarding.jsx";
 import ApprovalsDashboard from "../pages/Admin/ApprovalsDashboard.jsx";
 import OperatorReview from "../pages/Admin/OperatorReview.jsx";
 import OrgReview from "../pages/Admin/OrgReview.jsx";
+import DashboardPreview from "../pages/DashboardPreview.jsx";
+
 
 const router = createBrowserRouter([
   {
@@ -41,6 +48,10 @@ const router = createBrowserRouter([
     element: <App />,
     errorElement: <ErrorPage />,
     children: [
+      {
+        path: "preview-dashboard",
+        element: <DashboardPreview />,
+      },
       {
         index: true,
         element: <Landing />,

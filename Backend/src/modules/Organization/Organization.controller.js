@@ -7,7 +7,13 @@ import {
   organizationIdSchema,
   listOrganizationsQuerySchema,
   organizationNameQuerySchema,
-  ownerNameQuerySchema
+  ownerNameQuerySchema,
+  submitVerificationSchema,
+  addMemberSchema,
+  updateMemberSchema,
+  paginationSchema,
+  memberIdSchema
+
 } from './Organization.schema.js';
 import asyncHandler from '../../utils/AsyncHandler.js';
 
@@ -143,6 +149,46 @@ class OrganizationController {
       success: true,
       message: 'All organizations deleted successfully',
       data: result
+
+    });
+  });
+
+  getMembers = asyncHandler(async (req, res) => {
+    const { error, value } = organizationIdSchema.validate(req.params);
+    if (error) {
+      return sendValidationError(res, error);
+    }
+
+    const members = await organizationService.getMembers(value.organizationId);
+
+    res.status(200).json({
+      success: true,
+      message: 'Members retrieved successfully',
+      data: members
+    });
+  });
+
+  addMember = asyncHandler(async (req, res) => {
+    const paramsValidation = organizationIdSchema.validate(req.params);
+    if (paramsValidation.error) {
+      return sendValidationError(res, paramsValidation.error);
+    }
+
+    const bodyValidation = addMemberSchema.validate(req.body);
+    if (bodyValidation.error) {
+      return sendValidationError(res, bodyValidation.error);
+    }
+
+    const member = await organizationService.addMember(
+      paramsValidation.value.organizationId,
+      bodyValidation.value,
+      req.user.id
+    );
+
+    res.status(201).json({
+      success: true,
+      message: 'Member added successfully',
+      data: member
     });
   });
 

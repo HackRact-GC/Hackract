@@ -1,3 +1,4 @@
+import "dotenv/config";
 import http from "http";
 import app from "./app.js";
 import { connectDatabase } from "./src/database/sqlConnection.js";
@@ -28,13 +29,13 @@ const startServer = async () => {
     // Join a specific workflow room (e.g., roomID = workflowId)
     socket.on("join-workflow", ({ workflowId, user, color }) => {
       socket.join(workflowId);
-      
+
       // Store user info
       if (!workflowUsers[workflowId]) workflowUsers[workflowId] = {};
       workflowUsers[workflowId][socket.id] = { id: socket.id, user, color, joinedAt: new Date() };
 
       console.log(`Client ${socket.id} (${user}) joined workflow room: ${workflowId}`);
-      
+
       // Send the current list of collaborators to the new user
       socket.emit("collaborators-list", Object.values(workflowUsers[workflowId]));
 
