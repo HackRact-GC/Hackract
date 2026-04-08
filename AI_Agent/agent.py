@@ -22,6 +22,15 @@ from python.tools.memory_load import MemoryLoadTool
 from python.tools.response import ResponseTool
 from python.tools.search import SearchTool
 
+# Max tool stdout/JSON shown in the web UI (full result still goes to the model).
+UI_TOOL_OUTPUT_MAX_CHARS = 120_000
+# Throttle WebSocket updates while the LLM stream is receiving tokens.
+LLM_STREAM_EMIT_INTERVAL_SEC = 0.07
+# Avoid huge WebSocket frames while streaming (tail of response is shown).
+WS_THINKING_DISPLAY_MAX_CHARS = 100_000
+# GitHub Models: keep tool result history small so the next LLM request stays under ~8k input tokens.
+GITHUB_TOOL_RESULT_MAX_CHARS = 6_000
+
 
 class Agent:
     """Main HackrAct AI Agent"""
@@ -96,9 +105,13 @@ class Agent:
                 self.logger.error(f"Error in status callback: {e}")
 
     def stop(self):
-        """Request the agent to stop processing"""
+        """Request the agent to stop processing and kill any running subprocess."""
         self.stop_requested = True
         self.logger.info("Stop requested by user")
+        # Kill any running subprocess owned by the code_execution_tool
+        cet = self.tools.get("code_execution_tool")
+        if cet and hasattr(cet, "kill_running"):
+            cet.kill_running()
 
     def _init_scratchpad(self):
         """Initialize the scratchpad file"""
@@ -146,8 +159,11 @@ class Agent:
         """Load and construct system prompt from template files"""
         prompts_dir = self.config.prompts_dir
         
-        # Check if we need to use lite prompts (for low-context models like GitHub/GPT-4o-mini)
-        use_lite = self.config.model.max_context_tokens <= 10000
+        # Lite prompts for low-context models; GitHub Models always (~8k input token API cap)
+        use_lite = (
+            self.config.model.max_context_tokens <= 10000
+            or self.config.model.provider == "github"
+        )
         
         # Load individual prompt sections
         def load_prompt(filename):
@@ -229,52 +245,70 @@ Params: `query` (string), `max_results` (int)."""
             tool_response=tool_response,
             tool_search=tool_search,
         )
-        
+
+        # GitHub Models: long few-shot examples in main.md can exceed ~8k input tokens alone
+        if self.config.model.provider == "github":
+            max_sys = int(os.getenv("GITHUB_MAX_SYSTEM_CHARS", "12000"))
+            if len(system_prompt) > max_sys:
+                system_prompt = (
+                    system_prompt[:max_sys]
+                    + "\n\n… [system prompt truncated for GitHub Models input limit]"
+                )
+
         return system_prompt
     
+    def _estimate_msg_tokens(self, content: str) -> float:
+        """Rough token estimate; conservative for GitHub (BPE uses more than chars/4)."""
+        if not content:
+            return 0.0
+        if self.config.model.provider == "github":
+            return max(len(content) / 3.0, 1.0)  # ~3 chars/token worst-case for English+JSON
+        return len(content) / 4.0
+
     def _manage_context(self, messages: List[Dict[str, str]]) -> List[Dict[str, str]]:
         """
         Manage context window by trimming old messages if necessary.
         Always keeps the system prompt and the last user message.
         """
-        # Simple estimation: 1 token ~= 4 chars
-        
-        max_tokens = self.config.model.max_context_tokens
-        current_tokens = 0
-        
-        # Calculate total tokens
-        for msg in messages:
-            current_tokens += len(msg.get("content", "")) / 4
-            
+        max_tokens = float(self.config.model.max_context_tokens)
+        if self.config.model.provider == "github":
+            # Hard ceiling: GitHub returns 400 if total input exceeds ~8000 tokens
+            max_tokens = min(max_tokens, float(os.getenv("GITHUB_MAX_INPUT_BUDGET", "5200")))
+
+        def total_est(msgs: List[Dict[str, str]]) -> float:
+            return sum(self._estimate_msg_tokens(m.get("content") or "") for m in msgs)
+
+        current_tokens = total_est(messages)
         if current_tokens <= max_tokens:
             return messages
-            
-        self.logger.info(f"Context limit exceeded ({int(current_tokens)}/{max_tokens}). Trimming history...")
-        
-        # Keep system prompt (first message)
+
+        self.logger.info(f"Context limit exceeded (~{int(current_tokens)}/{int(max_tokens)} est. tokens). Trimming history...")
+
         system_prompt = messages[0]
-        
-        # Keep last message (current user input or latest state)
         last_message = messages[-1]
-        
-        # Available tokens for history
-        available_tokens = max_tokens - (len(system_prompt.get("content", "")) / 4) - (len(last_message.get("content", "")) / 4) - 500 # Buffer
-        
+        sys_t = self._estimate_msg_tokens(system_prompt.get("content") or "")
+        last_t = self._estimate_msg_tokens(last_message.get("content") or "")
+        buffer = 120.0 if self.config.model.provider == "github" else 500.0
+        available_tokens = max_tokens - sys_t - last_t - buffer
+
         if available_tokens < 0:
-            return [system_prompt, last_message]
-            
-        # Select messages from the end backwards until we hit the limit
-        history = []
-        history_tokens = 0
-        
-        # Iterate backwards through middle messages
+            # Truncate oversized single messages (e.g. huge tool output) for last turn
+            lm = dict(last_message)
+            cap = max(int(max_tokens * 3) - 200, 800) if self.config.model.provider == "github" else 8000
+            c = lm.get("content") or ""
+            if len(c) > cap:
+                lm["content"] = c[:cap] + "\n\n… [truncated for context limit]"
+            return [system_prompt, lm]
+
+        history: List[Dict[str, str]] = []
+        history_tokens = 0.0
         for msg in reversed(messages[1:-1]):
-            msg_tokens = len(msg.get("content", "")) / 4
+            msg_tokens = self._estimate_msg_tokens(msg.get("content") or "")
             if history_tokens + msg_tokens > available_tokens:
                 break
             history.insert(0, msg)
             history_tokens += msg_tokens
-            
+
         return [system_prompt, *history, last_message]
 
     async def process_message(self, user_message: str) -> str:
@@ -299,7 +333,26 @@ Params: `query` (string), `max_results` (int)."""
         final_response = ""
         self.iteration = 0
         self.stop_requested = False
-        
+
+        try:
+            final_response = await self._agent_loop()
+        except asyncio.CancelledError:
+            self.logger.info("Agent cancelled (stop); killing subprocesses")
+            self.stop_requested = True
+            cet = self.tools.get("code_execution_tool")
+            if cet and hasattr(cet, "kill_running"):
+                cet.kill_running()
+            raise
+
+        if not final_response:
+            final_response = "Maximum iterations reached without completing the task."
+
+        return final_response
+
+    async def _agent_loop(self) -> str:
+        """Inner reasoning loop (separate for clean CancelledError handling)."""
+        final_response = ""
+
         while self.iteration < self.config.max_iterations:
             # Check for stop request
             if self.stop_requested:
@@ -331,15 +384,64 @@ Params: `query` (string), `max_results` (int)."""
                 
                 # Get the async generator from the LLM
                 stream_gen = await self.llm.chat(messages, stream=True)
-                
-                async for chunk in stream_gen:
-                    # Check for error in stream
-                    if chunk.startswith("Error:"):
-                        raise Exception(chunk)
-                        
-                    print(f"{Fore.BLUE}{chunk}{Style.RESET_ALL}", end="", flush=True)
-                    agent_response += chunk
-                print() # Newline after stream
+                try:
+                    async for chunk in stream_gen:
+                        if self.stop_requested:
+                            break
+                        # Check for error in stream
+                        if chunk.startswith("Error:"):
+                            raise Exception(chunk)
+
+                        print(f"{Fore.BLUE}{chunk}{Style.RESET_ALL}", end="", flush=True)
+                        agent_response += chunk
+                        # Live "thinking" in the ProcessGroup UI (throttled for WebSocket)
+                        now = time.monotonic()
+                        if now >= stream_emit_next:
+                            disp = agent_response
+                            if len(disp) > WS_THINKING_DISPLAY_MAX_CHARS:
+                                disp = (
+                                    "… (earlier stream truncated for UI)\n\n"
+                                    + disp[-WS_THINKING_DISPLAY_MAX_CHARS:]
+                                )
+                            await self._emit_status(
+                                "thinking",
+                                disp,
+                                {
+                                    "iteration": self.iteration,
+                                    "streaming": True,
+                                    "chat_model": self.config.model.chat_model,
+                                },
+                            )
+                            stream_emit_next = now + LLM_STREAM_EMIT_INTERVAL_SEC
+                finally:
+                    aclose = getattr(stream_gen, "aclose", None)
+                    if callable(aclose):
+                        try:
+                            await stream_gen.aclose()
+                        except Exception:
+                            pass
+
+                if self.stop_requested:
+                    await self._emit_status("status", "🛑 Stopped.", {"iteration": self.iteration})
+                    return "🛑 Agent execution stopped by user request."
+
+                # Final flush so the UI has the complete model text before JSON parse
+                disp_final = agent_response
+                if len(disp_final) > WS_THINKING_DISPLAY_MAX_CHARS:
+                    disp_final = (
+                        "… (earlier stream truncated for UI)\n\n"
+                        + disp_final[-WS_THINKING_DISPLAY_MAX_CHARS:]
+                    )
+                await self._emit_status(
+                    "thinking",
+                    disp_final,
+                    {
+                        "iteration": self.iteration,
+                        "streaming": False,
+                        "chat_model": self.config.model.chat_model,
+                    },
+                )
+                print()  # Newline after stream
                 
                 # Log to history/file but don't print again
                 self.logger.agent(
@@ -409,12 +511,23 @@ Params: `query` (string), `max_results` (int)."""
                     final_response = tool_result.get("message", "")
                     break
                 
-                # Add tool result to messages
+                # Add tool result to messages (truncate for low-context providers)
+                tool_json = json.dumps(tool_result, indent=2)
+                if (
+                    self.config.model.provider == "github"
+                    and len(tool_json) > GITHUB_TOOL_RESULT_MAX_CHARS
+                ):
+                    tool_json = (
+                        tool_json[:GITHUB_TOOL_RESULT_MAX_CHARS]
+                        + "\n\n… [truncated for GitHub Models input limit; rerun with smaller output if needed]"
+                    )
                 self.messages.append({
                     "role": "user",
-                    "content": f"Tool result: {json.dumps(tool_result, indent=2)}"
+                    "content": f"Tool result: {tool_json}",
                 })
-                
+
+            except asyncio.CancelledError:
+                raise
             except Exception as e:
                 self.logger.error(
                     heading="Error in agent loop",
@@ -425,12 +538,12 @@ Params: `query` (string), `max_results` (int)."""
                     "role": "user",
                     "content": f"Error occurred: {str(e)}. Please try a different approach."
                 })
-        
+
         if not final_response:
             final_response = "Maximum iterations reached without completing the task."
-            
+
         return final_response
-    
+
     def _parse_agent_response(self, response: str) -> Optional[Dict[str, Any]]:
         """Parse agent's JSON response"""
         try:
@@ -458,6 +571,13 @@ Params: `query` (string), `max_results` (int)."""
         
         if not tool_name:
             return {"success": False, "error": "No tool specified"}
+
+        if self.stop_requested:
+            return {
+                "success": False,
+                "error": "Stopped by user before tool run",
+                "stopped": True,
+            }
         
         if tool_name not in self.tools:
             return {"success": False, "error": f"Unknown tool: {tool_name}"}
