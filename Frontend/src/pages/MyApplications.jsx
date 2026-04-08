@@ -50,7 +50,7 @@ const MyApplications = () => {
 
   if (selectedProjectId) {
     return (
-      <div className="min-h-screen bg-black text-white p-6 md:p-10 font-sans selection:bg-[#00ff88]/30 selection:text-black">
+      <div className="p-6 md:p-10">
         <WorkspaceView
           projectId={selectedProjectId}
           onBack={() => setSelectedProjectId(null)}
@@ -60,22 +60,13 @@ const MyApplications = () => {
   }
 
   return (
-    <div className="min-h-screen bg-black text-white p-6 md:p-10 space-y-10 font-sans selection:bg-[#00ff88]/30 selection:text-black">
+    <div className="p-6 md:p-10 max-w-5xl mx-auto w-full space-y-8">
       {/* Header Section */}
       <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
         <div className="space-y-1">
-          <button
-            onClick={() => navigate("/engagements")}
-            className="group flex items-center gap-3 text-white/60 hover:text-[#00ff88] transition-all font-bold text-[10px] uppercase tracking-[0.2em] mb-4"
-          >
-            <div className="w-6 h-6 rounded-md bg-black border border-white/10 flex items-center justify-center group-hover:border-[#00ff88]/30 transition-all">
-                <FiArrowLeft size={12} />
-            </div>
-            Back to Engagement Board
-          </button>
-          <h1 className="text-3xl font-bold tracking-tight text-white">Mission Hub</h1>
-            <p className="text-white/70 text-sm max-w-xl">
-            Unified command center for your active project bids, personal labs, and authorized security contracts.
+          <h1 className="text-2xl font-bold tracking-tight text-white">Mission Hub</h1>
+          <p className="text-white/70 text-sm max-w-xl">
+            Unified command for active project bids, personal labs, and authorized security contracts.
           </p>
         </div>
 
