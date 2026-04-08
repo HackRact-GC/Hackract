@@ -6,6 +6,14 @@ import { useAuth0 } from "@auth0/auth0-react";
 import { useAuth } from "../context/authContext.jsx";
 import { validatePassword } from "../utils/validators";
 
+<<<<<<< HEAD
+<<<<<<< HEAD
+
+const InputField = ({ label, type, placeholder, id, name, value, onChange }) => (
+=======
+const InputField = ({ label, type, placeholder, id, name, value, onChange, icon, onIconClick }) => (
+>>>>>>> a7a1de65b69231061612de7e72db6f45e70590a5
+=======
 const InputField = ({ 
   label, 
   type, 
@@ -18,6 +26,7 @@ const InputField = ({
   onIconClick, 
   required = true 
 }) => (
+>>>>>>> 29cf968ad6e921e78b6c17cae03c9ce911d6c293
   <div className="flex flex-col gap-2 group">
     <label
       htmlFor={id}
