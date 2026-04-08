@@ -39,6 +39,7 @@ import OrgOnboarding from "../pages/Onboarding/OrgOnboarding.jsx";
 import ApprovalsDashboard from "../pages/Admin/ApprovalsDashboard.jsx";
 import OperatorReview from "../pages/Admin/OperatorReview.jsx";
 import OrgReview from "../pages/Admin/OrgReview.jsx";
+import DashboardPreview from "../pages/DashboardPreview.jsx";
 
 
 const router = createBrowserRouter([
@@ -47,6 +48,10 @@ const router = createBrowserRouter([
     element: <App />,
     errorElement: <ErrorPage />,
     children: [
+      {
+        path: "preview-dashboard",
+        element: <DashboardPreview />,
+      },
       {
         index: true,
         element: <Landing />,
