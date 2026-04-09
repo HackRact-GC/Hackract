@@ -20,6 +20,9 @@ import Projects from "../pages/Projects.jsx";
 import ProjectWorkspace from "../pages/ProjectWorkspace.jsx";
 import FindingDetails from "../pages/FindingDetails.jsx";
 import HackerLayout from "../layouts/HackerLayout.jsx";
+import OrganizationLayout from "../layouts/OrganizationLayout.jsx";
+import OrganizationDashboard from "../pages/OrganizationDashboard.jsx";
+import Reports from "../pages/Reports.jsx";
 
 // Phase 2 Marketplace Imports
 import EngagementBoard from "../pages/EngagementBoard.jsx";
@@ -100,13 +103,23 @@ const router = createBrowserRouter([
         element: <OnboardingGuard><Home /></OnboardingGuard>,
         children: [],
       },
+      // ── Organization routes (Side dashboard layout) ───────────────
       {
-        path: "org-dashboard",
-        element: <OnboardingGuard><Home /></OnboardingGuard>,
-      },
-      {
-        path: "organization-profile",
-        element: <OnboardingGuard><OrganizationProfile /></OnboardingGuard>,
+        element: <OnboardingGuard><OrganizationLayout /></OnboardingGuard>,
+        children: [
+          {
+            path: "org-dashboard",
+            element: <OrganizationDashboard />,
+          },
+          {
+            path: "reports",
+            element: <Reports />,
+          },
+          {
+            path: "organization-profile",
+            element: <OrganizationProfile />,
+          },
+        ],
       },
       {
         path: "organization-verification/:organizationId",
