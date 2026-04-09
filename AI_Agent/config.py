@@ -96,6 +96,9 @@ def load_config(validate: bool = True) -> AgentConfig:
         elif os.getenv("ANTHROPIC_API_KEY"):
             provider = "anthropic"
             api_key = os.getenv("ANTHROPIC_API_KEY")
+        elif os.getenv("GITHUB_TOKEN") and not (api_key or "").strip():
+            provider = "github"
+            api_key = os.getenv("GITHUB_TOKEN", "")
         elif os.getenv("OPENAI_API_KEY"):
             provider = "openai"
             api_key = os.getenv("OPENAI_API_KEY")
@@ -114,7 +117,8 @@ def load_config(validate: bool = True) -> AgentConfig:
     elif provider == "github":
         default_chat_model = "gpt-4o"
         default_utility_model = "gpt-4o-mini"
-        default_context_tokens = 7000 # GitHub Models free tier limit
+        # GitHub Models hard limit ~8000 *input* tokens per request; stay under with margin
+        default_context_tokens = int(os.getenv("GITHUB_MAX_CONTEXT_TOKENS_DEFAULT", "4500"))
     elif provider == "openai":
         default_chat_model = "gpt-4o"
         default_utility_model = "gpt-3.5-turbo"
@@ -123,6 +127,10 @@ def load_config(validate: bool = True) -> AgentConfig:
         default_chat_model = "llama3"
         default_utility_model = "llama3"
         default_context_tokens = 8000
+
+    # GitHub Models: allow GITHUB_TOKEN when API_KEY is empty
+    if provider == "github" and not (api_key or "").strip():
+        api_key = os.getenv("GITHUB_TOKEN", "") or api_key
 
     model_config = ModelConfig(
         provider=provider,
@@ -136,6 +144,13 @@ def load_config(validate: bool = True) -> AgentConfig:
         ollama_base_url=os.getenv("OLLAMA_BASE_URL", "http://localhost:11434"),
         custom_api_base=os.getenv("CUSTOM_API_BASE", ""),
     )
+
+    # GitHub Models: enforce API limits (input ~8000 tokens; completion budget separate)
+    if model_config.provider == "github":
+        gh_ctx_cap = int(os.getenv("GITHUB_MAX_CONTEXT_TOKENS", "4500"))
+        gh_out_cap = int(os.getenv("GITHUB_MAX_COMPLETION_TOKENS", "1536"))
+        model_config.max_context_tokens = min(model_config.max_context_tokens, gh_ctx_cap)
+        model_config.max_tokens = min(model_config.max_tokens, gh_out_cap)
     
     memory_config = MemoryConfig(
         enabled=os.getenv("MEMORY_ENABLED", "true").lower() == "true",

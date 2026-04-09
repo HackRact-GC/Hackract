@@ -6,7 +6,7 @@ const TerminalNode = ({ data, selected }) => {
   const showPresence = activeUsers.length > 0;
 
   return (
-    <div className={`bg-[#0b0f19] border rounded-lg w-[320px] font-mono text-sm transition-all relative ${selected || showPresence ? 'border-[#ffb000] shadow-[0_0_20px_rgba(255,176,0,0.6)]' : 'border-[#ffb000]/50 shadow-[0_0_10px_rgba(255,176,0,0.3)]'}`}>
+    <div className={`bg-[#0b0f19] border rounded-lg w-[320px] font-mono text-sm transition-all relative ${selected || showPresence ? 'border-[#00ff88] shadow-[0_0_20px_rgba(0,255,136,0.6)]' : 'border-[#00ff88]/50 shadow-[0_0_10px_rgba(0,255,136,0.3)]'}`}>
       {/* Presence Indicators (Figma Style) */}
       {showPresence && (
         <div className="absolute -top-6 right-0 flex -space-x-2">
@@ -14,7 +14,7 @@ const TerminalNode = ({ data, selected }) => {
             <div 
               key={i} 
               className="w-5 h-5 rounded-full border-2 border-[#0b0f19] flex items-center justify-center text-[10px] font-bold text-white shadow-lg animate-bounce"
-              style={{ backgroundColor: u.color || '#ffb000' }}
+              style={{ backgroundColor: u.color || '#00ff88' }}
               title={u.user}
             >
               {u.user?.[0] || 'U'}
@@ -22,7 +22,7 @@ const TerminalNode = ({ data, selected }) => {
           ))}
         </div>
       )}
-      <div className="p-2 flex justify-between items-center text-[#ffb000] border-b border-[#ffb000]/30 bg-[#161a23] rounded-t-lg">
+      <div className="p-2 flex justify-between items-center text-[#00ff88] border-b border-[#00ff88]/30 bg-[#161a23] rounded-t-lg">
         <div className="flex items-center gap-2">
           <FiTerminal size={16} />
           <span className="font-bold text-xs uppercase tracking-tighter">Terminal</span>
@@ -44,7 +44,7 @@ const TerminalNode = ({ data, selected }) => {
       </div>
 
       <div className="p-3 space-y-3">
-        <div className="w-full h-24 bg-black border border-[#ffb000]/30 text-[#ffb000] p-2 rounded overflow-y-auto font-mono text-xs">
+        <div className="w-full h-24 bg-black border border-[#00ff88]/30 text-[#00ff88] p-2 rounded overflow-y-auto font-mono text-xs">
            <div className="animate-pulse">_</div>
            {/* Mock Terminal Output */}
            {data.output?.map((line, i) => (
@@ -53,7 +53,7 @@ const TerminalNode = ({ data, selected }) => {
         </div>
 
         {/* Finding Linkage UI */}
-        <div className="pt-2 border-t border-[#ffb000]/20 space-y-2">
+        <div className="pt-2 border-t border-[#00ff88]/20 space-y-2">
           <div className="flex items-center justify-between text-[10px] text-gray-500 font-bold uppercase tracking-widest">
             <div className="flex items-center gap-1">
               <FiLink size={10} />
@@ -73,7 +73,7 @@ const TerminalNode = ({ data, selected }) => {
           </select>
 
           {data.findingId && (
-            <div className="flex items-center gap-2 p-1.5 bg-[#ffb000]/5 border border-[#ffb000]/20 rounded text-[9px] text-[#ffb000] animate-pulse">
+            <div className="flex items-center gap-2 p-1.5 bg-[#00ff88]/5 border border-[#00ff88]/20 rounded text-[9px] text-[#00ff88] animate-pulse">
               <FiAlertCircle size={10} />
               <span className="truncate">Terminal Output Linked to Finding</span>
             </div>
@@ -81,8 +81,8 @@ const TerminalNode = ({ data, selected }) => {
         </div>
       </div>
 
-      <Handle type="target" position={Position.Left} className="w-3 h-3 bg-[#ffb000] border-2 border-[#0b0f19]" />
-      <Handle type="source" position={Position.Right} className="w-3 h-3 bg-[#ffb000] border-2 border-[#0b0f19]" />
+      <Handle type="target" position={Position.Left} className="w-3 h-3 bg-[#00ff88] border-2 border-[#0b0f19]" />
+      <Handle type="source" position={Position.Right} className="w-3 h-3 bg-[#00ff88] border-2 border-[#0b0f19]" />
     </div>
   );
 };

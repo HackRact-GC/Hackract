@@ -1,6 +1,6 @@
 // src/routes/index.jsx
 
-import { createBrowserRouter } from "react-router-dom";
+import { createBrowserRouter, Navigate } from "react-router-dom";
 import App from "../App.jsx";
 import AuthLayout from "../layouts/AuthLayout.jsx";
 import Login from "../pages/Login.jsx";
@@ -19,7 +19,7 @@ import ErrorPage from "../pages/ErrorPage.jsx";
 import Projects from "../pages/Projects.jsx";
 import ProjectWorkspace from "../pages/ProjectWorkspace.jsx";
 import FindingDetails from "../pages/FindingDetails.jsx";
-import UserLayout from "../layouts/UserLayout.jsx";
+import HackerLayout from "../layouts/HackerLayout.jsx";
 
 // Phase 2 Marketplace Imports
 import EngagementBoard from "../pages/EngagementBoard.jsx";
@@ -53,12 +53,13 @@ const router = createBrowserRouter([
         index: true,
         element: <Landing />,
       },
+      // ── Hacker routes (sidebar layout) ──────────────────────────────
       {
-        element: <OnboardingGuard><UserLayout /></OnboardingGuard>,
+        element: <OnboardingGuard><HackerLayout /></OnboardingGuard>,
         children: [
           {
             path: "dashboard",
-            element: <Home />,
+            element: <DashboardPreview />,
           },
           {
             path: "hacker-profile",
@@ -67,14 +68,6 @@ const router = createBrowserRouter([
           {
             path: "hacker-verification",
             element: <HackerVerification />,
-          },
-          {
-            path: "organization-profile",
-            element: <OrganizationProfile />,
-          },
-          {
-            path: "organization-verification/:organizationId",
-            element: <OrganizationVerification />,
           },
           {
             path: "workflows/:workflowId",
@@ -101,6 +94,23 @@ const router = createBrowserRouter([
             element: <MyApplications />,
           },
         ],
+      },
+      // ── Org-admin routes (no hacker sidebar) ────────────────────────
+      {
+        element: <OnboardingGuard><Home /></OnboardingGuard>,
+        children: [],
+      },
+      {
+        path: "org-dashboard",
+        element: <OnboardingGuard><Home /></OnboardingGuard>,
+      },
+      {
+        path: "organization-profile",
+        element: <OnboardingGuard><OrganizationProfile /></OnboardingGuard>,
+      },
+      {
+        path: "organization-verification/:organizationId",
+        element: <OnboardingGuard><OrganizationVerification /></OnboardingGuard>,
       },
       {
         path: "onboarding",
