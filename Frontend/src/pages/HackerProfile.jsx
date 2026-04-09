@@ -81,8 +81,8 @@ const HackerProfile = () => {
             certifications: (profile.certifications || []).join(", "),
             portfolioLinks: (profile.portfolioLinks || []).join(", "),
             specialization: profile.specialization || "",
-            github: profile.github || "",
-            linkedin: profile.linkedin || "",
+            github: profile.githubUsername || "",
+            linkedin: profile.linkedinProfile || "",
             twitter: profile.twitter || "",
           });
 
@@ -136,8 +136,19 @@ const HackerProfile = () => {
     setSaving(true);
 
     try {
+      if (form.bio.length < 10) {
+        setError("Bio must be at least 10 characters long.");
+        setSaving(false);
+        return;
+      }
+
       const payload = {
-        ...form,
+        bio: form.bio,
+        country: form.country,
+        specialization: form.specialization,
+        githubUsername: form.github,
+        linkedinProfile: form.linkedin,
+        twitter: form.twitter,
         primarySkills: form.primarySkills.split(",").map((s) => s.trim()).filter(Boolean),
         certifications: form.certifications.split(",").map((s) => s.trim()).filter(Boolean),
         portfolioLinks: form.portfolioLinks.split(",").map((s) => s.trim()).filter(Boolean),
