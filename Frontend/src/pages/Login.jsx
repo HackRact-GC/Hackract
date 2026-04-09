@@ -54,7 +54,6 @@ const Login = () => {
     const handleSubmit = async (e) => {
         e.preventDefault();
         try {
-<<<<<<< HEAD
             const result = await login(form);
             const primaryRole = result?.user?.roles?.[0]?.type;
             if (primaryRole === "PENTESTER" || primaryRole === "PROJECT_ADMIN") {
@@ -69,10 +68,8 @@ const Login = () => {
                 });
                 return;
             }
-=======
-            await login(form);
->>>>>>> origin/main
             navigate("/dashboard");
+
         } catch (error) {
             const errorCode = error?.response?.data?.code;
             const status = error?.response?.status;
