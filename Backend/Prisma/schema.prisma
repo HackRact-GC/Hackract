@@ -129,22 +129,12 @@ model HackerProfile {
   yearsOfExperience Int?
   primarySkills     String[]
   certifications    String[]
-<<<<<<< HEAD
   portfolioLinks    String[]
   specialization    String?
   idDocumentNumber  String?
   githubUsername    String?
   linkedinProfile   String?
   twitter           String?
-=======
-  specialization    String?
-  githubUsername    String?
-  linkedinProfile   String?
-  twitter           String?
-  idDocumentNumber  String?
-  portfolioLinks    String[]
-
->>>>>>> d1e361cc7304a7abf095728c412dea3b72048a71
 
   status      VerificationStatus @default(DRAFT)
   reviewNotes String?
@@ -608,7 +598,7 @@ model WorkflowHistory {
   @@index([userId])
   @@index([createdAt])
 }
-<<<<<<< HEAD
+
 
 // =====================================
 // 1️⃣8️⃣ Wallet (Escrow / Balance)
@@ -669,5 +659,4 @@ model Review {
   @@index([authorId])
   @@index([subjectId])
 }
-=======
->>>>>>> d1e361cc7304a7abf095728c412dea3b72048a71
+

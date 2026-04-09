@@ -163,6 +163,10 @@ const router = createBrowserRouter([
             element: <Register />,
           },
           {
+            path: "register/:role",
+            element: <Register />,
+          },
+          {
             path: "verify-email",
             element: <VerifyEmail />,
           },
