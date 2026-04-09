@@ -27,9 +27,10 @@ const VerifyEmail = () => {
   }, [searchParams]);
 
   const initialEmail = useMemo(() => {
+    const emailFromUrl = searchParams.get("email");
     const emailFromState = location?.state?.email;
-    return typeof emailFromState === "string" ? emailFromState : "";
-  }, [location?.state?.email]);
+    return typeof emailFromState === "string" ? emailFromState : (emailFromUrl || "");
+  }, [location?.state?.email, searchParams]);
 
   const [form, setForm] = useState({ email: initialEmail, code: tokenFromUrl || "" });
 
@@ -139,7 +140,7 @@ const VerifyEmail = () => {
             Go to login
           </Link>
           <Link
-            to="/register/hacker"
+            to="/register"
             className="px-4 py-2 border border-gray-900 text-gray-900 rounded-sm font-bold uppercase tracking-widest hover:bg-gray-900 hover:text-white transition-all duration-300"
           >
             Register

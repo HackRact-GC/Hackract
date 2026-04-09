@@ -1,4 +1,3 @@
-import "dotenv/config";
 import http from "http";
 import app from "./app.js";
 import { connectDatabase } from "./src/database/sqlConnection.js";
