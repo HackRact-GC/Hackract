@@ -3,7 +3,7 @@ import { motion } from "framer-motion";
 import { 
   FiShield, FiUsers, FiAlertCircle, FiArrowRight, 
   FiExternalLink, FiChevronDown, FiPlus, FiEye, 
-  FiBarChart2, FiActivity, FiGlobe, FiClock
+  FiBarChart2, FiActivity, FiGlobe, FiClock, FiTarget
 } from "react-icons/fi";
 
 // ─── Stat Card Component ──────────────────────────────────────────────────────
@@ -172,13 +172,7 @@ const VulnerabilityTrend = () => {
 const OrganizationDashboard = () => {
   return (
     <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
-      {/* Top Header Row for internal tab branding */}
-      <div className="flex items-end justify-between mb-2">
-        <div className="space-y-1">
-          <p className="text-[10px] font-mono text-[#00ff88] font-black tracking-[0.4em] uppercase opacity-70">Integrated Mission Control</p>
-          <h2 className="text-3xl font-black text-white uppercase tracking-tight">Root Command</h2>
-        </div>
-      </div>
+
 
       {/* STATS GRID */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-8">

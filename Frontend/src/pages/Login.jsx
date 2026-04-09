@@ -64,10 +64,10 @@ const Login = () => {
                 return;
             }
             if (primaryRole === "ORG_ADMIN") {
-                navigate("/org-dashboard", { replace: true });
+                navigate("/dashboard", { replace: true });
                 return;
             }
-            navigate("/dashboard", { replace: true });
+            navigate("/hacker-dashboard", { replace: true });
         } catch (error) {
             const errorCode = error?.response?.data?.code;
             const status = error?.response?.status;
