@@ -48,9 +48,11 @@ export const upsertMyProfile = async (userId, payload) => {
     portfolioLinks: toArray(payload.portfolioLinks),
 
     // Extended identity fields
-    idDocumentNumber: payload.idDocumentNumber || null,
+    specialization: payload.specialization || null,
     githubUsername: payload.githubUsername || null,
     linkedinProfile: payload.linkedinProfile || null,
+    twitter: payload.twitter || null,
+    idDocumentNumber: payload.idDocumentNumber || null,
 
     status: nextStatus,
   };
