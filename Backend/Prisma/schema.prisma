@@ -99,11 +99,6 @@ model User {
   refreshTokens           RefreshToken[]
   workflowHistories       WorkflowHistory[]
   findingComments         FindingComment[]
-  
-  wallet                  Wallet?
-  transactions            Transaction[]
-  reviewsWritten          Review[] @relation("ReviewAuthor")
-  reviewsReceived         Review[] @relation("ReviewSubject")
 
   // Hacker profile (for PENTESTER users)
   hackerProfile          HackerProfile?
@@ -129,17 +124,27 @@ model HackerProfile {
   user   User   @relation(fields: [userId], references: [id])
   userId String @unique
 
-  bio               String?
+  bio               String
   country           String?
   yearsOfExperience Int?
   primarySkills     String[]
   certifications    String[]
+<<<<<<< HEAD
   portfolioLinks    String[]
   specialization    String?
   idDocumentNumber  String?
   githubUsername    String?
   linkedinProfile   String?
   twitter           String?
+=======
+  specialization    String?
+  githubUsername    String?
+  linkedinProfile   String?
+  twitter           String?
+  idDocumentNumber  String?
+  portfolioLinks    String[]
+
+>>>>>>> d1e361cc7304a7abf095728c412dea3b72048a71
 
   status      VerificationStatus @default(DRAFT)
   reviewNotes String?
@@ -254,12 +259,9 @@ model Pentest {
   description String?
   status      PentestStatus @default(PLANNING)
 
-  // Personal workspace flag — true for solo hacker projects, no org required
-  isPersonal Boolean @default(false)
-
   // Relations
-  organization   Organization? @relation(fields: [organizationId], references: [id])
-  organizationId String?
+  organization   Organization @relation(fields: [organizationId], references: [id])
+  organizationId String
 
   leadPentester   User?   @relation("LeadPentester", fields: [leadPentesterId], references: [id])
   leadPentesterId String?
@@ -277,7 +279,6 @@ model Pentest {
   @@index([organizationId])
   @@index([leadPentesterId])
   @@index([status])
-  @@index([isPersonal])
 }
 
 // =====================================
@@ -607,6 +608,7 @@ model WorkflowHistory {
   @@index([userId])
   @@index([createdAt])
 }
+<<<<<<< HEAD
 
 // =====================================
 // 1️⃣8️⃣ Wallet (Escrow / Balance)
@@ -667,3 +669,5 @@ model Review {
   @@index([authorId])
   @@index([subjectId])
 }
+=======
+>>>>>>> d1e361cc7304a7abf095728c412dea3b72048a71
