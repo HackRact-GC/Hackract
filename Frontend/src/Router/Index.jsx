@@ -1,3 +1,5 @@
+// src/routes/index.jsx
+
 import { createBrowserRouter, Navigate } from "react-router-dom";
 import App from "../App.jsx";
 import AuthLayout from "../layouts/AuthLayout.jsx";
@@ -9,21 +11,22 @@ import Landing from "../pages/Landing.jsx";
 import ForgotPassword from "../pages/ForgotPassword.jsx";
 import ResetPassword from "../pages/ResetPassword.jsx";
 import HackerProfile from "../pages/HackerProfile.jsx";
+import OrganizationProfile from "../pages/OrganizationProfile.jsx";
+import WorkflowEditor from "../pages/WorkflowEditor/WorkflowEditor.jsx";
+import HackerVerification from "../pages/HackerVerification.jsx";
+import OrganizationVerification from "../pages/OrganizationVerification.jsx";
+import ErrorPage from "../pages/ErrorPage.jsx";
+import Projects from "../pages/Projects.jsx";
+import ProjectWorkspace from "../pages/ProjectWorkspace.jsx";
+import FindingDetails from "../pages/FindingDetails.jsx";
 import HackerLayout from "../layouts/HackerLayout.jsx";
 import OrganizationLayout from "../layouts/OrganizationLayout.jsx";
 import OrganizationDashboard from "../pages/OrganizationDashboard.jsx";
 import Reports from "../pages/Reports.jsx";
-import ErrorPage from "../pages/ErrorPage.jsx";
-import HackerVerification from "../pages/HackerVerification.jsx";
-import FindingDetails from "../pages/FindingDetails.jsx";
-import OrganizationProfile from "../pages/OrganizationProfile.jsx";
-import OrganizationVerification from "../pages/OrganizationVerification.jsx";
-import WorkflowEditor from "../pages/WorkflowEditor/WorkflowEditor.jsx";
 
 // Phase 2 Marketplace Imports
 import EngagementBoard from "../pages/EngagementBoard.jsx";
 import MyApplications from "../pages/MyApplications.jsx";
-import Projects from "../pages/Projects.jsx";
 
 // Phase 17 Onboarding Imports
 import OnboardingGuard from "../components/OnboardingGuard.jsx";
@@ -35,8 +38,9 @@ import OrgOnboarding from "../pages/Onboarding/OrgOnboarding.jsx";
 import ApprovalsDashboard from "../pages/Admin/ApprovalsDashboard.jsx";
 import OperatorReview from "../pages/Admin/OperatorReview.jsx";
 import OrgReview from "../pages/Admin/OrgReview.jsx";
-import DashboardPreview from "../pages/DashboardPreview.jsx";
 
+// Optional (only if you really have this file)
+import DashboardPreview from "../pages/DashboardPreview.jsx";
 
 const router = createBrowserRouter([
   {
@@ -69,8 +73,16 @@ const router = createBrowserRouter([
             element: <HackerVerification />,
           },
           {
+            path: "workflows/:workflowId",
+            element: <WorkflowEditor />,
+          },
+          {
             path: "projects",
             element: <Projects />,
+          },
+          {
+            path: "projects/:projectId",
+            element: <ProjectWorkspace />,
           },
           {
             path: "findings/:findingId",
@@ -114,21 +126,17 @@ const router = createBrowserRouter([
         element: <OnboardingGuard><OrganizationVerification /></OnboardingGuard>,
       },
       {
-        path: "workflows/:workflowId",
-        element: <OnboardingGuard><WorkflowEditor /></OnboardingGuard>,
-      },
-      {
         path: "onboarding",
         element: <OnboardingGuard><OnboardingLayout /></OnboardingGuard>,
         children: [
-            {
-                path: "hacker",
-                element: <HackerOnboarding />,
-            },
-            {
-                path: "organization",
-                element: <OrgOnboarding />,
-            }
+          {
+            path: "hacker",
+            element: <HackerOnboarding />,
+          },
+          {
+            path: "organization",
+            element: <OrgOnboarding />,
+          }
         ]
       },
       {
@@ -152,14 +160,6 @@ const router = createBrowserRouter([
           },
           {
             path: "register",
-            element: <Navigate to="/register/hacker" replace />,
-          },
-          {
-            path: "register/hacker",
-            element: <Register />,
-          },
-          {
-            path: "register/organization",
             element: <Register />,
           },
           {
