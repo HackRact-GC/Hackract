@@ -169,11 +169,8 @@ export const AuthProvider = ({ children }) => {
       refreshTokens,
       setUser,
     }),
-<<<<<<< HEAD
     [user, accessToken, refreshToken, loading, isBootstrapping, login, register, logout, refreshTokens, fetchProfile]
-=======
-    [user, accessToken, refreshToken, loading, isBootstrapping, login, register, logout, refreshTokens]
->>>>>>> origin/main
+
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

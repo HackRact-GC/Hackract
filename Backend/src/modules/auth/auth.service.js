@@ -65,11 +65,8 @@ const slugify = (value) =>
         .replace(/\s+/g, '-')
         .replace(/-+/g, '-')
         .trim();
-<<<<<<< HEAD
 
 
-=======
->>>>>>> origin/main
 class AuthService {
     validateOrganizationEmail(email) {
         const { ok, domain } = isCompanyEmail(email);
@@ -234,12 +231,8 @@ class AuthService {
     async sendVerification(user, meta) {
         const verification = await this.createEmailVerificationToken(user.id);
         const frontendBase = process.env.FRONTEND_BASE_URL || 'http://localhost:5173';
-<<<<<<< HEAD
-
-        const verifyUrl = `${frontendBase}/verify-email?token=${encodeURIComponent(verification.token)}`;
-=======
         const verifyUrl = `${frontendBase}/verify-email?email=${encodeURIComponent(user.email)}&token=${encodeURIComponent(verification.token)}`;
->>>>>>> origin/main
+
 
         if (process.env.NODE_ENV === 'development') {
             console.log(`\n=========================================`);
@@ -249,11 +242,8 @@ class AuthService {
             console.log(`Link:  ${verifyUrl}`);
             console.log(`=========================================\n`);
         }
-<<<<<<< HEAD
 
 
-=======
->>>>>>> origin/main
         let delivered = true;
         try {
             await sendVerificationEmail({
@@ -277,23 +267,11 @@ class AuthService {
             throw new AppError('Verification code is required', 400, AuthErrorCodes.VERIFICATION_TOKEN_INVALID);
         }
 
-<<<<<<< HEAD
-
-        const record = email
-            ? await prisma.emailVerificationToken.findFirst({
-                where: { token, user: { email: email.toLowerCase() } },
-                include: { user: { include: USER_PROFILE_INCLUDE } },
-            })
-            : await prisma.emailVerificationToken.findUnique({
-                where: { token },
-                include: { user: { include: USER_PROFILE_INCLUDE } },
-            });
-=======
         const record = await prisma.emailVerificationToken.findFirst({
             where: { token, user: { email: email?.toLowerCase() } },
             include: { user: { include: USER_PROFILE_INCLUDE } },
         });
->>>>>>> origin/main
+
 
         if (!record) {
             throw new AppError('Invalid or expired verification token', 400, AuthErrorCodes.VERIFICATION_TOKEN_INVALID);
@@ -440,10 +418,8 @@ class AuthService {
 
         const passwordHash = await bcrypt.hash(payload.password, SALT_ROUNDS);
 
-<<<<<<< HEAD
 
-=======
->>>>>>> origin/main
+
         const { user, organization } = await prisma.$transaction(async (tx) => {
             const selectedRole = await tx.role.upsert({
                 where: { type: requestedRoleType },
@@ -467,11 +443,8 @@ class AuthService {
                     provider: 'local',
                     status: process.env.NODE_ENV === 'development' ? 'ACTIVE' : 'PENDING',
                     isVerified: process.env.NODE_ENV === 'development',
-<<<<<<< HEAD
-                    roles: selectedRole ? { connect: { id: selectedRole.id } } : undefined,
-=======
                     roles: { connect: { id: selectedRole.id } },
->>>>>>> origin/main
+
                 },
                 include: USER_PROFILE_INCLUDE,
             });
@@ -523,10 +496,8 @@ class AuthService {
             }
 
             return { user: createdUser, organization: createdOrganization };
-<<<<<<< HEAD
 
-=======
->>>>>>> origin/main
+
         });
 
         const verification = await this.sendVerification(user, meta);
