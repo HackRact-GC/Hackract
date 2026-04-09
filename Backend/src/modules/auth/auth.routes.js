@@ -75,7 +75,6 @@ router.post('/local/login', validate(loginSchema), controller.loginLocal);
 router.post('/local/refresh', validate(refreshTokenSchema), controller.refreshToken);
 
 router.post('/verify-email', validate(verifyEmailSchema), controller.verifyEmail);
-
 /**
  * @swagger
  * /api/v1/auth/forgot-password:
@@ -131,7 +130,7 @@ router.get('/local/me', validateLocal, controller.getMe);
  *       200:
  *         description: Logged out successfully
  */
-router.post('/logout', protect, controller.logout);
+router.post('/logout', controller.logout);
 
 /**
  * @swagger
