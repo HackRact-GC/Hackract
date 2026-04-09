@@ -13,6 +13,12 @@ import HackerLayout from "../layouts/HackerLayout.jsx";
 import OrganizationLayout from "../layouts/OrganizationLayout.jsx";
 import OrganizationDashboard from "../pages/OrganizationDashboard.jsx";
 import Reports from "../pages/Reports.jsx";
+import ErrorPage from "../pages/ErrorPage.jsx";
+import HackerVerification from "../pages/HackerVerification.jsx";
+import FindingDetails from "../pages/FindingDetails.jsx";
+import OrganizationProfile from "../pages/OrganizationProfile.jsx";
+import OrganizationVerification from "../pages/OrganizationVerification.jsx";
+import WorkflowEditor from "../pages/WorkflowEditor/WorkflowEditor.jsx";
 
 // Phase 2 Marketplace Imports
 import EngagementBoard from "../pages/EngagementBoard.jsx";

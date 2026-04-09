@@ -135,18 +135,11 @@ model HackerProfile {
   primarySkills     String[]
   certifications    String[]
   portfolioLinks    String[]
-<<<<<<< HEAD
   specialization    String?
-  github            String?
-  linkedin          String?
+  idDocumentNumber  String?
+  githubUsername    String?
+  linkedinProfile   String?
   twitter           String?
-=======
-
-  // Extended identity fields
-  idDocumentNumber String?
-  githubUsername   String?
-  linkedinProfile  String?
->>>>>>> 29cf968ad6e921e78b6c17cae03c9ce911d6c293
 
   status      VerificationStatus @default(DRAFT)
   reviewNotes String?
@@ -616,21 +609,13 @@ model WorkflowHistory {
 }
 
 // =====================================
-<<<<<<< HEAD
-// 1️⃣8️⃣ Wallet
-=======
 // 1️⃣8️⃣ Wallet (Escrow / Balance)
->>>>>>> 29cf968ad6e921e78b6c17cae03c9ce911d6c293
 // =====================================
 model Wallet {
   id      String @id @default(uuid())
   balance Float  @default(0)
 
-<<<<<<< HEAD
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
-=======
-  user   User   @relation(fields: [userId], references: [id])
->>>>>>> 29cf968ad6e921e78b6c17cae03c9ce911d6c293
   userId String @unique
 
   transactions Transaction[]
@@ -643,23 +628,14 @@ model Wallet {
 // 1️⃣9️⃣ Transaction
 // =====================================
 model Transaction {
-<<<<<<< HEAD
   id          String   @id @default(uuid())
-  type        String   // e.g. "CREDIT", "DEBIT", "PAYOUT"
+  type        String   // e.g. "CREDIT", "DEBIT", "PAYOUT", "ESCROW_HOLD", "ESCROW_RELEASE"
   amount      Float
   description String?
+  status      String   @default("COMPLETED")
   reference   String?
 
   wallet   Wallet @relation(fields: [walletId], references: [id], onDelete: Cascade)
-=======
-  id          String  @id @default(uuid())
-  amount      Float
-  type        String  // e.g. "CREDIT", "DEBIT", "ESCROW_HOLD", "ESCROW_RELEASE"
-  description String?
-  status      String  @default("COMPLETED")
-
-  wallet   Wallet @relation(fields: [walletId], references: [id])
->>>>>>> 29cf968ad6e921e78b6c17cae03c9ce911d6c293
   walletId String
 
   user   User   @relation(fields: [userId], references: [id])
@@ -676,17 +652,10 @@ model Transaction {
 // =====================================
 model Review {
   id      String @id @default(uuid())
-<<<<<<< HEAD
   rating  Int    // 1-5 stars
   comment String?
 
   author   User   @relation("ReviewAuthor", fields: [authorId], references: [id])
-=======
-  rating  Int    // 1–5
-  comment String?
-
-  author   User   @relation("ReviewAuthor",  fields: [authorId],  references: [id])
->>>>>>> 29cf968ad6e921e78b6c17cae03c9ce911d6c293
   authorId String
 
   subject   User   @relation("ReviewSubject", fields: [subjectId], references: [id])
