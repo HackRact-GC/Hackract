@@ -1,5 +1,7 @@
+import { PrismaClient } from '@prisma/client';
 import asyncHandler from 'express-async-handler';
-import prisma from '../../database/prismaClient.js';
+
+const prisma = new PrismaClient();
 
 // Create a new Workflow
 export const create = asyncHandler(async (req, res) => {
@@ -40,16 +42,16 @@ export const get = asyncHandler(async (req, res) => {
   const workflow = await prisma.workflow.findUnique({
     where: { id },
     include: {
-        pentest: {
-            include: {
-                findings: {
-                    select: { id: true, title: true, severity: true, status: true }
-                },
-                collaborators: {
-                    select: { userId: true, role: true }
-                }
-            }
+      pentest: {
+        include: {
+          findings: {
+            select: { id: true, title: true, severity: true, status: true }
+          },
+          collaborators: {
+            select: { userId: true, role: true }
+          }
         }
+      }
     }
   });
 
