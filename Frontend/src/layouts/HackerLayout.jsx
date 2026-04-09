@@ -30,7 +30,7 @@ const HackerLayout = () => {
   const userInitial = displayName[0]?.toUpperCase() || 'H';
 
   const navItems = [
-    { icon: FiGrid,       label: 'Dashboard',   route: '/dashboard' },
+    { icon: FiGrid,       label: 'Dashboard',   route: '/hacker-dashboard' },
     { icon: FiFolder,     label: 'Projects',    route: '/projects' },
     { icon: FiShoppingBag,label: 'Engagements', route: '/engagements' },
     { icon: FiFileText,   label: 'Reports',     route: '/my-applications' },
@@ -38,7 +38,7 @@ const HackerLayout = () => {
   ];
 
   const isActive = (route) => {
-    if (route === '/dashboard') return location.pathname === '/dashboard';
+    if (route === '/hacker-dashboard') return location.pathname === '/hacker-dashboard';
     return location.pathname.startsWith(route);
   };
 
@@ -63,7 +63,7 @@ const HackerLayout = () => {
           <div className="p-6 flex justify-between items-center">
             <h1
               className="text-2xl font-bold tracking-wider text-[#00ff88] cursor-pointer"
-              onClick={() => navigate('/dashboard')}
+              onClick={() => navigate('/hacker-dashboard')}
             >
               Hackract
             </h1>
