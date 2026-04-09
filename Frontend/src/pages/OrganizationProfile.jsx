@@ -435,7 +435,7 @@ const OrganizationProfile = () => {
 
       <header className="h-20 bg-black/40 backdrop-blur-3xl border-b border-white/5 flex items-center px-10 sticky top-0 z-[60] gap-8">
         <div className="flex items-center gap-3">
-          <button onClick={() => navigate("/organization-dashboard")} className="text-[10px] font-mono font-black text-gray-500 hover:text-[#00ff88] transition-colors uppercase tracking-[0.2em]">Dashboard</button>
+          <button onClick={() => navigate("/dashboard")} className="text-[10px] font-mono font-black text-gray-500 hover:text-[#00ff88] transition-colors uppercase tracking-[0.2em]">Dashboard</button>
           <Icons.ChevronRight />
           <span className="text-[10px] font-mono font-black text-white uppercase tracking-[0.2em] opacity-80">Entity Strategy Control</span>
         </div>
@@ -506,7 +506,7 @@ const OrganizationProfile = () => {
             ))}
             
             <button
-              onClick={() => navigate("/organization-dashboard")}
+              onClick={() => navigate("/dashboard")}
               className="w-full flex items-center gap-5 px-8 py-4.5 rounded-[24px] text-[10px] font-mono font-black text-gray-600 hover:text-rose-500 hover:bg-rose-500/5 transition-all uppercase tracking-widest mt-12 border border-transparent hover:border-rose-500/10"
             >
               <Icons.LogOut /> 

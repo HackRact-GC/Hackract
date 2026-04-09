@@ -61,7 +61,7 @@ const router = createBrowserRouter([
         element: <OnboardingGuard><HackerLayout /></OnboardingGuard>,
         children: [
           {
-            path: "dashboard",
+            path: "hacker-dashboard",
             element: <DashboardPreview />,
           },
           {
@@ -72,10 +72,7 @@ const router = createBrowserRouter([
             path: "hacker-verification",
             element: <HackerVerification />,
           },
-          {
-            path: "workflows/:workflowId",
-            element: <WorkflowEditor />,
-          },
+
           {
             path: "projects",
             element: <Projects />,
@@ -108,7 +105,7 @@ const router = createBrowserRouter([
         element: <OnboardingGuard><OrganizationLayout /></OnboardingGuard>,
         children: [
           {
-            path: "org-dashboard",
+            path: "dashboard",
             element: <OrganizationDashboard />,
           },
           {
@@ -150,6 +147,10 @@ const router = createBrowserRouter([
       {
         path: "admin/approvals/org/:id",
         element: <OnboardingGuard><OrgReview /></OnboardingGuard>,
+      },
+      {
+        path: "workflows/:workflowId",
+        element: <OnboardingGuard><WorkflowEditor /></OnboardingGuard>,
       },
       {
         element: <AuthLayout />,

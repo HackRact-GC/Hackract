@@ -18,7 +18,7 @@ const OrganizationLayout = () => {
   const userInitial = user?.fullName?.[0]?.toUpperCase() || user?.email?.[0]?.toUpperCase() || "O";
 
   const navItems = [
-    { icon: FiGrid, label: 'DASHBOARD', route: '/org-dashboard' },
+    { icon: FiGrid, label: 'DASHBOARD', route: '/dashboard' },
     { icon: FiBriefcase, label: 'PROJECTS', route: '/projects' },
     { icon: FiGlobe, label: 'DISCOVER', route: '/discover' },
     { icon: FiShield, label: 'LEGAL', route: '/legal' },
