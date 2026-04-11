@@ -11,8 +11,8 @@ const StartingPointNode = ({ data, selected }) => {
       {showPresence && (
         <div className="absolute -top-6 right-0 flex -space-x-2">
           {activeUsers.map((u, i) => (
-            <div 
-              key={i} 
+            <div
+              key={i}
               className="w-5 h-5 rounded-full border-2 border-[#0b0f19] flex items-center justify-center text-[10px] font-bold text-white shadow-lg animate-bounce"
               style={{ backgroundColor: u.color || '#00ff88' }}
               title={u.user}
@@ -29,13 +29,13 @@ const StartingPointNode = ({ data, selected }) => {
           <span className="font-bold">Starting Point</span>
         </div>
         <div className="flex items-center gap-2">
-          <input 
-            className="bg-transparent border-none text-right focus:outline-none text-gray-400 text-xs placeholder-gray-600 w-[120px]" 
+          <input
+            className="bg-transparent border-none text-right focus:outline-none text-gray-400 text-xs placeholder-gray-600 w-[120px]"
             placeholder="Scan Title..."
             defaultValue={data.label || ''}
             onBlur={(e) => data.onTitleChange && data.onTitleChange(e.target.value)}
           />
-          <button 
+          <button
             className="text-gray-500 hover:text-red-500 transition-colors cursor-pointer"
             onClick={() => data.onDelete && data.onDelete()}
             title="Delete Node"
@@ -50,8 +50,8 @@ const StartingPointNode = ({ data, selected }) => {
         <div>
           <label className="block text-[#00ff88] text-xs mb-1">Provide IP/Host address:</label>
           <div className="flex gap-2">
-            <input 
-              type="text" 
+            <input
+              type="text"
               placeholder="example.com"
               className="flex-1 bg-[#161a23] border border-gray-600 rounded px-2 py-1 text-gray-300 focus:outline-none focus:border-[#00ff88]"
               defaultValue={data.host || ''}

@@ -15,7 +15,7 @@ const WorkspaceView = ({ projectId, onBack }) => {
   const [project, setProject] = useState(null);
   const [activeTab, setActiveTab] = useState("overview");
   const [loading, setLoading] = useState(true);
-  
+
   const workspaceName = project?.name || "Project Workspace";
 
   const loadProject = async () => {
@@ -38,12 +38,12 @@ const WorkspaceView = ({ projectId, onBack }) => {
     () => project?.collaborators?.find((c) => c.role === "PROJECT_ADMIN"),
     [project]
   );
-  
+
   const hackers = useMemo(
     () => project?.collaborators?.filter((c) => c.role === "HACKER") || [],
     [project]
   );
-  
+
   const applicants = useMemo(
     () => project?.collaborators?.filter((c) => c.role === "APPLICANT") || [],
     [project]
@@ -88,7 +88,7 @@ const WorkspaceView = ({ projectId, onBack }) => {
 
   return (
     <NdaGate projectId={projectId}>
-      <motion.div 
+      <motion.div
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
         className="space-y-8"
@@ -141,7 +141,7 @@ const WorkspaceView = ({ projectId, onBack }) => {
                       {project.description || "Mission parameters are currently classified."}
                     </p>
                   </div>
-                  
+
                   <div className="pt-6 border-t border-white/5 space-y-4">
                     <h3 className="text-xs font-black text-white/40 uppercase tracking-[0.2em]">Authorized Team</h3>
                     <div className="space-y-3">
@@ -208,7 +208,7 @@ const WorkspaceView = ({ projectId, onBack }) => {
                     <FiFileText className="text-[#00ff88]" /> Operative Discoveries
                   </h3>
                   {canManage && project.findings?.length > 0 && (
-                    <button 
+                    <button
                       onClick={async () => {
                         try {
                           const { data } = await api.get(`/findings/project/${projectId}/report`);
@@ -232,8 +232,8 @@ const WorkspaceView = ({ projectId, onBack }) => {
                 ) : (
                   <div className="grid gap-4">
                     {project.findings.map((f) => (
-                      <div 
-                        key={f.id} 
+                      <div
+                        key={f.id}
                         onClick={() => navigate(`/findings/${f.id}`)}
                         className="group bg-black border border-white/5 p-6 rounded-3xl hover:border-[#00ff88]/30 transition-all cursor-pointer flex items-center justify-between"
                       >

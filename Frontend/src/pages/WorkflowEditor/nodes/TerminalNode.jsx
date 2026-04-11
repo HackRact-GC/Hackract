@@ -11,8 +11,8 @@ const TerminalNode = ({ data, selected }) => {
       {showPresence && (
         <div className="absolute -top-6 right-0 flex -space-x-2">
           {activeUsers.map((u, i) => (
-            <div 
-              key={i} 
+            <div
+              key={i}
               className="w-5 h-5 rounded-full border-2 border-[#0b0f19] flex items-center justify-center text-[10px] font-bold text-white shadow-lg animate-bounce"
               style={{ backgroundColor: u.color || '#00ff88' }}
               title={u.user}
@@ -28,13 +28,13 @@ const TerminalNode = ({ data, selected }) => {
           <span className="font-bold text-xs uppercase tracking-tighter">Terminal</span>
         </div>
         <div className="flex items-center gap-2">
-          <input 
-            className="bg-transparent border-none text-right focus:outline-none text-gray-500 text-xs placeholder-gray-700 w-[120px]" 
+          <input
+            className="bg-transparent border-none text-right focus:outline-none text-gray-500 text-xs placeholder-gray-700 w-[120px]"
             placeholder="Process title..."
             defaultValue={data.label || ''}
             onBlur={(e) => data.onTitleChange && data.onTitleChange(e.target.value)}
           />
-          <button 
+          <button
             className="text-gray-500 hover:text-red-500 transition-colors cursor-pointer"
             onClick={() => data.onDelete && data.onDelete()}
           >
@@ -60,8 +60,8 @@ const TerminalNode = ({ data, selected }) => {
               <span>Evidence Link</span>
             </div>
           </div>
-          
-          <select 
+
+          <select
             className="w-full bg-black/50 border border-gray-800 text-[10px] p-1.5 rounded focus:outline-none text-gray-400"
             value={data.findingId || ''}
             onChange={(e) => data.onLinkFinding && data.onLinkFinding(e.target.value)}

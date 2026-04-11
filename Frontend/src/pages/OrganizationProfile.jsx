@@ -102,7 +102,7 @@ const Field = ({ label, required, children, hint }) => (
   <div className="flex flex-col gap-2">
     <label className="text-[10px] font-mono font-black text-gray-500 uppercase tracking-[0.2em] flex items-center gap-1.5 ml-1">
       {label}
-      {required && <span className="text-[#00ff88]/60 text-xs">*</span>}
+      {required && <span className="text-[#00c477]/60 text-xs">*</span>}
     </label>
     {children}
     {hint && <p className="text-[9px] font-mono text-gray-600 leading-relaxed uppercase tracking-widest pl-1">{hint}</p>}
@@ -112,14 +112,14 @@ const Field = ({ label, required, children, hint }) => (
 const Input = ({ icon: IconComp, ...props }) => (
   <div className="relative group">
     {IconComp && (
-      <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-600 group-focus-within:text-[#00ff88] transition-colors pointer-events-none">
+      <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-600 group-focus-within:text-[#00c477] transition-colors pointer-events-none">
         <IconComp />
       </span>
     )}
     <input
       {...props}
       className={`w-full border border-white/10 rounded-[20px] bg-white/[0.02] text-sm text-white placeholder-gray-600
-        focus:outline-none focus:border-[#00ff88]/50 focus:ring-1 focus:ring-[#00ff88]/20 transition-all font-mono
+        focus:outline-none focus:border-[#00c477]/50 focus:ring-1 focus:ring-[#00c477]/20 transition-all font-mono
         py-3.5 ${IconComp ? "pl-12 pr-4" : "px-5"}`}
     />
   </div>
@@ -128,7 +128,7 @@ const Input = ({ icon: IconComp, ...props }) => (
 const Select = ({ children, ...props }) => (
   <select
     {...props}
-    className="w-full border border-white/10 rounded-[20px] bg-white/[0.02] text-sm text-white focus:outline-none focus:border-[#00ff88]/50 focus:ring-1 focus:ring-[#00ff88]/20 transition-all px-5 py-3.5 cursor-pointer font-mono appearance-none"
+    className="w-full border border-white/10 rounded-[20px] bg-white/[0.02] text-sm text-white focus:outline-none focus:border-[#00c477]/50 focus:ring-1 focus:ring-[#00c477]/20 transition-all px-5 py-3.5 cursor-pointer font-mono appearance-none"
   >
     {children}
   </select>
@@ -140,10 +140,10 @@ const SectionCard = ({ title, subtitle, children }) => (
     animate={{ opacity: 1, y: 0 }}
     className="bg-white/[0.02] border border-white/5 rounded-[40px] overflow-hidden mb-10 relative group shadow-2xl"
   >
-    <div className="absolute top-0 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-[#00ff88]/20 to-transparent" />
+    <div className="absolute top-0 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-[#00c477]/20 to-transparent" />
     {(title || subtitle) && (
       <div className="px-10 py-6 border-b border-white/5 bg-white/[0.01]">
-        <h3 className="text-[11px] font-mono font-black text-white uppercase tracking-[0.3em] group-hover:text-[#00ff88] transition-colors">{title}</h3>
+        <h3 className="text-[11px] font-mono font-black text-white uppercase tracking-[0.3em] group-hover:text-[#00c477] transition-colors">{title}</h3>
         {subtitle && <p className="text-[9px] font-mono text-gray-600 mt-1 uppercase tracking-widest">{subtitle}</p>}
       </div>
     )}
@@ -153,7 +153,7 @@ const SectionCard = ({ title, subtitle, children }) => (
 
 const StatBadge = ({ label, value, color = "indigo" }) => {
   const colors = {
-    indigo: "bg-[#00ff88]/10 text-[#00ff88] border-[#00ff88]/20",
+    indigo: "bg-[#00c477]/10 text-[#00c477] border-[#00c477]/20",
     green:  "bg-emerald-500/10 text-emerald-400 border-emerald-500/20",
     amber:  "bg-amber-500/10 text-amber-400 border-amber-500/20",
     rose:   "bg-rose-500/10 text-rose-400 border-rose-500/20",
@@ -296,8 +296,8 @@ const OrganizationProfile = () => {
     return (
       <div className="min-h-screen flex items-center justify-center bg-[#050505]">
         <div className="flex flex-col items-center gap-6">
-          <div className="w-12 h-12 rounded-full border-2 border-white/5 border-t-[#00ff88] animate-spin shadow-[0_0_20px_rgba(0,255,136,0.2)]" />
-          <p className="text-[10px] font-mono font-black text-[#00ff88] uppercase tracking-[0.4em] animate-pulse">Scanning Entity Data...</p>
+          <div className="w-12 h-12 rounded-full border-2 border-white/5 border-t-[#00c477] animate-spin shadow-[0_0_20px_rgba(0,255,136,0.2)]" />
+          <p className="text-[10px] font-mono font-black text-[#00c477] uppercase tracking-[0.4em] animate-pulse">Scanning Entity Data...</p>
         </div>
       </div>
     );
@@ -309,7 +309,7 @@ const OrganizationProfile = () => {
     if (activeNav !== "profile") {
       return (
         <div className="flex flex-col items-center justify-center h-96 text-center bg-white/[0.01] border border-white/5 rounded-[48px] shadow-inner">
-          <div className="w-20 h-20 rounded-3xl bg-[#00ff88]/10 flex items-center justify-center mb-6 text-[#00ff88] shadow-lg">
+          <div className="w-20 h-20 rounded-3xl bg-[#00c477]/10 flex items-center justify-center mb-6 text-[#00c477] shadow-lg">
             {NAV_ITEMS.find((n) => n.key === activeNav)?.Icon?.()}
           </div>
           <h3 className="text-sm font-black text-white font-mono uppercase tracking-[0.4em]">{activeNav} Zone</h3>
@@ -340,7 +340,7 @@ const OrganizationProfile = () => {
               name="description" value={form.description} onChange={handleChange} rows={4}
               placeholder="Define organization scope and strategic objectives…"
               className="w-full border border-white/10 rounded-[24px] bg-white/[0.02] text-sm text-white placeholder-gray-600
-                focus:outline-none focus:border-[#00ff88]/50 focus:ring-1 focus:ring-[#00ff88]/20 transition-all px-5 py-4 resize-none font-mono"
+                focus:outline-none focus:border-[#00c477]/50 focus:ring-1 focus:ring-[#00c477]/20 transition-all px-5 py-4 resize-none font-mono"
             />
           </Field>
         </SectionCard>
@@ -382,8 +382,8 @@ const OrganizationProfile = () => {
                   onClick={() => setForm((p) => ({ ...p, size: s }))}
                   className={`rounded-[18px] border text-[10px] font-mono font-black py-3.5 px-4 transition-all uppercase tracking-widest
                     ${form.size === s
-                      ? "bg-[#00ff88] border-[#00ff88] text-black shadow-[0_0_20px_rgba(0,255,136,0.2)] scale-105"
-                      : "bg-white/[0.02] border-white/5 text-gray-600 hover:border-[#00ff88]/30 hover:text-white"
+                      ? "bg-[#00c477] border-[#00c477] text-black shadow-[0_0_20px_rgba(0,255,136,0.2)] scale-105"
+                      : "bg-white/[0.02] border-white/5 text-gray-600 hover:border-[#00c477]/30 hover:text-white"
                     }`}
                 >
                   {s}
@@ -407,7 +407,7 @@ const OrganizationProfile = () => {
         <div className="flex flex-wrap items-center gap-6 pt-2 bg-white/[0.01] p-10 rounded-[48px] border border-white/5 shadow-inner">
           <button
             type="submit" disabled={saving}
-            className="flex items-center gap-4 px-10 py-5 bg-[#00ff88] text-black rounded-[24px] text-[11px] font-mono font-black uppercase tracking-widest shadow-[0_0_30px_rgba(0,255,136,0.2)] hover:scale-105 transition-all disabled:opacity-60"
+            className="flex items-center gap-4 px-10 py-5 bg-[#00c477] text-black rounded-[24px] text-[11px] font-mono font-black uppercase tracking-widest shadow-[0_0_30px_rgba(0,255,136,0.2)] hover:scale-105 transition-all disabled:opacity-60"
           >
             {saving ? "Transmitting…" : <><Icons.Check /> Commit Profile</>}
           </button>
@@ -430,17 +430,17 @@ const OrganizationProfile = () => {
   };
 
   return (
-    <div className="min-h-screen bg-[#050505] font-sans text-white selection:bg-[#00ff88]/30 selection:text-[#00ff88] transition-colors">
-      <div className="fixed top-1/4 left-1/4 w-96 h-96 bg-[#00ff88]/5 rounded-full blur-[140px] pointer-events-none" />
+    <div className="min-h-screen bg-[#050505] font-sans text-white selection:bg-[#00c477]/30 selection:text-[#00c477] transition-colors">
+      <div className="fixed top-1/4 left-1/4 w-96 h-96 bg-[#00c477]/5 rounded-full blur-[140px] pointer-events-none" />
 
       <header className="h-20 bg-black/40 backdrop-blur-3xl border-b border-white/5 flex items-center px-10 sticky top-0 z-[60] gap-8">
         <div className="flex items-center gap-3">
-          <button onClick={() => navigate("/dashboard")} className="text-[10px] font-mono font-black text-gray-500 hover:text-[#00ff88] transition-colors uppercase tracking-[0.2em]">Dashboard</button>
+          <button onClick={() => navigate("/dashboard")} className="text-[10px] font-mono font-black text-gray-500 hover:text-[#00c477] transition-colors uppercase tracking-[0.2em]">Dashboard</button>
           <Icons.ChevronRight />
           <span className="text-[10px] font-mono font-black text-white uppercase tracking-[0.2em] opacity-80">Entity Strategy Control</span>
         </div>
         <div className="ml-auto flex items-center gap-6">
-          <div className="w-10 h-10 rounded-xl bg-black border border-[#00ff88]/30 text-[#00ff88] flex items-center justify-center font-mono font-black text-xs shadow-inner shadow-[#00ff88]/10">
+          <div className="w-10 h-10 rounded-xl bg-black border border-[#00c477]/30 text-[#00c477] flex items-center justify-center font-mono font-black text-xs shadow-inner shadow-[#00c477]/10">
             {initials(form.name)}
           </div>
         </div>
@@ -450,13 +450,13 @@ const OrganizationProfile = () => {
         {/* ── Sidebar ──────────────────────────────────────────────────────── */}
         <aside className="w-80 mt-12 shrink-0 space-y-2 sticky top-36 h-fit self-start">
           <div className="bg-white/[0.02] border border-white/5 rounded-[40px] p-10 mb-8 shadow-2xl flex flex-col items-center relative overflow-hidden group">
-            <div className="absolute top-0 right-0 w-24 h-24 bg-[#00ff88]/5 rounded-full -mr-12 -mt-12 blur-2xl group-hover:bg-[#00ff88]/10 transition-all" />
+            <div className="absolute top-0 right-0 w-24 h-24 bg-[#00c477]/5 rounded-full -mr-12 -mt-12 blur-2xl group-hover:bg-[#00c477]/10 transition-all" />
             <div className="relative group mb-8">
-              <div className="w-28 h-28 rounded-[36px] border border-white/10 bg-black/50 overflow-hidden shadow-inner flex items-center justify-center group-hover:border-[#00ff88]/30 transition-all">
+              <div className="w-28 h-28 rounded-[36px] border border-white/10 bg-black/50 overflow-hidden shadow-inner flex items-center justify-center group-hover:border-[#00c477]/30 transition-all">
                 {logoPreview ? (
                   <img src={logoPreview} alt="org logo" className="w-full h-full object-cover" />
                 ) : (
-                  <span className="text-3xl font-black text-[#00ff88] font-mono drop-shadow-[0_0_10px_#00ff88]">
+                  <span className="text-3xl font-black text-[#00c477] font-mono drop-shadow-[0_0_10px_#00c477]">
                     {initials(form.name)}
                   </span>
                 )}
@@ -464,7 +464,7 @@ const OrganizationProfile = () => {
               <button
                 type="button"
                 onClick={() => fileInputRef.current?.click()}
-                className="absolute -bottom-2 -right-2 w-10 h-10 rounded-[14px] bg-[#00ff88] text-black border-4 border-[#050505] shadow-2xl flex items-center justify-center hover:scale-110 transition-all z-10"
+                className="absolute -bottom-2 -right-2 w-10 h-10 rounded-[14px] bg-[#00c477] text-black border-4 border-[#050505] shadow-2xl flex items-center justify-center hover:scale-110 transition-all z-10"
                 title="Update Manifest"
               >
                 <Icons.Camera />
@@ -475,7 +475,7 @@ const OrganizationProfile = () => {
             <div className="text-center w-full">
               <p className="text-2xl font-black text-white truncate px-2 leading-none mb-1 uppercase tracking-tight">{displayName}</p>
               {form.slug && (
-                <p className="text-[10px] font-mono text-[#00ff88] uppercase tracking-[0.2em] mb-8 font-bold opacity-70">URN: /{form.slug}</p>
+                <p className="text-[10px] font-mono text-[#00c477] uppercase tracking-[0.2em] mb-8 font-bold opacity-70">URN: /{form.slug}</p>
               )}
               
               <div className="grid grid-cols-3 gap-3 w-full border-t border-white/5 pt-8">
@@ -493,15 +493,15 @@ const OrganizationProfile = () => {
                 onClick={() => setActiveNav(key)}
                 className={`w-full flex items-center gap-5 px-8 py-4.5 rounded-[24px] text-[11px] font-mono font-black uppercase tracking-[0.2em] transition-all relative overflow-hidden group
                   ${activeNav === key
-                    ? "bg-white/[0.04] text-[#00ff88] shadow-2xl border border-[#00ff88]/20 -translate-x-2"
+                    ? "bg-white/[0.04] text-[#00c477] shadow-2xl border border-[#00c477]/20 -translate-x-2"
                     : "text-gray-500 hover:bg-white/[0.02] hover:text-white hover:translate-x-1"
                   }`}
               >
-                <span className={activeNav === key ? "text-[#00ff88] drop-shadow-[0_0_8px_rgba(0,255,136,0.6)]" : "text-gray-600 group-hover:text-gray-400"}>
+                <span className={activeNav === key ? "text-[#00c477] drop-shadow-[0_0_8px_rgba(0,255,136,0.6)]" : "text-gray-600 group-hover:text-gray-400"}>
                   <Icon />
                 </span>
                 {label}
-                {activeNav === key && <div className="ml-auto w-1.5 h-1.5 rounded-full bg-[#00ff88] shadow-[0_0_10px_#00ff88] animate-pulse"/>}
+                {activeNav === key && <div className="ml-auto w-1.5 h-1.5 rounded-full bg-[#00c477] shadow-[0_0_10px_#00c477] animate-pulse"/>}
               </button>
             ))}
             

@@ -11,8 +11,8 @@ const AiNode = ({ data, selected }) => {
       {showPresence && (
         <div className="absolute -top-6 right-0 flex -space-x-2">
           {activeUsers.map((u, i) => (
-            <div 
-              key={i} 
+            <div
+              key={i}
               className="w-5 h-5 rounded-full border-2 border-[#0b0f19] flex items-center justify-center text-[10px] font-bold text-white shadow-lg animate-bounce"
               style={{ backgroundColor: u.color || '#00ff88' }}
               title={u.user}
@@ -28,13 +28,13 @@ const AiNode = ({ data, selected }) => {
           <span className="font-bold text-xs uppercase tracking-tighter">AI Assistant</span>
         </div>
         <div className="flex items-center gap-2">
-          <input 
-            className="bg-transparent border-none text-right focus:outline-none text-gray-500 text-xs placeholder-gray-700 w-[100px]" 
+          <input
+            className="bg-transparent border-none text-right focus:outline-none text-gray-500 text-xs placeholder-gray-700 w-[100px]"
             placeholder="Task name..."
             defaultValue={data.label || ''}
             onBlur={(e) => data.onTitleChange && data.onTitleChange(e.target.value)}
           />
-          <button 
+          <button
             className="text-gray-500 hover:text-red-500 transition-colors cursor-pointer"
             onClick={() => data.onDelete && data.onDelete()}
           >
@@ -45,7 +45,7 @@ const AiNode = ({ data, selected }) => {
 
       <div className="p-3 space-y-3">
         <div className="relative">
-          <textarea 
+          <textarea
             className="w-full h-20 bg-black border border-gray-800 text-gray-300 p-2 rounded resize-none focus:outline-none focus:border-[#00ff88]/50"
             placeholder="ask something..."
             defaultValue={data.prompt || ''}
@@ -55,7 +55,7 @@ const AiNode = ({ data, selected }) => {
             ➤
           </button>
         </div>
-        
+
         <button className="bg-transparent border border-[#00ff88]/50 text-[#00ff88] text-xs px-3 py-1 rounded hover:bg-[#00ff88]/10 w-[120px]">
           Generate Report
         </button>

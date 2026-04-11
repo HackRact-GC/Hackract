@@ -31,24 +31,24 @@ const Reports = () => {
 
       <div className="flex flex-col md:flex-row gap-4 items-center justify-between">
         <div className="relative group w-full max-w-md">
-          <FiSearch className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-600 group-focus-within:text-[#00ff88] transition-colors" />
+          <FiSearch className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-600 group-focus-within:text-[#00c477] transition-colors" />
           <input 
             type="text" 
             placeholder="Search report ID, name or metadata..." 
-            className="w-full bg-white/2 border border-white/5 rounded-2xl py-3.5 pl-12 pr-4 text-sm text-white focus:outline-none focus:border-[#00ff88]/50 transition-all font-mono placeholder-gray-700"
+            className="w-full bg-white/2 border border-white/5 rounded-2xl py-3.5 pl-12 pr-4 text-sm text-white focus:outline-none focus:border-[#00c477]/50 transition-all font-mono placeholder-gray-700"
           />
         </div>
         <div className="flex gap-3">
           <button className="flex items-center gap-2 px-6 py-3 bg-white/5 border border-white/5 rounded-2xl text-[10px] font-black text-gray-400 uppercase tracking-widest hover:border-white/20 transition-all">
             <FiFilter /> Filter
           </button>
-          <button className="flex items-center gap-2 px-6 py-3 bg-[#00ff88] text-black border border-[#00ff88] rounded-2xl text-[10px] font-black uppercase tracking-widest hover:shadow-[0_0_15px_rgba(0,255,136,0.3)] transition-all">
+          <button className="flex items-center gap-2 px-6 py-3 bg-[#00c477] text-black border border-[#00c477] rounded-2xl text-[10px] font-black uppercase tracking-widest hover:shadow-[0_0_15px_rgba(0,255,136,0.3)] transition-all">
             Generate New Report
           </button>
         </div>
       </div>
 
-      <div className="bg-[#080808] border border-white/5 rounded-[32px] overflow-hidden shadow-2xl">
+      <div className="bg-[#050505] border border-white/5 rounded-[32px] overflow-hidden shadow-2xl">
         <table className="w-full text-left border-collapse">
           <thead>
             <tr className="border-b border-white/5 bg-white/[0.01]">
@@ -75,18 +75,18 @@ const Reports = () => {
                     <div className="w-8 h-8 rounded-lg bg-red-500/10 border border-red-500/20 flex items-center justify-center text-red-500">
                       <FiFileText />
                     </div>
-                    <span className="text-sm font-black text-white group-hover:text-[#00ff88] transition-colors uppercase tracking-tight">{report.name}</span>
+                    <span className="text-sm font-black text-white group-hover:text-[#00c477] transition-colors uppercase tracking-tight">{report.name}</span>
                   </div>
                 </td>
                 <td className="px-8 py-6 text-[11px] font-mono font-bold text-gray-500 uppercase flex items-center gap-2">
                   <FiCalendar /> {report.date}
                 </td>
-                <td className="px-8 py-6 text-[9px] font-black font-mono text-[#00ff88]">
-                  <span className="bg-[#00ff88]/10 px-2 py-1 rounded border border-[#00ff88]/20">{report.type}</span>
+                <td className="px-8 py-6 text-[9px] font-black font-mono text-[#00c477]">
+                  <span className="bg-[#00c477]/10 px-2 py-1 rounded border border-[#00c477]/20">{report.type}</span>
                 </td>
                 <td className="px-8 py-6 text-[10px] font-mono text-gray-600">{report.size}</td>
                 <td className="px-8 py-6 text-right">
-                  <button className="p-3 rounded-xl bg-white/5 border border-white/10 text-[#00ff88] hover:bg-[#00ff88]/10 hover:border-[#00ff88]/40 transition-all">
+                  <button className="p-3 rounded-xl bg-white/5 border border-white/10 text-[#00c477] hover:bg-[#00c477]/10 hover:border-[#00c477]/40 transition-all">
                     <FiDownload />
                   </button>
                 </td>
