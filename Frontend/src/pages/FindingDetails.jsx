@@ -63,17 +63,17 @@ const FindingDetails = () => {
   if (!finding) return <div className="min-h-screen bg-black p-10 flex items-center justify-center font-mono uppercase tracking-widest text-xs text-white/40">Sector Data Corrupted: Finding not found.</div>;
 
   const statusColors = {
-    OPEN: "text-[#00ff88] border-[#00ff88]/30 bg-[#00ff88]/5",
-    TRIAGED: "text-[#00ff88] border-[#00ff88]/40 bg-[#00ff88]/10",
+    OPEN: "text-[#00c477] border-[#00c477]/30 bg-[#00c477]/5",
+    TRIAGED: "text-[#00c477] border-[#00c477]/40 bg-[#00c477]/10",
     FIXED: "text-white/60 border-white/10 bg-white/5",
-    PENDING_RETEST: "text-[#00ff88] border-[#00ff88]/50 bg-[#00ff88]/15",
-    VALIDATED: "text-[#00ff88] border-[#00ff88] bg-[#00ff88]/20 shadow-[0_0_15px_rgba(0,255,136,0.3)]",
+    PENDING_RETEST: "text-[#00c477] border-[#00c477]/50 bg-[#00c477]/15",
+    VALIDATED: "text-[#00c477] border-[#00c477] bg-[#00c477]/20 shadow-[0_0_15px_rgba(0,255,136,0.3)]",
     REOPENED: "text-red-500 border-red-500/30 bg-red-500/10",
     ACCEPTED_RISK: "text-white/20 border-white/5 bg-white/5",
   };
 
   return (
-    <div className="min-h-screen bg-black text-white p-6 md:p-10 space-y-10 max-w-6xl mx-auto font-sans selection:bg-[#00ff88]/30 selection:text-black">
+    <div className="min-h-screen bg-black text-white p-6 md:p-10 space-y-10 max-w-6xl mx-auto font-sans selection:bg-[#00c477]/30 selection:text-black">
       {/* Header */}
       <div className="flex items-center justify-between">
         <button 
@@ -102,14 +102,14 @@ const FindingDetails = () => {
           <div className="grid gap-6">
             <div className="bg-black/60 border border-white/10 rounded-2xl p-8 space-y-4 backdrop-blur-md">
               <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-white/40 flex items-center gap-3">
-                <FiAlertCircle size={14} className="text-[#00ff88]" /> Vulnerability parameters
+                <FiAlertCircle size={14} className="text-[#00c477]" /> Vulnerability parameters
               </h3>
               <p className="text-white/80 text-sm leading-relaxed whitespace-pre-wrap font-medium">{finding.description || "No description provided."}</p>
             </div>
 
             <div className="bg-black/60 border border-white/10 rounded-2xl p-8 space-y-4 backdrop-blur-md">
               <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-white/40 flex items-center gap-3">
-                <FiShield size={14} className="text-[#00ff88]" /> Proposed Remediation
+                <FiShield size={14} className="text-[#00c477]" /> Proposed Remediation
               </h3>
               <p className="text-white/80 text-sm leading-relaxed whitespace-pre-wrap font-medium">{finding.remediation || "No remediation steps provided."}</p>
             </div>
@@ -119,7 +119,7 @@ const FindingDetails = () => {
                 <h3 className="text-sm font-bold uppercase tracking-widest text-gray-400 flex items-center gap-2">
                   <FiClock size={14} /> Evidence / Proof
                 </h3>
-                <div className="bg-black/50 p-4 rounded border border-white/5 font-mono text-xs text-[#00ff88] overflow-x-auto">
+                <div className="bg-black/50 p-4 rounded border border-white/5 font-mono text-xs text-[#00c477] overflow-x-auto">
                   {finding.proof}
                 </div>
               </div>
@@ -129,13 +129,13 @@ const FindingDetails = () => {
           {/* Comment Section */}
           <div className="space-y-6">
             <h3 className="text-xl font-bold flex items-center gap-3 tracking-tight">
-              <FiMessageSquare size={20} className="text-[#00ff88]" /> Intelligence Discussion
+              <FiMessageSquare size={20} className="text-[#00c477]" /> Intelligence Discussion
             </h3>
             
             <div className="space-y-4">
               {comments.map((comment) => (
                 <div key={comment.id} className="bg-white/5 border border-white/10 rounded-2xl p-6 flex gap-5">
-                  <div className="h-10 w-10 rounded-xl bg-black border border-white/10 flex items-center justify-center text-xs font-bold text-[#00ff88] shadow-inner shrink-0">
+                  <div className="h-10 w-10 rounded-xl bg-black border border-white/10 flex items-center justify-center text-xs font-bold text-[#00c477] shadow-inner shrink-0">
                     {comment.user?.fullName?.[0] || "?"}
                   </div>
                   <div className="space-y-1.5 flex-1 min-w-0">
@@ -154,11 +154,11 @@ const FindingDetails = () => {
                 value={newComment}
                 onChange={(e) => setNewComment(e.target.value)}
                 placeholder="Post a security update or remediation note..."
-                className="w-full bg-black/60 border border-white/10 rounded-2xl p-6 text-sm text-white focus:outline-none focus:border-[#00ff88]/50 h-32 resize-none transition-all placeholder:text-white/20"
+                className="w-full bg-black/60 border border-white/10 rounded-2xl p-6 text-sm text-white focus:outline-none focus:border-[#00c477]/50 h-32 resize-none transition-all placeholder:text-white/20"
               />
               <button 
                 type="submit"
-                className="absolute bottom-6 right-6 px-6 py-2.5 bg-[#00ff88] text-black rounded-xl hover:scale-105 active:scale-95 transition-all text-[10px] font-black uppercase tracking-widest flex items-center gap-2 shadow-lg shadow-[#00ff88]/10"
+                className="absolute bottom-6 right-6 px-6 py-2.5 bg-[#00c477] text-black rounded-xl hover:scale-105 active:scale-95 transition-all text-[10px] font-black uppercase tracking-widest flex items-center gap-2 shadow-lg shadow-[#00c477]/10"
               >
                 Send Intelligence <FiSend size={14} />
               </button>
@@ -178,7 +178,7 @@ const FindingDetails = () => {
                   {finding.status === "OPEN" && (
                     <button 
                       onClick={() => handleStatusChange("triage", { status: "TRIAGED" })}
-                      className="w-full py-4 bg-[#00ff88] text-black rounded-2xl font-black text-[10px] uppercase tracking-widest flex items-center justify-center gap-3 shadow-lg shadow-[#00ff88]/10 hover:scale-[1.02] active:scale-95 transition-all"
+                      className="w-full py-4 bg-[#00c477] text-black rounded-2xl font-black text-[10px] uppercase tracking-widest flex items-center justify-center gap-3 shadow-lg shadow-[#00c477]/10 hover:scale-[1.02] active:scale-95 transition-all"
                     >
                       <FiCheckCircle size={16} /> Confirm Intelligence
                     </button>
@@ -196,7 +196,7 @@ const FindingDetails = () => {
                   {finding.status === "FIXED" && (
                     <button 
                       onClick={() => handleStatusChange("request-retest")}
-                      className="w-full py-4 bg-[#00ff88]/10 text-[#00ff88] border border-[#00ff88]/20 rounded-2xl font-black text-[10px] uppercase tracking-widest hover:bg-[#00ff88] hover:text-black transition-all"
+                      className="w-full py-4 bg-[#00c477]/10 text-[#00c477] border border-[#00c477]/20 rounded-2xl font-black text-[10px] uppercase tracking-widest hover:bg-[#00c477] hover:text-black transition-all"
                     >
                       Request Final Validation
                     </button>
@@ -206,7 +206,7 @@ const FindingDetails = () => {
                      <div className="grid grid-cols-2 gap-3">
                         <button 
                           onClick={() => handleStatusChange("validate", { success: true })}
-                          className="py-4 bg-[#00ff88] text-black rounded-2xl font-black text-[9px] uppercase tracking-widest shadow-lg shadow-[#00ff88]/10 hover:scale-[1.05] transition-all"
+                          className="py-4 bg-[#00c477] text-black rounded-2xl font-black text-[9px] uppercase tracking-widest shadow-lg shadow-[#00c477]/10 hover:scale-[1.05] transition-all"
                         >
                           Validate
                         </button>
@@ -225,7 +225,7 @@ const FindingDetails = () => {
               {!canManage && finding.status === "TRIAGED" && (
                  <button 
                    onClick={() => api.patch(`/findings/${findingId}`, { status: "FIXED" }).then(() => loadData())}
-                   className="w-full py-4 bg-white/10 text-white hover:bg-[#00ff88] hover:text-black rounded-2xl font-black text-[10px] uppercase tracking-widest transition-all"
+                   className="w-full py-4 bg-white/10 text-white hover:bg-[#00c477] hover:text-black rounded-2xl font-black text-[10px] uppercase tracking-widest transition-all"
                  >
                    Mark as Resolved
                  </button>
@@ -236,7 +236,7 @@ const FindingDetails = () => {
               <h4 className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">History</h4>
               <div className="space-y-4">
                 <div className="flex items-center gap-3 text-xs">
-                  <div className="w-1.5 h-1.5 bg-[#00ff88] rounded-full" />
+                  <div className="w-1.5 h-1.5 bg-[#00c477] rounded-full" />
                   <div className="flex-1">
                     <p className="text-gray-300">Finding reported</p>
                     <p className="text-[9px] text-gray-500">{new Date(finding.createdAt).toLocaleDateString()}</p>

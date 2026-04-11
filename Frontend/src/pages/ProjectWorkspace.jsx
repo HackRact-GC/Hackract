@@ -63,15 +63,15 @@ const ProjectWorkspace = () => {
   };
 
   if (loading) {
-    return <div className="min-h-screen bg-[#0a0a0a] text-white p-8">Loading workspace...</div>;
+    return <div className="min-h-screen bg-[#050505] text-white p-8">Loading workspace...</div>;
   }
 
   if (!project) {
-    return <div className="min-h-screen bg-[#0a0a0a] text-white p-8">Project not found.</div>;
+    return <div className="min-h-screen bg-[#050505] text-white p-8">Project not found.</div>;
   }
 
   return (
-    <div className="min-h-screen bg-[#0a0a0a] text-white p-6 md:p-10 space-y-6">
+    <div className="min-h-screen bg-[#050505] text-white p-6 md:p-10 space-y-6">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold">{project.name}</h1>
@@ -93,7 +93,7 @@ const ProjectWorkspace = () => {
             key={tab}
             onClick={() => setActiveTab(tab)}
             className={`px-4 py-2 rounded-md text-xs uppercase tracking-widest ${
-              activeTab === tab ? "bg-[#00ff88] text-black" : "bg-white/10 border border-white/20"
+              activeTab === tab ? "bg-[#00c477] text-black" : "bg-white/10 border border-white/20"
             }`}
           >
             {tab}
@@ -129,7 +129,7 @@ const ProjectWorkspace = () => {
                 ) : (
                   hackers.map((h) => (
                     <div key={h.id} className="text-sm border border-white/10 rounded-md p-2 bg-black/30 flex items-center gap-2">
-                      <div className="w-2 h-2 bg-[#00ff88] rounded-full" />
+                      <div className="w-2 h-2 bg-[#00c477] rounded-full" />
                       {h.user?.fullName || h.user?.email}
                     </div>
                   ))
@@ -164,7 +164,7 @@ const ProjectWorkspace = () => {
               }
               navigate(`/workflows/${workflowId}`);
             }}
-            className="px-4 py-2 bg-[#00ff88] text-black rounded-md text-xs uppercase tracking-widest"
+            className="px-4 py-2 bg-[#00c477] text-black rounded-md text-xs uppercase tracking-widest"
           >
             Open workflow board
           </button>
@@ -175,7 +175,7 @@ const ProjectWorkspace = () => {
         <div className="bg-white/5 border border-white/10 rounded-xl p-6 space-y-6">
           <div className="flex items-center justify-between">
             <h3 className="font-semibold text-lg flex items-center gap-2">
-              <FiFileText className="text-[#00ff88]" />
+              <FiFileText className="text-[#00c477]" />
               Project Discoveries
             </h3>
             {canManage && (
@@ -194,7 +194,7 @@ const ProjectWorkspace = () => {
                     toast.error("Failed to generate report");
                   }
                 }}
-                className="flex items-center gap-2 px-4 py-2 bg-[#00ff88] text-black rounded-lg text-xs font-bold uppercase tracking-widest hover:scale-105 transition-all"
+                className="flex items-center gap-2 px-4 py-2 bg-[#00c477] text-black rounded-lg text-xs font-bold uppercase tracking-widest hover:scale-105 transition-all"
               >
                 <FiDownload /> Export Security Report
               </button>
@@ -211,11 +211,11 @@ const ProjectWorkspace = () => {
                 <div 
                   key={f.id} 
                   onClick={() => navigate(`/findings/${f.id}`)}
-                  className="group relative border border-white/10 rounded-xl p-4 bg-black/30 hover:border-[#00ff88]/50 hover:bg-black/50 transition-all cursor-pointer"
+                  className="group relative border border-white/10 rounded-xl p-4 bg-black/30 hover:border-[#00c477]/50 hover:bg-black/50 transition-all cursor-pointer"
                 >
                   <div className="flex items-center justify-between">
                     <div className="space-y-1">
-                      <div className="text-sm font-bold group-hover:text-[#00ff88] transition-colors">{f.title}</div>
+                      <div className="text-sm font-bold group-hover:text-[#00c477] transition-colors">{f.title}</div>
                       <div className="flex items-center gap-3 text-[10px] font-mono uppercase tracking-tighter">
                         <span className={`px-2 py-0.5 rounded border ${
                           f.severity === 'CRITICAL' ? 'text-red-500 border-red-500/30 bg-red-500/10' :
@@ -228,7 +228,7 @@ const ProjectWorkspace = () => {
                         <span className="text-gray-400">{f.status}</span>
                       </div>
                     </div>
-                    <FiExternalLink className="text-gray-600 group-hover:text-[#00ff88] transition-colors" />
+                    <FiExternalLink className="text-gray-600 group-hover:text-[#00c477] transition-colors" />
                   </div>
                 </div>
               ))}
@@ -253,9 +253,9 @@ const ProjectWorkspace = () => {
           ) : (
             <div className="grid gap-4">
               {applicants.map((app) => (
-                <div key={app.id} className="bg-black/40 border border-white/10 p-5 rounded-xl flex items-center justify-between group hover:border-[#00ff88]/30 transition-all">
+                <div key={app.id} className="bg-black/40 border border-white/10 p-5 rounded-xl flex items-center justify-between group hover:border-[#00c477]/30 transition-all">
                   <div className="flex items-center gap-4">
-                    <div className="h-10 w-10 rounded-full bg-white/5 flex items-center justify-center font-bold text-[#00ff88] border border-white/10">
+                    <div className="h-10 w-10 rounded-full bg-white/5 flex items-center justify-center font-bold text-[#00c477] border border-white/10">
                       {app.user?.fullName?.[0] || "?"}
                     </div>
                     <div>
@@ -265,7 +265,7 @@ const ProjectWorkspace = () => {
                   </div>
                   <button
                     onClick={() => handleHire(app.user?.id)}
-                    className="px-6 py-2 bg-[#00ff88] text-black rounded-lg font-mono font-bold text-[10px] uppercase tracking-widest hover:bg-[#00ff88]/80 transition-all active:scale-95"
+                    className="px-6 py-2 bg-[#00c477] text-black rounded-lg font-mono font-bold text-[10px] uppercase tracking-widest hover:bg-[#00c477]/80 transition-all active:scale-95"
                   >
                     Hire Operator
                   </button>

@@ -20,14 +20,14 @@ const Field = ({ label, children }) => (
 const Input = (props) => (
   <input
     {...props}
-    className="w-full bg-black/40 border border-white/10 rounded-lg px-4 py-2.5 text-sm text-white placeholder:text-white/30 focus:outline-none focus:border-[#00ff88]/50 transition-colors"
+    className="w-full bg-black/40 border border-white/10 rounded-lg px-4 py-2.5 text-sm text-white placeholder:text-white/30 focus:outline-none focus:border-[#00c477]/50 transition-colors"
   />
 );
 
 const TextArea = (props) => (
   <textarea
     {...props}
-    className="w-full bg-black/40 border border-white/10 rounded-lg px-4 py-2.5 text-sm text-white placeholder:text-white/30 focus:outline-none focus:border-[#00ff88]/50 transition-colors resize-none"
+    className="w-full bg-black/40 border border-white/10 rounded-lg px-4 py-2.5 text-sm text-white placeholder:text-white/30 focus:outline-none focus:border-[#00c477]/50 transition-colors resize-none"
   />
 );
 
@@ -230,7 +230,7 @@ const HackerProfile = () => {
                   .map((skill) => (
                     <span
                       key={skill}
-                      className="px-3 py-1 border border-[#00ff88]/30 bg-[#00ff88]/10 text-[#00ff88] rounded-full text-[11px] font-mono uppercase tracking-wide"
+                      className="px-3 py-1 border border-[#00c477]/30 bg-[#00c477]/10 text-[#00c477] rounded-full text-[11px] font-mono uppercase tracking-wide"
                     >
                       {skill}
                     </span>
@@ -289,7 +289,7 @@ const HackerProfile = () => {
 
   if (loading) {
     return (
-      <div className="w-full h-64 flex items-center justify-center font-mono text-[#00ff88] animate-pulse">
+      <div className="w-full h-64 flex items-center justify-center font-mono text-[#00c477] animate-pulse">
         [SYSTEM]: Retrieving operative data...
       </div>
     );
@@ -297,7 +297,7 @@ const HackerProfile = () => {
 
   return (
     <div className="w-full min-h-screen bg-black text-white px-4 sm:px-8 py-8 relative overflow-hidden">
-      <div className="absolute top-1/4 left-1/2 -translate-x-1/2 w-[560px] h-[560px] bg-[#00ff88]/5 rounded-full blur-[120px] pointer-events-none" />
+      <div className="absolute top-1/4 left-1/2 -translate-x-1/2 w-[560px] h-[560px] bg-[#00c477]/5 rounded-full blur-[120px] pointer-events-none" />
       <div className="mx-auto w-full max-w-7xl bg-black/60 border border-white/10 rounded-2xl p-6 sm:p-8 shadow-2xl backdrop-blur-md relative">
         <div className="mb-8">
           <h1 className="text-3xl sm:text-4xl font-bold tracking-tight">Operative Settings</h1>
@@ -305,7 +305,7 @@ const HackerProfile = () => {
           <div className="mt-6 flex flex-wrap items-center gap-3 text-[11px] font-mono uppercase tracking-[0.16em] text-white/30">
             {NAV_ITEMS.map((item, index) => (
               <div key={item.key} className="flex items-center gap-3">
-                <span className={index <= navIndex ? "text-[#00ff88]" : "text-white/30"}>
+                <span className={index <= navIndex ? "text-[#00c477]" : "text-white/30"}>
                   {index + 1}. {item.label}
                 </span>
                 {index < NAV_ITEMS.length - 1 && <FiChevronRight className="text-white/20" />}
@@ -315,7 +315,7 @@ const HackerProfile = () => {
 
           <div className="h-1 w-full bg-white/5 rounded-full overflow-hidden mt-5">
             <div
-              className="h-full bg-[#00ff88] transition-all duration-500 ease-out"
+              className="h-full bg-[#00c477] transition-all duration-500 ease-out"
               style={{ width: `${((navIndex + 1) / NAV_ITEMS.length) * 100}%` }}
             />
           </div>
@@ -329,13 +329,13 @@ const HackerProfile = () => {
                   {logoPreview ? (
                     <img src={logoPreview} alt="avatar" className="w-full h-full object-cover" />
                   ) : (
-                    <span className="text-3xl font-black text-[#00ff88]">{initials(displayName)}</span>
+                    <span className="text-3xl font-black text-[#00c477]">{initials(displayName)}</span>
                   )}
                 </div>
 
                 <button
                   onClick={() => fileInputRef.current?.click()}
-                  className="absolute -bottom-2 -right-2 w-8 h-8 rounded-full bg-[#00ff88] text-black border-2 border-black flex items-center justify-center hover:bg-white transition-colors"
+                  className="absolute -bottom-2 -right-2 w-8 h-8 rounded-full bg-[#00c477] text-black border-2 border-black flex items-center justify-center hover:bg-white transition-colors"
                 >
                   <FiCamera className="w-4 h-4" />
                 </button>
@@ -344,8 +344,8 @@ const HackerProfile = () => {
 
               <h3 className="text-center mt-4 text-lg font-bold">{displayName}</h3>
               <div className="mt-1 flex items-center justify-center gap-2 text-[11px] font-mono uppercase tracking-[0.14em]">
-                <span className={`h-2.5 w-2.5 rounded-full ${isOnline ? "bg-[#00ff88] shadow-[0_0_10px_rgba(0,255,136,0.8)]" : "bg-white/20"}`} />
-                <span className={isOnline ? "text-[#00ff88]" : "text-white/30"}>{isOnline ? "Online" : "Offline"}</span>
+                <span className={`h-2.5 w-2.5 rounded-full ${isOnline ? "bg-[#00c477] shadow-[0_0_10px_rgba(0,255,136,0.8)]" : "bg-white/20"}`} />
+                <span className={isOnline ? "text-[#00c477]" : "text-white/30"}>{isOnline ? "Online" : "Offline"}</span>
               </div>
             </div>
 
@@ -358,7 +358,7 @@ const HackerProfile = () => {
                     onClick={() => setActiveNav(item.key)}
                     className={`w-full text-left px-4 py-3.5 rounded-xl border transition-all flex items-center gap-3 text-sm font-semibold ${
                       activeNav === item.key
-                        ? "bg-[#00ff88]/10 border-[#00ff88]/30 text-[#00ff88]"
+                        ? "bg-[#00c477]/10 border-[#00c477]/30 text-[#00c477]"
                         : "bg-black/40 border-white/5 text-white/40 hover:text-white hover:border-white/20"
                     }`}
                   >
@@ -386,7 +386,7 @@ const HackerProfile = () => {
                     <button
                       type="submit"
                       disabled={saving}
-                      className="flex items-center gap-2 px-7 py-3 bg-[#00ff88] text-black rounded-lg text-xs font-mono font-bold uppercase tracking-[0.16em] hover:bg-white transition-colors disabled:opacity-50"
+                      className="flex items-center gap-2 px-7 py-3 bg-[#00c477] text-black rounded-lg text-xs font-mono font-bold uppercase tracking-[0.16em] hover:bg-white transition-colors disabled:opacity-50"
                     >
                       <FiSave className="w-4 h-4" />
                       {saving ? "SAVING..." : "SAVE CONFIGURATION"}

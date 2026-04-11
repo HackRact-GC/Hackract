@@ -27,12 +27,12 @@ const DashboardPreview = () => {
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-6">
         {[
           { label: 'TOTAL PROJECTS',     value: '142', icon: FiActivity,    color: 'text-gray-400' },
-          { label: 'ACTIVE PROJECTS',    value: '28',  icon: FiGrid,        color: 'text-[#00ff88]', isPrimary: true },
+          { label: 'ACTIVE PROJECTS',    value: '28',  icon: FiGrid,        color: 'text-[#00c477]', isPrimary: true },
           { label: 'COMPLETED',          value: '114', icon: FiCheckCircle, color: 'text-gray-400' },
           { label: 'VULNERABILITIES',    value: '12',  icon: FiShield,      color: 'text-red-500', alert: true },
         ].map((stat, i) => (
-          <div key={i} className="bg-[#111111] border border-white/5 rounded-2xl p-6 flex flex-col relative overflow-hidden">
-            {stat.isPrimary && <div className="absolute top-0 right-0 w-24 h-24 bg-[#00ff88]/5 rounded-bl-full filter blur-xl" />}
+          <div key={i} className="bg-[#050505] border border-white/5 rounded-2xl p-6 flex flex-col relative overflow-hidden">
+            {stat.isPrimary && <div className="absolute top-0 right-0 w-24 h-24 bg-[#00c477]/5 rounded-bl-full filter blur-xl" />}
             <div className="text-xs font-semibold text-gray-500 tracking-wider mb-2">{stat.label}</div>
             <div className="flex items-end justify-between">
               <div className="text-4xl font-bold text-white flex items-center gap-2">
@@ -66,10 +66,10 @@ const DashboardPreview = () => {
             {/* Create New */}
             <div
               onClick={() => navigate('/projects')}
-              className="bg-[#111111] border border-dashed border-white/20 hover:border-[#00ff88]/50 transition-colors rounded-2xl p-6 flex flex-col items-center justify-center text-center h-48 cursor-pointer group"
+              className="bg-[#050505] border border-dashed border-white/20 hover:border-[#00c477]/50 transition-colors rounded-2xl p-6 flex flex-col items-center justify-center text-center h-48 cursor-pointer group"
             >
-              <div className="w-12 h-12 rounded-full bg-white/5 group-hover:bg-[#00ff88]/10 flex items-center justify-center mb-4 transition-colors">
-                <FiPlus className="text-xl text-gray-400 group-hover:text-[#00ff88] transition-colors" />
+              <div className="w-12 h-12 rounded-full bg-white/5 group-hover:bg-[#00c477]/10 flex items-center justify-center mb-4 transition-colors">
+                <FiPlus className="text-xl text-gray-400 group-hover:text-[#00c477] transition-colors" />
               </div>
               <h3 className="font-bold text-white">Create New Project</h3>
               <p className="text-xs text-gray-500 mt-1">Initiate a new security node</p>
@@ -78,9 +78,9 @@ const DashboardPreview = () => {
             {/* Project Aegis */}
             <div
               onClick={() => navigate('/projects')}
-              className="bg-[#111111] border border-white/5 rounded-2xl p-6 h-48 flex flex-col justify-between relative hover:border-white/10 transition-colors cursor-pointer"
+              className="bg-[#050505] border border-white/5 rounded-2xl p-6 h-48 flex flex-col justify-between relative hover:border-white/10 transition-colors cursor-pointer"
             >
-              <div className="absolute top-6 right-6 text-xs font-mono font-bold text-black bg-[#00ff88] px-2 py-0.5 rounded">ACTIVE</div>
+              <div className="absolute top-6 right-6 text-xs font-mono font-bold text-black bg-[#00c477] px-2 py-0.5 rounded">ACTIVE</div>
               <div>
                 <h3 className="font-bold text-white text-lg">Project Aegis</h3>
                 <p className="text-xs font-mono text-gray-500 mt-1">192.168.1.104 • internal-dev.io</p>
@@ -98,7 +98,7 @@ const DashboardPreview = () => {
               </div>
               <div className="flex justify-between items-center text-xs">
                 <span className="text-gray-500">Last scanned 2h ago</span>
-                <span className="text-[#00ff88] font-semibold flex items-center">
+                <span className="text-[#00c477] font-semibold flex items-center">
                   Open Project <FiChevronRight className="ml-1" />
                 </span>
               </div>
@@ -107,7 +107,7 @@ const DashboardPreview = () => {
             {/* Shadow Net */}
             <div
               onClick={() => navigate('/projects')}
-              className="bg-[#111111] border border-white/5 rounded-2xl p-6 h-48 flex flex-col justify-between relative hover:border-white/10 transition-colors cursor-pointer"
+              className="bg-[#050505] border border-white/5 rounded-2xl p-6 h-48 flex flex-col justify-between relative hover:border-white/10 transition-colors cursor-pointer"
             >
               <div className="absolute top-6 right-6 text-xs font-mono font-bold text-[#b490ff] bg-[#b490ff]/10 border border-[#b490ff]/30 px-2 py-0.5 rounded">PENDING</div>
               <div>
@@ -123,7 +123,7 @@ const DashboardPreview = () => {
               </div>
               <div className="flex justify-between items-center text-xs">
                 <span className="text-gray-500">Scheduled for 04:00 AM</span>
-                <span className="text-[#00ff88] font-semibold flex items-center">
+                <span className="text-[#00c477] font-semibold flex items-center">
                   Open Project <FiChevronRight className="ml-1" />
                 </span>
               </div>
@@ -132,7 +132,7 @@ const DashboardPreview = () => {
             {/* Retail Secure v4 */}
             <div
               onClick={() => navigate('/projects')}
-              className="bg-[#111111] border border-white/5 rounded-2xl p-6 h-48 flex flex-col justify-between relative hover:border-white/10 transition-colors cursor-pointer opacity-80 hover:opacity-100"
+              className="bg-[#050505] border border-white/5 rounded-2xl p-6 h-48 flex flex-col justify-between relative hover:border-white/10 transition-colors cursor-pointer opacity-80 hover:opacity-100"
             >
               <div className="absolute top-6 right-6 text-xs font-mono font-bold text-gray-400 bg-white/5 px-2 py-0.5 rounded">COMPLETED</div>
               <div>
@@ -142,10 +142,10 @@ const DashboardPreview = () => {
               <div className="space-y-2">
                 <div className="flex justify-between text-xs">
                   <span className="text-gray-400">Vulnerabilities</span>
-                  <span className="text-[#00ff88] font-bold">2 Patched</span>
+                  <span className="text-[#00c477] font-bold">2 Patched</span>
                 </div>
                 <div className="w-full bg-white/10 h-1.5 rounded-full overflow-hidden">
-                  <div className="w-full bg-[#00ff88]" />
+                  <div className="w-full bg-[#00c477]" />
                 </div>
               </div>
               <div className="flex justify-between items-center text-xs">
@@ -162,17 +162,17 @@ const DashboardPreview = () => {
         <div className="space-y-6">
 
           {/* Profile Card */}
-          <div className="bg-[#111111] border border-white/5 rounded-2xl p-6">
+          <div className="bg-[#050505] border border-white/5 rounded-2xl p-6">
             <div className="flex items-center space-x-4 mb-6">
               <div className="relative">
-                <div className="w-16 h-16 rounded-xl bg-[#00ff88]/20 border-2 border-[#00ff88]/40 flex items-center justify-center text-[#00ff88] font-bold text-2xl">
+                <div className="w-16 h-16 rounded-xl bg-[#00c477]/20 border-2 border-[#00c477]/40 flex items-center justify-center text-[#00c477] font-bold text-2xl">
                   {userInitial}
                 </div>
-                <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-[#00ff88] border-2 border-[#111111] rounded-full" />
+                <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-[#00c477] border-2 border-[#050505] rounded-full" />
               </div>
               <div>
                 <h2 className="text-lg font-bold text-white">{displayName}</h2>
-                <div className="text-xs text-[#00ff88] font-semibold">Operative</div>
+                <div className="text-xs text-[#00c477] font-semibold">Operative</div>
                 <div className="text-yellow-500 text-xs mt-1 tracking-widest">★★★★★ <span className="text-gray-500">Active</span></div>
               </div>
             </div>
@@ -200,7 +200,7 @@ const DashboardPreview = () => {
           <div>
             <div className="flex justify-between items-center mb-4">
               <h3 className="font-bold text-white">Sentinel Feed</h3>
-              <button className="text-xs text-[#00ff88] hover:underline">Mark as read</button>
+              <button className="text-xs text-[#00c477] hover:underline">Mark as read</button>
             </div>
             <div className="space-y-4 relative before:absolute before:inset-0 before:ml-[11px] before:h-full before:w-[2px] before:bg-gradient-to-b before:from-transparent before:via-white/10 before:to-transparent">
               {[
@@ -210,7 +210,7 @@ const DashboardPreview = () => {
                 { color: 'bg-[#b490ff]',   title: 'Report for <strong>Retail Secure</strong> generated.', time: '5h ago' },
               ].map((item, i) => (
                 <div key={i} className="relative flex items-start gap-3">
-                  <div className={`w-5 h-5 rounded-full ${item.color} shrink-0 mt-0.5 z-10 border-2 border-[#0a0a0a]`} />
+                  <div className={`w-5 h-5 rounded-full ${item.color} shrink-0 mt-0.5 z-10 border-2 border-[#050505]`} />
                   <div className="p-3 rounded-lg bg-white/5 border border-white/5 hover:bg-white/10 transition-colors flex-1">
                     <p className="text-sm text-gray-300" dangerouslySetInnerHTML={{ __html: item.title }} />
                     <time className="block text-xs font-mono text-gray-500 mt-1">{item.time}</time>
@@ -221,10 +221,10 @@ const DashboardPreview = () => {
           </div>
 
           {/* Priority Comms */}
-          <div className="bg-[#111111] border border-white/5 rounded-2xl p-5">
+          <div className="bg-[#050505] border border-white/5 rounded-2xl p-5">
             <div className="flex justify-between items-center mb-4">
               <h3 className="font-bold text-gray-400 text-xs tracking-widest uppercase">Priority Comms</h3>
-              <span className="text-[10px] bg-[#00ff88]/20 text-[#00ff88] px-2 py-0.5 rounded font-bold">3 NEW</span>
+              <span className="text-[10px] bg-[#00c477]/20 text-[#00c477] px-2 py-0.5 rounded font-bold">3 NEW</span>
             </div>
             <div className="space-y-3">
               <div
@@ -240,13 +240,13 @@ const DashboardPreview = () => {
                 </div>
               </div>
 
-              <div className="flex items-start gap-3 p-3 bg-[#00ff88]/5 rounded-xl border-l-2 border-[#00ff88] cursor-pointer relative overflow-hidden">
+              <div className="flex items-start gap-3 p-3 bg-[#00c477]/5 rounded-xl border-l-2 border-[#00c477] cursor-pointer relative overflow-hidden">
                 <div className="w-8 h-8 rounded bg-gray-800 text-gray-300 flex items-center justify-center shrink-0">
                   <FiFileText size={14} />
                 </div>
                 <div>
                   <div className="text-sm font-bold text-white">Message from Lead Architect</div>
-                  <div className="text-xs text-[#00ff88] mt-0.5">Re: Security patch validation results</div>
+                  <div className="text-xs text-[#00c477] mt-0.5">Re: Security patch validation results</div>
                 </div>
               </div>
 
