@@ -8,7 +8,7 @@ import {
 
 // ─── Stat Card Component ──────────────────────────────────────────────────────
 const StatCard = ({ label, value, sub, icon: Icon, color, trend, progress, avatars }) => (
-  <div className="bg-[#080808] border border-white/5 p-8 rounded-[32px] flex flex-col justify-between h-48 relative overflow-hidden group hover:border-[#00ff88]/20 transition-all duration-500 shadow-2xl">
+  <div className="bg-[#050505] border border-white/5 p-8 rounded-[32px] flex flex-col justify-between h-48 relative overflow-hidden group hover:border-[#00c477]/20 transition-all duration-500 shadow-2xl">
     <div className="flex items-start justify-between relative z-10">
       <div className="space-y-1">
         <p className="text-[10px] font-mono font-black text-gray-600 uppercase tracking-[.2em]">{label}</p>
@@ -27,7 +27,7 @@ const StatCard = ({ label, value, sub, icon: Icon, color, trend, progress, avata
                initial={{ width: 0 }}
                animate={{ width: `${progress}%` }}
                transition={{ duration: 1.5, ease: "easeOut" }}
-               className="h-full bg-linear-to-r from-[#00ff88] to-emerald-400 shadow-[0_0_10px_#00ff88]" 
+               className="h-full bg-linear-to-r from-[#00c477] to-emerald-400 shadow-[0_0_10px_#00c477]" 
             />
           </div>
         </div>
@@ -36,18 +36,18 @@ const StatCard = ({ label, value, sub, icon: Icon, color, trend, progress, avata
       {avatars && (
         <div className="flex -space-x-2 mr-auto">
           {avatars.map((av, i) => (
-            <div key={i} className="w-8 h-8 rounded-full border-2 border-[#080808] bg-gray-800 flex items-center justify-center text-[10px] font-black text-white overflow-hidden shadow-lg">
+            <div key={i} className="w-8 h-8 rounded-full border-2 border-[#050505] bg-gray-800 flex items-center justify-center text-[10px] font-black text-white overflow-hidden shadow-lg">
               {av.startsWith('http') ? <img src={av} alt="avatar" /> : av}
             </div>
           ))}
-          <div className="w-8 h-8 rounded-full border-2 border-[#080808] bg-[#00ff88]/10 text-[#00ff88] flex items-center justify-center text-[8px] font-black shadow-lg">
+          <div className="w-8 h-8 rounded-full border-2 border-[#050505] bg-[#00c477]/10 text-[#00c477] flex items-center justify-center text-[8px] font-black shadow-lg">
             +4
           </div>
         </div>
       )}
 
       {trend && (
-        <span className="text-[10px] font-mono font-black text-[#00ff88] tracking-widest">{trend}</span>
+        <span className="text-[10px] font-mono font-black text-[#00c477] tracking-widest">{trend}</span>
       )}
 
       {sub && (
@@ -68,10 +68,10 @@ const RecentProjects = () => {
   ];
 
   return (
-    <div className="bg-[#080808] border border-white/5 rounded-[32px] overflow-hidden flex flex-col shadow-2xl h-full">
+    <div className="bg-[#050505] border border-white/5 rounded-[32px] overflow-hidden flex flex-col shadow-2xl h-full">
       <div className="px-10 py-8 border-b border-white/5 flex items-center justify-between">
         <h3 className="text-sm font-black text-white tracking-widest uppercase font-mono">Recent Projects</h3>
-        <button className="text-[9px] font-black text-gray-500 hover:text-[#00ff88] transition-colors uppercase tracking-[0.2em]">View All</button>
+        <button className="text-[9px] font-black text-gray-500 hover:text-[#00c477] transition-colors uppercase tracking-[0.2em]">View All</button>
       </div>
       <div className="p-0 flex-1">
         <table className="w-full text-left border-collapse">
@@ -88,14 +88,14 @@ const RecentProjects = () => {
               <tr key={i} className="hover:bg-white/1 transition-all group">
                 <td className="px-10 py-6">
                   <div>
-                    <p className="text-sm font-black text-white uppercase tracking-tight group-hover:text-[#00ff88] transition-colors">{p.name}</p>
+                    <p className="text-sm font-black text-white uppercase tracking-tight group-hover:text-[#00c477] transition-colors">{p.name}</p>
                     <p className="text-[10px] font-mono text-gray-600 mt-1">ID: {p.id}</p>
                   </div>
                 </td>
                 <td className="px-10 py-6">
                   <span className={`text-[8px] font-black px-2.5 py-1 rounded-md border tracking-widest ${
                     p.status === 'ACTIVE' 
-                      ? 'bg-[#00ff88]/5 text-[#00ff88] border-[#00ff88]/20' 
+                      ? 'bg-[#00c477]/5 text-[#00c477] border-[#00c477]/20' 
                       : 'bg-blue-500/5 text-blue-400 border-blue-500/20'
                   }`}>
                     {p.status}
@@ -122,9 +122,9 @@ const VulnerabilityTrend = () => {
   const values = [40, 65, 50, 85, 100, 60, 30];
 
   return (
-    <div className="bg-[#080808] border border-white/5 rounded-[32px] p-10 flex flex-col h-full shadow-2xl relative overflow-hidden group">
+    <div className="bg-[#050505] border border-white/5 rounded-[32px] p-10 flex flex-col h-full shadow-2xl relative overflow-hidden group">
       <div className="flex items-center gap-3 mb-10">
-        <div className="p-2 bg-[#00ff88]/10 text-[#00ff88] rounded-lg"><FiBarChart2 /></div>
+        <div className="p-2 bg-[#00c477]/10 text-[#00c477] rounded-lg"><FiBarChart2 /></div>
         <h3 className="text-sm font-black text-white tracking-widest uppercase font-mono">Vulnerability Trend</h3>
       </div>
 
@@ -138,7 +138,7 @@ const VulnerabilityTrend = () => {
                   transition={{ duration: 1, delay: i * 0.1, ease: [0.33, 1, 0.68, 1] }}
                   className={`w-full rounded-t-lg transition-all duration-500 shadow-lg ${
                     val === 100 
-                      ? 'bg-[#00ff88] shadow-[0_0_20px_#00ff88]' 
+                      ? 'bg-[#00c477] shadow-[0_0_20px_#00c477]' 
                       : 'bg-white/10 group-hover/bar:bg-white/20'
                   }`}
                 />
@@ -155,7 +155,7 @@ const VulnerabilityTrend = () => {
       <div className="mt-8 space-y-4">
         <div className="flex justify-between items-center py-2">
           <span className="text-[10px] font-mono text-gray-500 uppercase tracking-widest">Detection Rate</span>
-          <span className="text-[13px] font-black text-[#00ff88]">99.4%</span>
+          <span className="text-[13px] font-black text-[#00c477]">99.4%</span>
         </div>
         <div className="flex justify-between items-center py-2 border-t border-white/[0.03]">
           <span className="text-[10px] font-mono text-gray-500 uppercase tracking-widest">Response Time</span>
@@ -163,7 +163,7 @@ const VulnerabilityTrend = () => {
         </div>
       </div>
       
-      <div className="absolute top-0 right-0 w-32 h-32 bg-[#00ff88]/[0.02] rounded-full -mr-16 -mt-16 blur-3xl pointer-events-none group-hover:bg-[#00ff88]/4 transition-all duration-700" />
+      <div className="absolute top-0 right-0 w-32 h-32 bg-[#00c477]/[0.02] rounded-full -mr-16 -mt-16 blur-3xl pointer-events-none group-hover:bg-[#00c477]/4 transition-all duration-700" />
     </div>
   );
 };
@@ -180,7 +180,7 @@ const OrganizationDashboard = () => {
           label="ACTIVE PROJECTS" 
           value="04" 
           icon={FiGlobe} 
-          color="text-[#00ff88]" 
+          color="text-[#00c477]" 
           progress={45} 
           trend="+12%"
         />
@@ -215,7 +215,7 @@ const OrganizationDashboard = () => {
            { label: 'Threat score', val: '0.04', icon: FiShield },
          ].map((item, i) => (
             <div key={i} className="p-6 rounded-2xl bg-white/[0.01] border border-white/5 flex items-center gap-4 group hover:bg-white/[0.03] transition-all">
-               <div className="p-2 border border-white/5 rounded-lg text-gray-600 group-hover:text-[#00ff88] transition-colors"><item.icon size={16} /></div>
+               <div className="p-2 border border-white/5 rounded-lg text-gray-600 group-hover:text-[#00c477] transition-colors"><item.icon size={16} /></div>
                <div>
                   <div className="text-[11px] font-black text-white uppercase tracking-tight">{item.val}</div>
                   <div className="text-[8px] font-mono text-gray-600 uppercase tracking-widest font-bold">{item.label}</div>

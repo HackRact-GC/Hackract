@@ -15,8 +15,8 @@ const Home = () => {
     return (
       <div className="min-h-screen bg-[#050505] flex items-center justify-center">
         <div className="flex flex-col items-center gap-6">
-          <div className="w-12 h-12 rounded-full border-2 border-[#00ff88]/10 border-t-[#00ff88] animate-spin shadow-[0_0_20px_rgba(0,255,136,0.2)]" />
-          <p className="text-[10px] font-mono font-black text-[#00ff88] uppercase tracking-[0.4em] animate-pulse">
+          <div className="w-12 h-12 rounded-full border-2 border-[#00c477]/10 border-t-[#00c477] animate-spin shadow-[0_0_20px_rgba(0,255,136,0.2)]" />
+          <p className="text-[10px] font-mono font-black text-[#00c477] uppercase tracking-[0.4em] animate-pulse">
             Synchronizing Neural Link...
           </p>
         </div>

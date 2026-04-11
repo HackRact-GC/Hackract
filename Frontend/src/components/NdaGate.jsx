@@ -57,7 +57,7 @@ const NdaGate = ({ projectId, children }) => {
     return (
       <div className="min-h-screen bg-black flex items-center justify-center font-sans">
         <div className="flex flex-col items-center gap-4 text-white/40">
-          <div className="w-10 h-10 border-2 border-white/10 border-t-[#00ff88] rounded-full animate-spin" />
+          <div className="w-10 h-10 border-2 border-white/10 border-t-[#00c477] rounded-full animate-spin" />
           <p className="text-[10px] uppercase tracking-[0.3em] font-mono animate-pulse">Verifying Authorization</p>
         </div>
       </div>
@@ -76,7 +76,7 @@ const NdaGate = ({ projectId, children }) => {
     <div className="min-h-screen bg-black text-white/80 flex flex-col items-center justify-center p-6 relative overflow-hidden font-sans">
       {/* Background glow */}
       <div className="absolute inset-0 pointer-events-none">
-        <div className="absolute top-1/4 left-1/2 -translate-x-1/2 w-[600px] h-[600px] bg-[#00ff88]/5 rounded-full blur-[120px]" />
+        <div className="absolute top-1/4 left-1/2 -translate-x-1/2 w-[600px] h-[600px] bg-[#00c477]/5 rounded-full blur-[120px]" />
       </div>
 
       <motion.div
@@ -86,7 +86,7 @@ const NdaGate = ({ projectId, children }) => {
       >
         {/* Header */}
         <div className="flex items-center gap-4 mb-8">
-          <div className="w-14 h-14 rounded-2xl bg-black border border-white/10 flex items-center justify-center text-[#00ff88] shadow-inner font-black">
+          <div className="w-14 h-14 rounded-2xl bg-black border border-white/10 flex items-center justify-center text-[#00c477] shadow-inner font-black">
             <FiShield size={28} />
           </div>
           <div>
@@ -102,15 +102,15 @@ const NdaGate = ({ projectId, children }) => {
           {/* Agreement header */}
           <div className="px-8 py-5 border-b border-white/10 flex items-center justify-between bg-white/5">
             <div className="flex items-center gap-3">
-              <FiFileText className="text-[#00ff88]" size={18} />
+              <FiFileText className="text-[#00c477]" size={18} />
               <div>
                 <p className="text-[10px] font-black text-white/80 uppercase tracking-widest">{agreement.title}</p>
                 <p className="text-[9px] text-white/30 font-mono mt-0.5 tracking-widest">MD-VERSION {agreement.version}</p>
               </div>
             </div>
-            <div className="flex items-center gap-2 bg-[#00ff88]/10 border border-[#00ff88]/20 px-3 py-1.5 rounded-lg">
-              <div className="w-1.5 h-1.5 bg-[#00ff88] rounded-full animate-pulse" />
-              <span className="text-[9px] font-black text-[#00ff88] uppercase tracking-widest">Awaiting Signature</span>
+            <div className="flex items-center gap-2 bg-[#00c477]/10 border border-[#00c477]/20 px-3 py-1.5 rounded-lg">
+              <div className="w-1.5 h-1.5 bg-[#00c477] rounded-full animate-pulse" />
+              <span className="text-[9px] font-black text-[#00c477] uppercase tracking-widest">Awaiting Signature</span>
             </div>
           </div>
 
@@ -144,7 +144,7 @@ const NdaGate = ({ projectId, children }) => {
                 onClick={() => setAcknowledged(v => !v)}
                 className={`mt-0.5 w-6 h-6 shrink-0 rounded-lg border-2 flex items-center justify-center transition-all ${
                   acknowledged
-                    ? "bg-[#00ff88] border-[#00ff88] shadow-[0_0_16px_rgba(0,255,136,0.3)]"
+                    ? "bg-[#00c477] border-[#00c477] shadow-[0_0_16px_rgba(0,255,136,0.3)]"
                     : "border-white/10 group-hover:border-white/30"
                 }`}
               >
@@ -170,7 +170,7 @@ const NdaGate = ({ projectId, children }) => {
         {/* Action row */}
         <div className="mt-8 flex flex-col sm:flex-row items-center justify-between gap-4">
           <div className="flex items-center gap-2 text-white/20 text-[9px] font-mono uppercase tracking-widest">
-            <FiLock size={12} className="text-[#00ff88]/40" />
+            <FiLock size={12} className="text-[#00c477]/40" />
             <span>Cryptographic timestamp logged via Secure Ledger</span>
           </div>
 
@@ -180,7 +180,7 @@ const NdaGate = ({ projectId, children }) => {
             disabled={signing || !acknowledged}
             className={`group flex items-center gap-3 px-10 py-4 rounded-2xl font-black text-[10px] uppercase tracking-[0.2em] transition-all shadow-xl ${
               acknowledged && !signing
-                ? "bg-[#00ff88] text-black hover:scale-105 shadow-[#00ff88]/20 cursor-pointer"
+                ? "bg-[#00c477] text-black hover:scale-105 shadow-[#00c477]/20 cursor-pointer"
                 : "bg-white/5 text-white/20 border border-white/5 cursor-not-allowed"
             }`}
           >

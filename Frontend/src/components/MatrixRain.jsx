@@ -40,7 +40,7 @@ const MatrixRain = () => {
         const y = drops[i] * fontSize;
 
         // Random green shades
-        ctx.fillStyle = Math.random() > 0.98 ? "#b3ffd9" : "#00ff88";
+        ctx.fillStyle = Math.random() > 0.98 ? "#b3ffd9" : "#00c477";
         ctx.fillText(text, x, y);
 
         if (y > canvas.height && Math.random() > 0.99) {

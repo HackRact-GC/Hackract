@@ -10,8 +10,8 @@ const OnboardingGuard = ({ children }) => {
 
     if (loading) {
         return (
-            <div className="min-h-screen bg-[#0a0a0a] flex items-center justify-center">
-                <div className="text-[#00ff88] font-mono animate-pulse tracking-widest uppercase">Validating Session...</div>
+            <div className="min-h-screen bg-[#050505] flex items-center justify-center">
+                <div className="text-[#00c477] font-mono animate-pulse tracking-widest uppercase">Validating Session...</div>
             </div>
         );
     }

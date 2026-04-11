@@ -31,7 +31,7 @@ const ProjectCard = ({ project, onClick }) => (
   <motion.button
     whileHover={{ y: -2 }}
     onClick={onClick}
-    className="w-full text-left p-6 rounded-3xl border border-white/5 bg-[#111111] hover:border-[#00ff88]/30 hover:bg-white/5 transition-all group relative overflow-hidden"
+    className="w-full text-left p-6 rounded-3xl border border-white/5 bg-[#050505] hover:border-[#00c477]/30 hover:bg-white/5 transition-all group relative overflow-hidden"
   >
     <div className="absolute top-0 right-0 p-6 opacity-[0.03] group-hover:opacity-[0.08] transition-opacity pointer-events-none">
       {project.isPersonal ? <FiTerminal size={60} /> : <FiShield size={60} />}
@@ -39,18 +39,18 @@ const ProjectCard = ({ project, onClick }) => (
     <div className="flex items-center justify-between mb-4">
       <StatusBadge status={project.status} />
       {project.isPersonal && (
-        <span className="text-[9px] font-black uppercase tracking-widest text-[#00ff88] bg-[#00ff88]/10 border border-[#00ff88]/20 px-2 py-1 rounded-lg flex items-center gap-1.5">
+        <span className="text-[9px] font-black uppercase tracking-widest text-[#00c477] bg-[#00c477]/10 border border-[#00c477]/20 px-2 py-1 rounded-lg flex items-center gap-1.5">
           <FiTerminal size={10} /> Personal
         </span>
       )}
     </div>
-    <h3 className="font-bold text-lg text-white group-hover:text-[#00ff88] transition-colors truncate">{project.name}</h3>
+    <h3 className="font-bold text-lg text-white group-hover:text-[#00c477] transition-colors truncate">{project.name}</h3>
     <p className="text-sm text-gray-500 mt-1 truncate">{project.description || "No scope defined yet."}</p>
     <div className="flex items-center gap-6 mt-4 pt-4 border-t border-white/5 text-[10px] font-bold text-gray-500 uppercase tracking-widest">
       <span className="flex items-center gap-2"><FiUsers size={10} /> {project.collaborators?.length || 0} members</span>
       {project.organization && <span className="flex items-center gap-2"><FiFolder size={10} /> {project.organization.name}</span>}
     </div>
-    <div className="absolute right-6 bottom-6 opacity-0 group-hover:opacity-100 transition-all text-[#00ff88]">
+    <div className="absolute right-6 bottom-6 opacity-0 group-hover:opacity-100 transition-all text-[#00c477]">
       <FiArrowRight />
     </div>
   </motion.button>
@@ -84,11 +84,11 @@ const PersonalWorkspaceCard = ({ onCreate }) => {
   return (
     <motion.div
       layout
-      className="border border-white/5 bg-[#111111] rounded-3xl overflow-hidden"
+      className="border border-white/5 bg-[#050505] rounded-3xl overflow-hidden"
     >
       {/* Header */}
       <div className="p-6 flex items-center gap-5">
-        <div className="w-14 h-14 rounded-2xl bg-[#00ff88]/10 border border-[#00ff88]/20 flex items-center justify-center text-[#00ff88] shrink-0">
+        <div className="w-14 h-14 rounded-2xl bg-[#00c477]/10 border border-[#00c477]/20 flex items-center justify-center text-[#00c477] shrink-0">
           <FiTerminal size={26} />
         </div>
         <div className="flex-1 min-w-0">
@@ -102,7 +102,7 @@ const PersonalWorkspaceCard = ({ onCreate }) => {
           className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all border ${
             expanded
               ? "bg-white/10 border-white/10 text-gray-300"
-              : "bg-[#00ff88] border-[#00ff88] text-black hover:bg-[#00ff88]/90"
+              : "bg-[#00c477] border-[#00c477] text-black hover:bg-[#00c477]/90"
           }`}
         >
           {expanded ? <FiX size={16} /> : <FiPlus size={16} />}
@@ -125,7 +125,7 @@ const PersonalWorkspaceCard = ({ onCreate }) => {
                   value={name}
                   onChange={e => setName(e.target.value)}
                   onKeyDown={e => e.key === "Enter" && handleCreate()}
-                  className="w-full bg-[#161616] border border-white/10 focus:border-[#00ff88]/50 rounded-xl px-4 py-3 text-sm text-white outline-none transition-colors placeholder-gray-600"
+                  className="w-full bg-[#161616] border border-white/10 focus:border-[#00c477]/50 rounded-xl px-4 py-3 text-sm text-white outline-none transition-colors placeholder-gray-600"
                   placeholder="e.g. OWASP Lab, Home CTF, API Recon…"
                 />
               </div>
@@ -135,19 +135,19 @@ const PersonalWorkspaceCard = ({ onCreate }) => {
                   value={description}
                   onChange={e => setDescription(e.target.value)}
                   rows={2}
-                  className="w-full bg-[#161616] border border-white/10 focus:border-[#00ff88]/50 rounded-xl px-4 py-3 text-sm text-white outline-none transition-colors placeholder-gray-600 resize-none"
+                  className="w-full bg-[#161616] border border-white/10 focus:border-[#00c477]/50 rounded-xl px-4 py-3 text-sm text-white outline-none transition-colors placeholder-gray-600 resize-none"
                   placeholder="Target URL, authorized scope, objective…"
                 />
               </div>
               <div className="flex items-center gap-3 pt-2">
                 <div className="flex items-center gap-2 text-[10px] text-gray-500 font-mono">
-                  <FiLock size={10} className="text-[#00ff88]" />
+                  <FiLock size={10} className="text-[#00c477]" />
                   NDA-free · Instant access · Auto-workflow created
                 </div>
                 <button
                   onClick={handleCreate}
                   disabled={loading}
-                  className="ml-auto flex items-center gap-2 px-6 py-2.5 bg-[#00ff88] hover:bg-[#00ff88]/90 text-black rounded-xl text-xs font-black uppercase tracking-widest transition-all disabled:opacity-50 active:scale-95"
+                  className="ml-auto flex items-center gap-2 px-6 py-2.5 bg-[#00c477] hover:bg-[#00c477]/90 text-black rounded-xl text-xs font-black uppercase tracking-widest transition-all disabled:opacity-50 active:scale-95"
                 >
                   {loading ? (
                     <div className="w-4 h-4 border-2 border-black/30 border-t-black rounded-full animate-spin" />
@@ -286,7 +286,7 @@ const Projects = () => {
               className={`flex items-center gap-2 px-5 py-2.5 rounded-2xl text-xs font-black uppercase tracking-widest transition-all border ${
                 showOrgForm
                   ? "bg-white/10 border-white/10 text-gray-300"
-                  : "bg-[#00ff88] border-[#00ff88] text-black hover:bg-[#00ff88]/90"
+                  : "bg-[#00c477] border-[#00c477] text-black hover:bg-[#00c477]/90"
               }`}
             >
               {showOrgForm ? <FiX size={14} /> : <FiPlus size={14} />}
@@ -304,14 +304,14 @@ const Projects = () => {
             animate={{ opacity: 1, height: "auto" }}
             exit={{ opacity: 0, height: 0 }}
             onSubmit={createOrgProject}
-            className="bg-[#111111] border border-white/5 rounded-3xl p-8 space-y-5"
+            className="bg-[#050505] border border-white/5 rounded-3xl p-8 space-y-5"
           >
             <h2 className="font-black text-white uppercase tracking-widest text-xs flex items-center gap-3">
-              <FiShield className="text-[#00ff88]" /> New Security Program
+              <FiShield className="text-[#00c477]" /> New Security Program
             </h2>
             <div className="grid md:grid-cols-2 gap-4">
               <select
-                className="bg-[#161616] border border-white/10 rounded-xl px-4 py-3 text-sm text-white outline-none focus:border-[#00ff88]/50 transition-colors"
+                className="bg-[#161616] border border-white/10 rounded-xl px-4 py-3 text-sm text-white outline-none focus:border-[#00c477]/50 transition-colors"
                 value={selectedOrgId}
                 onChange={e => setSelectedOrgId(e.target.value)}
               >
@@ -326,7 +326,7 @@ const Projects = () => {
                 onChange={onChange}
                 placeholder="Program name"
                 required
-                className="bg-[#161616] border border-white/10 rounded-xl px-4 py-3 text-sm text-white outline-none focus:border-[#00ff88]/50 transition-colors placeholder-gray-600"
+                className="bg-[#161616] border border-white/10 rounded-xl px-4 py-3 text-sm text-white outline-none focus:border-[#00c477]/50 transition-colors placeholder-gray-600"
               />
               <textarea
                 name="description"
@@ -334,13 +334,13 @@ const Projects = () => {
                 onChange={onChange}
                 placeholder="Scope and objectives"
                 rows={2}
-                className="md:col-span-2 bg-[#161616] border border-white/10 rounded-xl px-4 py-3 text-sm text-white outline-none focus:border-[#00ff88]/50 transition-colors placeholder-gray-600 resize-none"
+                className="md:col-span-2 bg-[#161616] border border-white/10 rounded-xl px-4 py-3 text-sm text-white outline-none focus:border-[#00c477]/50 transition-colors placeholder-gray-600 resize-none"
               />
               <select
                 name="projectAdminId"
                 value={form.projectAdminId}
                 onChange={onChange}
-                className="bg-[#161616] border border-white/10 rounded-xl px-4 py-3 text-sm text-white outline-none focus:border-[#00ff88]/50 transition-colors"
+                className="bg-[#161616] border border-white/10 rounded-xl px-4 py-3 text-sm text-white outline-none focus:border-[#00c477]/50 transition-colors"
               >
                 <option value="">Assign project admin (optional)</option>
                 {orgMembers.map(m => (
@@ -353,7 +353,7 @@ const Projects = () => {
             <button
               type="submit"
               disabled={submitting}
-              className="flex items-center gap-2 px-6 py-3 bg-[#00ff88] hover:bg-[#00ff88]/90 text-black rounded-xl text-xs font-black uppercase tracking-widest transition-all disabled:opacity-50 active:scale-95"
+              className="flex items-center gap-2 px-6 py-3 bg-[#00c477] hover:bg-[#00c477]/90 text-black rounded-xl text-xs font-black uppercase tracking-widest transition-all disabled:opacity-50 active:scale-95"
             >
               {submitting ? <div className="w-4 h-4 border-2 border-black/30 border-t-black rounded-full animate-spin" /> : <FiCheck size={14} />}
               {submitting ? "Creating…" : "Create Program"}
@@ -366,7 +366,7 @@ const Projects = () => {
       {isPentester && (
         <section className="space-y-5">
           <h2 className="text-xs font-black text-gray-500 uppercase tracking-[0.2em] flex items-center gap-3">
-            <FiTerminal className="text-[#00ff88]" /> Personal Labs
+            <FiTerminal className="text-[#00c477]" /> Personal Labs
           </h2>
           <PersonalWorkspaceCard onCreate={handlePersonalCreated} />
           {personalProjects.length > 0 && (
@@ -382,11 +382,11 @@ const Projects = () => {
       {/* Org Programs Section */}
       <section className="space-y-5">
         <h2 className="text-xs font-black text-gray-500 uppercase tracking-[0.2em] flex items-center gap-3">
-          <FiShield className="text-[#00ff88]" /> Security Programs
+          <FiShield className="text-[#00c477]" /> Security Programs
         </h2>
         {loading ? (
           <div className="py-20 flex flex-col items-center gap-4 text-gray-500">
-            <div className="w-8 h-8 border-2 border-white/10 border-t-[#00ff88] rounded-full animate-spin" />
+            <div className="w-8 h-8 border-2 border-white/10 border-t-[#00c477] rounded-full animate-spin" />
             <span className="text-[9px] uppercase tracking-[0.3em] font-mono animate-pulse">Loading programs</span>
           </div>
         ) : projects.length === 0 ? (
@@ -394,7 +394,7 @@ const Projects = () => {
             <FiFolder size={32} className="mx-auto mb-3 opacity-30" />
             <p className="text-sm font-medium text-gray-500">No security programs yet.</p>
             {isOrgAdmin && (
-              <p className="text-xs text-gray-600 mt-1">Create one using the <span className="text-[#00ff88]">New Program</span> button above.</p>
+              <p className="text-xs text-gray-600 mt-1">Create one using the <span className="text-[#00c477]">New Program</span> button above.</p>
             )}
           </div>
         ) : (
