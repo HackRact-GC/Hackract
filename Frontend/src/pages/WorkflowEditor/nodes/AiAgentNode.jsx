@@ -12,8 +12,8 @@ const AiAgentNode = ({ data, selected }) => {
       {showPresence && (
         <div className="absolute -top-6 right-0 flex -space-x-2">
           {activeUsers.map((u, i) => (
-            <div 
-              key={i} 
+            <div
+              key={i}
               className="w-5 h-5 rounded-full border-2 border-[#0b0f19] flex items-center justify-center text-[10px] font-bold text-white shadow-lg animate-bounce"
               style={{ backgroundColor: u.color || '#00ff88' }}
               title={u.user}
@@ -23,20 +23,20 @@ const AiAgentNode = ({ data, selected }) => {
           ))}
         </div>
       )}
-      
+
       <div className="p-2 flex justify-between items-center text-[#00ff88] border-b border-[#00ff88]/30 bg-[#11231a] rounded-t-lg">
         <div className="flex items-center gap-2">
           <RiRobotLine size={16} />
           <span className="font-bold text-xs uppercase tracking-tighter">AI Agent</span>
         </div>
         <div className="flex items-center gap-2">
-          <input 
-            className="bg-transparent border-none text-right focus:outline-none text-gray-500 text-xs placeholder-gray-700 w-[120px]" 
+          <input
+            className="bg-transparent border-none text-right focus:outline-none text-gray-500 text-xs placeholder-gray-700 w-[120px]"
             placeholder="Agent objective..."
             defaultValue={data.label || ''}
             onBlur={(e) => data.onTitleChange && data.onTitleChange(e.target.value)}
           />
-          <button 
+          <button
             className="text-gray-500 hover:text-red-500 transition-colors cursor-pointer"
             onClick={() => data.onDelete && data.onDelete()}
           >

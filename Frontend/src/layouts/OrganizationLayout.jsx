@@ -32,7 +32,7 @@ const OrganizationLayout = () => {
     <div className="flex h-screen bg-[#050505] text-gray-400 font-sans overflow-hidden">
       
       {/* SIDEBAR */}
-      <aside className="w-64 bg-[#080808] border-r border-white/5 flex flex-col z-50">
+      <aside className="w-64 bg-[#050505] border-r border-white/5 flex flex-col z-50">
         <div className="p-8 pb-12">
           <div className="flex flex-col gap-1">
             <h1 className="text-xl font-black text-white tracking-[0.2em] font-mono">HACKRACT AI</h1>
@@ -47,17 +47,17 @@ const OrganizationLayout = () => {
               onClick={() => navigate(item.route)}
               className={`w-full flex items-center gap-4 px-8 py-4 transition-all relative group ${
                 isActive(item.route) 
-                  ? 'text-[#00ff88]' 
+                  ? 'text-[#00c477]' 
                   : 'text-gray-500 hover:text-white hover:bg-white/[0.02]'
               }`}
             >
               {isActive(item.route) && (
                 <motion.div 
                   layoutId="activeTab"
-                  className="absolute left-0 w-[3px] h-full bg-[#00ff88] shadow-[0_0_15px_#00ff88]"
+                  className="absolute left-0 w-[3px] h-full bg-[#00c477] shadow-[0_0_15px_#00c477]"
                 />
               )}
-              <item.icon className={`text-lg transition-colors ${isActive(item.route) ? 'text-[#00ff88]' : 'group-hover:text-white'}`} />
+              <item.icon className={`text-lg transition-colors ${isActive(item.route) ? 'text-[#00c477]' : 'group-hover:text-white'}`} />
               <span className="text-[11px] font-black tracking-[0.2em] font-mono">{item.label}</span>
             </button>
           ))}
@@ -67,8 +67,8 @@ const OrganizationLayout = () => {
         <div className="p-8 mt-auto">
           <div className="bg-white/[0.02] border border-white/5 rounded-xl p-4 space-y-2">
             <p className="text-[9px] font-black text-gray-500 uppercase tracking-widest">Network Status</p>
-            <div className="flex items-center gap-2 text-[#00ff88]">
-              <div className="w-1.5 h-1.5 rounded-full bg-[#00ff88] animate-pulse shadow-[0_0_8px_#00ff88]" />
+            <div className="flex items-center gap-2 text-[#00c477]">
+              <div className="w-1.5 h-1.5 rounded-full bg-[#00c477] animate-pulse shadow-[0_0_8px_#00c477]" />
               <span className="text-[10px] font-black uppercase tracking-widest font-mono">Encrypted Up-Link</span>
             </div>
           </div>
@@ -81,13 +81,13 @@ const OrganizationLayout = () => {
         {/* HEADER */}
         <header className="h-16 flex items-center justify-between px-10 border-b border-white/5 bg-[#050505]/50 backdrop-blur-xl z-40 sticky top-0">
           <div className="flex items-center gap-2 cursor-pointer group">
-            <h2 className="text-sm font-black text-white tracking-widest uppercase font-mono group-hover:text-[#00ff88] transition-colors">{orgName}</h2>
+            <h2 className="text-sm font-black text-white tracking-widest uppercase font-mono group-hover:text-[#00c477] transition-colors">{orgName}</h2>
             <FiChevronDown className="text-gray-500 group-hover:text-white transition-colors" />
           </div>
 
           <div className="flex items-center gap-6">
             <button 
-              className="relative p-2 rounded-lg bg-white/[0.02] border border-white/5 text-gray-400 hover:text-[#00ff88] transition-all"
+              className="relative p-2 rounded-lg bg-white/[0.02] border border-white/5 text-gray-400 hover:text-[#00c477] transition-all"
               onClick={() => setIsNotificationsOpen(!isNotificationsOpen)}
             >
               <FiBell />
@@ -95,7 +95,7 @@ const OrganizationLayout = () => {
             </button>
             
             <div className="flex items-center gap-3 pl-6 border-l border-white/10">
-              <div className="w-9 h-9 rounded-full bg-gradient-to-br from-[#00ff88]/20 to-emerald-500/10 border border-[#00ff88]/30 flex items-center justify-center font-black text-[#00ff88] shadow-[0_0_10px_rgba(0,255,136,0.1)]">
+              <div className="w-9 h-9 rounded-full bg-gradient-to-br from-[#00c477]/20 to-emerald-500/10 border border-[#00c477]/30 flex items-center justify-center font-black text-[#00c477] shadow-[0_0_10px_rgba(0,255,136,0.1)]">
                 {userInitial}
               </div>
             </div>
@@ -108,9 +108,9 @@ const OrganizationLayout = () => {
         </main>
 
         {/* AI AGENT STATUS BAR */}
-        <footer className="h-10 bg-[#080808] border-t border-white/5 px-10 flex items-center justify-between text-[9px] font-black font-mono uppercase tracking-[0.2em] text-gray-500">
+        <footer className="h-10 bg-[#050505] border-t border-white/5 px-10 flex items-center justify-between text-[9px] font-black font-mono uppercase tracking-[0.2em] text-gray-500">
           <div className="flex items-center gap-4">
-            <div className="flex items-center gap-2 text-[#00ff88]">
+            <div className="flex items-center gap-2 text-[#00c477]">
               <FiActivity className="animate-pulse" />
               <span>AI Agent: System Ready</span>
             </div>
@@ -123,7 +123,7 @@ const OrganizationLayout = () => {
         </footer>
 
         {/* Floating Action Button */}
-        <button className="fixed bottom-16 right-10 w-14 h-14 bg-[#00ff88] text-black rounded-full shadow-[0_0_25px_rgba(0,255,136,0.3)] flex items-center justify-center hover:scale-110 active:scale-95 transition-all z-50">
+        <button className="fixed bottom-16 right-10 w-14 h-14 bg-[#00c477] text-black rounded-full shadow-[0_0_25px_rgba(0,255,136,0.3)] flex items-center justify-center hover:scale-110 active:scale-95 transition-all z-50">
           <FiPlus size={24} />
         </button>
       </div>

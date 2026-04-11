@@ -9,31 +9,31 @@ const WorkflowControls = ({ isLocked, onToggleLock, disabled }) => {
 
   return (
     <div className="flex flex-col z-50 overflow-hidden rounded-lg shadow-2xl">
-      <button 
-        onClick={() => zoomIn()} 
-        className={buttonClass} 
+      <button
+        onClick={() => zoomIn()}
+        className={buttonClass}
         title="Zoom In"
       >
         <FiPlus size={18} />
       </button>
-      <button 
-        onClick={() => zoomOut()} 
-        className={buttonClass} 
+      <button
+        onClick={() => zoomOut()}
+        className={buttonClass}
         title="Zoom Out"
       >
         <FiMinus size={18} />
       </button>
-      <button 
-        onClick={() => fitView({ duration: 800 })} 
-        className={buttonClass} 
+      <button
+        onClick={() => fitView({ duration: 800 })}
+        className={buttonClass}
         title="Fit View"
       >
         <FiMaximize size={18} />
       </button>
-      <button 
-        onClick={onToggleLock} 
+      <button
+        onClick={onToggleLock}
         disabled={disabled}
-        className={`${buttonClass} ${isLocked ? 'text-[#00ff88] border-[#00ff88]/50 bg-[#00ff88]/10' : ''} ${disabled ? 'opacity-30 cursor-not-allowed text-gray-700' : ''}`} 
+        className={`${buttonClass} ${isLocked ? 'text-[#00ff88] border-[#00ff88]/50 bg-[#00ff88]/10' : ''} ${disabled ? 'opacity-30 cursor-not-allowed text-gray-700' : ''}`}
         title={disabled ? "Edit access restricted" : (isLocked ? "Unlock Editor" : "Lock Editor")}
       >
         {isLocked ? <FiLock size={18} /> : <FiUnlock size={18} />}

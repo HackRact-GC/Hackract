@@ -33,13 +33,13 @@ const KickoffChecklist = ({ projectId, onComplete }) => {
   };
 
   return (
-    <div className="bg-[#00ff88]/5 border border-[#00ff88]/20 rounded-2xl p-6 shadow-xl shadow-[#00ff88]/5">
+    <div className="bg-[#00c477]/5 border border-[#00c477]/20 rounded-2xl p-6 shadow-xl shadow-[#00c477]/5">
       <div className="flex items-center gap-3 mb-6">
-        <div className="h-10 w-10 rounded-full bg-[#00ff88]/20 flex items-center justify-center text-[#00ff88]">
+        <div className="h-10 w-10 rounded-full bg-[#00c477]/20 flex items-center justify-center text-[#00c477]">
           <FiCheckCircle size={24} />
         </div>
         <div>
-          <h3 className="font-bold text-[#00ff88] uppercase tracking-widest font-mono">Engagement Kickoff</h3>
+          <h3 className="font-bold text-[#00c477] uppercase tracking-widest font-mono">Engagement Kickoff</h3>
           <p className="text-xs text-gray-400">Perform these mandatory checks to transition from Planning to Execution.</p>
         </div>
       </div>
@@ -51,7 +51,7 @@ const KickoffChecklist = ({ projectId, onComplete }) => {
             onClick={() => toggleItem(item.id)}
             className={`w-full flex items-center justify-between p-4 rounded-xl border transition-all ${
               item.checked 
-                ? "bg-[#00ff88]/10 border-[#00ff88]/40 text-[#00ff88]" 
+                ? "bg-[#00c477]/10 border-[#00c477]/40 text-[#00c477]" 
                 : "bg-white/5 border-white/10 text-gray-400 hover:border-white/20"
             }`}
           >
@@ -60,7 +60,7 @@ const KickoffChecklist = ({ projectId, onComplete }) => {
               <span className="text-sm font-medium">{item.text}</span>
             </div>
             <div className={`h-5 w-5 rounded-md border flex items-center justify-center ${
-              item.checked ? "bg-[#00ff88] border-[#00ff88] text-black" : "border-white/20"
+              item.checked ? "bg-[#00c477] border-[#00c477] text-black" : "border-white/20"
             }`}>
               {item.checked && <FiCheckCircle size={14} />}
             </div>
@@ -71,7 +71,7 @@ const KickoffChecklist = ({ projectId, onComplete }) => {
       <button
         onClick={handleKickoff}
         disabled={!allChecked || submitting}
-        className="mt-8 w-full py-4 bg-[#00ff88] text-black font-mono font-bold uppercase tracking-[0.2em] rounded-xl hover:bg-[#00ff88]/80 transition-all shadow-lg shadow-[#00ff88]/20 disabled:opacity-40 disabled:shadow-none"
+        className="mt-8 w-full py-4 bg-[#00c477] text-black font-mono font-bold uppercase tracking-[0.2em] rounded-xl hover:bg-[#00c477]/80 transition-all shadow-lg shadow-[#00c477]/20 disabled:opacity-40 disabled:shadow-none"
       >
         {submitting ? "LAUNCHING..." : "START ENGAGEMENT"}
       </button>

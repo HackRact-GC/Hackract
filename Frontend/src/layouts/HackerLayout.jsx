@@ -46,7 +46,7 @@ const HackerLayout = () => {
   const currentPage = navItems.find(n => isActive(n.route))?.label ?? 'Hackract';
 
   return (
-    <div className="flex h-screen bg-[#0a0a0a] text-gray-300 font-sans selection:bg-[#00ff88]/30 overflow-hidden">
+    <div className="flex h-screen bg-[#050505] text-gray-300 font-sans selection:bg-[#00c477]/30 overflow-hidden">
 
       {/* MOBILE OVERLAY */}
       {isMobileMenuOpen && (
@@ -57,12 +57,12 @@ const HackerLayout = () => {
       )}
 
       {/* ── SIDEBAR ───────────────────────────────────────────────────── */}
-      <div className={`fixed inset-y-0 left-0 z-50 w-64 bg-[#111111] border-r border-white/5 flex flex-col justify-between transform transition-transform duration-300 lg:relative lg:translate-x-0 ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full'}`}>
+      <div className={`fixed inset-y-0 left-0 z-50 w-64 bg-[#050505] border-r border-white/5 flex flex-col justify-between transform transition-transform duration-300 lg:relative lg:translate-x-0 ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full'}`}>
         <div>
           {/* Logo & mobile close */}
           <div className="p-6 flex justify-between items-center">
             <h1
-              className="text-2xl font-bold tracking-wider text-[#00ff88] cursor-pointer"
+              className="text-2xl font-bold tracking-wider text-[#00c477] cursor-pointer"
               onClick={() => navigate('/hacker-dashboard')}
             >
               Hackract
@@ -80,7 +80,7 @@ const HackerLayout = () => {
             className="mx-4 mb-6 p-4 bg-white/5 rounded-xl border border-white/10 flex items-center space-x-3 cursor-pointer hover:bg-white/8 transition-colors"
             onClick={() => navigate('/hacker-profile')}
           >
-            <div className="w-10 h-10 rounded-full bg-[#00ff88]/20 flex items-center justify-center text-[#00ff88] font-bold text-sm shrink-0">
+            <div className="w-10 h-10 rounded-full bg-[#00c477]/20 flex items-center justify-center text-[#00c477] font-bold text-sm shrink-0">
               {userInitial}
             </div>
             <div className="min-w-0">
@@ -97,11 +97,11 @@ const HackerLayout = () => {
                 onClick={() => { navigate(item.route); setIsMobileMenuOpen(false); }}
                 className={`w-full flex items-center space-x-3 px-3 py-3 rounded-lg transition-colors text-left ${
                   isActive(item.route)
-                    ? 'bg-[#00ff88]/10 text-[#00ff88] border-l-2 border-[#00ff88]'
+                    ? 'bg-[#00c477]/10 text-[#00c477] border-l-2 border-[#00c477]'
                     : 'text-gray-400 hover:bg-white/5 hover:text-white'
                 }`}
               >
-                <item.icon className={isActive(item.route) ? 'text-[#00ff88]' : ''} />
+                <item.icon className={isActive(item.route) ? 'text-[#00c477]' : ''} />
                 <span className="font-medium">{item.label}</span>
               </button>
             ))}
@@ -112,7 +112,7 @@ const HackerLayout = () => {
         <div className="p-4 space-y-2">
           <button
             onClick={() => navigate('/projects')}
-            className="w-full bg-[#00ff88] text-black font-bold py-3 rounded-xl hover:bg-[#00ff88]/90 transition-all shadow-[0_0_15px_rgba(0,255,136,0.3)] flex items-center justify-center gap-2"
+            className="w-full bg-[#00c477] text-black font-bold py-3 rounded-xl hover:bg-[#00c477]/90 transition-all shadow-[0_0_15px_rgba(0,255,136,0.3)] flex items-center justify-center gap-2"
           >
             <FiPlus size={16} /> New Project
           </button>
@@ -129,7 +129,7 @@ const HackerLayout = () => {
       <div className="flex-1 flex flex-col h-full min-w-0 overflow-hidden">
 
         {/* Top header */}
-        <header className="flex justify-between items-center p-4 lg:p-5 border-b border-white/5 bg-[#0a0a0a] z-30 flex-shrink-0">
+        <header className="flex justify-between items-center p-4 lg:p-5 border-b border-white/5 bg-[#050505] z-30 flex-shrink-0">
           <div className="flex items-center flex-1 gap-4">
             {/* Mobile hamburger */}
             <button
@@ -146,7 +146,7 @@ const HackerLayout = () => {
               <input
                 type="text"
                 placeholder="Search resources, vulnerabilities..."
-                className="w-full bg-[#161616] border border-white/10 rounded-xl py-2.5 pl-11 pr-4 text-sm text-white focus:outline-none focus:border-[#00ff88] transition-colors"
+                className="w-full bg-[#161616] border border-white/10 rounded-xl py-2.5 pl-11 pr-4 text-sm text-white focus:outline-none focus:border-[#00c477] transition-colors"
               />
             </div>
           </div>
@@ -154,7 +154,7 @@ const HackerLayout = () => {
           <div className="flex items-center space-x-4">
             <button className="relative text-gray-400 hover:text-white transition-colors hidden sm:block">
               <FiBell size={20} />
-              <span className="absolute -top-1 -right-1 w-2 h-2 bg-[#00ff88] rounded-full" />
+              <span className="absolute -top-1 -right-1 w-2 h-2 bg-[#00c477] rounded-full" />
             </button>
             <div
               className="flex items-center space-x-2 border-l border-white/10 pl-4 cursor-pointer"
@@ -164,7 +164,7 @@ const HackerLayout = () => {
                 <div className="text-sm font-bold text-white">{displayName}</div>
                 <div className="text-xs text-gray-500">Operative</div>
               </div>
-              <div className="w-8 h-8 lg:w-9 lg:h-9 rounded-xl bg-[#00ff88]/20 border border-[#00ff88]/30 flex items-center justify-center text-[#00ff88] font-bold text-sm">
+              <div className="w-8 h-8 lg:w-9 lg:h-9 rounded-xl bg-[#00c477]/20 border border-[#00c477]/30 flex items-center justify-center text-[#00c477] font-bold text-sm">
                 {userInitial}
               </div>
             </div>

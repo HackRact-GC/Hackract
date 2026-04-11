@@ -10,7 +10,7 @@ const AuthLayout = () => {
         <div className="flex min-h-screen w-full font-mono bg-white text-gray-900">
             {/* Left Side - Matrix Background */}
             <div className="relative hidden w-1/2 md:flex flex-col p-4">
-                <div className="relative flex-1 bg-black text-[#00ff88] overflow-hidden rounded-[2.5rem] w-full h-full shadow-2xl">
+                <div className="relative flex-1 bg-black text-[#00c477] overflow-hidden rounded-[2.5rem] w-full h-full shadow-2xl">
                     <MatrixRain />
 
                     {/* Overlay Content */}
