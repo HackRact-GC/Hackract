@@ -24,6 +24,8 @@ import OrganizationLayout from "../layouts/OrganizationLayout.jsx";
 import OrganizationDashboard from "../pages/OrganizationDashboard.jsx";
 import Reports from "../pages/Reports.jsx";
 import OrganizationDiscover from "../pages/OrganizationDiscover.jsx";
+import HackerPublicProfile from "../pages/HackerPublicProfile.jsx";
+import OrganizationProjects from "../pages/OrganizationProjects.jsx";
 
 // Phase 2 Marketplace Imports
 import EngagementBoard from "../pages/EngagementBoard.jsx";
@@ -110,8 +112,16 @@ const router = createBrowserRouter([
             element: <OrganizationDashboard />,
           },
           {
+            path: "org-projects",
+            element: <OrganizationProjects />,
+          },
+          {
             path: "discover",
             element: <OrganizationDiscover />,
+          },
+          {
+            path: "discover/:hackerId",
+            element: <HackerPublicProfile />,
           },
           {
             path: "reports",
