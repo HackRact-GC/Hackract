@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { FiSearch, FiStar, FiChevronLeft, FiChevronRight } from 'react-icons/fi';
 import { motion } from 'framer-motion';
 
@@ -66,6 +67,7 @@ const MOCK_HACKERS = [
 ];
 
 const OrganizationDiscover = () => {
+  const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState("");
 
   return (
@@ -185,7 +187,10 @@ const OrganizationDiscover = () => {
                  ))}
                </div>
 
-               <button className="w-full py-3 rounded-lg bg-[#00c477] hover:bg-[#009a5e] text-black font-bold text-sm transition-all shadow-[0_0_15px_rgba(0,255,136,0.15)] hover:shadow-[0_0_25px_rgba(0,255,136,0.3)] mt-auto active:scale-[0.98]">
+               <button
+                 onClick={() => navigate(`/discover/${hacker.id}`)}
+                 className="w-full py-3 rounded-lg bg-[#00c477] hover:bg-[#009a5e] text-black font-bold text-sm transition-all shadow-[0_0_15px_rgba(0,255,136,0.15)] hover:shadow-[0_0_25px_rgba(0,255,136,0.3)] mt-auto active:scale-[0.98]"
+               >
                  View Profile
                </button>
               </motion.div>
