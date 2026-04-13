@@ -5,60 +5,228 @@ import toast from "react-hot-toast";
 import api from "../api/axiosConfig";
 import { useAuth } from "../context/authContext.jsx";
 import {
-  FiPlus, FiTerminal, FiShield, FiArrowRight, FiClock, FiZap,
-  FiCheck, FiX, FiLock, FiUsers, FiFolder,
+  FiPlus, FiTerminal, FiShield, FiArrowRight, FiZap,
+  FiCheck, FiX, FiLock, FiUsers, FiFolder, FiActivity,
+  FiTarget, FiClock, FiCalendar, FiBell, FiCheckCircle,
+  FiAlertCircle,
 } from "react-icons/fi";
 
-// ──────────────────────────────────────────────────────────────────────
-// Sub-components
-// ──────────────────────────────────────────────────────────────────────
+// ─── MOCK ASSIGNED PROJECTS (org-side) ───────────────────────────────────────
+const MOCK_ORG_ASSIGNMENTS = [
+  {
+    id: "org-1",
+    name: "Alpha Bank — Core API Pentest",
+    orgName: "Alpha Bank Corp",
+    orgAvatar: "https://api.dicebear.com/7.x/identicon/svg?seed=AlphaBank",
+    role: "LEAD",
+    status: "IN_PROGRESS",
+    inviteStatus: "ACCEPTED",
+    assignedAt: "Apr 05, 2026",
+    deadline: "Apr 28, 2026",
+    findings: 14,
+    description: "Full penetration test on core banking REST API endpoints.",
+  },
+  {
+    id: "org-2",
+    name: "CloudStack Infrastructure Audit",
+    orgName: "NexCloud Systems",
+    orgAvatar: "https://api.dicebear.com/7.x/identicon/svg?seed=NexCloud",
+    role: "CONTRIBUTOR",
+    status: "PLANNING",
+    inviteStatus: "PENDING",
+    assignedAt: "Apr 10, 2026",
+    deadline: "May 15, 2026",
+    findings: 0,
+    description: "AWS IAM and VPC misconfiguration review.",
+  },
+  {
+    id: "org-3",
+    name: "Mobile App Security Review",
+    orgName: "Veloce Fintech",
+    orgAvatar: "https://api.dicebear.com/7.x/identicon/svg?seed=Veloce",
+    role: "CONTRIBUTOR",
+    status: "REPORTING",
+    inviteStatus: "ACCEPTED",
+    assignedAt: "Mar 14, 2026",
+    deadline: "Apr 20, 2026",
+    findings: 27,
+    description: "Android & iOS binary analysis and certificate pinning bypass.",
+  },
+];
+
+// ─── CONSTANTS ────────────────────────────────────────────────────────────────
+const STATUS_CONFIG = {
+  PLANNING:    { label: "Planning",    color: "text-amber-400",  bg: "bg-amber-400/10",  border: "border-amber-400/20" },
+  IN_PROGRESS: { label: "In Progress", color: "text-cyan-400",   bg: "bg-cyan-400/10",   border: "border-cyan-400/20"  },
+  REPORTING:   { label: "Reporting",   color: "text-violet-400", bg: "bg-violet-400/10", border: "border-violet-400/20"},
+  CLOSED:      { label: "Closed",      color: "text-gray-400",   bg: "bg-gray-400/10",   border: "border-gray-400/20"  },
+};
+
+const TABS = ["ALL", "PERSONAL", "ORG ASSIGNED", "PENDING"];
+
+// ─── SUB-COMPONENTS ───────────────────────────────────────────────────────────
 
 const StatusBadge = ({ status }) => {
-  const map = {
-    PLANNING:    "text-amber-400 bg-amber-500/10 border-amber-500/20",
-    IN_PROGRESS: "text-cyan-400 bg-cyan-500/10 border-cyan-500/20",
-    REPORTING:   "text-violet-400 bg-violet-500/10 border-violet-500/20",
-    CLOSED:      "text-slate-400 bg-slate-500/10 border-slate-500/20",
-  };
+  const cfg = STATUS_CONFIG[status] || STATUS_CONFIG.PLANNING;
   return (
-    <span className={`inline-block text-[9px] font-black uppercase tracking-widest px-2.5 py-1 rounded-md border ${map[status] || map.PLANNING}`}>
-      {status?.replace("_", " ")}
+    <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[9px] font-black font-mono tracking-widest uppercase border ${cfg.color} ${cfg.bg} ${cfg.border}`}>
+      <span className={`w-1.5 h-1.5 rounded-full ${cfg.color.replace('text-', 'bg-')}`} />
+      {cfg.label}
     </span>
   );
 };
 
-const ProjectCard = ({ project, onClick }) => (
-  <motion.button
-    whileHover={{ y: -2 }}
-    onClick={onClick}
-    className="w-full text-left p-6 rounded-3xl border border-white/5 bg-[#050505] hover:border-[#00c477]/30 hover:bg-white/5 transition-all group relative overflow-hidden"
-  >
-    <div className="absolute top-0 right-0 p-6 opacity-[0.03] group-hover:opacity-[0.08] transition-opacity pointer-events-none">
-      {project.isPersonal ? <FiTerminal size={60} /> : <FiShield size={60} />}
-    </div>
-    <div className="flex items-center justify-between mb-4">
-      <StatusBadge status={project.status} />
-      {project.isPersonal && (
-        <span className="text-[9px] font-black uppercase tracking-widest text-[#00c477] bg-[#00c477]/10 border border-[#00c477]/20 px-2 py-1 rounded-lg flex items-center gap-1.5">
-          <FiTerminal size={10} /> Personal
-        </span>
-      )}
-    </div>
-    <h3 className="font-bold text-lg text-white group-hover:text-[#00c477] transition-colors truncate">{project.name}</h3>
-    <p className="text-sm text-gray-500 mt-1 truncate">{project.description || "No scope defined yet."}</p>
-    <div className="flex items-center gap-6 mt-4 pt-4 border-t border-white/5 text-[10px] font-bold text-gray-500 uppercase tracking-widest">
-      <span className="flex items-center gap-2"><FiUsers size={10} /> {project.collaborators?.length || 0} members</span>
-      {project.organization && <span className="flex items-center gap-2"><FiFolder size={10} /> {project.organization.name}</span>}
-    </div>
-    <div className="absolute right-6 bottom-6 opacity-0 group-hover:opacity-100 transition-all text-[#00c477]">
-      <FiArrowRight />
-    </div>
-  </motion.button>
+const RoleBadge = ({ role }) => (
+  <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[9px] font-black font-mono tracking-widest uppercase border ${
+    role === 'LEAD'
+      ? 'text-[#00c477] bg-[#00c477]/10 border-[#00c477]/20'
+      : 'text-blue-400 bg-blue-400/10 border-blue-400/20'
+  }`}>
+    {role === 'LEAD' ? '★' : '◆'} {role}
+  </span>
 );
 
-// ──────────────────────────────────────────────────────────────────────
-// Personal Workspace Quick-Create Card
-// ──────────────────────────────────────────────────────────────────────
+// Personal Project Card
+const PersonalProjectCard = ({ project, onOpen, index }) => (
+  <motion.div
+    initial={{ opacity: 0, y: 12 }}
+    animate={{ opacity: 1, y: 0 }}
+    transition={{ delay: index * 0.07 }}
+    className="bg-[#0a0a0a] border border-white/5 hover:border-[#00c477]/20 rounded-2xl p-6 group transition-all relative overflow-hidden"
+  >
+    <div className="absolute top-0 right-0 p-5 opacity-[0.03] group-hover:opacity-[0.07] transition-opacity pointer-events-none">
+      <FiTerminal size={56} />
+    </div>
+
+    <div className="flex items-center gap-2 mb-4 flex-wrap">
+      <StatusBadge status={project.status} />
+      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[9px] font-black font-mono border text-[#00c477] bg-[#00c477]/10 border-[#00c477]/20">
+        <FiTerminal className="text-[8px]" /> Personal
+      </span>
+    </div>
+
+    <h3 className="text-base font-black text-white group-hover:text-[#00c477] transition-colors mb-1.5 leading-snug">
+      {project.name}
+    </h3>
+    <p className="text-xs text-gray-500 leading-relaxed line-clamp-2 mb-5">
+      {project.description || "No scope defined yet."}
+    </p>
+
+    <div className="flex items-center justify-between pt-4 border-t border-white/5 text-[10px] font-mono text-gray-500">
+      <div className="flex items-center gap-1.5">
+        <FiUsers className="text-[#00c477]" />
+        <span>{project.collaborators?.length || 0} members</span>
+      </div>
+      {project.createdAt && (
+        <div className="flex items-center gap-1.5">
+          <FiCalendar />
+          <span>{new Date(project.createdAt).toLocaleDateString()}</span>
+        </div>
+      )}
+    </div>
+
+    <button
+      onClick={() => onOpen(project.id)}
+      className="mt-4 w-full py-2.5 rounded-xl border border-white/5 bg-white/[0.02] hover:bg-[#00c477]/10 hover:border-[#00c477]/30 text-xs font-black text-gray-400 hover:text-[#00c477] transition-all flex items-center justify-center gap-2 group/btn"
+    >
+      Open Workspace
+      <FiArrowRight className="group-hover/btn:translate-x-1 transition-transform" />
+    </button>
+  </motion.div>
+);
+
+// Org Assignment Card
+const OrgProjectCard = ({ project, onOpen, onAccept, onDecline, index }) => {
+  const isPending = project.inviteStatus === 'PENDING';
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 12 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ delay: index * 0.07 }}
+      className={`bg-[#0a0a0a] border rounded-2xl p-6 group transition-all relative overflow-hidden ${
+        isPending
+          ? 'border-amber-500/20 hover:border-amber-500/40'
+          : 'border-white/5 hover:border-[#00c477]/20'
+      }`}
+    >
+      {isPending && (
+        <div className="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-amber-500/0 via-amber-400/60 to-amber-500/0" />
+      )}
+
+      {/* Status + Role row */}
+      <div className="flex items-center gap-2 mb-4 flex-wrap">
+        <StatusBadge status={project.status} />
+        <RoleBadge role={project.role} />
+        {isPending && (
+          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[9px] font-black font-mono border text-amber-400 bg-amber-400/10 border-amber-400/20">
+            <FiBell className="text-[8px]" /> Pending Invite
+          </span>
+        )}
+      </div>
+
+      {/* Org identity */}
+      <div className="flex items-center gap-3 mb-4">
+        <img
+          src={project.orgAvatar}
+          alt={project.orgName}
+          className="w-8 h-8 rounded-lg bg-white/5 border border-white/10 shrink-0"
+        />
+        <div className="min-w-0">
+          <p className="text-[10px] text-gray-500 font-mono uppercase tracking-widest truncate">{project.orgName}</p>
+        </div>
+      </div>
+
+      <h3 className={`text-base font-black ${isPending ? 'text-white' : 'text-white group-hover:text-[#00c477]'} transition-colors mb-1.5 leading-snug`}>
+        {project.name}
+      </h3>
+      <p className="text-xs text-gray-500 leading-relaxed line-clamp-2 mb-5">
+        {project.description}
+      </p>
+
+      {/* Stats */}
+      <div className="flex items-center justify-between pt-4 border-t border-white/5 text-[10px] font-mono text-gray-500 mb-4">
+        <div className="flex items-center gap-1.5">
+          <FiTarget className="text-[#00c477]" />
+          <span className="text-white font-black">{project.findings}</span>
+          <span>findings</span>
+        </div>
+        <div className="flex items-center gap-1.5">
+          <FiCalendar />
+          <span>Due {project.deadline}</span>
+        </div>
+      </div>
+
+      {/* CTA */}
+      {isPending ? (
+        <div className="flex gap-2">
+          <button
+            onClick={() => onDecline(project.id)}
+            className="flex-1 py-2.5 rounded-xl border border-white/10 text-xs font-black text-gray-400 hover:text-red-400 hover:border-red-400/20 transition-all flex items-center justify-center gap-1"
+          >
+            <FiX /> Decline
+          </button>
+          <button
+            onClick={() => onAccept(project.id)}
+            className="flex-1 py-2.5 rounded-xl bg-[#00c477] hover:bg-[#009a5e] text-black text-xs font-black transition-all flex items-center justify-center gap-1"
+          >
+            <FiCheck /> Accept
+          </button>
+        </div>
+      ) : (
+        <button
+          onClick={() => onOpen(project.id)}
+          className="w-full py-2.5 rounded-xl border border-white/5 bg-white/[0.02] hover:bg-[#00c477]/10 hover:border-[#00c477]/30 text-xs font-black text-gray-400 hover:text-[#00c477] transition-all flex items-center justify-center gap-2 group/btn"
+        >
+          Open Workspace
+          <FiArrowRight className="group-hover/btn:translate-x-1 transition-transform" />
+        </button>
+      )}
+    </motion.div>
+  );
+};
+
+// Personal Quick-Create Card
 const PersonalWorkspaceCard = ({ onCreate }) => {
   const [expanded, setExpanded] = useState(false);
   const [name, setName] = useState("");
@@ -82,34 +250,29 @@ const PersonalWorkspaceCard = ({ onCreate }) => {
   };
 
   return (
-    <motion.div
-      layout
-      className="border border-white/5 bg-[#050505] rounded-3xl overflow-hidden"
-    >
-      {/* Header */}
+    <motion.div layout className="border border-white/5 bg-[#0a0a0a] rounded-2xl overflow-hidden">
       <div className="p-6 flex items-center gap-5">
         <div className="w-14 h-14 rounded-2xl bg-[#00c477]/10 border border-[#00c477]/20 flex items-center justify-center text-[#00c477] shrink-0">
-          <FiTerminal size={26} />
+          <FiTerminal size={24} />
         </div>
         <div className="flex-1 min-w-0">
-          <h3 className="font-bold text-white text-lg">Personal Workspace</h3>
-          <p className="text-sm text-gray-500 mt-0.5 leading-relaxed">
+          <h3 className="font-black text-white text-base">Personal Workspace</h3>
+          <p className="text-xs text-gray-500 mt-0.5 leading-relaxed">
             Practice pentesting solo — no organization or NDA required.
           </p>
         </div>
         <button
           onClick={() => setExpanded(v => !v)}
-          className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all border ${
+          className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all border shrink-0 ${
             expanded
-              ? "bg-white/10 border-white/10 text-gray-300"
-              : "bg-[#00c477] border-[#00c477] text-black hover:bg-[#00c477]/90"
+              ? "bg-white/5 border-white/10 text-gray-300"
+              : "bg-[#00c477] border-[#00c477] text-black hover:bg-[#009a5e]"
           }`}
         >
           {expanded ? <FiX size={16} /> : <FiPlus size={16} />}
         </button>
       </div>
 
-      {/* Expandable form */}
       <AnimatePresence>
         {expanded && (
           <motion.div
@@ -119,42 +282,32 @@ const PersonalWorkspaceCard = ({ onCreate }) => {
             className="border-t border-white/5"
           >
             <div className="p-6 space-y-4">
-              <div className="space-y-2">
-                <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest">Workspace Name *</label>
-                <input
-                  value={name}
-                  onChange={e => setName(e.target.value)}
-                  onKeyDown={e => e.key === "Enter" && handleCreate()}
-                  className="w-full bg-[#161616] border border-white/10 focus:border-[#00c477]/50 rounded-xl px-4 py-3 text-sm text-white outline-none transition-colors placeholder-gray-600"
-                  placeholder="e.g. OWASP Lab, Home CTF, API Recon…"
-                />
-              </div>
-              <div className="space-y-2">
-                <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest">Scope / Description</label>
-                <textarea
-                  value={description}
-                  onChange={e => setDescription(e.target.value)}
-                  rows={2}
-                  className="w-full bg-[#161616] border border-white/10 focus:border-[#00c477]/50 rounded-xl px-4 py-3 text-sm text-white outline-none transition-colors placeholder-gray-600 resize-none"
-                  placeholder="Target URL, authorized scope, objective…"
-                />
-              </div>
-              <div className="flex items-center gap-3 pt-2">
+              <input
+                value={name}
+                onChange={e => setName(e.target.value)}
+                onKeyDown={e => e.key === "Enter" && handleCreate()}
+                className="w-full bg-[#050505] border border-white/10 focus:border-[#00c477]/50 rounded-xl px-4 py-3 text-sm text-white outline-none transition-colors placeholder-gray-600 font-mono"
+                placeholder="Workspace name — e.g. OWASP Lab, Home CTF…"
+              />
+              <textarea
+                value={description}
+                onChange={e => setDescription(e.target.value)}
+                rows={2}
+                className="w-full bg-[#050505] border border-white/10 focus:border-[#00c477]/50 rounded-xl px-4 py-3 text-sm text-white outline-none transition-colors placeholder-gray-600 resize-none"
+                placeholder="Target scope, objective…"
+              />
+              <div className="flex items-center gap-3 pt-1">
                 <div className="flex items-center gap-2 text-[10px] text-gray-500 font-mono">
                   <FiLock size={10} className="text-[#00c477]" />
-                  NDA-free · Instant access · Auto-workflow created
+                  NDA-free · Auto-workflow created
                 </div>
                 <button
                   onClick={handleCreate}
                   disabled={loading}
-                  className="ml-auto flex items-center gap-2 px-6 py-2.5 bg-[#00c477] hover:bg-[#00c477]/90 text-black rounded-xl text-xs font-black uppercase tracking-widest transition-all disabled:opacity-50 active:scale-95"
+                  className="ml-auto flex items-center gap-2 px-5 py-2.5 bg-[#00c477] hover:bg-[#009a5e] text-black rounded-xl text-xs font-black uppercase tracking-widest transition-all disabled:opacity-50 active:scale-95"
                 >
-                  {loading ? (
-                    <div className="w-4 h-4 border-2 border-black/30 border-t-black rounded-full animate-spin" />
-                  ) : (
-                    <FiZap size={14} />
-                  )}
-                  {loading ? "Creating…" : "Launch Workspace"}
+                  {loading ? <div className="w-4 h-4 border-2 border-black/30 border-t-black rounded-full animate-spin" /> : <FiZap size={13} />}
+                  {loading ? "Creating…" : "Launch"}
                 </button>
               </div>
             </div>
@@ -165,246 +318,203 @@ const PersonalWorkspaceCard = ({ onCreate }) => {
   );
 };
 
-// ──────────────────────────────────────────────────────────────────────
-// Main Component
-// ──────────────────────────────────────────────────────────────────────
+// ─── MAIN COMPONENT ───────────────────────────────────────────────────────────
 const Projects = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
-  const [organizations, setOrganizations]   = useState([]);
-  const [selectedOrgId, setSelectedOrgId]   = useState("");
-  const [orgMembers, setOrgMembers]         = useState([]);
-  const [projects, setProjects]             = useState([]);
+
   const [personalProjects, setPersonalProjects] = useState([]);
-  const [loading, setLoading]               = useState(true);
-  const [submitting, setSubmitting]         = useState(false);
-  const [showOrgForm, setShowOrgForm]       = useState(false);
-  const [form, setForm] = useState({ name: "", description: "", projectAdminId: "", hackerIds: [] });
+  const [orgAssignments, setOrgAssignments] = useState(MOCK_ORG_ASSIGNMENTS);
+  const [loading, setLoading] = useState(true);
+  const [activeTab, setActiveTab] = useState("ALL");
 
-  const isOrgAdmin = useMemo(
-    () => user?.roles?.some(r => r.type === "ORG_ADMIN" || r.type === "SUPER_ADMIN"),
-    [user]
-  );
-
-  const isPentester = useMemo(
-    () => user?.roles?.some(r => r.type === "PENTESTER"),
-    [user]
-  );
-
-  const loadAllProjects = async (orgId) => {
-    const { data } = await api.get("/projects", { params: orgId ? { organizationId: orgId } : {} });
-    const all = data?.data || [];
-    setPersonalProjects(all.filter(p => p.isPersonal || p.leadPentesterId === user?.id));
-    setProjects(all.filter(p => !p.isPersonal));
-  };
-
-  const loadOrganizations = async () => {
-    const { data } = await api.get("/organizations/me");
-    const orgList = data?.data || [];
-    setOrganizations(orgList);
-    if (orgList.length > 0) setSelectedOrgId(prev => prev || orgList[0].id);
-    return orgList;
-  };
-
-  const loadOrgMembers = async (organizationId) => {
-    if (!organizationId) return;
-    try {
-      const { data } = await api.get(`/organizations/${organizationId}/members`);
-      setOrgMembers(data?.data || []);
-    } catch { setOrgMembers([]); }
-  };
-
+  // Load real personal + org projects from API
   useEffect(() => {
     (async () => {
       setLoading(true);
       try {
-        const orgs = await loadOrganizations();
-        await loadAllProjects(orgs[0]?.id);
-      } catch (err) {
-        toast.error(err?.response?.data?.error || "Failed to load projects");
+        const { data } = await api.get("/projects");
+        const all = data?.data || [];
+        setPersonalProjects(all.filter(p => p.isPersonal || p.leadPentesterId === user?.id));
+        // Real org assignments would be fetched here too
+      } catch {
+        // silently fall back to mock data
       } finally {
         setLoading(false);
       }
     })();
   }, []);
 
-  useEffect(() => {
-    if (!selectedOrgId) return;
-    loadOrgMembers(selectedOrgId);
-    loadAllProjects(selectedOrgId);
-  }, [selectedOrgId]);
+  const pendingCount = orgAssignments.filter(p => p.inviteStatus === 'PENDING').length;
+  const acceptedOrg  = orgAssignments.filter(p => p.inviteStatus === 'ACCEPTED');
 
-  const onChange = e => {
-    const { name, value } = e.target;
-    setForm(prev => ({ ...prev, [name]: value }));
-  };
+  // Tab filtering
+  const displayPersonal = activeTab === 'ALL' || activeTab === 'PERSONAL';
+  const displayOrg      = activeTab === 'ALL' || activeTab === 'ORG ASSIGNED';
+  const displayPending  = activeTab === 'ALL' || activeTab === 'PENDING';
 
-  const toggleHacker = memberUserId => {
-    setForm(prev => {
-      const exists = prev.hackerIds.includes(memberUserId);
-      return { ...prev, hackerIds: exists ? prev.hackerIds.filter(id => id !== memberUserId) : [...prev.hackerIds, memberUserId] };
-    });
-  };
-
-  const createOrgProject = async e => {
-    e.preventDefault();
-    if (!selectedOrgId) return toast.error("Select an organization first");
-    setSubmitting(true);
-    try {
-      await api.post("/projects", { ...form, organizationId: selectedOrgId });
-      toast.success("Directive Materialized.");
-      setForm({ name: "", description: "", projectAdminId: "", hackerIds: [] });
-      setShowOrgForm(false);
-      await loadAllProjects(selectedOrgId);
-    } catch (err) {
-      toast.error(err?.response?.data?.error || "Project creation failed");
-    } finally {
-      setSubmitting(false);
-    }
-  };
-
-  const openWorkspaceInHub = (projectId) => {
-    navigate(`/my-applications?projectId=${projectId}`);
-  };
-
-  const handlePersonalCreated = newProject => {
-    setPersonalProjects(prev => [newProject, ...prev]);
-    openWorkspaceInHub(newProject.id);
+  const handleAccept  = id => setOrgAssignments(prev => prev.map(p => p.id === id ? { ...p, inviteStatus: 'ACCEPTED' } : p));
+  const handleDecline = id => setOrgAssignments(prev => prev.filter(p => p.id !== id));
+  const handlePersonalCreated = p => {
+    setPersonalProjects(prev => [p, ...prev]);
+    navigate(`/projects/${p.id}`);
   };
 
   return (
-    <div className="p-6 md:p-8 max-w-7xl mx-auto w-full space-y-8">
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight text-white">Mission Control</h1>
-          <p className="text-gray-500 text-sm mt-1">Your personal labs and organization security programs.</p>
+    <div className="flex flex-col h-full -m-10">
+
+      {/* ── Header ── */}
+      <div className="px-10 py-8 border-b border-white/5 bg-[#050505]">
+        <div className="mb-6">
+          <div className="flex items-center gap-2 mb-3">
+            <div className="w-1.5 h-1.5 rounded-full bg-[#00c477] animate-pulse shadow-[0_0_6px_#00c477]" />
+            <span className="text-[9px] font-black text-[#00c477] font-mono tracking-[0.3em] uppercase">Mission Control</span>
+          </div>
+          <h1 className="text-3xl font-black text-white tracking-tight">My Projects</h1>
+          <p className="text-gray-500 text-sm mt-2">Personal labs and organization-assigned security programs.</p>
         </div>
-        <div className="flex items-center gap-3">
-          {isOrgAdmin && (
-            <button
-              onClick={() => setShowOrgForm(v => !v)}
-              className={`flex items-center gap-2 px-5 py-2.5 rounded-2xl text-xs font-black uppercase tracking-widest transition-all border ${
-                showOrgForm
-                  ? "bg-white/10 border-white/10 text-gray-300"
-                  : "bg-[#00c477] border-[#00c477] text-black hover:bg-[#00c477]/90"
-              }`}
+
+        {/* Stats strip */}
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+          {[
+            { label: "Personal Labs",     value: personalProjects.length, icon: FiTerminal,      color: "text-[#00c477]"  },
+            { label: "Org Assignments",   value: acceptedOrg.length,      icon: FiShield,        color: "text-cyan-400"   },
+            { label: "Pending Invites",   value: pendingCount,            icon: FiBell,          color: "text-amber-400"  },
+            { label: "Active Programs",   value: acceptedOrg.filter(p => p.status === 'IN_PROGRESS').length, icon: FiActivity, color: "text-violet-400" },
+          ].map((stat, i) => (
+            <motion.div
+              key={stat.label}
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: i * 0.08 }}
+              className="bg-[#0a0a0a] border border-white/5 rounded-xl p-4"
             >
-              {showOrgForm ? <FiX size={14} /> : <FiPlus size={14} />}
-              {showOrgForm ? "Cancel" : "New Program"}
-            </button>
-          )}
+              <div className="flex items-center gap-2 mb-2">
+                <stat.icon className={`text-sm ${stat.color}`} />
+                <span className="text-[9px] font-black text-gray-500 uppercase tracking-widest">{stat.label}</span>
+              </div>
+              <p className={`text-2xl font-black ${stat.color}`}>{stat.value}</p>
+            </motion.div>
+          ))}
         </div>
       </div>
 
-      {/* Org project create form */}
-      <AnimatePresence>
-        {showOrgForm && isOrgAdmin && (
-          <motion.form
-            initial={{ opacity: 0, height: 0 }}
-            animate={{ opacity: 1, height: "auto" }}
-            exit={{ opacity: 0, height: 0 }}
-            onSubmit={createOrgProject}
-            className="bg-[#050505] border border-white/5 rounded-3xl p-8 space-y-5"
+      {/* ── Tab Bar ── */}
+      <div className="px-10 py-4 border-b border-white/5 bg-[#050505] flex items-center gap-2 flex-wrap">
+        {TABS.map(tab => (
+          <button
+            key={tab}
+            onClick={() => setActiveTab(tab)}
+            className={`px-4 py-1.5 rounded-full text-[10px] font-black font-mono tracking-widest uppercase transition-all relative ${
+              activeTab === tab
+                ? 'bg-[#00c477]/15 border border-[#00c477]/30 text-[#00c477]'
+                : 'border border-white/5 text-gray-500 hover:text-gray-300 hover:border-white/10'
+            }`}
           >
-            <h2 className="font-black text-white uppercase tracking-widest text-xs flex items-center gap-3">
-              <FiShield className="text-[#00c477]" /> New Security Program
-            </h2>
-            <div className="grid md:grid-cols-2 gap-4">
-              <select
-                className="bg-[#161616] border border-white/10 rounded-xl px-4 py-3 text-sm text-white outline-none focus:border-[#00c477]/50 transition-colors"
-                value={selectedOrgId}
-                onChange={e => setSelectedOrgId(e.target.value)}
-              >
-                <option value="">Select organization</option>
-                {organizations.map(org => (
-                  <option key={org.id} value={org.id}>{org.name}</option>
-                ))}
-              </select>
-              <input
-                name="name"
-                value={form.name}
-                onChange={onChange}
-                placeholder="Program name"
-                required
-                className="bg-[#161616] border border-white/10 rounded-xl px-4 py-3 text-sm text-white outline-none focus:border-[#00c477]/50 transition-colors placeholder-gray-600"
-              />
-              <textarea
-                name="description"
-                value={form.description}
-                onChange={onChange}
-                placeholder="Scope and objectives"
-                rows={2}
-                className="md:col-span-2 bg-[#161616] border border-white/10 rounded-xl px-4 py-3 text-sm text-white outline-none focus:border-[#00c477]/50 transition-colors placeholder-gray-600 resize-none"
-              />
-              <select
-                name="projectAdminId"
-                value={form.projectAdminId}
-                onChange={onChange}
-                className="bg-[#161616] border border-white/10 rounded-xl px-4 py-3 text-sm text-white outline-none focus:border-[#00c477]/50 transition-colors"
-              >
-                <option value="">Assign project admin (optional)</option>
-                {orgMembers.map(m => (
-                  <option key={m.userId} value={m.userId}>
-                    {m.user?.fullName || m.user?.email} ({m.role})
-                  </option>
-                ))}
-              </select>
-            </div>
-            <button
-              type="submit"
-              disabled={submitting}
-              className="flex items-center gap-2 px-6 py-3 bg-[#00c477] hover:bg-[#00c477]/90 text-black rounded-xl text-xs font-black uppercase tracking-widest transition-all disabled:opacity-50 active:scale-95"
-            >
-              {submitting ? <div className="w-4 h-4 border-2 border-black/30 border-t-black rounded-full animate-spin" /> : <FiCheck size={14} />}
-              {submitting ? "Creating…" : "Create Program"}
-            </button>
-          </motion.form>
-        )}
-      </AnimatePresence>
+            {tab}
+            {tab === 'PENDING' && pendingCount > 0 && (
+              <span className="absolute -top-1.5 -right-1.5 w-4 h-4 bg-amber-400 text-black text-[8px] font-black rounded-full flex items-center justify-center">
+                {pendingCount}
+              </span>
+            )}
+          </button>
+        ))}
+      </div>
 
-      {/* Personal Workspace Section */}
-      {isPentester && (
-        <section className="space-y-5">
-          <h2 className="text-xs font-black text-gray-500 uppercase tracking-[0.2em] flex items-center gap-3">
-            <FiTerminal className="text-[#00c477]" /> Personal Labs
-          </h2>
-          <PersonalWorkspaceCard onCreate={handlePersonalCreated} />
-          {personalProjects.length > 0 && (
-            <div className="grid sm:grid-cols-2 xl:grid-cols-3 gap-5">
-              {personalProjects.map(p => (
-                <ProjectCard key={p.id} project={p} onClick={() => openWorkspaceInHub(p.id)} />
+      {/* ── Content ── */}
+      <div className="flex-1 overflow-y-auto p-10 bg-[#050505] space-y-12">
+
+        {/* Pending invites banner */}
+        <AnimatePresence>
+          {pendingCount > 0 && (activeTab === 'ALL' || activeTab === 'PENDING') && (
+            <motion.div
+              initial={{ opacity: 0, y: -8 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -8 }}
+              className="flex items-center gap-4 p-5 rounded-2xl border border-amber-500/20 bg-amber-500/5 -mt-2"
+            >
+              <FiBell className="text-amber-400 text-xl shrink-0" />
+              <div className="flex-1">
+                <p className="text-sm font-bold text-white">
+                  You have <span className="text-amber-400">{pendingCount}</span> pending project invitation{pendingCount > 1 ? 's' : ''}
+                </p>
+                <p className="text-xs text-gray-500 mt-0.5">Review and accept or decline below.</p>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* Pending invites section */}
+        {displayPending && orgAssignments.filter(p => p.inviteStatus === 'PENDING').length > 0 && (
+          <section className="space-y-5">
+            <div className="flex items-center gap-3">
+              <FiBell className="text-amber-400" />
+              <h2 className="text-xs font-black text-gray-400 uppercase tracking-[0.2em]">Pending Invitations</h2>
+              <div className="h-px flex-1 bg-white/5" />
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-5">
+              {orgAssignments.filter(p => p.inviteStatus === 'PENDING').map((p, i) => (
+                <OrgProjectCard key={p.id} project={p} index={i} onOpen={id => navigate(`/projects/${id}`)} onAccept={handleAccept} onDecline={handleDecline} />
               ))}
             </div>
-          )}
-        </section>
-      )}
-
-      {/* Org Programs Section */}
-      <section className="space-y-5">
-        <h2 className="text-xs font-black text-gray-500 uppercase tracking-[0.2em] flex items-center gap-3">
-          <FiShield className="text-[#00c477]" /> Security Programs
-        </h2>
-        {loading ? (
-          <div className="py-20 flex flex-col items-center gap-4 text-gray-500">
-            <div className="w-8 h-8 border-2 border-white/10 border-t-[#00c477] rounded-full animate-spin" />
-            <span className="text-[9px] uppercase tracking-[0.3em] font-mono animate-pulse">Loading programs</span>
-          </div>
-        ) : projects.length === 0 ? (
-          <div className="py-16 text-center border border-dashed border-white/10 rounded-3xl text-gray-600">
-            <FiFolder size={32} className="mx-auto mb-3 opacity-30" />
-            <p className="text-sm font-medium text-gray-500">No security programs yet.</p>
-            {isOrgAdmin && (
-              <p className="text-xs text-gray-600 mt-1">Create one using the <span className="text-[#00c477]">New Program</span> button above.</p>
-            )}
-          </div>
-        ) : (
-          <div className="grid sm:grid-cols-2 xl:grid-cols-3 gap-5">
-            {projects.map(p => (
-              <ProjectCard key={p.id} project={p} onClick={() => openWorkspaceInHub(p.id)} />
-            ))}
-          </div>
+          </section>
         )}
-      </section>
+
+        {/* Personal Labs */}
+        {displayPersonal && (
+          <section className="space-y-5">
+            <div className="flex items-center gap-3">
+              <FiTerminal className="text-[#00c477]" />
+              <h2 className="text-xs font-black text-gray-400 uppercase tracking-[0.2em]">Personal Labs</h2>
+              <div className="h-px flex-1 bg-white/5" />
+            </div>
+
+            <PersonalWorkspaceCard onCreate={handlePersonalCreated} />
+
+            {loading ? (
+              <div className="py-12 flex flex-col items-center gap-4 text-gray-600">
+                <div className="w-7 h-7 border-2 border-white/10 border-t-[#00c477] rounded-full animate-spin" />
+                <span className="text-[9px] uppercase tracking-[0.3em] font-mono animate-pulse">Loading labs</span>
+              </div>
+            ) : personalProjects.length > 0 ? (
+              <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-5">
+                {personalProjects.map((p, i) => (
+                  <PersonalProjectCard key={p.id} project={p} index={i} onOpen={id => navigate(`/projects/${id}`)} />
+                ))}
+              </div>
+            ) : (
+              <div className="py-12 flex flex-col items-center gap-3 border border-dashed border-white/10 rounded-2xl text-gray-600">
+                <FiTerminal size={28} className="opacity-40" />
+                <p className="text-sm">No personal labs yet — create one above.</p>
+              </div>
+            )}
+          </section>
+        )}
+
+        {/* Org Assignments */}
+        {displayOrg && (
+          <section className="space-y-5">
+            <div className="flex items-center gap-3">
+              <FiShield className="text-cyan-400" />
+              <h2 className="text-xs font-black text-gray-400 uppercase tracking-[0.2em]">Organization Assignments</h2>
+              <div className="h-px flex-1 bg-white/5" />
+            </div>
+
+            {acceptedOrg.length === 0 ? (
+              <div className="py-12 flex flex-col items-center gap-3 border border-dashed border-white/10 rounded-2xl text-gray-600">
+                <FiShield size={28} className="opacity-40" />
+                <p className="text-sm">No org assignments yet. Organizations assign you via Discover.</p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-5">
+                {acceptedOrg.map((p, i) => (
+                  <OrgProjectCard key={p.id} project={p} index={i} onOpen={id => navigate(`/projects/${id}`)} onAccept={handleAccept} onDecline={handleDecline} />
+                ))}
+              </div>
+            )}
+          </section>
+        )}
+      </div>
     </div>
   );
 };
