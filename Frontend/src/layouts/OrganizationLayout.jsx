@@ -19,7 +19,7 @@ const OrganizationLayout = () => {
 
   const navItems = [
     { icon: FiGrid, label: 'DASHBOARD', route: '/dashboard' },
-    { icon: FiBriefcase, label: 'PROJECTS', route: '/projects' },
+    { icon: FiBriefcase, label: 'PROJECTS', route: '/org-projects' },
     { icon: FiGlobe, label: 'DISCOVER', route: '/discover' },
     { icon: FiShield, label: 'LEGAL', route: '/legal' },
     { icon: FiSettings, label: 'SETTINGS', route: '/organization-profile' },
