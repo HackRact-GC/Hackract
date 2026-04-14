@@ -9,7 +9,8 @@ import {
   Controls,
   Background,
   MiniMap,
-  Panel
+  Panel,
+  useStore
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 import { formatDistanceToNow } from 'date-fns';
@@ -36,6 +37,38 @@ const nodeTypes = {
   ai: AiNode,
   agent: AiAgentNode,
   terminal: TerminalNode,
+};
+
+const InteractiveBackground = () => {
+  const transform = useStore((s) => s.transform);
+  const [x, y] = transform;
+
+  return (
+    <>
+      {/* Base dots: Brighter static green, unscalable, only pans */}
+      <div
+        className="absolute inset-0 pointer-events-none bg-transparent"
+        style={{
+          zIndex: 0,
+          backgroundPosition: `${x}px ${y}px`,
+          backgroundImage: 'radial-gradient(rgba(0, 255, 65, 0.4) 1px, transparent 1.2px)',
+          backgroundSize: '20px 20px'
+        }}
+      />
+      {/* Hover dots: Maximum neon glow brightness, slightly larger dot diameter (1.5px) */}
+      <div
+        className="absolute inset-0 pointer-events-none bg-transparent"
+        style={{
+          zIndex: 0,
+          backgroundPosition: `${x}px ${y}px`,
+          backgroundImage: 'radial-gradient(rgba(200, 255, 220, 1) 1.5px, transparent 2px)',
+          backgroundSize: '20px 20px',
+          maskImage: 'radial-gradient(140px circle at var(--mouse-x, -1000px) var(--mouse-y, -1000px), black 0%, transparent 100%)',
+          WebkitMaskImage: 'radial-gradient(140px circle at var(--mouse-x, -1000px) var(--mouse-y, -1000px), black 0%, transparent 100%)',
+        }}
+      />
+    </>
+  );
 };
 
 const WorkflowEditor = ({ workflowId: propWorkflowId, pentestId: propPentestId }) => {
@@ -260,7 +293,7 @@ const WorkflowEditor = ({ workflowId: propWorkflowId, pentestId: propPentestId }
   // Handle Connecting Nodes
   const onConnect = useCallback(
     (params) => {
-      const newEdges = addEdge(params, edges);
+      const newEdges = addEdge({ ...params, animated: true, style: { stroke: '#00ff41', strokeWidth: 1.5 } }, edges);
       setEdges(newEdges);
       emitWorkflowChange(nodes, newEdges);
       saveToDatabase(nodes, newEdges, "CONNECT_NODES");
@@ -346,39 +379,39 @@ const WorkflowEditor = ({ workflowId: propWorkflowId, pentestId: propPentestId }
         style={{ transform: `translate(${cursor.x}px, ${cursor.y}px)` }}
       >
         <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <path d="M0.999967 0L6.64997 15.5L8.54997 9.5L14.45 7.6L0.999967 0Z" fill="#00ff41"/>
+          <path d="M0.999967 0L6.64997 15.5L8.54997 9.5L14.45 7.6L0.999967 0Z" fill={cursor.color || "#00ff41"}/>
         </svg>
-        <span className="bg-[#00ff41] text-black text-[10px] px-1 rounded font-bold">
+        <span className="text-black text-[10px] px-1.5 py-0.5 rounded font-bold shadow-sm"
+              style={{ backgroundColor: cursor.color || "#00ff41" }}>
           {cursor.user || 'Peer'}
         </span>
       </div>
     ));
   };
 
-
   return (
-    <div className="flex flex-col h-screen bg-[#07090e] text-white overflow-hidden">
+    <div className="flex flex-col h-screen bg-[#13151a] text-white overflow-hidden relative">
       {/* Top Header Bar */}
-      <div className="h-14 border-b border-gray-800 flex items-center justify-between px-4 bg-[#0b0f19] z-20">
+      <div className="h-14 border-b border-[#252830] flex items-center justify-between px-4 bg-[#1a1c23]/90 backdrop-blur-md z-20 shadow-sm relative">
         <div className="flex items-center gap-4">
           <button
             onClick={() => navigate('/dashboard')}
-            className="text-gray-400 hover:text-white flex items-center gap-2 justify-center text-xs font-mono uppercase tracking-widest"
+            className="text-gray-400 hover:text-white flex items-center gap-2 justify-center text-xs font-semibold uppercase tracking-wider transition-colors"
             title="Back to Dashboard"
           >
             <FiArrowLeft size={18} />
             <FiHome size={16} />
             Dashboard
           </button>
-          <div className="font-bold font-mono text-xs uppercase tracking-widest text-[#00ff41]">{projectInfo.type} Workflow</div>
-          <div className="font-bold font-mono max-w-[200px] truncate" title={projectInfo.name}>{projectInfo.name}</div>
-          <div className="text-gray-500 text-[10px] font-mono flex items-center gap-1 bg-black/30 px-2 py-1 rounded border border-gray-800">
+          <div className="font-semibold font-sans text-xs uppercase tracking-widest text-[#00ff41] bg-[#00ff41]/10 border border-[#00ff41]/20 px-2.5 py-1 rounded-md">{projectInfo.type} Workflow</div>
+          <div className="font-semibold font-sans text-sm max-w-[200px] truncate text-white" title={projectInfo.name}>{projectInfo.name}</div>
+          <div className="text-gray-400 text-[10px] font-medium flex items-center gap-1.5 bg-[#13151a] px-2.5 py-1.5 rounded-full border border-[#252830] shadow-sm">
             <FiSave size={12} className="text-[#00ff41]" />
             SYNCED: {formatDistanceToNow(lastSaved, { addSuffix: true })}
           </div>
         </div>
 
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-4">
             {/* Active Collaborators Profiles */}
             <div className="flex -space-x-2 items-center">
                {Object.values(collaborators).map((collab, index) => (
@@ -389,30 +422,30 @@ const WorkflowEditor = ({ workflowId: propWorkflowId, pentestId: propPentestId }
                    title={collab.user || 'Online Hacker'}
                 >
                    <div
-                     className="w-8 h-8 rounded-full border-2 border-[#0b0f19] flex items-center justify-center text-xs font-bold shadow-lg"
-                     style={{ backgroundColor: collab.color || '#00ff41', color: '#fff' }}
+                     className="w-8 h-8 rounded-full border-2 border-[#1a1c23] flex items-center justify-center text-xs font-bold shadow-md bg-[#13151a]"
+                     style={{ backgroundColor: collab.color || '#00ff41', color: '#000' }}
                    >
                      {collab.user?.[0]?.toUpperCase() || 'H'}
                    </div>
-                   <span className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-[#00ff41] border-[1.5px] border-[#0b0f19] rounded-full shadow-[0_0_5px_rgba(0,255,65,0.6)]"></span>
+                   <span className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-[#00ff41] border-[1.5px] border-[#1a1c23] rounded-full shadow-[0_0_5px_rgba(0,255,65,0.4)]"></span>
                  </div>
                ))}
             </div>
 
-           <div className="h-6 w-px bg-gray-700 mx-2"></div>
+           <div className="h-6 w-px bg-gray-700 mx-1"></div>
 
            <button
-             className={`hover:text-white transition-colors flex items-center gap-2 font-mono text-xs ${isHistoryOpen ? 'text-[#00a3ff]' : 'text-gray-400'}`}
+             className={`hover:text-[#00ff41] transition-colors flex items-center gap-2 font-semibold text-xs ${isHistoryOpen ? 'text-[#00ff41]' : 'text-gray-400'}`}
              title="History"
              onClick={() => setIsHistoryOpen(!isHistoryOpen)}
            >
              <FiClock size={16} />
-             <span>LOGS</span>
+             <span>HISTORY</span>
            </button>
-           <button className="text-gray-400 hover:text-white" title="Comments">
+           <button className="text-gray-400 hover:text-[#00ff41] transition-colors" title="Comments">
              <FiMessageSquare size={16} />
            </button>
-           <button className="bg-[#00a3ff] hover:bg-[#0082cc] text-white px-4 py-1.5 rounded text-xs font-mono font-bold transition-all shadow-[0_0_10px_rgba(0,163,255,0.4)] active:scale-95">
+           <button className="bg-[#00ff41] hover:bg-[#00cc33] text-black px-4 py-1.5 rounded-md text-xs font-bold transition-all shadow-[0_0_10px_rgba(0,255,65,0.2)] active:scale-95">
               PUBLISH
            </button>
         </div>
@@ -420,7 +453,20 @@ const WorkflowEditor = ({ workflowId: propWorkflowId, pentestId: propPentestId }
 
       {/* Main Workspace */}
       <div className="flex flex-1 overflow-hidden relative"
-           onMouseMove={(e) => emitCursorMove(e.clientX, e.clientY, localUser.name)}>
+           onMouseMove={(e) => {
+             emitCursorMove(e.clientX, e.clientY, localUser.name);
+             if (reactFlowWrapper.current) {
+               const rect = reactFlowWrapper.current.getBoundingClientRect();
+               reactFlowWrapper.current.style.setProperty('--mouse-x', `${e.clientX - rect.left}px`);
+               reactFlowWrapper.current.style.setProperty('--mouse-y', `${e.clientY - rect.top}px`);
+             }
+           }}
+           onMouseLeave={() => {
+             if (reactFlowWrapper.current) {
+               reactFlowWrapper.current.style.setProperty('--mouse-x', `-1000px`);
+               reactFlowWrapper.current.style.setProperty('--mouse-y', `-1000px`);
+             }
+           }}>
 
         <Sidebar onAdd={addNodeByClick} />
 
@@ -439,19 +485,18 @@ const WorkflowEditor = ({ workflowId: propWorkflowId, pentestId: propPentestId }
               onDragOver={onDragOver}
               onSelectionChange={onSelectionChange}
               nodeTypes={nodeTypes}
+              defaultEdgeOptions={{
+                animated: true,
+                style: { stroke: '#00ff41', strokeWidth: 1.5, opacity: 0.6 }
+              }}
               fitView
-              className="bg-[#07090e]"
+              className="bg-transparent"
               nodesDraggable={!isLocked}
               nodesConnectable={!isLocked}
               elementsSelectable={!isLocked}
               panOnDrag={!isLocked}
             >
-              <Background
-                variant="lines"
-                color="rgba(0, 255, 65, 0.15)"
-                gap={40}
-                className="bg-[#07090e]"
-              />
+              <InteractiveBackground />
               <Panel position="bottom-left">
                 <WorkflowControls
                   isLocked={isLocked}
@@ -468,9 +513,9 @@ const WorkflowEditor = ({ workflowId: propWorkflowId, pentestId: propPentestId }
                   if (n.type === 'terminal') return '#ffb000';
                   return '#333';
                 }}
-                maskColor="rgba(0, 0,0, 0.6)"
+                maskColor="rgba(19, 21, 26, 0.7)"
                 activeColor="#00ff41"
-                className="bg-[#0b0f19] border border-[#00ff41]/20 rounded-lg overflow-hidden shadow-2xl scale-75 origin-bottom-right"
+                className="bg-[#1a1c23] border border-[#252830] rounded-lg overflow-hidden shadow-2xl scale-75 origin-bottom-right"
                 style={{ bottom: 10, right: 10 }}
               />
             </ReactFlow>
