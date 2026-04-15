@@ -51,7 +51,7 @@ const InteractiveBackground = () => {
         style={{
           zIndex: 0,
           backgroundPosition: `${x}px ${y}px`,
-          backgroundImage: 'radial-gradient(rgba(0, 255, 65, 0.4) 1px, transparent 1.2px)',
+          backgroundImage: 'radial-gradient(rgba(0, 255, 65, 0.3) 1px, transparent 1.2px)',
           backgroundSize: '20px 20px'
         }}
       />
