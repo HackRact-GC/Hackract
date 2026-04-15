@@ -4,7 +4,7 @@ import { useAuth } from '../context/authContext.jsx';
 import { 
   FiGrid, FiBriefcase, FiGlobe, FiShield, FiSettings, 
   FiFileText, FiBell, FiChevronDown, FiPlus, FiCpu, 
-  FiActivity, FiTarget, FiZap 
+  FiActivity, FiTarget, FiZap, FiLogOut
 } from 'react-icons/fi';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -63,15 +63,18 @@ const OrganizationLayout = () => {
           ))}
         </nav>
 
-        {/* Network Status indicator */}
+        {/* Sign Out Button */}
         <div className="p-8 mt-auto">
-          <div className="bg-white/[0.02] border border-white/5 rounded-xl p-4 space-y-2">
-            <p className="text-[9px] font-black text-gray-500 uppercase tracking-widest">Network Status</p>
-            <div className="flex items-center gap-2 text-[#00c477]">
-              <div className="w-1.5 h-1.5 rounded-full bg-[#00c477] animate-pulse shadow-[0_0_8px_#00c477]" />
-              <span className="text-[10px] font-black uppercase tracking-widest font-mono">Encrypted Up-Link</span>
-            </div>
-          </div>
+          <button 
+            onClick={() => {
+              logout();
+              navigate('/login');
+            }}
+            className="w-full flex items-center justify-center gap-3 px-4 py-3 bg-[#ff3366]/10 text-[#ff3366] hover:bg-[#ff3366] hover:text-white rounded-lg transition-all font-mono font-black text-[11px] tracking-widest uppercase border border-[#ff3366]/30"
+          >
+            <FiLogOut className="text-lg" />
+            <span>Sign Out</span>
+          </button>
         </div>
       </aside>
 
