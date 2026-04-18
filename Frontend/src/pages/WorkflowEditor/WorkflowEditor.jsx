@@ -30,6 +30,7 @@ import WorkflowControls from './components/WorkflowControls';
 // Hooks & Services
 import { useWorkflowSocket } from '../../hooks/useWorkflowSocket';
 import workflowService from '../../services/workflow.service';
+import { useAuth } from '../../context/authContext.jsx';
 
 const nodeTypes = {
   startingPoint: StartingPointNode,
@@ -99,6 +100,8 @@ const WorkflowEditor = ({ workflowId: propWorkflowId, pentestId: propPentestId }
     user: localUser
   } = useWorkflowSocket(workflowId);
 
+  const { user: authUser } = useAuth();
+
   // Local React Flow State
   const [nodes, setNodes, onNodesChange] = useNodesState([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState([]);
@@ -152,12 +155,12 @@ const WorkflowEditor = ({ workflowId: propWorkflowId, pentestId: propPentestId }
         }
 
         // RBAC Check
-        const collaborators = data.pentest?.collaborators || [];
-        const isCollaborator = collaborators.some(c =>
+        const pentestCollabs = data.pentest?.collaborators || [];
+        const isCollaborator = pentestCollabs.some(c =>
           c.userId === localUser.id &&
           ["HACKER", "PROJECT_ADMIN", "ORG_ADMIN"].includes(c.role)
         );
-        const isSuperAdmin = localUser.roles?.some(r => r.type === "SUPER_ADMIN");
+        const isSuperAdmin = authUser?.roles?.some(r => r.type === "SUPER_ADMIN");
 
         if (!isCollaborator && !isSuperAdmin) {
           setCanEdit(false);
@@ -395,7 +398,10 @@ const WorkflowEditor = ({ workflowId: propWorkflowId, pentestId: propPentestId }
       <div className="h-14 border-b border-[#252830] flex items-center justify-between px-4 bg-[#1a1c23]/90 backdrop-blur-md z-20 shadow-sm relative">
         <div className="flex items-center gap-4">
           <button
-            onClick={() => navigate('/dashboard')}
+            onClick={() => {
+              const isOrg = authUser?.roles?.some(r => ['ORGANIZATION', 'ORG_ADMIN', 'SUPER_ADMIN'].includes(r.type));
+              navigate(isOrg ? '/dashboard' : '/hacker-dashboard');
+            }}
             className="text-gray-400 hover:text-white flex items-center gap-2 justify-center text-xs font-semibold uppercase tracking-wider transition-colors"
             title="Back to Dashboard"
           >
