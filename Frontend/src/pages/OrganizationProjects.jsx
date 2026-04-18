@@ -4,21 +4,21 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
   FiShield, FiPlus, FiX, FiUsers, FiClock, FiTarget,
   FiActivity, FiArrowRight, FiCheck, FiAlertTriangle,
-  FiGlobe, FiLock, FiTrendingUp, FiCalendar, FiZap,
-  FiMoreVertical, FiEdit2, FiTrash2, FiExternalLink,
+  FiBriefcase, FiBarChart2, FiPieChart,
+  FiMoreVertical, FiEdit2, FiTrash2, FiExternalLink, FiCalendar
 } from 'react-icons/fi';
 
 // ─── MOCK DATA ───────────────────────────────────────────────────────────────
 const MOCK_PROJECTS = [
   {
     id: 1,
-    name: "Alpha Bank — Core API Pentest",
-    description: "Full penetration test on core banking REST API endpoints. Scope: authentication, IDOR, rate limiting.",
+    name: "Alpha Bank Core API Pentest",
+    description: "Comprehensive penetration test on core banking REST API endpoints. Scope includes authentication, IDOR, and rate limiting.",
     status: "IN_PROGRESS",
     threatLevel: "CRITICAL",
     assignedHackers: [
-      { name: "Null_Pointer_Ex", avatar: "https://api.dicebear.com/7.x/bottts/svg?seed=NullPointer&baseColor=00ff88" },
-      { name: "Cyber_Sentinel", avatar: "https://api.dicebear.com/7.x/bottts/svg?seed=Sentinel&baseColor=00ff88" },
+      { name: "Null_Pointer_Ex", avatar: "https://api.dicebear.com/7.x/identicon/svg?seed=NullPointer&baseColor=00c477" },
+      { name: "Cyber_Sentinel", avatar: "https://api.dicebear.com/7.x/identicon/svg?seed=Sentinel&baseColor=00c477" },
     ],
     findings: 14,
     createdAt: "Apr 01, 2026",
@@ -31,7 +31,7 @@ const MOCK_PROJECTS = [
     status: "PLANNING",
     threatLevel: "HIGH",
     assignedHackers: [
-      { name: "Ghost_Shell", avatar: "https://api.dicebear.com/7.x/bottts/svg?seed=Ghost&baseColor=00ff88" },
+      { name: "Ghost_Shell", avatar: "https://api.dicebear.com/7.x/identicon/svg?seed=Ghost&baseColor=00c477" },
     ],
     findings: 0,
     createdAt: "Apr 09, 2026",
@@ -44,8 +44,8 @@ const MOCK_PROJECTS = [
     status: "REPORTING",
     threatLevel: "MEDIUM",
     assignedHackers: [
-      { name: "Packet_Wizard", avatar: "https://api.dicebear.com/7.x/bottts/svg?seed=Wizard&baseColor=00ff88" },
-      { name: "Root_Access", avatar: "https://api.dicebear.com/7.x/bottts/svg?seed=Root&baseColor=00ff88" },
+      { name: "Packet_Wizard", avatar: "https://api.dicebear.com/7.x/identicon/svg?seed=Wizard&baseColor=00c477" },
+      { name: "Root_Access", avatar: "https://api.dicebear.com/7.x/identicon/svg?seed=Root&baseColor=00c477" },
     ],
     findings: 27,
     createdAt: "Mar 12, 2026",
@@ -58,7 +58,7 @@ const MOCK_PROJECTS = [
     status: "CLOSED",
     threatLevel: "CRITICAL",
     assignedHackers: [
-      { name: "Buffer_Overrun", avatar: "https://api.dicebear.com/7.x/bottts/svg?seed=Buffer&baseColor=00ff88" },
+      { name: "Buffer_Overrun", avatar: "https://api.dicebear.com/7.x/identicon/svg?seed=Buffer&baseColor=00c477" },
     ],
     findings: 53,
     createdAt: "Jan 05, 2026",
@@ -66,19 +66,19 @@ const MOCK_PROJECTS = [
   },
 ];
 
-// ─── CONSTANTS ────────────────────────────────────────────────────────────────
+// ─── CONSTANTS & CONFIG (Executive Black & Green Theme) ───────────────────────
 const STATUS_CONFIG = {
-  PLANNING:    { label: "Planning",    color: "text-amber-400",  bg: "bg-amber-400/10",  border: "border-amber-400/20" },
-  IN_PROGRESS: { label: "In Progress", color: "text-cyan-400",   bg: "bg-cyan-400/10",   border: "border-cyan-400/20"  },
-  REPORTING:   { label: "Reporting",   color: "text-violet-400", bg: "bg-violet-400/10", border: "border-violet-400/20"},
-  CLOSED:      { label: "Closed",      color: "text-gray-400",   bg: "bg-gray-400/10",   border: "border-gray-400/20"  },
+  PLANNING:    { label: "Planning",    color: "text-amber-400",  bg: "bg-amber-400/10",  border: "border-amber-400/30" },
+  IN_PROGRESS: { label: "In Progress", color: "text-[#00c477]", bg: "bg-[#00c477]/10", border: "border-[#00c477]/30"  },
+  REPORTING:   { label: "Reporting",   color: "text-purple-400", bg: "bg-purple-400/10", border: "border-purple-400/30"},
+  CLOSED:      { label: "Closed",      color: "text-gray-500",   bg: "bg-gray-500/10",   border: "border-gray-500/30"  },
 };
 
 const THREAT_CONFIG = {
-  CRITICAL: { color: "text-red-400",    bg: "bg-red-400/10",    border: "border-red-400/20"    },
-  HIGH:     { color: "text-orange-400", bg: "bg-orange-400/10", border: "border-orange-400/20" },
-  MEDIUM:   { color: "text-yellow-400", bg: "bg-yellow-400/10", border: "border-yellow-400/20" },
-  LOW:      { color: "text-blue-400",   bg: "bg-blue-400/10",   border: "border-blue-400/20"   },
+  CRITICAL: { color: "text-rose-500",   bg: "bg-rose-500/10",   border: "border-rose-500/30"    },
+  HIGH:     { color: "text-amber-500",  bg: "bg-amber-500/10",  border: "border-amber-500/30" },
+  MEDIUM:   { color: "text-[#00c477]",  bg: "bg-[#00c477]/10",  border: "border-[#00c477]/30" },
+  LOW:      { color: "text-gray-400",   bg: "bg-gray-400/10",   border: "border-gray-500/30"   },
 };
 
 const FILTERS = ["ALL", "PLANNING", "IN_PROGRESS", "REPORTING", "CLOSED"];
@@ -88,7 +88,7 @@ const FILTERS = ["ALL", "PLANNING", "IN_PROGRESS", "REPORTING", "CLOSED"];
 const StatusBadge = ({ status }) => {
   const cfg = STATUS_CONFIG[status] || STATUS_CONFIG.PLANNING;
   return (
-    <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[9px] font-black font-mono tracking-widest uppercase border ${cfg.color} ${cfg.bg} ${cfg.border}`}>
+    <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-[6px] text-[10px] font-bold tracking-wide uppercase border ${cfg.color} ${cfg.bg} ${cfg.border}`}>
       <span className={`w-1.5 h-1.5 rounded-full ${cfg.color.replace('text-', 'bg-')}`} />
       {cfg.label}
     </span>
@@ -98,8 +98,8 @@ const StatusBadge = ({ status }) => {
 const ThreatBadge = ({ level }) => {
   const cfg = THREAT_CONFIG[level] || THREAT_CONFIG.MEDIUM;
   return (
-    <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[9px] font-black font-mono tracking-widest uppercase border ${cfg.color} ${cfg.bg} ${cfg.border}`}>
-      <FiAlertTriangle className="text-[8px]" />
+    <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-[4px] text-[10px] font-bold tracking-wider border ${cfg.color} ${cfg.bg} ${cfg.border}`}>
+      <FiAlertTriangle className="text-[10px]" />
       {level}
     </span>
   );
@@ -114,46 +114,43 @@ const ProjectCard = ({ project, onManage, index }) => {
     <motion.div
       initial={{ opacity: 0, y: 16 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ delay: index * 0.07 }}
-      className="bg-[#0a0a0a] border border-white/5 hover:border-[#00c477]/20 rounded-2xl p-6 group transition-all relative overflow-hidden"
+      transition={{ delay: index * 0.05, duration: 0.4, ease: "easeOut" }}
+      className="bg-[#0a0a0a] border border-white/5 hover:border-[#00c477]/30 hover:bg-white/[0.02] rounded-2xl p-6 group transition-all relative overflow-visible shadow-lg hover:shadow-[#00c477]/5"
     >
-      {/* Ambient glow on hover */}
-      <div className="absolute inset-0 bg-[#00c477]/[0.02] opacity-0 group-hover:opacity-100 transition-opacity rounded-2xl pointer-events-none" />
-
       {/* Header row */}
-      <div className="flex items-start justify-between mb-4 gap-3">
-        <div className="flex items-center gap-3 flex-wrap">
+      <div className="flex items-start justify-between mb-5 gap-3">
+        <div className="flex items-center gap-2 flex-wrap">
           <StatusBadge status={project.status} />
           <ThreatBadge level={project.threatLevel} />
         </div>
-        <div className="relative">
+        <div className="relative z-10">
           <button
             onClick={() => setMenuOpen(v => !v)}
-            className="w-7 h-7 rounded-lg flex items-center justify-center text-gray-600 hover:text-gray-300 hover:bg-white/5 transition-all"
+            className="w-8 h-8 rounded-lg flex items-center justify-center text-gray-500 hover:text-white hover:bg-white/10 transition-all"
           >
-            <FiMoreVertical />
+            <FiMoreVertical fontSize={16} />
           </button>
           <AnimatePresence>
             {menuOpen && (
               <motion.div
-                initial={{ opacity: 0, scale: 0.92, y: -4 }}
+                initial={{ opacity: 0, scale: 0.95, y: 4 }}
                 animate={{ opacity: 1, scale: 1, y: 0 }}
-                exit={{ opacity: 0, scale: 0.92 }}
-                className="absolute right-0 top-8 bg-[#111] border border-white/10 rounded-xl p-1.5 min-w-[160px] z-20 shadow-2xl"
+                exit={{ opacity: 0, scale: 0.95, y: 4 }}
+                className="absolute right-0 top-10 bg-[#111] border border-white/10 rounded-xl p-1.5 min-w-[170px] shadow-[0_20px_40px_-5px_rgba(0,0,0,0.8)] backdrop-blur-xl z-20"
               >
                 {[
-                  { icon: FiEdit2, label: "Edit Program", action: () => {} },
+                  { icon: FiEdit2, label: "Edit Details", action: () => {} },
                   { icon: FiExternalLink, label: "Open Workspace", action: () => onManage(project.id) },
-                  { icon: FiTrash2, label: "Archive", action: () => {}, destructive: true },
+                  { icon: FiTrash2, label: "Archive Program", action: () => {}, destructive: true },
                 ].map(item => (
                   <button
                     key={item.label}
                     onClick={() => { item.action(); setMenuOpen(false); }}
-                    className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-xs font-medium transition-colors text-left ${
-                      item.destructive ? 'text-red-400 hover:bg-red-400/10' : 'text-gray-400 hover:text-white hover:bg-white/5'
+                    className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-[13px] font-medium transition-colors text-left ${
+                      item.destructive ? 'text-rose-400 hover:bg-rose-500/10' : 'text-gray-300 hover:text-white hover:bg-white/5'
                     }`}
                   >
-                    <item.icon className="text-sm" />
+                    <item.icon fontSize={14} />
                     {item.label}
                   </button>
                 ))}
@@ -164,15 +161,15 @@ const ProjectCard = ({ project, onManage, index }) => {
       </div>
 
       {/* Name & description */}
-      <h3 className="text-base font-black text-white group-hover:text-[#00c477] transition-colors mb-2 leading-snug">
+      <h3 className="text-lg font-bold text-white group-hover:text-[#00c477] transition-colors mb-2 tracking-tight">
         {project.name}
       </h3>
-      <p className="text-xs text-gray-500 leading-relaxed line-clamp-2 mb-5">
+      <p className="text-sm text-gray-400 leading-relaxed line-clamp-2 mb-6">
         {project.description}
       </p>
 
       {/* Assigned hackers */}
-      <div className="flex items-center gap-3 mb-5">
+      <div className="flex items-center gap-3 mb-6 p-3 rounded-xl bg-white/[0.02] border border-white/5">
         <div className="flex -space-x-2">
           {project.assignedHackers.map((h, i) => (
             <img
@@ -180,31 +177,35 @@ const ProjectCard = ({ project, onManage, index }) => {
               src={h.avatar}
               alt={h.name}
               title={h.name}
-              className="w-7 h-7 rounded-full border-2 border-[#0a0a0a] bg-black/50"
+              className="w-8 h-8 rounded-full border-2 border-[#0a0a0a] bg-black"
             />
           ))}
           {project.assignedHackers.length === 0 && (
-            <div className="w-7 h-7 rounded-full border-2 border-dashed border-white/10 flex items-center justify-center">
-              <FiPlus className="text-gray-600 text-[10px]" />
+            <div className="w-8 h-8 rounded-full border-2 border-dashed border-gray-600 flex items-center justify-center bg-[#0a0a0a]">
+              <FiPlus className="text-gray-400 text-[10px]" />
             </div>
           )}
         </div>
-        <span className="text-[10px] text-gray-500 font-mono">
-          {project.assignedHackers.length === 0
-            ? 'No hackers assigned'
-            : `${project.assignedHackers.length} hacker${project.assignedHackers.length > 1 ? 's' : ''} assigned`}
-        </span>
+        <div className="flex flex-col">
+          <span className="text-[11px] text-gray-300 font-medium font-sans">
+            Assigned Hackers
+          </span>
+          <span className="text-[10px] text-gray-500">
+            {project.assignedHackers.length === 0 ? 'None assigned' : `${project.assignedHackers.length} Active`}
+          </span>
+        </div>
       </div>
 
       {/* Stats row */}
-      <div className="flex items-center justify-between pt-4 border-t border-white/5 text-[10px] font-mono text-gray-500">
-        <div className="flex items-center gap-1.5">
-          <FiTarget className="text-[#00c477]" />
-          <span className="text-white font-black">{project.findings}</span>
-          <span>findings</span>
+      <div className="flex items-center justify-between pt-4 border-t border-white/5 text-[12px] font-medium text-gray-400">
+        <div className="flex items-center gap-2">
+          <div className="w-6 h-6 rounded-md bg-[#00c477]/10 flex items-center justify-center text-[#00c477]">
+             <FiTarget size={12} />
+          </div>
+          <span className="text-gray-200 font-bold">{project.findings} <span className="font-normal text-gray-500">Findings</span></span>
         </div>
-        <div className={`flex items-center gap-1.5 ${isOverdue ? 'text-red-400' : ''}`}>
-          <FiCalendar />
+        <div className={`flex items-center gap-1.5 ${isOverdue ? 'text-rose-400 bg-rose-500/10 px-2 py-1 rounded-md' : ''}`}>
+          <FiCalendar size={13} />
           <span>{project.deadline}</span>
         </div>
       </div>
@@ -212,10 +213,10 @@ const ProjectCard = ({ project, onManage, index }) => {
       {/* Manage button */}
       <button
         onClick={() => onManage(project.id)}
-        className="mt-4 w-full py-2.5 rounded-xl border border-white/5 bg-white/[0.02] hover:bg-[#00c477]/10 hover:border-[#00c477]/30 text-xs font-black text-gray-400 hover:text-[#00c477] transition-all flex items-center justify-center gap-2 group/btn"
+        className="mt-6 w-full py-2.5 rounded-xl bg-white/5 hover:bg-[#00c477] border border-white/10 hover:border-[#00c477] text-white hover:text-black text-[13px] font-bold transition-all flex items-center justify-center gap-2 group/btn"
       >
         Manage Program
-        <FiArrowRight className="group-hover/btn:translate-x-1 transition-transform" />
+        <FiArrowRight size={14} className="group-hover/btn:translate-x-1 transition-transform" />
       </button>
     </motion.div>
   );
@@ -244,51 +245,54 @@ const CreateProjectModal = ({ onClose, onCreate }) => {
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      className="fixed inset-0 bg-black/75 backdrop-blur-sm z-50 flex items-center justify-center p-6"
+      className="fixed inset-0 bg-black/80 backdrop-blur-md z-50 flex items-center justify-center p-6"
       onClick={onClose}
     >
       <motion.form
         onSubmit={handleSubmit}
-        initial={{ opacity: 0, scale: 0.93, y: 24 }}
+        initial={{ opacity: 0, scale: 0.96, y: 20 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
-        exit={{ opacity: 0, scale: 0.93, y: 24 }}
-        className="bg-[#0a0a0a] border border-white/10 rounded-2xl p-8 w-full max-w-lg shadow-2xl"
+        exit={{ opacity: 0, scale: 0.96, y: 20 }}
+        className="bg-[#0a0a0a] border border-white/10 rounded-3xl p-8 w-full max-w-lg shadow-[0_20px_60px_-10px_rgba(0,196,119,0.1)] relative overflow-hidden"
         onClick={e => e.stopPropagation()}
       >
+        {/* Subtle background glow */}
+        <div className="absolute -top-32 -right-32 w-64 h-64 bg-[#00c477]/10 rounded-full blur-[80px] pointer-events-none" />
+
         {/* Modal header */}
-        <div className="flex items-center justify-between mb-8">
+        <div className="flex items-center justify-between mb-8 relative z-10">
           <div className="flex items-center gap-4">
-            <div className="w-11 h-11 rounded-xl bg-[#00c477]/10 border border-[#00c477]/20 flex items-center justify-center">
-              <FiShield className="text-[#00c477] text-lg" />
+            <div className="w-12 h-12 rounded-2xl bg-[#00c477]/10 border border-[#00c477]/20 flex items-center justify-center">
+              <FiBriefcase className="text-[#00c477] text-xl" />
             </div>
             <div>
-              <h2 className="text-lg font-black text-white">New Security Program</h2>
-              <p className="text-xs text-gray-500 font-mono mt-0.5">Create a managed engagement</p>
+              <h2 className="text-xl font-bold text-white tracking-tight">New Security Program</h2>
+              <p className="text-[13px] text-gray-400 mt-1">Configure parameters for the new engagement.</p>
             </div>
           </div>
-          <button type="button" onClick={onClose} className="w-8 h-8 rounded-lg flex items-center justify-center text-gray-500 hover:text-white hover:bg-white/5 transition-all">
-            <FiX />
+          <button type="button" onClick={onClose} className="w-8 h-8 rounded-full flex items-center justify-center text-gray-500 hover:text-white hover:bg-white/10 transition-all">
+            <FiX size={18} />
           </button>
         </div>
 
-        <div className="space-y-4">
+        <div className="space-y-5 relative z-10">
           {/* Program name */}
           <div>
-            <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest mb-2 block">
-              Program Name *
+            <label className="text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-2 block">
+              Program Name <span className="text-[#00c477]">*</span>
             </label>
             <input
               value={form.name}
               onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
               placeholder="e.g. Web App Security Audit Q2"
               required
-              className="w-full bg-[#050505] border border-white/10 focus:border-[#00c477]/40 rounded-xl px-4 py-3 text-sm text-white outline-none transition-colors placeholder-gray-600 font-mono"
+              className="w-full bg-black border border-white/10 focus:border-[#00c477] focus:ring-1 focus:ring-[#00c477] rounded-xl px-4 py-3 text-sm text-white outline-none transition-all placeholder-gray-600 shadow-inner"
             />
           </div>
 
           {/* Description */}
           <div>
-            <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest mb-2 block">
+            <label className="text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-2 block">
               Objectives & Scope
             </label>
             <textarea
@@ -296,66 +300,72 @@ const CreateProjectModal = ({ onClose, onCreate }) => {
               onChange={e => setForm(f => ({ ...f, description: e.target.value }))}
               rows={3}
               placeholder="Describe the target systems, authorized scope, and objectives..."
-              className="w-full bg-[#050505] border border-white/10 focus:border-[#00c477]/40 rounded-xl px-4 py-3 text-sm text-white outline-none transition-colors placeholder-gray-600 resize-none font-mono"
+              className="w-full bg-black border border-white/10 focus:border-[#00c477] focus:ring-1 focus:ring-[#00c477] rounded-xl px-4 py-3 text-sm text-white outline-none transition-all placeholder-gray-600 resize-none shadow-inner"
             />
           </div>
 
           {/* Threat Level + Deadline row */}
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-2 gap-5">
             <div>
-              <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest mb-2 block">
-                Threat Level
+              <label className="text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-2 block">
+                Relative Threat Level
               </label>
-              <select
-                value={form.threatLevel}
-                onChange={e => setForm(f => ({ ...f, threatLevel: e.target.value }))}
-                className="w-full bg-[#050505] border border-white/10 focus:border-[#00c477]/40 rounded-xl px-4 py-3 text-sm text-white outline-none transition-colors"
-              >
-                {['CRITICAL', 'HIGH', 'MEDIUM', 'LOW'].map(l => (
-                  <option key={l} value={l}>{l}</option>
-                ))}
-              </select>
+              <div className="relative">
+                <select
+                  value={form.threatLevel}
+                  onChange={e => setForm(f => ({ ...f, threatLevel: e.target.value }))}
+                  className="w-full bg-black border border-white/10 focus:border-[#00c477] focus:ring-1 focus:ring-[#00c477] rounded-xl px-4 py-3 text-sm text-white outline-none transition-all appearance-none"
+                >
+                  {['CRITICAL', 'HIGH', 'MEDIUM', 'LOW'].map(l => (
+                    <option key={l} value={l}>{l.charAt(0) + l.slice(1).toLowerCase()}</option>
+                  ))}
+                </select>
+                <div className="absolute inset-y-0 right-4 flex items-center pointer-events-none">
+                  <FiAlertTriangle className="text-gray-500 text-sm" />
+                </div>
+              </div>
             </div>
             <div>
-              <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest mb-2 block">
-                Deadline
+              <label className="text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-2 block">
+                Target Deadline
               </label>
               <input
                 type="date"
                 value={form.deadline}
                 onChange={e => setForm(f => ({ ...f, deadline: e.target.value }))}
-                className="w-full bg-[#050505] border border-white/10 focus:border-[#00c477]/40 rounded-xl px-4 py-3 text-sm text-white outline-none transition-colors"
+                className="w-full bg-black border border-white/10 focus:border-[#00c477] focus:ring-1 focus:ring-[#00c477] rounded-xl px-4 py-3 text-sm text-white outline-none transition-all"
+                style={{ colorScheme: 'dark' }}
               />
             </div>
           </div>
 
           {/* Info note */}
-          <div className="flex items-start gap-3 p-3 rounded-xl border border-[#00c477]/10 bg-[#00c477]/5">
-            <FiZap className="text-[#00c477] mt-0.5 shrink-0" />
-            <p className="text-[11px] text-gray-400 leading-relaxed">
-              After creating this program, go to <span className="text-[#00c477] font-bold">Discover</span> to assign hackers. They'll receive an automatic notification.
+          <div className="flex items-start gap-3 p-4 rounded-xl border border-[#00c477]/20 bg-[#00c477]/10">
+            <FiUsers className="text-[#00c477] mt-0.5 shrink-0" size={16} />
+            <p className="text-[12px] text-[#00c477]/80 leading-relaxed font-medium">
+              After initialization, navigate to the <span className="text-[#00c477] font-bold">Discover</span> tab to delegate assignments to verified professionals.
             </p>
           </div>
 
           {/* Actions */}
-          <div className="flex gap-3 pt-2">
+          <div className="flex gap-4 pt-4 border-t border-white/5">
             <button
               type="button"
               onClick={onClose}
-              className="flex-1 py-3 rounded-xl border border-white/10 text-gray-400 hover:text-white hover:border-white/20 text-sm font-bold transition-all"
+              className="flex-1 py-3 rounded-xl border border-white/10 bg-white/5 hover:bg-white/10 text-white text-sm font-bold transition-all"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={loading || !form.name.trim()}
-              className="flex-1 py-3 rounded-xl bg-[#00c477] hover:bg-[#009a5e] text-black font-black text-sm shadow-[0_0_20px_rgba(0,196,119,0.2)] hover:shadow-[0_0_30px_rgba(0,196,119,0.35)] transition-all disabled:opacity-50 flex items-center justify-center gap-2"
+              className="flex-1 py-3 rounded-xl bg-[#00c477] hover:bg-[#009a5e] text-black font-extrabold text-sm shadow-[0_0_20px_rgba(0,196,119,0.3)] focus:ring-4 focus:ring-[#00c477]/30 transition-all disabled:opacity-50 flex items-center justify-center gap-2"
             >
               {loading
-                ? <div className="w-4 h-4 border-2 border-black/30 border-t-black rounded-full animate-spin" />
-                : <FiCheck />
+                ? <div className="w-4 h-4 border-2 border-black/20 border-t-black rounded-full animate-spin" />
+                : <FiCheck size={16} />
               }
-              {loading ? 'Creating…' : 'Create Program'}
+              {loading ? 'Initializing…' : 'Create Program'}
             </button>
           </div>
         </div>
@@ -377,111 +387,126 @@ const OrganizationProjects = () => {
   const activeCount = projects.filter(p => p.status === 'IN_PROGRESS').length;
 
   return (
-    <div className="flex flex-col h-full -m-10">
+    <div className="flex flex-col h-full bg-[#050505] -m-10 min-h-screen text-gray-200 font-sans selection:bg-[#00c477]/30">
+      
+      {/* ── Header Area ── */}
+      <div className="relative overflow-hidden px-10 pt-12 pb-8 border-b border-white/5 bg-[#050505] z-10">
+        
+        {/* Subtle Decorative Elements */}
+        <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-[#00c477]/5 rounded-full blur-[120px] pointer-events-none" />
 
-      {/* ── Header ── */}
-      <div className="px-10 py-8 border-b border-white/5 bg-[#050505]">
-        <div className="flex items-start justify-between flex-wrap gap-6">
+        <div className="relative z-10 flex flex-col md:flex-row md:items-end justify-between gap-6 max-w-7xl mx-auto">
           <div>
-            <div className="flex items-center gap-2 mb-3">
-              <div className="w-1.5 h-1.5 rounded-full bg-[#00c477] animate-pulse shadow-[0_0_6px_#00c477]" />
-              <span className="text-[9px] font-black text-[#00c477] font-mono tracking-[0.3em] uppercase">
-                Security Operations
+            <div className="inline-flex items-center gap-2 mb-4 px-3 py-1 rounded-full bg-[#00c477]/10 border border-[#00c477]/20">
+              <span className="w-2 h-2 rounded-full bg-[#00c477] shadow-[0_0_8px_#00c477]" />
+              <span className="text-[10px] font-black text-[#00c477] uppercase tracking-widest">
+                Executive Dashboard
               </span>
             </div>
-            <h1 className="text-3xl font-black text-white tracking-tight">Security Programs</h1>
-            <p className="text-gray-500 text-sm mt-2">Create and manage your organization's security engagements.</p>
+            <h1 className="text-4xl font-extrabold text-white tracking-tight leading-none mb-3">
+              Security Programs
+            </h1>
+            <p className="text-gray-400 text-[15px] font-medium max-w-xl">
+              Oversee active engagements, manage threat discovery, and coordinate with verified security consultants across your organization.
+            </p>
           </div>
 
           <motion.button
-            whileHover={{ scale: 1.03 }}
-            whileTap={{ scale: 0.97 }}
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.98 }}
             onClick={() => setShowCreate(true)}
-            className="flex items-center gap-3 px-6 py-3.5 bg-[#00c477] text-black font-black text-sm rounded-xl shadow-[0_0_20px_rgba(0,196,119,0.2)] hover:shadow-[0_0_35px_rgba(0,196,119,0.35)] hover:bg-[#009a5e] transition-all"
+            className="flex items-center justify-center gap-2.5 px-6 py-3.5 bg-[#00c477] text-black font-extrabold text-sm rounded-xl hover:bg-[#009a5e] shadow-[0_0_20px_rgba(0,196,119,0.3)] transition-all whitespace-nowrap"
           >
             <FiPlus className="text-lg" />
-            New Program
+            Initialize Program
           </motion.button>
         </div>
 
-        {/* Stats strip */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mt-8">
+        {/* Stats Strip */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-5 mt-10 max-w-7xl mx-auto">
           {[
-            { label: "Total Programs",     value: projects.length,  icon: FiShield,       color: "text-[#00c477]" },
-            { label: "Active Engagements", value: activeCount,       icon: FiActivity,     color: "text-cyan-400"  },
-            { label: "Hackers Assigned",   value: totalHackers,      icon: FiUsers,        color: "text-violet-400"},
-            { label: "Findings Logged",    value: totalFindings,     icon: FiTarget,       color: "text-orange-400"},
+            { label: "Total Initiatives",  value: projects.length,  icon: FiBriefcase,    color: "text-[#00c477]", bg: "bg-[#00c477]/10" },
+            { label: "Active Audits",      value: activeCount,       icon: FiActivity,     color: "text-cyan-400",  bg: "bg-cyan-500/10"  },
+            { label: "Consultants",        value: totalHackers,      icon: FiUsers,        color: "text-purple-400",bg: "bg-purple-500/10" },
+            { label: "Critical Findings",  value: totalFindings,     icon: FiAlertTriangle,color: "text-rose-400",   bg: "bg-rose-500/10" },
           ].map((stat, i) => (
             <motion.div
               key={stat.label}
-              initial={{ opacity: 0, y: 8 }}
+              initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: i * 0.08 }}
-              className="bg-[#0a0a0a] border border-white/5 rounded-xl p-4"
+              transition={{ delay: i * 0.1, duration: 0.5 }}
+              className="bg-[#0a0a0a] border border-white/5 rounded-2xl p-5 flex items-center gap-5 hover:border-white/10 transition-colors"
             >
-              <div className="flex items-center gap-2 mb-2">
-                <stat.icon className={`text-sm ${stat.color}`} />
-                <span className="text-[9px] font-black text-gray-500 uppercase tracking-widest">{stat.label}</span>
+              <div className={`w-12 h-12 rounded-xl flex items-center justify-center shrink-0 ${stat.bg}`}>
+                <stat.icon className={`text-xl ${stat.color}`} />
               </div>
-              <p className={`text-2xl font-black ${stat.color}`}>{stat.value}</p>
+              <div>
+                <p className="text-[11px] font-bold text-gray-500 uppercase tracking-wider mb-1">{stat.label}</p>
+                <p className="text-2xl font-black text-white">{stat.value}</p>
+              </div>
             </motion.div>
           ))}
         </div>
       </div>
 
-      {/* ── Filter Bar ── */}
-      <div className="px-10 py-4 border-b border-white/5 bg-[#050505] flex items-center gap-2 flex-wrap">
-        {FILTERS.map(f => (
-          <button
-            key={f}
-            onClick={() => setFilter(f)}
-            className={`px-4 py-1.5 rounded-full text-[10px] font-black font-mono tracking-widest uppercase transition-all ${
-              filter === f
-                ? 'bg-[#00c477]/15 border border-[#00c477]/30 text-[#00c477]'
-                : 'border border-white/5 text-gray-500 hover:text-gray-300 hover:border-white/10'
-            }`}
-          >
-            {f === 'IN_PROGRESS' ? 'In Progress' : f.charAt(0) + f.slice(1).toLowerCase()}
-            {f === 'ALL' && <span className="ml-1.5 opacity-60">({projects.length})</span>}
-          </button>
-        ))}
-
-        <div className="ml-auto flex items-center gap-2 text-[10px] text-gray-600 font-mono">
-          <FiGlobe className="text-[#00c477]" />
-          <span>{filtered.length} program{filtered.length !== 1 ? 's' : ''}</span>
+      {/* ── Filter & View Bar ── */}
+      <div className="px-10 py-5 border-b border-white/5 bg-[#0a0a0a]">
+        <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4">
+          <div className="flex bg-[#050505] p-1.5 rounded-xl border border-white/5">
+            {FILTERS.map(f => (
+              <button
+                key={f}
+                onClick={() => setFilter(f)}
+                className={`px-5 py-2 rounded-lg text-[11px] font-bold tracking-wide transition-all ${
+                  filter === f
+                    ? 'bg-white/10 text-white shadow-sm'
+                    : 'text-gray-500 hover:text-white hover:bg-white/5'
+                }`}
+              >
+                {f === 'IN_PROGRESS' ? 'Active' : f.charAt(0) + f.slice(1).toLowerCase()}
+                {f === 'ALL' && <span className="ml-1.5 opacity-60">({projects.length})</span>}
+              </button>
+            ))}
+          </div>
+          
+          <div className="flex items-center gap-3">
+             <div className="px-4 py-2.5 rounded-xl bg-white/[0.02] border border-white/5 text-[12px] text-gray-400 font-medium flex items-center gap-2">
+               <FiBarChart2 className="text-gray-500" /> Sort: Priority
+             </div>
+          </div>
         </div>
       </div>
 
       {/* ── Project Grid ── */}
-      <div className="flex-1 overflow-y-auto p-10 bg-[#050505]">
-        {filtered.length === 0 ? (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            className="flex flex-col items-center justify-center py-24 gap-5"
-          >
-            <div className="w-20 h-20 rounded-2xl border border-dashed border-white/10 flex items-center justify-center">
-              <FiShield className="text-gray-600 text-3xl" />
-            </div>
-            <div className="text-center">
-              <p className="text-white font-bold text-lg mb-2">No programs found</p>
-              <p className="text-gray-500 text-sm">
-                {filter === 'ALL'
-                  ? 'Create your first security program to get started.'
-                  : `No programs with status "${filter.replace('_', ' ')}".`}
-              </p>
-            </div>
-            {filter === 'ALL' && (
-              <button
-                onClick={() => setShowCreate(true)}
-                className="flex items-center gap-2 px-5 py-3 bg-[#00c477] text-black font-black text-sm rounded-xl hover:bg-[#009a5e] transition-all"
-              >
-                <FiPlus /> Create Program
-              </button>
-            )}
-          </motion.div>
-        ) : (
-          <>
+      <div className="flex-1 overflow-y-auto px-10 py-10 bg-[#050505]">
+        <div className="max-w-7xl mx-auto">
+          {filtered.length === 0 ? (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              className="flex flex-col items-center justify-center py-32 gap-6 bg-[#0a0a0a] border border-dashed border-white/10 rounded-3xl"
+            >
+              <div className="w-24 h-24 rounded-full bg-white/5 flex items-center justify-center">
+                <FiPieChart className="text-gray-600 text-4xl" />
+              </div>
+              <div className="text-center max-w-sm">
+                <h3 className="text-white font-bold text-xl mb-2 tracking-tight">No Programs Found</h3>
+                <p className="text-gray-500 text-sm leading-relaxed mb-6">
+                  {filter === 'ALL'
+                    ? "Your organization hasn't initiated any security programs yet."
+                    : `No engagements are currently marked as "${filter}".`}
+                </p>
+                {filter === 'ALL' && (
+                  <button
+                    onClick={() => setShowCreate(true)}
+                    className="inline-flex items-center gap-2 px-6 py-3 bg-[#00c477] text-black font-extrabold text-sm rounded-xl hover:bg-[#009a5e] transition-all shadow-[0_0_20px_rgba(0,196,119,0.2)]"
+                  >
+                    <FiPlus /> Initialize Program
+                  </button>
+                )}
+              </div>
+            </motion.div>
+          ) : (
             <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
               {filtered.map((project, i) => (
                 <ProjectCard
@@ -493,44 +518,23 @@ const OrganizationProjects = () => {
               ))}
 
               {/* Quick Add Card */}
-              <motion.button
-                initial={{ opacity: 0, y: 16 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: filtered.length * 0.07 }}
-                onClick={() => setShowCreate(true)}
-                className="border border-dashed border-white/10 hover:border-[#00c477]/30 rounded-2xl p-6 flex flex-col items-center justify-center gap-4 text-gray-600 hover:text-[#00c477] transition-all group min-h-[200px]"
-              >
-                <div className="w-12 h-12 rounded-xl border border-dashed border-current flex items-center justify-center group-hover:scale-110 transition-transform">
-                  <FiPlus className="text-xl" />
-                </div>
-                <span className="text-xs font-black font-mono uppercase tracking-widest">New Program</span>
-              </motion.button>
+              {filter === 'ALL' && (
+                <motion.button
+                  initial={{ opacity: 0, y: 16 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: filtered.length * 0.05, duration: 0.4 }}
+                  onClick={() => setShowCreate(true)}
+                  className="border-2 border-dashed border-white/10 hover:border-[#00c477]/50 bg-[#0a0a0a] hover:bg-[#00c477]/5 rounded-2xl p-6 flex flex-col items-center justify-center gap-4 text-gray-500 hover:text-[#00c477] transition-all group min-h-[280px]"
+                >
+                  <div className="w-14 h-14 rounded-2xl bg-white/5 flex items-center justify-center group-hover:scale-110 group-hover:bg-[#00c477]/20 group-hover:text-[#00c477] transition-all">
+                    <FiPlus className="text-2xl" />
+                  </div>
+                  <span className="text-sm font-bold tracking-wide">Initialize Program</span>
+                </motion.button>
+              )}
             </div>
-
-            {/* Discover CTA */}
-            <motion.div
-              initial={{ opacity: 0, y: 8 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.4 }}
-              className="mt-10 p-6 rounded-2xl border border-[#00c477]/10 bg-[#00c477]/5 flex items-center gap-5 flex-wrap"
-            >
-              <div className="w-12 h-12 rounded-xl bg-[#00c477]/10 border border-[#00c477]/20 flex items-center justify-center shrink-0">
-                <FiUsers className="text-[#00c477] text-xl" />
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-white font-bold text-sm">Looking for security researchers?</p>
-                <p className="text-gray-400 text-xs mt-0.5">Browse verified hackers on the Discover page and assign them directly to your programs.</p>
-              </div>
-              <button
-                onClick={() => navigate('/discover')}
-                className="flex items-center gap-2 px-5 py-2.5 bg-[#00c477] text-black font-black text-xs rounded-xl hover:bg-[#009a5e] transition-all shrink-0"
-              >
-                Discover Hackers
-                <FiArrowRight />
-              </button>
-            </motion.div>
-          </>
-        )}
+          )}
+        </div>
       </div>
 
       {/* ── Create Modal ── */}
