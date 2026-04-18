@@ -31,6 +31,7 @@ import WorkflowControls from './components/WorkflowControls';
 import { useWorkflowSocket } from '../../hooks/useWorkflowSocket';
 import workflowService from '../../services/workflow.service';
 import { useAuth } from '../../context/authContext.jsx';
+import api from "../../api/axiosConfig";
 
 const nodeTypes = {
   startingPoint: StartingPointNode,
@@ -148,9 +149,29 @@ const WorkflowEditor = ({ workflowId: propWorkflowId, pentestId: propPentestId }
         if (data && data.edges) setEdges(data.edges);
         if (data && data.pentest?.findings) setFindings(data.pentest.findings);
         if (data) {
+          // Try to determine project name from workflow name or pentest relation
+          let projectName = data.pentest?.name;
+          let projectType = data.pentest?.status || 'ACTIVE';
+
+          // Robust Fallback: If pentest relation is empty but ID exists, fetch it specifically
+          if (!projectName && data.pentestId) {
+            try {
+              const pRes = await api.get(`/projects/${data.pentestId}`);
+              if (pRes.data?.success && pRes.data.data) {
+                projectName = pRes.data.data.name;
+                projectType = pRes.data.data.status;
+              }
+            } catch (pErr) {
+              console.warn("Could not find parent project name via API", pErr);
+            }
+          }
+
+          // Final fallback to workflow local name
+          if (!projectName) projectName = data.name || data.title;
+
           setProjectInfo({
-            name: data.name || data.title || data.pentest?.name || data.pentest?.title || 'Untitled Workflow',
-            type: data.pentest?.type || 'Audit'
+            name: projectName || 'Untitled Workspace',
+            type: projectType
           });
         }
 
@@ -402,18 +423,35 @@ const WorkflowEditor = ({ workflowId: propWorkflowId, pentestId: propPentestId }
               const isOrg = authUser?.roles?.some(r => ['ORGANIZATION', 'ORG_ADMIN', 'SUPER_ADMIN'].includes(r.type));
               navigate(isOrg ? '/dashboard' : '/hacker-dashboard');
             }}
-            className="text-gray-400 hover:text-white flex items-center gap-2 justify-center text-xs font-semibold uppercase tracking-wider transition-colors"
+            className="w-9 h-9 flex items-center justify-center rounded-xl bg-white/5 border border-white/10 text-gray-400 hover:text-[#00ff41] hover:border-[#00ff41]/30 transition-all shadow-sm"
             title="Back to Dashboard"
           >
-            <FiArrowLeft size={18} />
-            <FiHome size={16} />
-            Dashboard
+            <FiHome size={18} />
           </button>
-          <div className="font-semibold font-sans text-xs uppercase tracking-widest text-[#00ff41] bg-[#00ff41]/10 border border-[#00ff41]/20 px-2.5 py-1 rounded-md">{projectInfo.type} Workflow</div>
-          <div className="font-semibold font-sans text-sm max-w-[200px] truncate text-white" title={projectInfo.name}>{projectInfo.name}</div>
-          <div className="text-gray-400 text-[10px] font-medium flex items-center gap-1.5 bg-[#13151a] px-2.5 py-1.5 rounded-full border border-[#252830] shadow-sm">
-            <FiSave size={12} className="text-[#00ff41]" />
-            SYNCED: {formatDistanceToNow(lastSaved, { addSuffix: true })}
+          
+          <div className="flex items-center gap-3 overflow-hidden">
+            <span className="text-gray-700 font-medium text-lg leading-none select-none">/</span>
+            <div className="flex flex-col md:flex-row md:items-center gap-1 md:gap-3 overflow-hidden">
+              <h1 
+                className="text-sm md:text-[16px] font-bold text-white tracking-tight truncate max-w-[300px] md:max-w-[600px] lg:max-w-none" 
+                title={projectInfo.name}
+              >
+                {projectInfo.name}
+              </h1>
+              <div className="flex items-center gap-2">
+                <span className="hidden md:block w-1.5 h-1.5 rounded-full bg-white/10" />
+                <span className="text-[9px] font-black text-[#00ff41] bg-[#00ff41]/5 border border-[#00ff41]/20 px-2 py-0.5 rounded uppercase tracking-[0.2em] opacity-80">
+                  {projectInfo.type} NODE
+                </span>
+              </div>
+            </div>
+          </div>
+
+          <div className="hidden lg:flex items-center gap-1.5 bg-black/40 px-3 py-1.5 rounded-full border border-white/5 shadow-inner">
+            <FiSave size={11} className="text-[#00ff41] animate-pulse" />
+            <span className="text-gray-500 text-[9px] font-bold uppercase tracking-widest">
+              LATEST_SYNC: {formatDistanceToNow(lastSaved, { addSuffix: true })}
+            </span>
           </div>
         </div>
 
