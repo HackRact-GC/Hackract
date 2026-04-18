@@ -428,12 +428,12 @@ const WorkflowEditor = ({ workflowId: propWorkflowId, pentestId: propPentestId }
           >
             <FiHome size={18} />
           </button>
-          
+
           <div className="flex items-center gap-3 overflow-hidden">
             <span className="text-gray-700 font-medium text-lg leading-none select-none">/</span>
             <div className="flex flex-col md:flex-row md:items-center gap-1 md:gap-3 overflow-hidden">
-              <h1 
-                className="text-sm md:text-[16px] font-bold text-white tracking-tight truncate max-w-[300px] md:max-w-[600px] lg:max-w-none" 
+              <h1
+                className="text-sm md:text-[16px] font-bold text-white tracking-tight truncate max-w-[300px] md:max-w-[600px] lg:max-w-none"
                 title={projectInfo.name}
               >
                 {projectInfo.name}
