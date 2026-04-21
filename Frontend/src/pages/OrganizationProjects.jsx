@@ -513,7 +513,7 @@ const OrganizationProjects = () => {
                   key={project.id}
                   project={project}
                   index={i}
-                  onManage={id => navigate(`/projects/${id}`)}
+                  onManage={id => navigate(`/org-projects/${id}`)}
                 />
               ))}
 
