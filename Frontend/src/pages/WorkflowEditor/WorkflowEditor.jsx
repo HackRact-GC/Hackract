@@ -352,25 +352,49 @@ const WorkflowEditor = ({ workflowId: propWorkflowId, pentestId: propPentestId }
   const handleNodesChange = useCallback((changes) => {
     onNodesChange(changes);
 
-    // Only emit/save if it represents a structural change or move end, to avoid spanmung
+    const positionChanged = changes.some(c => c.type === "position");
     const dragEndedOrDeleted = changes.some(c => (c.type === "position" && !c.dragging) || c.type === "remove");
-    if (dragEndedOrDeleted) {
+
+    // Emit live position updates via WebSocket for real-time tracking
+    if (positionChanged || dragEndedOrDeleted) {
        setTimeout(() => {
-         // A small closure-like check to get the latest state
          setNodes((nds) => {
            setEdges((eds) => {
              emitWorkflowChange(nds, eds);
-             const isDelete = changes.some(c => c.type === "remove");
-             if (!isDelete) {
-               saveToDatabase(nds, eds, "MOVE_NODE");
+             
+             // Only incur DB overhead when drag has finished natively
+             if (dragEndedOrDeleted) {
+               const isDelete = changes.some(c => c.type === "remove");
+               if (!isDelete) {
+                 saveToDatabase(nds, eds, "MOVE_NODE");
+               }
              }
+             return eds;
+           });
+           return nds;
+         });
+       }, 5);
+    }
+  }, [onNodesChange, emitWorkflowChange, setNodes, setEdges]);
+
+  // Handle Edge Deletions dynamically so all peers see the disconnect
+  const handleEdgesChange = useCallback((changes) => {
+    onEdgesChange(changes);
+
+    const isDelete = changes.some(c => c.type === "remove");
+    if (isDelete) {
+       setTimeout(() => {
+         setNodes((nds) => {
+           setEdges((eds) => {
+             emitWorkflowChange(nds, eds);
+             saveToDatabase(nds, eds, "DELETE_EDGE");
              return eds;
            });
            return nds;
          });
        }, 50);
     }
-  }, [onNodesChange, emitWorkflowChange, setNodes, setEdges]);
+  }, [onEdgesChange, emitWorkflowChange, setNodes, setEdges]);
 
   // Sync activeNodes to node data
   useEffect(() => {
@@ -498,11 +522,15 @@ const WorkflowEditor = ({ workflowId: propWorkflowId, pentestId: propPentestId }
       {/* Main Workspace */}
       <div className="flex flex-1 overflow-hidden relative"
            onMouseMove={(e) => {
-             emitCursorMove(e.clientX, e.clientY, localUser.name);
              if (reactFlowWrapper.current) {
-               const rect = reactFlowWrapper.current.getBoundingClientRect();
-               reactFlowWrapper.current.style.setProperty('--mouse-x', `${e.clientX - rect.left}px`);
-               reactFlowWrapper.current.style.setProperty('--mouse-y', `${e.clientY - rect.top}px`);
+                const rect = reactFlowWrapper.current.getBoundingClientRect();
+                const x = e.clientX - rect.left;
+                const y = e.clientY - rect.top;
+                
+                emitCursorMove(x, y, localUser);
+                
+                reactFlowWrapper.current.style.setProperty('--mouse-x', `${x}px`);
+                reactFlowWrapper.current.style.setProperty('--mouse-y', `${y}px`);
              }
            }}
            onMouseLeave={() => {
@@ -522,7 +550,7 @@ const WorkflowEditor = ({ workflowId: propWorkflowId, pentestId: propPentestId }
               nodes={nodes}
               edges={edges}
               onNodesChange={handleNodesChange}
-              onEdgesChange={onEdgesChange}
+              onEdgesChange={handleEdgesChange}
               onConnect={onConnect}
               onInit={setReactFlowInstance}
               onDrop={onDrop}
