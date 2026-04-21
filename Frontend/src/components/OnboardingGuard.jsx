@@ -49,9 +49,10 @@ const OnboardingGuard = ({ children }) => {
     const isOnboardingRoute = location.pathname.startsWith('/onboarding');
 
     if (isOnboardingRoute) {
-        // If they don't need onboarding anymore, push them to the dashboard
+        // If they don't need onboarding anymore, push them to the role-based dashboard
         if (!needsOnboarding) {
-            return <Navigate to="/dashboard" replace />;
+            const destination = isPentester ? '/hacker-dashboard' : '/dashboard';
+            return <Navigate to={destination} replace />;
         }
         // Otherwise let them render the onboarding page
         return <>{children}</>;

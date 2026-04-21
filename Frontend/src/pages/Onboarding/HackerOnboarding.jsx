@@ -86,8 +86,8 @@ const HackerOnboarding = () => {
       await api.put('/hacker-profiles/me', payload);
       toast.success('Profile completed successfully!');
       setTimeout(() => {
-        // Full page reload will reconstruct auth context and push them to dashboard automatically
-        window.location.href = '/dashboard';
+        // Reload auth context and redirect hacker to their own dashboard
+        window.location.href = '/hacker-dashboard';
       }, 1500);
     } catch (error) {
       toast.error('Submission failed. Please try again.');
