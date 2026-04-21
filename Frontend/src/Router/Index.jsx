@@ -26,6 +26,7 @@ import Reports from "../pages/Reports.jsx";
 import OrganizationDiscover from "../pages/OrganizationDiscover.jsx";
 import HackerPublicProfile from "../pages/HackerPublicProfile.jsx";
 import OrganizationProjects from "../pages/OrganizationProjects.jsx";
+import OrganizationLegal from "../pages/OrganizationLegal.jsx";
 
 // Phase 2 Marketplace Imports
 import EngagementBoard from "../pages/EngagementBoard.jsx";
@@ -130,6 +131,10 @@ const router = createBrowserRouter([
           {
             path: "organization-profile",
             element: <OrganizationProfile />,
+          },
+          {
+            path: "legal",
+            element: <OrganizationLegal />,
           },
         ],
       },
