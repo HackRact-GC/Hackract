@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { FiSearch, FiStar, FiChevronLeft, FiChevronRight } from 'react-icons/fi';
+import { FiSearch, FiStar, FiChevronLeft, FiChevronRight, FiCheck } from 'react-icons/fi';
 import { motion } from 'framer-motion';
 
 const MOCK_HACKERS = [
@@ -69,6 +69,49 @@ const MOCK_HACKERS = [
 const OrganizationDiscover = () => {
   const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState("");
+  const [selectedSkills, setSelectedSkills] = useState([]);
+  const [selectedCerts, setSelectedCerts] = useState([]);
+  const [minRating, setMinRating] = useState(0);
+
+  const toggleSkill = (skill) => {
+    setSelectedSkills(prev => prev.includes(skill) ? prev.filter(s => s !== skill) : [...prev, skill]);
+  };
+
+  const toggleCert = (cert) => {
+    setSelectedCerts(prev => prev.includes(cert) ? prev.filter(c => c !== cert) : [...prev, cert]);
+  };
+
+  const filteredHackers = MOCK_HACKERS.filter(hacker => {
+    // Text search
+    if (searchQuery) {
+      const q = searchQuery.toLowerCase();
+      if (
+        !hacker.name.toLowerCase().includes(q) &&
+        !hacker.tag.toLowerCase().includes(q) &&
+        !hacker.skills.join(' ').toLowerCase().includes(q) &&
+        !hacker.certs.join(' ').toLowerCase().includes(q)
+      ) {
+        return false;
+      }
+    }
+
+    // Skills
+    if (selectedSkills.length > 0) {
+      if (!selectedSkills.some(skill => hacker.skills.includes(skill))) return false;
+    }
+
+    // Certs
+    if (selectedCerts.length > 0) {
+      if (!selectedCerts.some(cert => hacker.certs.includes(cert))) return false;
+    }
+
+    // Rating
+    if (minRating > 0 && hacker.rating < minRating) {
+      return false;
+    }
+
+    return true;
+  });
 
   return (
     <div className="flex flex-col h-full -m-10"> {/* Offset OrganizationLayout padding */}
@@ -95,36 +138,49 @@ const OrganizationDiscover = () => {
           <div className="mb-8">
             <h4 className="text-[9px] font-black text-gray-500 tracking-widest font-mono mb-4 uppercase">Core Skills</h4>
             <div className="space-y-3">
-              {['Web Exploitation', 'Network Security', 'Mobile Forensics'].map(skill => (
-                <label key={skill} className="flex items-center gap-3 cursor-pointer group">
-                  <div className="w-4 h-4 rounded border border-white/20 bg-black/50 flex items-center justify-center group-hover:border-[#00c477]/50 transition-colors">
-                    {/* Add check icon if checked */}
-                  </div>
-                  <span className="text-xs text-gray-400 group-hover:text-gray-200 transition-colors">{skill}</span>
-                </label>
-              ))}
+              {['Web Exploitation', 'Network Security', 'Mobile Forensics', 'Binary Analysis', 'Cloud Security'].map(skill => {
+                const isActive = selectedSkills.includes(skill);
+                return (
+                 <label key={skill} className="flex items-center gap-3 cursor-pointer group" onClick={() => toggleSkill(skill)}>
+                   <div className={`w-4 h-4 rounded border flex items-center justify-center transition-colors ${isActive ? 'bg-[#00c477] border-[#00c477]' : 'border-white/20 bg-black/50 group-hover:border-[#00c477]/50'}`}>
+                     {isActive && <FiCheck className="text-black text-[10px] font-bold" />}
+                   </div>
+                   <span className={`text-xs transition-colors ${isActive ? 'text-white font-bold' : 'text-gray-400 group-hover:text-gray-200'}`}>{skill}</span>
+                 </label>
+                );
+              })}
             </div>
           </div>
 
           <div className="mb-8">
             <h4 className="text-[9px] font-black text-gray-500 tracking-widest font-mono mb-4 uppercase">Certifications</h4>
             <div className="flex flex-wrap gap-2">
-              {['OSCP', 'CEH', 'GPEN', 'CISSP'].map(cert => (
-                <button key={cert} className="px-3 py-1.5 rounded-md border border-white/10 bg-transparent text-[10px] font-mono text-gray-400 hover:border-[#00c477]/50 hover:text-[#00c477] transition-colors uppercase">
-                  {cert}
-                </button>
-              ))}
+              {['OSCP', 'CEH', 'GPEN', 'CISSP', 'OSCE', 'GREM'].map(cert => {
+                const isActive = selectedCerts.includes(cert);
+                return (
+                 <button 
+                   key={cert} 
+                   onClick={() => toggleCert(cert)}
+                   className={`px-3 py-1.5 rounded-md border text-[10px] font-mono transition-colors uppercase ${isActive ? 'bg-[#00c477]/10 border-[#00c477] text-[#00c477]' : 'border-white/10 bg-transparent text-gray-400 hover:border-[#00c477]/50 hover:text-[#00c477]'}`}
+                 >
+                   {cert}
+                 </button>
+                );
+              })}
             </div>
           </div>
 
           <div className="mb-8">
             <h4 className="text-[9px] font-black text-gray-500 tracking-widest font-mono mb-4 uppercase">Minimal Rating</h4>
-            <div className="flex items-center gap-2 text-gray-500">
-              {[1, 2, 3, 4].map(star => (
-                <FiStar key={star} className="text-[#00c477] fill-[#00c477] text-sm" />
+            <div className="flex items-center gap-2">
+              {[1, 2, 3, 4, 5].map(star => (
+                <FiStar 
+                  key={star} 
+                  onClick={() => setMinRating(star === minRating ? 0 : star)}
+                  className={`text-lg cursor-pointer transition-colors ${star <= minRating ? 'text-[#00c477] fill-[#00c477]' : 'text-gray-600 hover:text-[#00c477]/50'}`} 
+                />
               ))}
-              <FiStar className="text-gray-600 text-sm" />
-              <span className="text-xs text-gray-400 ml-2 font-mono">4.0+</span>
+              <span className="text-xs text-gray-400 ml-2 font-mono">{minRating > 0 ? `${minRating}.0+` : 'Any'}</span>
             </div>
           </div>
         </aside>
@@ -134,7 +190,7 @@ const OrganizationDiscover = () => {
           <div className="flex items-center justify-between mb-8 flex-wrap gap-4">
             <div>
               <h1 className="text-3xl font-black text-white tracking-tight mb-2">Top Penetration Experts</h1>
-              <p className="text-gray-400 text-sm">Showing 158 verified security researchers in your scope.</p>
+              <p className="text-gray-400 text-sm">Showing {filteredHackers.length} verified security researchers in your scope.</p>
             </div>
             
             <div className="flex items-center gap-2 px-4 py-2 rounded-full border border-[#00c477]/20 bg-[#00c477]/5">
@@ -144,7 +200,7 @@ const OrganizationDiscover = () => {
           </div>
 
           <div className="grid grid-cols-1 xl:grid-cols-2 2xl:grid-cols-3 gap-6">
-            {MOCK_HACKERS.map((hacker, i) => (
+            {filteredHackers.map((hacker, i) => (
               <motion.div 
                 key={hacker.id}
                 initial={{ opacity: 0, y: 20 }}

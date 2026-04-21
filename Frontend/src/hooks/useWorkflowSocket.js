@@ -151,9 +151,9 @@ export const useWorkflowSocket = (workflowId, initialNodes = [], initialEdges = 
     });
   }, [socket, workflowId]);
 
-  const emitCursorMove = useCallback((x, y, user) => {
+  const emitCursorMove = useCallback((x, y, userObj) => {
     if (!socket) return;
-    socket.emit('cursor-move', { workflowId, x, y, user });
+    socket.emit('cursor-move', { workflowId, x, y, user: userObj.name, color: userObj.color });
   }, [socket, workflowId]);
 
   const emitNodeFocus = useCallback((nodeId, user, color) => {
