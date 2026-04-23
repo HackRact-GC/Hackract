@@ -8,6 +8,8 @@
 
 {communication}
 
+{tips}
+
 ## Available Tools
 
 You have access to the following tools to accomplish your tasks:
