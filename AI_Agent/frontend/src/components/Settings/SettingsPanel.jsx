@@ -4,6 +4,7 @@ const LLM_PROVIDERS = [
   { value: 'anthropic', label: 'Anthropic' },
   { value: 'openai', label: 'OpenAI' },
   { value: 'github', label: 'GitHub Models' },
+  { value: 'nvidia_nim', label: 'NVIDIA NIM' },
   { value: 'gemini', label: 'Google (Gemini)' },
   { value: 'openrouter', label: 'OpenRouter' },
   { value: 'deepseek', label: 'DeepSeek' },
@@ -31,6 +32,7 @@ export default function SettingsPanel({ hook, onBack, showSidebarNav }) {
   const set = (k, v) => setForm(prev => ({ ...prev, [k]: v }));
 
   const isGithub = form?.llm_provider === 'github';
+  const isNvidia = form?.llm_provider === 'nvidia_nim';
 
   if (!form) {
     return (
@@ -64,7 +66,7 @@ export default function SettingsPanel({ hook, onBack, showSidebarNav }) {
           <label>{isGithub ? 'GitHub personal access token' : 'API key'}</label>
           <input
             type="password"
-            placeholder={isGithub ? 'ghp_… or fine-grained PAT (models:read)' : 'sk-…'}
+            placeholder={isGithub ? 'ghp_… or fine-grained PAT (models:read)' : isNvidia ? 'nvapi-…' : 'sk-…'}
             value={form.api_key || ''}
             onChange={e => set('api_key', e.target.value)}
           />
@@ -76,6 +78,12 @@ export default function SettingsPanel({ hook, onBack, showSidebarNav }) {
               Create a token at GitHub Settings &rarr; Developer settings with access to{' '}
               <strong>GitHub Models</strong>. Models use endpoint{' '}
               <code className="inline-code">models.inference.ai.azure.com</code> via LiteLLM.
+            </div>
+          )}
+          {isNvidia && (
+            <div className="form-help">
+              Use an NVIDIA API key for NVIDIA NIM hosted models. LiteLLM routes these through the{' '}
+              <code className="inline-code">nvidia_nim</code> provider.
             </div>
           )}
         </div>

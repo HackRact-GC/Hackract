@@ -30,7 +30,7 @@ LLM_STREAM_EMIT_INTERVAL_SEC = 0.07
 # Avoid huge WebSocket frames while streaming (tail of response is shown).
 WS_THINKING_DISPLAY_MAX_CHARS = 100_000
 # GitHub Models: keep tool result history small so the next LLM request stays under ~8k input tokens.
-GITHUB_TOOL_RESULT_MAX_CHARS = 6_000
+GITHUB_TOOL_RESULT_MAX_CHARS = 4_000
 
 
 class Agent:
@@ -151,8 +151,10 @@ class Agent:
 
     async def ask_user_permission(self, question: str) -> bool:
         """Ask user for permission to execute a dangerous command"""
-        # This is a simple implementation for CLI. 
-        # For API/Web, this would need to be asynchronous via WebSocket or similar.
+        # Only prompt when we actually have an interactive terminal.
+        if not sys.stdin.isatty():
+            self.logger.warning("Dangerous command requested in non-interactive mode; denying execution.")
+            return False
         print(f"\n{question}")
         response = await asyncio.to_thread(input, "Type 'yes' to approve, anything else to deny: ")
         return response.strip().lower() == 'yes'
@@ -269,7 +271,7 @@ Params: `query` (string), `max_results` (int)."""
 
         # GitHub Models: long few-shot examples in main.md can exceed ~8k input tokens alone
         if self.config.model.provider == "github":
-            max_sys = int(os.getenv("GITHUB_MAX_SYSTEM_CHARS", "12000"))
+            max_sys = int(os.getenv("GITHUB_MAX_SYSTEM_CHARS", "8000"))
             if len(system_prompt) > max_sys:
                 system_prompt = (
                     system_prompt[:max_sys]
@@ -283,7 +285,7 @@ Params: `query` (string), `max_results` (int)."""
         if not content:
             return 0.0
         if self.config.model.provider == "github":
-            return max(len(content) / 3.0, 1.0)  # ~3 chars/token worst-case for English+JSON
+            return max(len(content) / 2.5, 1.0)  # conservative for GitHub Models' tighter request limit
         return len(content) / 4.0
 
     def _manage_context(self, messages: List[Dict[str, str]]) -> List[Dict[str, str]]:
@@ -315,7 +317,11 @@ Params: `query` (string), `max_results` (int)."""
         if available_tokens < 0:
             # Truncate oversized single messages (e.g. huge tool output) for last turn
             lm = dict(last_message)
-            cap = max(int(max_tokens * 3) - 200, 800) if self.config.model.provider == "github" else 8000
+            cap = (
+                int(os.getenv("GITHUB_MAX_LAST_MESSAGE_CHARS", "2200"))
+                if self.config.model.provider == "github"
+                else 8000
+            )
             c = lm.get("content") or ""
             if len(c) > cap:
                 lm["content"] = c[:cap] + "\n\n… [truncated for context limit]"
