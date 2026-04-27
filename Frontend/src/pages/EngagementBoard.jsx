@@ -16,7 +16,8 @@ const NdaModal = ({ agreement, onSigned, onCancel }) => {
   const [scrolled, setScrolled]         = useState(false);
   const [signing, setSigning]           = useState(false);
 
-  const handleSign = async () => {
+
+   const handleSign = async () => {
     if (!acknowledged) return toast.error("Please read and acknowledge the agreement first.");
     setSigning(true);
     try {
