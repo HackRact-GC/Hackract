@@ -30,14 +30,14 @@ const NAV = [
 
 const StatCard = ({ label, value, trend, icon: Icon, color }) => {
   const bg = { 
-    indigo: "bg-[#00ff88]/10 text-[#00ff88] border-[#00ff88]/20", 
-    emerald: "bg-[#00ff88]/10 text-[#00ff88] border-[#00ff88]/20", 
+    indigo: "bg-[#00c477]/10 text-[#00c477] border-[#00c477]/20", 
+    emerald: "bg-[#00c477]/10 text-[#00c477] border-[#00c477]/20", 
     rose: "bg-rose-500/10 text-rose-500 border-rose-500/20", 
     amber: "bg-amber-500/10 text-amber-500 border-amber-500/20", 
     violet: "bg-purple-500/10 text-purple-500 border-purple-500/20" 
   };
   return (
-    <div className="bg-white/[0.03] backdrop-blur-xl rounded-[32px] border border-white/5 p-7 flex flex-col gap-5 hover:border-[#00ff88]/30 hover:-translate-y-1.5 transition-all duration-500 group shadow-2xl relative overflow-hidden">
+    <div className="bg-white/[0.03] backdrop-blur-xl rounded-[32px] border border-white/5 p-7 flex flex-col gap-5 hover:border-[#00c477]/30 hover:-translate-y-1.5 transition-all duration-500 group shadow-2xl relative overflow-hidden">
       <div className="absolute top-0 right-0 p-6 opacity-[0.02] group-hover:opacity-5 transition-opacity">
         <Icon />
       </div>
@@ -46,7 +46,7 @@ const StatCard = ({ label, value, trend, icon: Icon, color }) => {
           <Icon />
         </div>
         {trend && (
-          <div className="flex items-center gap-1.5 text-[10px] font-mono font-black text-[#00ff88] bg-[#00ff88]/10 px-3 py-1.5 rounded-full uppercase tracking-widest border border-[#00ff88]/20">
+          <div className="flex items-center gap-1.5 text-[10px] font-mono font-black text-[#00c477] bg-[#00c477]/10 px-3 py-1.5 rounded-full uppercase tracking-widest border border-[#00c477]/20">
             <Icons.TrendUp /> {trend}
           </div>
         )}
@@ -62,7 +62,7 @@ const StatCard = ({ label, value, trend, icon: Icon, color }) => {
 const Badge = ({ text, type = "default" }) => {
   const styles = {
     default: "bg-white/5 text-gray-400 border-white/10",
-    success: "bg-[#00ff88]/10 text-[#00ff88] border-[#00ff88]/20",
+    success: "bg-[#00c477]/10 text-[#00c477] border-[#00c477]/20",
     warning: "bg-amber-500/10 text-amber-500 border-amber-500/20",
     danger: "bg-rose-500/10 text-rose-500 border-rose-500/20",
     info: "bg-blue-500/10 text-blue-500 border-blue-500/20",
@@ -97,8 +97,8 @@ const HackerDashboard = () => {
     return (
       <div className="min-h-screen bg-[#050505] flex items-center justify-center">
         <div className="flex flex-col items-center gap-6">
-          <div className="w-14 h-14 border-2 border-[#00ff88]/10 border-t-[#00ff88] rounded-full animate-spin shadow-[0_0_20px_rgba(0,255,136,0.2)]" />
-          <p className="text-[11px] font-mono font-black text-[#00ff88] uppercase tracking-[0.4em] animate-pulse">Initializing Secure Intel Link...</p>
+          <div className="w-14 h-14 border-2 border-[#00c477]/10 border-t-[#00c477] rounded-full animate-spin shadow-[0_0_20px_rgba(0,255,136,0.2)]" />
+          <p className="text-[11px] font-mono font-black text-[#00c477] uppercase tracking-[0.4em] animate-pulse">Initializing Secure Intel Link...</p>
         </div>
       </div>
     );
@@ -118,12 +118,12 @@ const HackerDashboard = () => {
       <div className="grid grid-cols-1 xl:grid-cols-[1.2fr_0.8fr] gap-8">
         {/* Active Missions */}
         <div className="bg-white/[0.02] backdrop-blur-3xl rounded-[40px] border border-white/5 overflow-hidden flex flex-col shadow-2xl relative">
-          <div className="absolute top-0 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-[#00ff88]/30 to-transparent" />
+          <div className="absolute top-0 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-[#00c477]/30 to-transparent" />
           <div className="px-10 py-8 flex items-center justify-between border-b border-white/5">
-            <h3 className="text-xs font-mono font-black text-[#00ff88] uppercase tracking-[0.3em] flex items-center gap-3">
+            <h3 className="text-xs font-mono font-black text-[#00c477] uppercase tracking-[0.3em] flex items-center gap-3">
               <Icons.Shield /> Live Missions
             </h3>
-            <button onClick={() => setActiveTab("engagements")} className="text-[10px] font-mono font-bold text-gray-500 hover:text-[#00ff88] uppercase tracking-widest transition-colors">Operational View [+]</button>
+            <button onClick={() => setActiveTab("engagements")} className="text-[10px] font-mono font-bold text-gray-500 hover:text-[#00c477] uppercase tracking-widest transition-colors">Operational View [+]</button>
           </div>
           <div className="p-6 space-y-4">
             {[
@@ -131,17 +131,17 @@ const HackerDashboard = () => {
               { id: 2, name: "Core Ledger Audit", org: "FinBank Int", status: "Reporting", severity: "Critical", due: "14h left" },
               { id: 3, name: "Edge Network Scan", org: "Global Logistics", status: "Pending Fix", severity: "Medium", due: "3d left" },
             ].map(m => (
-              <div key={m.id} className="p-6 rounded-[28px] bg-white/[0.02] border border-transparent hover:border-[#00ff88]/20 hover:bg-white/[0.04] transition-all cursor-pointer group">
+              <div key={m.id} className="p-6 rounded-[28px] bg-white/[0.02] border border-transparent hover:border-[#00c477]/20 hover:bg-white/[0.04] transition-all cursor-pointer group">
                 <div className="flex items-center justify-between mb-4">
                    <div>
-                     <p className="text-base font-black text-white group-hover:text-[#00ff88] transition-colors uppercase tracking-tight mb-1">{m.name}</p>
+                     <p className="text-base font-black text-white group-hover:text-[#00c477] transition-colors uppercase tracking-tight mb-1">{m.name}</p>
                      <p className="text-[10px] font-mono font-bold text-gray-500 uppercase tracking-widest">{m.org}</p>
                    </div>
                    <Badge text={m.status} type={m.status === "Ongoing" ? "success" : "info"} />
                 </div>
                 <div className="flex items-center gap-6 pt-4 border-t border-white/5">
                    <div className="flex items-center gap-2 text-[10px] font-mono font-bold text-gray-400 uppercase tracking-widest">
-                     <span className="text-[#00ff88]"><Icons.Zap /></span> {m.severity} Risk
+                     <span className="text-[#00c477]"><Icons.Zap /></span> {m.severity} Risk
                    </div>
                    <div className="flex items-center gap-2 text-[10px] font-mono font-bold text-gray-500 uppercase tracking-widest ml-auto">
                      <Icons.Clock /> {m.due}
@@ -154,9 +154,9 @@ const HackerDashboard = () => {
 
         {/* Activity Intel */}
         <div className="bg-white/[0.02] backdrop-blur-3xl rounded-[40px] border border-white/5 overflow-hidden shadow-2xl relative">
-          <div className="absolute top-0 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-[#00ff88]/30 to-transparent" />
+          <div className="absolute top-0 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-[#00c477]/30 to-transparent" />
           <div className="px-10 py-8 flex items-center justify-between border-b border-white/5">
-            <h3 className="text-xs font-mono font-black text-[#00ff88] uppercase tracking-[0.3em] flex items-center gap-3">
+            <h3 className="text-xs font-mono font-black text-[#00c477] uppercase tracking-[0.3em] flex items-center gap-3">
               <Icons.Grid /> Intel Log
             </h3>
             <Badge text="Encrypted" type="success" />
@@ -164,7 +164,7 @@ const HackerDashboard = () => {
           <div className="p-10 space-y-10">
             {[
               { id: 1, action: "Exploit Validated", target: "SQLi in AuthService", time: "2h ago", icon: Icons.Target, color: "text-rose-500 bg-rose-500/10" },
-              { id: 2, action: "Mission Activated", target: "Project Nightingale", time: "5h ago", icon: Icons.Shield, color: "text-[#00ff88] bg-[#00ff88]/10" },
+              { id: 2, action: "Mission Activated", target: "Project Nightingale", time: "5h ago", icon: Icons.Shield, color: "text-[#00c477] bg-[#00c477]/10" },
               { id: 3, action: "Reward Dispatched", target: "$2,500.00 Bounty", time: "1d ago", icon: Icons.Dollar, color: "text-emerald-400 bg-emerald-400/10" },
               { id: 4, action: "Rank Calibrated", target: "Global Rank Incr. +12", time: "3d ago", icon: Icons.Trophy, color: "text-amber-500 bg-amber-500/10" },
             ].map(a => (
@@ -173,7 +173,7 @@ const HackerDashboard = () => {
                    <a.icon />
                 </div>
                 <div className="flex-1">
-                   <p className="text-[11px] font-mono font-black text-white uppercase tracking-widest mb-1 group-hover:text-[#00ff88] transition-colors">{a.action}</p>
+                   <p className="text-[11px] font-mono font-black text-white uppercase tracking-widest mb-1 group-hover:text-[#00c477] transition-colors">{a.action}</p>
                    <p className="text-[11px] font-mono font-bold text-gray-500 group-hover:text-gray-400 transition-colors uppercase tracking-widest">{a.target}</p>
                    <p className="text-[9px] font-mono font-bold text-gray-700 mt-2 uppercase tracking-widest flex items-center gap-2 group-hover:text-gray-600"><Icons.Clock/>{a.time}</p>
                 </div>
@@ -195,9 +195,9 @@ const HackerDashboard = () => {
          <div className="flex items-center gap-4 w-full md:w-auto">
             <div className="relative grow md:grow-0">
               <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500"><Icons.Search /></span>
-              <input type="text" placeholder="Mission ID / Scope..." className="w-full md:w-72 pl-12 pr-6 py-3.5 bg-white/[0.02] border border-white/10 rounded-2xl text-[11px] font-mono font-bold text-white placeholder-gray-600 focus:outline-none focus:border-[#00ff88]/50 focus:ring-1 focus:ring-[#00ff88]/20 transition-all uppercase" />
+              <input type="text" placeholder="Mission ID / Scope..." className="w-full md:w-72 pl-12 pr-6 py-3.5 bg-white/[0.02] border border-white/10 rounded-2xl text-[11px] font-mono font-bold text-white placeholder-gray-600 focus:outline-none focus:border-[#00c477]/50 focus:ring-1 focus:ring-[#00c477]/20 transition-all uppercase" />
             </div>
-            <button className="px-8 py-3.5 bg-[#00ff88] text-black text-[11px] font-mono font-black uppercase tracking-widest rounded-[18px] shadow-[0_0_20px_rgba(0,255,136,0.3)] hover:scale-105 transition-all">Filter Archive</button>
+            <button className="px-8 py-3.5 bg-[#00c477] text-black text-[11px] font-mono font-black uppercase tracking-widest rounded-[18px] shadow-[0_0_20px_rgba(0,255,136,0.3)] hover:scale-105 transition-all">Filter Archive</button>
          </div>
        </div>
 
@@ -210,18 +210,18 @@ const HackerDashboard = () => {
            { id: 5, title: "HealthNet PII Leak", bounty: "$12,000", org: "National Health", icon: "🏥", tags: ["AWS", "Privacy", "IAM"] },
            { id: 6, title: "Global Nexus Auth Bypass", bounty: "$18,000", org: "Nexus Labs", icon: "⚡", tags: ["OAuth", "JWT", "Sec"] },
          ].map(mission => (
-           <div key={mission.id} className="relative bg-white/[0.02] backdrop-blur-3xl p-10 rounded-[48px] border border-white/5 hover:border-[#00ff88]/30 hover:bg-white/[0.04] transition-all group flex flex-col items-center text-center shadow-2xl overflow-hidden">
-              <div className="absolute top-0 left-0 w-full h-[2px] bg-gradient-to-r from-transparent via-[#00ff88]/20 to-transparent scale-x-0 group-hover:scale-x-100 transition-transform duration-700" />
+           <div key={mission.id} className="relative bg-white/[0.02] backdrop-blur-3xl p-10 rounded-[48px] border border-white/5 hover:border-[#00c477]/30 hover:bg-white/[0.04] transition-all group flex flex-col items-center text-center shadow-2xl overflow-hidden">
+              <div className="absolute top-0 left-0 w-full h-[2px] bg-gradient-to-r from-transparent via-[#00c477]/20 to-transparent scale-x-0 group-hover:scale-x-100 transition-transform duration-700" />
               <div className="text-6xl mb-8 group-hover:scale-125 transition-transform duration-1000 filter drop-shadow-[0_0_15px_rgba(255,255,255,0.1)]">{mission.icon}</div>
-              <p className="text-[10px] font-mono font-black text-[#00ff88] uppercase tracking-[0.3em] mb-2 scale-90 group-hover:scale-100 transition-transform">{mission.org}</p>
+              <p className="text-[10px] font-mono font-black text-[#00c477] uppercase tracking-[0.3em] mb-2 scale-90 group-hover:scale-100 transition-transform">{mission.org}</p>
               <h4 className="text-xl font-black text-white leading-tight mb-6 uppercase tracking-tight px-4">{mission.title}</h4>
-              <div className="text-3xl font-black text-white mb-8 bg-black/40 px-8 py-3 rounded-2xl border border-white/5 group-hover:border-[#00ff88]/30 transition-colors tracking-tight font-mono">{mission.bounty}</div>
+              <div className="text-3xl font-black text-white mb-8 bg-black/40 px-8 py-3 rounded-2xl border border-white/5 group-hover:border-[#00c477]/30 transition-colors tracking-tight font-mono">{mission.bounty}</div>
               
               <div className="flex flex-wrap justify-center gap-2 mb-10">
                  {mission.tags.map(t => <span key={t} className="px-3 py-1.5 bg-white/5 text-[9px] font-mono font-bold text-gray-500 uppercase tracking-widest rounded-lg border border-white/5 group-hover:text-gray-400 group-hover:border-white/10 transition-colors">{t}</span>)}
               </div>
               
-              <button className="w-full py-5 bg-white/5 border border-white/10 group-hover:bg-[#00ff88] group-hover:text-black group-hover:border-transparent text-gray-300 text-[11px] font-mono font-black uppercase tracking-[0.25em] rounded-2xl shadow-xl transition-all active:scale-95">Accept Mission</button>
+              <button className="w-full py-5 bg-white/5 border border-white/10 group-hover:bg-[#00c477] group-hover:text-black group-hover:border-transparent text-gray-300 text-[11px] font-mono font-black uppercase tracking-[0.25em] rounded-2xl shadow-xl transition-all active:scale-95">Accept Mission</button>
            </div>
          ))}
        </div>
@@ -232,38 +232,38 @@ const HackerDashboard = () => {
   const ActiveContent = TABS[activeTab] || OverviewTab;
 
   return (
-    <div className="min-h-screen bg-[#050505] font-sans text-white selection:bg-[#00ff88]/30 selection:text-[#00ff88] overflow-x-hidden">
+    <div className="min-h-screen bg-[#050505] font-sans text-white selection:bg-[#00c477]/30 selection:text-[#00c477] overflow-x-hidden">
       {/* Background Atmosphere */}
-      <div className="fixed top-[-10%] left-[-10%] w-[40%] h-[40%] bg-[#00ff88]/5 rounded-full blur-[160px] pointer-events-none" />
+      <div className="fixed top-[-10%] left-[-10%] w-[40%] h-[40%] bg-[#00c477]/5 rounded-full blur-[160px] pointer-events-none" />
       <div className="fixed bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-emerald-600/5 rounded-full blur-[160px] pointer-events-none" />
 
       {/* ── Desktop Header ── */}
       <header className="h-24 bg-black/40 backdrop-blur-3xl border-b border-white/5 flex items-center px-12 sticky top-0 z-[60]">
         <div className="flex items-center gap-8">
            <div className="text-2xl font-black tracking-[0.2em] text-white flex items-center gap-4 group cursor-pointer" onClick={() => navigate("/")}>
-              <span className="w-12 h-12 bg-black border border-[#00ff88]/30 text-[#00ff88] rounded-xl flex items-center justify-center font-mono shadow-[0_0_15px_rgba(0,255,136,0.15)] group-hover:shadow-[0_0_25px_rgba(0,255,136,0.3)] transition-all">λ</span>
-              HACKRACT <span className="text-[10px] font-mono font-black text-[#00ff88]/60 uppercase tracking-[0.4em] bg-[#00ff88]/5 px-3 py-1.5 rounded-lg border border-[#00ff88]/10 ml-2">CORE.v2</span>
+              <span className="w-12 h-12 bg-black border border-[#00c477]/30 text-[#00c477] rounded-xl flex items-center justify-center font-mono shadow-[0_0_15px_rgba(0,255,136,0.15)] group-hover:shadow-[0_0_25px_rgba(0,255,136,0.3)] transition-all">λ</span>
+              HACKRACT <span className="text-[10px] font-mono font-black text-[#00c477]/60 uppercase tracking-[0.4em] bg-[#00c477]/5 px-3 py-1.5 rounded-lg border border-[#00c477]/10 ml-2">CORE.v2</span>
            </div>
         </div>
 
         <div className="ml-auto flex items-center gap-10">
           <div className="relative hidden xl:block group">
-            <span className="absolute left-5 top-1/2 -translate-y-1/2 text-gray-600 group-focus-within:text-[#00ff88] transition-colors"><Icons.Search /></span>
-            <input type="text" placeholder="Decrypt globals, intel, scopes..." className="w-[480px] pl-14 pr-8 py-4 bg-white/[0.02] border border-white/10 rounded-2xl text-[11px] font-mono font-bold text-white focus:outline-none focus:border-[#00ff88]/50 focus:bg-white/[0.04] transition-all placeholder-gray-700 uppercase tracking-widest" />
+            <span className="absolute left-5 top-1/2 -translate-y-1/2 text-gray-600 group-focus-within:text-[#00c477] transition-colors"><Icons.Search /></span>
+            <input type="text" placeholder="Decrypt globals, intel, scopes..." className="w-[480px] pl-14 pr-8 py-4 bg-white/[0.02] border border-white/10 rounded-2xl text-[11px] font-mono font-bold text-white focus:outline-none focus:border-[#00c477]/50 focus:bg-white/[0.04] transition-all placeholder-gray-700 uppercase tracking-widest" />
           </div>
           
           <div className="flex items-center gap-8 border-l border-white/5 pl-10">
-             <button className="relative p-3.5 rounded-2xl bg-white/[0.02] border border-white/5 text-gray-500 hover:text-[#00ff88] hover:border-[#00ff88]/30 transition-all group">
+             <button className="relative p-3.5 rounded-2xl bg-white/[0.02] border border-white/5 text-gray-500 hover:text-[#00c477] hover:border-[#00c477]/30 transition-all group">
                 <Icons.Bell />
                 <span className="absolute top-3.5 right-3.5 w-2 h-2 bg-rose-500 rounded-full ring-[4px] ring-black animate-pulse" />
              </button>
              
-             <button onClick={() => navigate("/hacker-profile")} className="flex items-center gap-5 bg-white/[0.02] border border-white/5 rounded-2xl pl-5 pr-4 py-2 hover:border-[#00ff88]/40 hover:bg-white/[0.04] transition-all group shadow-xl">
+             <button onClick={() => navigate("/hacker-profile")} className="flex items-center gap-5 bg-white/[0.02] border border-white/5 rounded-2xl pl-5 pr-4 py-2 hover:border-[#00c477]/40 hover:bg-white/[0.04] transition-all group shadow-xl">
                 <div className="text-right hidden sm:block">
                    <p className="text-[9px] font-mono font-black text-gray-600 uppercase tracking-[0.2em] leading-none mb-1.5">Authorized</p>
-                   <p className="text-sm font-black text-white group-hover:text-[#00ff88] transition-colors uppercase leading-none tracking-tight">Operator.v1</p>
+                   <p className="text-sm font-black text-white group-hover:text-[#00c477] transition-colors uppercase leading-none tracking-tight">Operator.v1</p>
                 </div>
-                <div className="w-11 h-11 rounded-xl bg-black border border-[#00ff88]/30 text-[#00ff88] flex items-center justify-center font-mono font-black text-xs shadow-inner shadow-[#00ff88]/10 group-hover:shadow-[0_0_15px_rgba(0,255,136,0.2)] transition-all">λ</div>
+                <div className="w-11 h-11 rounded-xl bg-black border border-[#00c477]/30 text-[#00c477] flex items-center justify-center font-mono font-black text-xs shadow-inner shadow-[#00c477]/10 group-hover:shadow-[0_0_15px_rgba(0,255,136,0.2)] transition-all">λ</div>
              </button>
           </div>
         </div>
@@ -279,26 +279,26 @@ const HackerDashboard = () => {
                onClick={() => setActiveTab(item.key)}
                className={`w-full flex items-center gap-5 px-8 py-5 rounded-[24px] text-[11px] font-mono font-black uppercase tracking-[0.2em] transition-all relative overflow-hidden group
                  ${activeTab === item.key 
-                   ? "bg-white/[0.04] text-[#00ff88] shadow-2xl border border-[#00ff88]/20 -translate-x-2" 
+                   ? "bg-white/[0.04] text-[#00c477] shadow-2xl border border-[#00c477]/20 -translate-x-2" 
                    : "text-gray-500 hover:bg-white/[0.02] hover:text-white hover:translate-x-1"}`}
              >
-               <span className={activeTab === item.key ? "text-[#00ff88] drop-shadow-[0_0_8px_rgba(0,255,136,0.6)]" : "text-gray-600 group-hover:text-gray-400"}><item.Icon /></span>
+               <span className={activeTab === item.key ? "text-[#00c477] drop-shadow-[0_0_8px_rgba(0,255,136,0.6)]" : "text-gray-600 group-hover:text-gray-400"}><item.Icon /></span>
                {item.label}
                {activeTab === item.key && (
                  <>
-                   <div className="ml-auto flex h-1.5 w-1.5 rounded-full bg-[#00ff88] shadow-[0_0_10px_#00ff88] animate-pulse" />
-                   <div className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-3/5 bg-[#00ff88] rounded-full shadow-[0_0_10px_#00ff88]" />
+                   <div className="ml-auto flex h-1.5 w-1.5 rounded-full bg-[#00c477] shadow-[0_0_10px_#00c477] animate-pulse" />
+                   <div className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-3/5 bg-[#00c477] rounded-full shadow-[0_0_10px_#00c477]" />
                  </>
                )}
              </button>
            ))}
 
-           <div className="mt-20 p-10 rounded-[48px] bg-gradient-to-br from-[#004e2b] to-[#012e1a] border border-[#00ff88]/20 text-white relative overflow-hidden shadow-2xl group cursor-pointer hover:border-[#00ff88]/40 transition-all">
-              <div className="absolute top-0 right-0 w-48 h-48 bg-[#00ff88]/10 rounded-full -mr-24 -mt-24 blur-[80px] group-hover:bg-[#00ff88]/20 transition-all" />
+           <div className="mt-20 p-10 rounded-[48px] bg-gradient-to-br from-[#004e2b] to-[#012e1a] border border-[#00c477]/20 text-white relative overflow-hidden shadow-2xl group cursor-pointer hover:border-[#00c477]/40 transition-all">
+              <div className="absolute top-0 right-0 w-48 h-48 bg-[#00c477]/10 rounded-full -mr-24 -mt-24 blur-[80px] group-hover:bg-[#00c477]/20 transition-all" />
               <div className="relative z-10">
-                 <p className="text-[9px] font-mono font-black uppercase tracking-[0.4em] text-[#00ff88] mb-3 opacity-80">Encryption Key</p>
+                 <p className="text-[9px] font-mono font-black uppercase tracking-[0.4em] text-[#00c477] mb-3 opacity-80">Encryption Key</p>
                  <h4 className="text-xl font-extrabold leading-tight mb-8 uppercase tracking-tight">Unlock Elite <br />Neural Links</h4>
-                 <button className="w-full py-4.5 bg-[#00ff88] text-black text-[10px] font-mono font-black uppercase tracking-[0.2em] rounded-2xl hover:scale-105 transition-all shadow-[0_0_20px_rgba(0,255,136,0.3)] border-none">Initialize Upgrade</button>
+                 <button className="w-full py-4.5 bg-[#00c477] text-black text-[10px] font-mono font-black uppercase tracking-[0.2em] rounded-2xl hover:scale-105 transition-all shadow-[0_0_20px_rgba(0,255,136,0.3)] border-none">Initialize Upgrade</button>
               </div>
            </div>
         </aside>

@@ -10,11 +10,11 @@ export const upsertHackerProfileSchema = Joi.object({
   yearsOfExperience: Joi.number().integer().min(0).max(60).optional().allow(null, ''),
   primarySkills: Joi.alternatives()
     .try(
-      Joi.array().items(Joi.string().max(50)).min(1),
-      // Frontend sends comma-separated string — coerce it
-      Joi.string().min(1),
+      Joi.array().items(Joi.string().max(50)),
+      Joi.string().allow('', null),
     )
-    .required(),
+    .optional()
+    .default([]),
   certifications: Joi.alternatives()
     .try(
       Joi.array().items(Joi.string().max(100)),
@@ -30,10 +30,12 @@ export const upsertHackerProfileSchema = Joi.object({
     .optional()
     .default([]),
 
-  // Extended identity fields (optional)
-  idDocumentNumber: Joi.string().max(50).optional().allow('', null),
+  // Professional fields
+  specialization: Joi.string().max(150).optional().allow('', null),
   githubUsername: Joi.string().max(100).optional().allow('', null),
   linkedinProfile: Joi.string().max(300).optional().allow('', null),
+  twitter: Joi.string().max(100).optional().allow('', null),
+  idDocumentNumber: Joi.string().max(50).optional().allow('', null),
 
   status: Joi.string()
     .valid(VerificationStatus.DRAFT, VerificationStatus.SUBMITTED)

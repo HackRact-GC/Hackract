@@ -1,30 +1,29 @@
-import pkg from '@prisma/client';
-const { PrismaClient } = pkg;
+import { PrismaClient } from '@prisma/client';
 
 const prisma = new PrismaClient();
 
 async function main() {
     console.log('--- DB RESET STARTED ---');
-    
+
     try {
         const models = [
-            'workflowHistory', 
-            'workflow', 
-            'finding', 
-            'pentestCollaborator', 
-            'pentest', 
-            'organizationMember', 
-            'organization', 
-            'refreshToken', 
-            'passwordResetToken', 
-            'emailVerificationToken', 
-            'hackerProfile', 
-            'userSignature', 
-            'auditLog', 
-            'aiAgent', 
+            'workflowHistory',
+            'workflow',
+            'finding',
+            'pentestCollaborator',
+            'pentest',
+            'organizationMember',
+            'organization',
+            'refreshToken',
+            'passwordResetToken',
+            'emailVerificationToken',
+            'hackerProfile',
+            'userSignature',
+            'auditLog',
+            'aiAgent',
             'user'
         ];
-        
+
         for (const model of models) {
             if (prisma[model]) {
                 console.log(`Clearing ${model}...`);

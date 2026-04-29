@@ -59,21 +59,21 @@ const FindingDetails = () => {
     }
   };
 
-  if (loading) return <div className="min-h-screen bg-[#0a0a0a] text-white p-10 font-mono text-xs animate-pulse">Initializing finding view...</div>;
-  if (!finding) return <div className="min-h-screen bg-[#0a0a0a] text-white p-10">Finding not found.</div>;
+  if (loading) return <div className="min-h-screen bg-black text-white p-10 font-mono text-[10px] animate-pulse uppercase tracking-[0.3em] flex items-center justify-center">Initializing finding telemetry...</div>;
+  if (!finding) return <div className="min-h-screen bg-black p-10 flex items-center justify-center font-mono uppercase tracking-widest text-xs text-white/40">Sector Data Corrupted: Finding not found.</div>;
 
   const statusColors = {
-    OPEN: "text-sky-400 border-sky-400/30 bg-sky-400/10",
-    TRIAGED: "text-purple-400 border-purple-400/30 bg-purple-400/10",
-    FIXED: "text-amber-400 border-amber-400/30 bg-amber-400/10",
-    PENDING_RETEST: "text-pink-400 border-pink-400/30 bg-pink-400/10",
-    VALIDATED: "text-[#00ff88] border-[#00ff88]/30 bg-[#00ff88]/10",
-    REOPENED: "text-red-400 border-red-400/30 bg-red-400/10",
-    ACCEPTED_RISK: "text-gray-400 border-gray-400/30 bg-gray-400/10",
+    OPEN: "text-[#00c477] border-[#00c477]/30 bg-[#00c477]/5",
+    TRIAGED: "text-[#00c477] border-[#00c477]/40 bg-[#00c477]/10",
+    FIXED: "text-white/60 border-white/10 bg-white/5",
+    PENDING_RETEST: "text-[#00c477] border-[#00c477]/50 bg-[#00c477]/15",
+    VALIDATED: "text-[#00c477] border-[#00c477] bg-[#00c477]/20 shadow-[0_0_15px_rgba(0,255,136,0.3)]",
+    REOPENED: "text-red-500 border-red-500/30 bg-red-500/10",
+    ACCEPTED_RISK: "text-white/20 border-white/5 bg-white/5",
   };
 
   return (
-    <div className="min-h-screen bg-[#0a0a0a] text-white p-6 md:p-10 space-y-8 max-w-6xl mx-auto">
+    <div className="min-h-screen bg-black text-white p-6 md:p-10 space-y-10 max-w-6xl mx-auto font-sans selection:bg-[#00c477]/30 selection:text-black">
       {/* Header */}
       <div className="flex items-center justify-between">
         <button 
@@ -100,18 +100,18 @@ const FindingDetails = () => {
 
           {/* Details Sections */}
           <div className="grid gap-6">
-            <div className="bg-white/5 border border-white/10 rounded-xl p-6 space-y-4">
-              <h3 className="text-sm font-bold uppercase tracking-widest text-gray-400 flex items-center gap-2">
-                <FiAlertCircle size={14} /> Description
+            <div className="bg-black/60 border border-white/10 rounded-2xl p-8 space-y-4 backdrop-blur-md">
+              <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-white/40 flex items-center gap-3">
+                <FiAlertCircle size={14} className="text-[#00c477]" /> Vulnerability parameters
               </h3>
-              <p className="text-gray-300 text-sm leading-relaxed whitespace-pre-wrap">{finding.description || "No description provided."}</p>
+              <p className="text-white/80 text-sm leading-relaxed whitespace-pre-wrap font-medium">{finding.description || "No description provided."}</p>
             </div>
 
-            <div className="bg-white/5 border border-white/10 rounded-xl p-6 space-y-4">
-              <h3 className="text-sm font-bold uppercase tracking-widest text-gray-400 flex items-center gap-2">
-                <FiShield size={14} /> Remediation
+            <div className="bg-black/60 border border-white/10 rounded-2xl p-8 space-y-4 backdrop-blur-md">
+              <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-white/40 flex items-center gap-3">
+                <FiShield size={14} className="text-[#00c477]" /> Proposed Remediation
               </h3>
-              <p className="text-gray-300 text-sm leading-relaxed whitespace-pre-wrap">{finding.remediation || "No remediation steps provided."}</p>
+              <p className="text-white/80 text-sm leading-relaxed whitespace-pre-wrap font-medium">{finding.remediation || "No remediation steps provided."}</p>
             </div>
 
             {finding.proof && (
@@ -119,7 +119,7 @@ const FindingDetails = () => {
                 <h3 className="text-sm font-bold uppercase tracking-widest text-gray-400 flex items-center gap-2">
                   <FiClock size={14} /> Evidence / Proof
                 </h3>
-                <div className="bg-black/50 p-4 rounded border border-white/5 font-mono text-xs text-[#00ff88] overflow-x-auto">
+                <div className="bg-black/50 p-4 rounded border border-white/5 font-mono text-xs text-[#00c477] overflow-x-auto">
                   {finding.proof}
                 </div>
               </div>
@@ -127,40 +127,40 @@ const FindingDetails = () => {
           </div>
 
           {/* Comment Section */}
-          <div className="space-y-4">
-            <h3 className="text-lg font-bold flex items-center gap-2">
-              <FiMessageSquare size={20} /> Discussion Threads
+          <div className="space-y-6">
+            <h3 className="text-xl font-bold flex items-center gap-3 tracking-tight">
+              <FiMessageSquare size={20} className="text-[#00c477]" /> Intelligence Discussion
             </h3>
             
             <div className="space-y-4">
               {comments.map((comment) => (
-                <div key={comment.id} className="bg-white/5 border border-white/10 rounded-xl p-4 flex gap-4">
-                  <div className="h-8 w-8 rounded-full bg-white/10 flex items-center justify-center text-xs font-bold text-[#00ff88]">
+                <div key={comment.id} className="bg-white/5 border border-white/10 rounded-2xl p-6 flex gap-5">
+                  <div className="h-10 w-10 rounded-xl bg-black border border-white/10 flex items-center justify-center text-xs font-bold text-[#00c477] shadow-inner shrink-0">
                     {comment.user?.fullName?.[0] || "?"}
                   </div>
-                  <div className="space-y-1 flex-1">
+                  <div className="space-y-1.5 flex-1 min-w-0">
                     <div className="flex justify-between items-center">
-                      <span className="text-xs font-bold text-gray-400">{comment.user?.fullName} <span className="font-normal opacity-50">@{comment.user?.handle}</span></span>
-                      <span className="text-[10px] text-gray-600 font-mono">{new Date(comment.createdAt).toLocaleString()}</span>
+                      <span className="text-[11px] font-bold text-white/80 uppercase tracking-widest truncate">{comment.user?.fullName} <span className="font-mono text-[9px] opacity-30 ml-2">AGENT_REF: {comment.user?.handle}</span></span>
+                      <span className="text-[9px] text-white/30 font-mono flex items-center gap-2"><FiClock size={10} /> {new Date(comment.createdAt).toLocaleTimeString()}</span>
                     </div>
-                    <p className="text-sm text-gray-300">{comment.content}</p>
+                    <p className="text-sm text-white/60 leading-relaxed font-medium">{comment.content}</p>
                   </div>
                 </div>
               ))}
             </div>
 
-            <form onSubmit={handleAddComment} className="relative mt-6">
+            <form onSubmit={handleAddComment} className="relative mt-10 group">
               <textarea 
                 value={newComment}
                 onChange={(e) => setNewComment(e.target.value)}
                 placeholder="Post a security update or remediation note..."
-                className="w-full bg-white/5 border border-white/10 rounded-xl p-4 text-sm focus:outline-none focus:border-[#00ff88]/50 h-24 resize-none"
+                className="w-full bg-black/60 border border-white/10 rounded-2xl p-6 text-sm text-white focus:outline-none focus:border-[#00c477]/50 h-32 resize-none transition-all placeholder:text-white/20"
               />
               <button 
                 type="submit"
-                className="absolute bottom-4 right-4 p-2 bg-[#00ff88] text-black rounded-lg hover:scale-105 transition-all"
+                className="absolute bottom-6 right-6 px-6 py-2.5 bg-[#00c477] text-black rounded-xl hover:scale-105 active:scale-95 transition-all text-[10px] font-black uppercase tracking-widest flex items-center gap-2 shadow-lg shadow-[#00c477]/10"
               >
-                <FiSend size={18} />
+                Send Intelligence <FiSend size={14} />
               </button>
             </form>
           </div>
@@ -178,41 +178,41 @@ const FindingDetails = () => {
                   {finding.status === "OPEN" && (
                     <button 
                       onClick={() => handleStatusChange("triage", { status: "TRIAGED" })}
-                      className="w-full py-3 bg-purple-500 text-black rounded-lg font-bold text-xs uppercase tracking-widest flex items-center justify-center gap-2"
+                      className="w-full py-4 bg-[#00c477] text-black rounded-2xl font-black text-[10px] uppercase tracking-widest flex items-center justify-center gap-3 shadow-lg shadow-[#00c477]/10 hover:scale-[1.02] active:scale-95 transition-all"
                     >
-                      <FiCheckCircle /> Confirm Vulnerability
+                      <FiCheckCircle size={16} /> Confirm Intelligence
                     </button>
                   )}
                   
                   {finding.status === "OPEN" && (
                     <button 
                       onClick={() => handleStatusChange("triage", { status: "ACCEPTED_RISK" })}
-                      className="w-full py-3 bg-gray-500/20 text-gray-400 border border-gray-500/30 rounded-lg font-bold text-xs uppercase tracking-widest"
+                      className="w-full py-4 bg-white/5 text-white/40 border border-white/10 rounded-2xl font-black text-[10px] uppercase tracking-widest hover:text-white hover:border-white/20 transition-all"
                     >
-                      Accept Risk
+                      Accept Risk Exposure
                     </button>
                   )}
 
                   {finding.status === "FIXED" && (
                     <button 
                       onClick={() => handleStatusChange("request-retest")}
-                      className="w-full py-3 bg-pink-500 text-black rounded-lg font-bold text-xs uppercase tracking-widest"
+                      className="w-full py-4 bg-[#00c477]/10 text-[#00c477] border border-[#00c477]/20 rounded-2xl font-black text-[10px] uppercase tracking-widest hover:bg-[#00c477] hover:text-black transition-all"
                     >
-                      Request Formal Retest
+                      Request Final Validation
                     </button>
                   )}
 
                   {finding.status === "PENDING_RETEST" && (
-                     <div className="grid grid-cols-2 gap-2">
+                     <div className="grid grid-cols-2 gap-3">
                         <button 
                           onClick={() => handleStatusChange("validate", { success: true })}
-                          className="py-3 bg-[#00ff88] text-black rounded-lg font-bold text-[10px] uppercase tracking-widest"
+                          className="py-4 bg-[#00c477] text-black rounded-2xl font-black text-[9px] uppercase tracking-widest shadow-lg shadow-[#00c477]/10 hover:scale-[1.05] transition-all"
                         >
                           Validate
                         </button>
                         <button 
                           onClick={() => handleStatusChange("validate", { success: false })}
-                          className="py-3 bg-red-500 text-black rounded-lg font-bold text-[10px] uppercase tracking-widest"
+                          className="py-4 bg-red-500/20 text-red-500 border border-red-500/30 rounded-2xl font-black text-[9px] uppercase tracking-widest hover:bg-red-500 hover:text-black transition-all"
                         >
                           Reopen
                         </button>
@@ -225,9 +225,9 @@ const FindingDetails = () => {
               {!canManage && finding.status === "TRIAGED" && (
                  <button 
                    onClick={() => api.patch(`/findings/${findingId}`, { status: "FIXED" }).then(() => loadData())}
-                   className="w-full py-3 bg-amber-400 text-black rounded-lg font-bold text-xs uppercase tracking-widest"
+                   className="w-full py-4 bg-white/10 text-white hover:bg-[#00c477] hover:text-black rounded-2xl font-black text-[10px] uppercase tracking-widest transition-all"
                  >
-                   Mark as Fixed
+                   Mark as Resolved
                  </button>
               )}
             </div>
@@ -236,7 +236,7 @@ const FindingDetails = () => {
               <h4 className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">History</h4>
               <div className="space-y-4">
                 <div className="flex items-center gap-3 text-xs">
-                  <div className="w-1.5 h-1.5 bg-[#00ff88] rounded-full" />
+                  <div className="w-1.5 h-1.5 bg-[#00c477] rounded-full" />
                   <div className="flex-1">
                     <p className="text-gray-300">Finding reported</p>
                     <p className="text-[9px] text-gray-500">{new Date(finding.createdAt).toLocaleDateString()}</p>

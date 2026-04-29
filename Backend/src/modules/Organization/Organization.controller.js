@@ -328,42 +328,8 @@ class OrganizationController {
     });
   });
 
-  getMembers = asyncHandler(async (req, res) => {
-    const { organizationId } = req.params;
-    const members = await memberService.listMembers(organizationId, req.user);
-    res.status(200).json({
-      success: true,
-      data: members
-    });
-  });
 
-  addMember = asyncHandler(async (req, res) => {
-    const { organizationId } = req.params;
-    const memberData = { ...req.body, organizationId };
-    const result = await memberService.addMember(memberData, req.user);
-    res.status(201).json({
-      success: true,
-      data: result
-    });
-  });
-
-  updateMember = asyncHandler(async (req, res) => {
-    const { organizationId, memberId } = req.params;
-    const result = await memberService.updateMember(organizationId, memberId, req.body, req.user);
-    res.status(200).json({
-      success: true,
-      data: result
-    });
-  });
-
-  removeMember = asyncHandler(async (req, res) => {
-    const { organizationId, memberId } = req.params;
-    await memberService.removeMember(organizationId, memberId, req.user);
-    res.status(200).json({
-      success: true,
-      message: 'Member removed successfully'
-    });
-  });
 }
+
 
 export default new OrganizationController();

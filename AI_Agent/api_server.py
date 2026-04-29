@@ -40,6 +40,8 @@ app.add_middleware(
 # Store active agents and conversations
 active_agents: Dict[str, Agent] = {}
 conversations: Dict[str, List[Dict]] = {}
+# Current asyncio.Task running agent.process_message per session (for Stop to cancel LLM wait)
+_ws_agent_tasks: Dict[str, asyncio.Task] = {}
 
 
 def format_error_message(error: Exception) -> str:
@@ -104,6 +106,7 @@ class HealthResponse(BaseModel):
     status: str
     version: str
     agent_name: str
+    config_error: Optional[str] = None  # set when status is "degraded" (invalid LLM config)
 
 
 # Helper functions
@@ -132,13 +135,21 @@ def save_message(session_id: str, role: str, content: str):
 
 @app.get("/api/health", response_model=HealthResponse)
 async def api_health_check():
-    """Health check endpoint"""
-    config = load_config()
-    return {
-        "status": "online",
-        "version": "1.0.0",
-        "agent_name": config.name
-    }
+    """Health check endpoint. Returns 200 even if LLM config is invalid (status=degraded) so probes still pass."""
+    try:
+        config = load_config()
+        return {
+            "status": "online",
+            "version": "1.0.0",
+            "agent_name": config.name,
+        }
+    except ConfigValidationError as e:
+        return {
+            "status": "degraded",
+            "version": "1.0.0",
+            "agent_name": os.getenv("AGENT_NAME", "HackrAct"),
+            "config_error": str(e),
+        }
 
 
 @app.post("/api/message", response_model=MessageResponse)
@@ -266,9 +277,12 @@ async def websocket_endpoint(websocket: WebSocket, session_id: str):
                 continue
             message_data = json.loads(data)
             
-            # Handle stop command
+            # Handle stop command: flag + kill subprocess + cancel in-flight agent task (LLM stream)
             if message_data.get("type") == "stop":
                 agent.stop()
+                t = _ws_agent_tasks.get(session_id)
+                if t is not None and not t.done():
+                    t.cancel()
                 await websocket.send_json({
                     "type": "status",
                     "content": "🛑 Stopping agent..."
@@ -301,33 +315,47 @@ async def websocket_endpoint(websocket: WebSocket, session_id: str):
             
             try:
                 # Define callback for status updates
-                async def status_callback(type: str, content: str):
-                    await websocket.send_json({
-                        "type": type,
-                        "content": content
-                    })
+                async def status_callback(type: str, content: str, meta: Optional[dict] = None):
+                    payload: Dict[str, Any] = {"type": type, "content": content}
+                    if meta:
+                        payload["meta"] = meta
+                    await websocket.send_json(payload)
                 
                 # Set callback on agent
                 agent.set_callback(status_callback)
-                
-                # Process message
-                # Note: For true streaming, you'd need to modify the agent
-                # to yield chunks instead of returning complete response
-                response = await agent.process_message(user_message)
-                
+
+                async def _run_agent() -> str:
+                    return await agent.process_message(user_message)
+
+                task = asyncio.create_task(_run_agent())
+                _ws_agent_tasks[session_id] = task
+                try:
+                    response = await task
+                except asyncio.CancelledError:
+                    agent.set_callback(None)
+                    save_message(session_id, "assistant", "🛑 Agent execution stopped.")
+                    await websocket.send_json({
+                        "type": "response",
+                        "content": "🛑 Agent execution stopped.",
+                        "timestamp": datetime.now().isoformat(),
+                    })
+                    continue
+                finally:
+                    _ws_agent_tasks.pop(session_id, None)
+
                 # Clear callback
                 agent.set_callback(None)
-                
+
                 # Save response
                 save_message(session_id, "assistant", response)
-                
+
                 # Send complete response
                 await websocket.send_json({
                     "type": "response",
                     "content": response,
                     "timestamp": datetime.now().isoformat()
                 })
-                
+
             except Exception as e:
                 error_msg = format_error_message(e)
                 await websocket.send_json({
@@ -382,7 +410,7 @@ async def search_memory(query: str, max_results: int = 5):
 
 class TestConnectionRequest(BaseModel):
     llm_provider: str
-    api_key: str
+    api_key: Optional[str] = ""
     chat_model: str
     custom_endpoint: Optional[str] = None
 
@@ -424,10 +452,16 @@ async def test_connection(request: TestConnectionRequest):
         if request.llm_provider == "ollama" and ("localhost" in ollama_url or "127.0.0.1" in ollama_url) and os.path.exists('/.dockerenv'):
             ollama_url = ollama_url.replace("localhost", "host.docker.internal").replace("127.0.0.1", "host.docker.internal")
 
+        # Use saved API key from env when test body omits it (e.g. UI "Test" without re-pasting secret)
+        test_key = (request.api_key or "").strip()
+        if not test_key and request.llm_provider != "ollama":
+            cfg = load_config(validate=False)
+            test_key = (cfg.model.api_key or "").strip()
+
         # Initialize LLM with provided settings
         llm = LLM(
             provider=request.llm_provider,
-            api_key=request.api_key,
+            api_key=test_key,
             model=request.chat_model,
             custom_api_base=request.custom_endpoint or "",
             ollama_base_url=ollama_url
@@ -450,8 +484,9 @@ async def get_settings():
     """Get current configuration settings. API key is never returned; use api_key_set for UI."""
     try:
         config = load_config(validate=True)
-    except ConfigValidationError as e:
-        raise HTTPException(status_code=503, detail=str(e))
+    except ConfigValidationError:
+        # Allow UI to open after a bad save (e.g. empty key + github); show current env without failing
+        config = load_config(validate=False)
     key = config.model.api_key or ""
     return {
         "llm_provider": config.model.provider,
@@ -550,8 +585,9 @@ async def list_memories():
 
 
 # Serve static files (Frontend)
-# We mount this LAST so it doesn't override API routes
-app.mount("/", StaticFiles(directory="static", html=True), name="static")
+# Prefer React build in static_build/, fall back to legacy static/ for dev
+_static_dir = "static_build" if os.path.isdir("static_build") else "static"
+app.mount("/", StaticFiles(directory=_static_dir, html=True), name="static")
 
 
 if __name__ == "__main__":

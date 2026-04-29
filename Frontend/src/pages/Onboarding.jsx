@@ -38,7 +38,7 @@ const Onboarding = () => {
     if (user?.roles?.[0]?.type === "PENTESTER" || user?.roles?.[0]?.type === "PROJECT_ADMIN") {
       navigate("/hacker-dashboard");
     } else if (user?.roles?.[0]?.type === "ORG_ADMIN") {
-      navigate("/organization-dashboard");
+      navigate("/dashboard");
     }
   }, [user, navigate]);
 
@@ -56,7 +56,7 @@ const Onboarding = () => {
       if (role === "PENTESTER") {
         navigate("/hacker-dashboard");
       } else {
-        navigate("/organization-dashboard");
+        navigate("/dashboard");
       }
     } catch (err) {
       setError(err?.response?.data?.message || "Internal system error. Failed to synchronize identity.");

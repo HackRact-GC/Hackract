@@ -16,7 +16,8 @@ const NdaModal = ({ agreement, onSigned, onCancel }) => {
   const [scrolled, setScrolled]         = useState(false);
   const [signing, setSigning]           = useState(false);
 
-  const handleSign = async () => {
+
+   const handleSign = async () => {
     if (!acknowledged) return toast.error("Please read and acknowledge the agreement first.");
     setSigning(true);
     try {
@@ -85,7 +86,7 @@ const NdaModal = ({ agreement, onSigned, onCancel }) => {
             <div
               onClick={() => setAcknowledged(v => !v)}
               className={`mt-0.5 w-5 h-5 shrink-0 rounded-md border-2 flex items-center justify-center transition-all ${
-                acknowledged ? "bg-[#00ff88] border-[#00ff88]" : "border-slate-700 group-hover:border-slate-500"
+                acknowledged ? "bg-[#00c477] border-[#00c477]" : "border-slate-700 group-hover:border-slate-500"
               }`}
             >
               <AnimatePresence>
@@ -115,7 +116,7 @@ const NdaModal = ({ agreement, onSigned, onCancel }) => {
             disabled={signing || !acknowledged}
             className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs font-black uppercase tracking-widest transition-all ${
               acknowledged && !signing
-                ? "bg-[#00ff88] text-black hover:bg-[#00cc6e] active:scale-95"
+                ? "bg-[#00c477] text-black hover:bg-[#00cc6e] active:scale-95"
                 : "bg-slate-800 text-slate-600 cursor-not-allowed"
             }`}
           >
@@ -203,7 +204,7 @@ const EngagementBoard = () => {
   );
 
   return (
-    <div className="min-h-screen bg-black text-white p-6 md:p-10 space-y-8 font-sans selection:bg-[#00ff88]/30 selection:text-black">
+    <div className="p-6 md:p-10 max-w-7xl mx-auto w-full space-y-8">
       {/* NDA Modal */}
       <AnimatePresence>
         {ndaModal && (
@@ -219,22 +220,14 @@ const EngagementBoard = () => {
       <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
         <div className="space-y-1">
           <div className="flex items-center gap-3">
-             <div className="h-8 w-8 bg-[#00ff88]/10 border border-[#00ff88]/20 rounded flex items-center justify-center text-[#00ff88]">
+             <div className="h-8 w-8 bg-[#00c477]/10 border border-[#00c477]/20 rounded flex items-center justify-center text-[#00c477]">
                 <FiShield size={18} />
              </div>
-             <h1 className="text-3xl font-bold tracking-tight text-white">Public Engagement Board</h1>
+             <h1 className="text-2xl font-bold tracking-tight text-white">Public Engagement Board</h1>
           </div>
           <p className="text-white/70 text-sm max-w-xl">
             Official repository of authorized security engagement opportunities within the Hackract network.
           </p>
-        </div>
-        <div className="flex items-center gap-3">
-            <button
-                onClick={() => navigate("/dashboard")}
-                className="px-5 py-2.5 bg-black border border-white/10 rounded-lg text-xs font-semibold uppercase tracking-widest hover:bg-[#00ff88] hover:text-black hover:border-[#00ff88] transition-all text-white/70"
-            >
-                Return to Command Center
-            </button>
         </div>
       </div>
 
@@ -251,13 +244,13 @@ const EngagementBoard = () => {
         <div className="space-y-8">
           {/* Search */}
           <div className="relative group">
-            <FiSearch className="absolute left-4 top-1/2 -translate-y-1/2 text-white/40 group-focus-within:text-[#00ff88] transition-colors" />
+            <FiSearch className="absolute left-4 top-1/2 -translate-y-1/2 text-white/40 group-focus-within:text-[#00c477] transition-colors" />
             <input
               type="text"
               value={searchQuery}
               onChange={e => setSearchQuery(e.target.value)}
               placeholder="Search by keywords, technical stack, or entity name..."
-              className="w-full bg-black/60 backdrop-blur-sm border border-white/10 rounded-xl pl-12 pr-4 py-4 text-sm text-white focus:outline-none focus:border-[#00ff88]/50 focus:ring-4 focus:ring-[#00ff88]/10 transition-all placeholder:text-white/40 shadow-inner"
+              className="w-full bg-black/60 backdrop-blur-sm border border-white/10 rounded-xl pl-12 pr-4 py-4 text-sm text-white focus:outline-none focus:border-[#00c477]/50 focus:ring-4 focus:ring-[#00c477]/10 transition-all placeholder:text-white/40 shadow-inner"
             />
           </div>
 
@@ -267,7 +260,7 @@ const EngagementBoard = () => {
                 initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
                 className="py-32 flex flex-col items-center gap-4 text-white/60 font-mono"
               >
-                <div className="w-12 h-12 border-2 border-white/10 border-t-[#00ff88] rounded-full animate-spin shadow-[0_0_15px_rgba(0,255,136,0.15)]" />
+                <div className="w-12 h-12 border-2 border-white/10 border-t-[#00c477] rounded-full animate-spin shadow-[0_0_15px_rgba(0,255,136,0.15)]" />
                 <span className="text-[10px] uppercase tracking-[0.3em] animate-pulse">Synchronizing Engagement Feed</span>
               </motion.div>
             ) : filteredProjects.length === 0 ? (
@@ -287,7 +280,7 @@ const EngagementBoard = () => {
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: idx * 0.05 }}
-                    className="bg-black/70 backdrop-blur-md border border-white/10 p-6 rounded-4xl hover:border-[#00ff88]/30 hover:bg-black transition-all group relative overflow-hidden"
+                    className="bg-black/70 backdrop-blur-md border border-white/10 p-6 rounded-4xl hover:border-[#00c477]/30 hover:bg-black transition-all group relative overflow-hidden"
                   >
                     <div className="absolute top-0 right-0 p-8 opacity-[0.03] group-hover:opacity-[0.08] transition-opacity pointer-events-none">
                         <FiCpu size={80} />
@@ -297,7 +290,7 @@ const EngagementBoard = () => {
                       <div className="space-y-4 flex-1">
                         <div className="space-y-1">
                             <div className="flex items-center gap-3">
-                                <span className="text-[10px] font-mono font-bold text-[#00ff88] uppercase tracking-widest bg-[#00ff88]/10 px-2 py-0.5 rounded">
+                                <span className="text-[10px] font-mono font-bold text-[#00c477] uppercase tracking-widest bg-[#00c477]/10 px-2 py-0.5 rounded">
                                     {project.status === 'PUBLISHED' ? 'OPEN TENDER' : project.status}
                                 </span>
                                 <span className="text-xs text-white/50 font-mono truncate">ID: {project.id.split('-')[0].toUpperCase()}</span>
@@ -306,7 +299,7 @@ const EngagementBoard = () => {
                                   <FiLock size={8} /> NDA Required
                                 </span>
                             </div>
-                              <h3 className="text-xl font-bold text-white group-hover:text-[#00ff88] transition-colors tracking-tight">
+                              <h3 className="text-xl font-bold text-white group-hover:text-[#00c477] transition-colors tracking-tight">
                                 {project.name}
                             </h3>
                         </div>
@@ -316,8 +309,8 @@ const EngagementBoard = () => {
                         </p>
 
                         <div className="flex flex-wrap items-center gap-5 text-[11px] font-semibold text-white/60 uppercase tracking-widest">
-                          <div className="flex items-center gap-2 bg-black px-3 py-1.5 rounded-full border border-white/10 group-hover:border-[#00ff88]/30 transition-colors">
-                            <FiBriefcase className="text-[#00ff88]" />
+                          <div className="flex items-center gap-2 bg-black px-3 py-1.5 rounded-full border border-white/10 group-hover:border-[#00c477]/30 transition-colors">
+                            <FiBriefcase className="text-[#00c477]" />
                             <span className="text-white/80">{project.organization?.name}</span>
                             </div>
                             <div className="flex items-center gap-2">
@@ -331,7 +324,7 @@ const EngagementBoard = () => {
                         <button
                           onClick={() => handleApply(project.id)}
                           disabled={applying === project.id}
-                          className="flex-1 md:w-48 py-3 bg-[#00ff88] hover:bg-white text-black rounded-xl font-bold text-xs uppercase tracking-[0.15em] transition-all disabled:opacity-50 active:scale-95 shadow-lg shadow-black/20 flex items-center justify-center gap-2"
+                          className="flex-1 md:w-48 py-3 bg-[#00c477] hover:bg-white text-black rounded-xl font-bold text-xs uppercase tracking-[0.15em] transition-all disabled:opacity-50 active:scale-95 shadow-lg shadow-black/20 flex items-center justify-center gap-2"
                         >
                           {applying === project.id ? (
                             <>
@@ -342,7 +335,7 @@ const EngagementBoard = () => {
                             <>Register Interest <FiExternalLink /></>
                           )}
                         </button>
-                        <button className="px-4 py-3 bg-white/10 hover:bg-[#00ff88] hover:text-black text-white/70 rounded-xl text-[10px] font-black uppercase tracking-widest transition-colors border border-white/10 hover:border-[#00ff88]">
+                        <button className="px-4 py-3 bg-white/10 hover:bg-[#00c477] hover:text-black text-white/70 rounded-xl text-[10px] font-black uppercase tracking-widest transition-colors border border-white/10 hover:border-[#00c477]">
                             Details
                         </button>
                       </div>
@@ -357,9 +350,9 @@ const EngagementBoard = () => {
         {/* Sidebar */}
         <aside className="space-y-6">
             <div className="bg-black border border-white/10 p-8 rounded-4xl shadow-2xl relative overflow-hidden group">
-              <div className="absolute -top-10 -right-10 w-40 h-40 bg-[#00ff88]/10 rounded-full blur-[100px] group-hover:bg-[#00ff88]/20 transition-all duration-700" />
-              <h4 className="text-[#00ff88] font-bold text-xs uppercase tracking-[0.2em] mb-6 flex items-center gap-2">
-                <div className="w-1.5 h-1.5 bg-[#00ff88] rounded-full" /> Engagement Protocols
+              <div className="absolute -top-10 -right-10 w-40 h-40 bg-[#00c477]/10 rounded-full blur-[100px] group-hover:bg-[#00c477]/20 transition-all duration-700" />
+              <h4 className="text-[#00c477] font-bold text-xs uppercase tracking-[0.2em] mb-6 flex items-center gap-2">
+                <div className="w-1.5 h-1.5 bg-[#00c477] rounded-full" /> Engagement Protocols
                 </h4>
                 <div className="space-y-6">
                     {[
@@ -369,7 +362,7 @@ const EngagementBoard = () => {
                     ].map((item, i) => (
                         <div key={i} className="space-y-2 group/item">
                             <div className="flex items-center gap-2">
-                                <span className="text-[10px] font-black text-[#00ff88] opacity-40 group-hover/item:opacity-100 transition-opacity font-mono">{item.step}</span>
+                                <span className="text-[10px] font-black text-[#00c477] opacity-40 group-hover/item:opacity-100 transition-opacity font-mono">{item.step}</span>
                                 <span className="text-xs font-bold text-white/90 uppercase tracking-wide">{item.title}</span>
                             </div>
                               <p className="text-[11px] text-white/60 leading-relaxed pl-6">{item.desc}</p>
@@ -380,7 +373,7 @@ const EngagementBoard = () => {
 
             <button
                 onClick={() => navigate("/my-applications")}
-                className="w-full py-5 bg-black/70 backdrop-blur-md border border-white/10 rounded-3xl font-bold text-xs uppercase tracking-widest text-white/70 hover:text-black hover:bg-[#00ff88] hover:border-[#00ff88] transition-all flex items-center justify-center gap-3 group"
+                className="w-full py-5 bg-black/70 backdrop-blur-md border border-white/10 rounded-3xl font-bold text-xs uppercase tracking-widest text-white/70 hover:text-black hover:bg-[#00c477] hover:border-[#00c477] transition-all flex items-center justify-center gap-3 group"
             >
                 Pending Proposals
                 <div className="w-5 h-5 bg-white/10 group-hover:bg-black/10 rounded-md flex items-center justify-center transition-colors">
@@ -390,8 +383,8 @@ const EngagementBoard = () => {
 
               <div className="p-6 border border-white/10 rounded-3xl text-center space-y-2">
                 <p className="text-[10px] text-white/50 uppercase font-bold tracking-[0.2em]">Platform Status</p>
-                <div className="flex items-center justify-center gap-2 text-[#00ff88] text-[10px] font-mono">
-                  <div className="w-1.5 h-1.5 bg-[#00ff88] rounded-full animate-pulse" />
+                <div className="flex items-center justify-center gap-2 text-[#00c477] text-[10px] font-mono">
+                  <div className="w-1.5 h-1.5 bg-[#00c477] rounded-full animate-pulse" />
                     OPERATIONAL • {new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                 </div>
             </div>

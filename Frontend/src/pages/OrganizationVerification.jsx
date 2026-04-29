@@ -63,7 +63,7 @@ const OrganizationVerification = () => {
   };
 
   if (loading) return (
-    <div className="min-h-screen bg-[#0a0a0a] flex items-center justify-center font-mono text-[#00ff88]">
+    <div className="min-h-screen bg-[#050505] flex items-center justify-center font-mono text-[#00c477]">
        <div className="animate-pulse">VERIFYING_ENTITY_CREDENTIALS...</div>
     </div>
   );
@@ -73,12 +73,12 @@ const OrganizationVerification = () => {
   const isSubmitted = status === 'SUBMITTED';
 
   return (
-    <div className="min-h-screen bg-[#0a0a0a] text-white p-8 font-sans">
+    <div className="min-h-screen bg-[#050505] text-white p-8 font-sans">
       <div className="max-w-4xl mx-auto space-y-8">
         {/* Header */}
         <div className="flex items-center justify-between border-b border-white/10 pb-6">
           <div className="flex items-center gap-4">
-            <div className={`h-12 w-12 rounded-xl flex items-center justify-center text-2xl ${isApproved ? 'bg-[#00ff88]/20 text-[#00ff88]' : 'bg-sky-500/20 text-sky-500'}`}>
+            <div className={`h-12 w-12 rounded-xl flex items-center justify-center text-2xl ${isApproved ? 'bg-[#00c477]/20 text-[#00c477]' : 'bg-sky-500/20 text-sky-500'}`}>
               {isApproved ? <FiCheckCircle /> : <FiBriefcase />}
             </div>
             <div>
@@ -87,7 +87,7 @@ const OrganizationVerification = () => {
             </div>
           </div>
           <div className={`px-4 py-1.5 rounded-full text-xs font-mono uppercase tracking-widest ${
-            isApproved ? 'bg-[#00ff88]/20 text-[#00ff88] border border-[#00ff88]/30' : 
+            isApproved ? 'bg-[#00c477]/20 text-[#00c477] border border-[#00c477]/30' : 
             isSubmitted ? 'bg-blue-500/20 text-blue-500 border border-blue-500/30' :
             'bg-amber-500/20 text-amber-500 border border-amber-500/30'
           }`}>
@@ -96,9 +96,9 @@ const OrganizationVerification = () => {
         </div>
 
         {isApproved && (
-          <div className="bg-[#00ff88]/10 border border-[#00ff88]/30 p-4 rounded-xl flex items-center gap-4">
-             <FiCheckCircle className="text-[#00ff88] text-2xl shrink-0" />
-             <p className="text-sm text-[#00ff88]">Your organization is <strong>APPROVED</strong>. You can now define security programs and invite operators.</p>
+          <div className="bg-[#00c477]/10 border border-[#00c477]/30 p-4 rounded-xl flex items-center gap-4">
+             <FiCheckCircle className="text-[#00c477] text-2xl shrink-0" />
+             <p className="text-sm text-[#00c477]">Your organization is <strong>APPROVED</strong>. You can now define security programs and invite operators.</p>
           </div>
         )}
 

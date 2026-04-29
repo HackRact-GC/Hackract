@@ -83,7 +83,7 @@ const ApprovalsDashboard = () => {
             </div>
           </button>
           <button 
-            className={`px-6 py-4 font-mono text-sm uppercase tracking-widest transition-colors ${activeTab === 'orgs' ? 'border-b-2 border-[#00ff88] text-[#00ff88]' : 'text-gray-500 hover:text-white'}`}
+            className={`px-6 py-4 font-mono text-sm uppercase tracking-widest transition-colors ${activeTab === 'orgs' ? 'border-b-2 border-[#00c477] text-[#00c477]' : 'text-gray-500 hover:text-white'}`}
             onClick={() => setActiveTab('orgs')}
           >
             <div className="flex items-center gap-2">
@@ -156,16 +156,16 @@ const ApprovalsDashboard = () => {
                 </div>
               ) : (
                 orgs.map(org => (
-                  <div key={org.id} className="bg-white/5 border border-white/10 p-6 rounded-xl flex items-center justify-between hover:border-[#00ff88]/50 transition-colors group">
+                  <div key={org.id} className="bg-white/5 border border-white/10 p-6 rounded-xl flex items-center justify-between hover:border-[#00c477]/50 transition-colors group">
                     <div className="flex items-center gap-6">
-                      <div className="h-12 w-12 rounded-full bg-[#00ff88]/20 flex items-center justify-center text-[#00ff88]">
+                      <div className="h-12 w-12 rounded-full bg-[#00c477]/20 flex items-center justify-center text-[#00c477]">
                         <FiBriefcase size={24} />
                       </div>
                       <div>
                         <h3 className="text-lg font-bold">{org.name}</h3>
                         <div className="flex items-center gap-4 text-sm text-gray-400 mt-1">
                           <span className="font-mono">{org.taxId ? `TAX ID: ${org.taxId}` : 'NO TAX ID'}</span>
-                          <span className="flex items-center gap-1 text-[#00ff88]"><FiClock size={12}/> {new Date(org.updatedAt).toLocaleDateString()}</span>
+                          <span className="flex items-center gap-1 text-[#00c477]"><FiClock size={12}/> {new Date(org.updatedAt).toLocaleDateString()}</span>
                         </div>
                       </div>
                     </div>
@@ -186,7 +186,7 @@ const ApprovalsDashboard = () => {
                       </button>
                       <button 
                         onClick={() => handleAction('org', org.id, 'approve')}
-                        className="px-4 py-2 bg-[#00ff88] text-black rounded font-mono text-xs font-bold uppercase hover:bg-green-400 shadow-lg shadow-[#00ff88]/20 transition-all"
+                        className="px-4 py-2 bg-[#00c477] text-black rounded font-mono text-xs font-bold uppercase hover:bg-green-400 shadow-lg shadow-[#00c477]/20 transition-all"
                       >
                         Approve
                       </button>

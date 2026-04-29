@@ -58,29 +58,16 @@ const Login = () => {
         e.preventDefault();
         try {
             const result = await login(form);
-<<<<<<< HEAD
             const primaryRole = result?.user?.roles?.[0]?.type;
-            if (primaryRole === "PENTESTER" || primaryRole === "PROJECT_ADMIN") {
-                navigate("/hacker-profile", {
-                    state: { requiresEmailVerification: !!result?.requiresEmailVerification },
-                });
-                return;
-            }
-            if (primaryRole === "ORG_ADMIN") {
-                navigate("/organization-profile", {
-                    state: { requiresEmailVerification: !!result?.requiresEmailVerification },
-                });
-                return;
-            }
-
-            navigate("/dashboard");
-=======
             if (result?.requiresEmailVerification) {
                 navigate(`/verify-email?email=${encodeURIComponent(form.email)}`);
                 return;
             }
-            navigate(redirectTo, { replace: true });
->>>>>>> 29cf968ad6e921e78b6c17cae03c9ce911d6c293
+            if (primaryRole === "ORG_ADMIN") {
+                navigate("/dashboard", { replace: true });
+                return;
+            }
+            navigate("/hacker-dashboard", { replace: true });
         } catch (error) {
             const errorCode = error?.response?.data?.code;
             const status = error?.response?.status;
@@ -149,7 +136,7 @@ const Login = () => {
                 <button
                     type="submit"
                     disabled={loading}
-                    className="w-full bg-black text-[#00ff88] font-mono font-bold py-3 uppercase tracking-widest hover:bg-[#00ff88] hover:text-black transition-all duration-300 mt-2 cursor-pointer shadow-lg disabled:cursor-not-allowed disabled:opacity-70"
+                    className="w-full bg-black text-[#00c477] font-mono font-bold py-3 uppercase tracking-widest hover:bg-[#00c477] hover:text-black transition-all duration-300 mt-2 cursor-pointer shadow-lg disabled:cursor-not-allowed disabled:opacity-70"
                 >
                     {loading ? "Authorizing..." : "Login"}
                 </button>

@@ -27,9 +27,10 @@ const VerifyEmail = () => {
   }, [searchParams]);
 
   const initialEmail = useMemo(() => {
+    const emailFromUrl = searchParams.get("email");
     const emailFromState = location?.state?.email;
-    return typeof emailFromState === "string" ? emailFromState : "";
-  }, [location?.state?.email]);
+    return typeof emailFromState === "string" ? emailFromState : (emailFromUrl || "");
+  }, [location?.state?.email, searchParams]);
 
   const [form, setForm] = useState({ email: initialEmail, code: tokenFromUrl || "" });
 
@@ -120,7 +121,7 @@ const VerifyEmail = () => {
         <button
           type="submit"
           disabled={status === "loading"}
-          className="w-full bg-black text-[#00ff88] font-mono font-bold py-3 uppercase tracking-widest hover:bg-[#00ff88] hover:text-black transition-all duration-300 mt-2 cursor-pointer shadow-lg disabled:opacity-60"
+          className="w-full bg-black text-[#00c477] font-mono font-bold py-3 uppercase tracking-widest hover:bg-[#00c477] hover:text-black transition-all duration-300 mt-2 cursor-pointer shadow-lg disabled:opacity-60"
         >
           {status === "loading" ? "Validating..." : "Execute Verification"}
         </button>
@@ -134,12 +135,12 @@ const VerifyEmail = () => {
         <div className="flex gap-3">
           <Link
             to="/login"
-            className="px-4 py-2 bg-black text-[#00ff88] rounded-sm font-bold uppercase tracking-widest hover:bg-[#00ff88] hover:text-black transition-all duration-300"
+            className="px-4 py-2 bg-black text-[#00c477] rounded-sm font-bold uppercase tracking-widest hover:bg-[#00c477] hover:text-black transition-all duration-300"
           >
             Go to login
           </Link>
           <Link
-            to="/register/hacker"
+            to="/register"
             className="px-4 py-2 border border-gray-900 text-gray-900 rounded-sm font-bold uppercase tracking-widest hover:bg-gray-900 hover:text-white transition-all duration-300"
           >
             Register

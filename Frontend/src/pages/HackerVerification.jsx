@@ -80,8 +80,8 @@ const HackerVerification = () => {
   };
 
   if (loading) return (
-    <div className="min-h-screen bg-[#0a0a0a] flex items-center justify-center font-mono">
-       <div className="text-[#00ff88] animate-pulse">INITIATING_VERIFICATION_CHECK...</div>
+    <div className="min-h-screen bg-[#050505] flex items-center justify-center font-mono">
+       <div className="text-[#00c477] animate-pulse">INITIATING_VERIFICATION_CHECK...</div>
     </div>
   );
 
@@ -89,12 +89,12 @@ const HackerVerification = () => {
   const isSubmitted = profile?.status === 'SUBMITTED';
 
   return (
-    <div className="min-h-screen bg-[#0a0a0a] text-white p-8 font-sans">
+    <div className="min-h-screen bg-[#050505] text-white p-8 font-sans">
       <div className="max-w-4xl mx-auto space-y-8">
         {/* Header */}
         <div className="flex items-center justify-between border-b border-white/10 pb-6">
           <div className="flex items-center gap-4">
-            <div className={`h-12 w-12 rounded-xl flex items-center justify-center text-2xl ${isApproved ? 'bg-[#00ff88]/20 text-[#00ff88]' : 'bg-amber-500/20 text-amber-500'}`}>
+            <div className={`h-12 w-12 rounded-xl flex items-center justify-center text-2xl ${isApproved ? 'bg-[#00c477]/20 text-[#00c477]' : 'bg-amber-500/20 text-amber-500'}`}>
               {isApproved ? <FiUserCheck /> : <FiShield />}
             </div>
             <div>
@@ -103,7 +103,7 @@ const HackerVerification = () => {
             </div>
           </div>
           <div className={`px-4 py-1.5 rounded-full text-xs font-mono uppercase tracking-widest ${
-            isApproved ? 'bg-[#00ff88]/20 text-[#00ff88] border border-[#00ff88]/30' : 
+            isApproved ? 'bg-[#00c477]/20 text-[#00c477] border border-[#00c477]/30' : 
             isSubmitted ? 'bg-blue-500/20 text-blue-500 border border-blue-500/30' :
             'bg-amber-500/20 text-amber-500 border border-amber-500/30'
           }`}>
@@ -112,9 +112,9 @@ const HackerVerification = () => {
         </div>
 
         {isApproved && (
-          <div className="bg-[#00ff88]/10 border border-[#00ff88]/30 p-4 rounded-xl flex items-center gap-4">
-             <FiCheckCircle className="text-[#00ff88] text-2xl shrink-0" />
-             <p className="text-sm text-[#00ff88]">Your operator status is <strong>APPROVED</strong>. You have full access to organization projects and AI-augmented tools.</p>
+          <div className="bg-[#00c477]/10 border border-[#00c477]/30 p-4 rounded-xl flex items-center gap-4">
+             <FiCheckCircle className="text-[#00c477] text-2xl shrink-0" />
+             <p className="text-sm text-[#00c477]">Your operator status is <strong>APPROVED</strong>. You have full access to organization projects and AI-augmented tools.</p>
           </div>
         )}
 
@@ -123,7 +123,7 @@ const HackerVerification = () => {
           <div className="space-y-6">
             <div className="bg-white/5 border border-white/10 rounded-2xl p-6 space-y-6 shadow-xl shadow-black/40">
               <h2 className="text-lg font-semibold flex items-center gap-2">
-                <FiFileText className="text-[#00ff88]" />
+                <FiFileText className="text-[#00c477]" />
                 Identity & Experience
               </h2>
               
@@ -135,7 +135,7 @@ const HackerVerification = () => {
                       disabled={isApproved || isSubmitted}
                       value={formData.idDocumentNumber}
                       onChange={(e) => setFormData({...formData, idDocumentNumber: e.target.value})}
-                      className="w-full bg-black/40 border border-white/10 rounded-lg px-4 py-2.5 focus:outline-none focus:border-[#00ff88] transition-colors"
+                      className="w-full bg-black/40 border border-white/10 rounded-lg px-4 py-2.5 focus:outline-none focus:border-[#00c477] transition-colors"
                       placeholder="e.g. A12345678"
                       required
                     />
@@ -146,7 +146,7 @@ const HackerVerification = () => {
                       disabled={isApproved || isSubmitted}
                       value={formData.country}
                       onChange={(e) => setFormData({...formData, country: e.target.value})}
-                      className="w-full bg-black/40 border border-white/10 rounded-lg px-4 py-2.5 focus:outline-none focus:border-[#00ff88] transition-colors"
+                      className="w-full bg-black/40 border border-white/10 rounded-lg px-4 py-2.5 focus:outline-none focus:border-[#00c477] transition-colors"
                       placeholder="e.g. Estonia"
                       required
                     />
@@ -160,7 +160,7 @@ const HackerVerification = () => {
                     value={formData.bio}
                     onChange={(e) => setFormData({...formData, bio: e.target.value})}
                     rows={4}
-                    className="w-full bg-black/40 border border-white/10 rounded-lg px-4 py-2.5 focus:outline-none focus:border-[#00ff88] transition-colors resize-none"
+                    className="w-full bg-black/40 border border-white/10 rounded-lg px-4 py-2.5 focus:outline-none focus:border-[#00c477] transition-colors resize-none"
                     placeholder="Describe your technical expertise and background..."
                     required
                   />
@@ -174,7 +174,7 @@ const HackerVerification = () => {
                       type="number"
                       value={formData.yearsOfExperience}
                       onChange={(e) => setFormData({...formData, yearsOfExperience: e.target.value})}
-                      className="w-full bg-black/40 border border-white/10 rounded-lg px-4 py-2.5 focus:outline-none focus:border-[#00ff88] transition-colors"
+                      className="w-full bg-black/40 border border-white/10 rounded-lg px-4 py-2.5 focus:outline-none focus:border-[#00c477] transition-colors"
                       required
                     />
                   </div>
@@ -182,7 +182,7 @@ const HackerVerification = () => {
                     <button 
                       type="submit"
                       disabled={isApproved || isSubmitted || missingAgreements.length > 0}
-                      className="w-full bg-[#00ff88] hover:bg-[#00cc6e] text-black font-bold py-2.5 rounded-lg transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-[#00ff88]/20"
+                      className="w-full bg-[#00c477] hover:bg-[#00cc6e] text-black font-bold py-2.5 rounded-lg transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-[#00c477]/20"
                     >
                       {isSubmitted ? 'SUBMITTED FOR REVIEW' : isApproved ? 'VERIFIED OPERATOR' : 'SUBMIT FOR REVIEW'}
                     </button>
@@ -196,7 +196,7 @@ const HackerVerification = () => {
           <div className="space-y-6">
             <div className="bg-white/5 border border-white/10 rounded-2xl p-6 space-y-4">
               <h2 className="text-md font-semibold flex items-center gap-2">
-                <FiChevronRight className="text-[#00ff88]" />
+                <FiChevronRight className="text-[#00c477]" />
                 Legal Compliance
               </h2>
               
@@ -204,12 +204,12 @@ const HackerVerification = () => {
                 {['Mutual Non-Disclosure Agreement (MNDA)', 'Ethical Hacking Code of Conduct'].map(title => {
                   const isSigned = !missingAgreements.includes(title);
                   return (
-                    <div key={title} className={`p-4 rounded-xl border transition-all ${isSigned ? 'bg-[#00ff88]/5 border-[#00ff88]/20' : 'bg-amber-500/5 border-amber-500/20'}`}>
+                    <div key={title} className={`p-4 rounded-xl border transition-all ${isSigned ? 'bg-[#00c477]/5 border-[#00c477]/20' : 'bg-amber-500/5 border-amber-500/20'}`}>
                       <div className="flex items-center justify-between mb-2">
-                        <span className={`text-[10px] font-mono tracking-tighter uppercase px-2 py-0.5 rounded ${isSigned ? 'bg-[#00ff88]/20 text-[#00ff88]' : 'bg-amber-500/20 text-amber-500'}`}>
+                        <span className={`text-[10px] font-mono tracking-tighter uppercase px-2 py-0.5 rounded ${isSigned ? 'bg-[#00c477]/20 text-[#00c477]' : 'bg-amber-500/20 text-amber-500'}`}>
                           {isSigned ? 'SIGNED' : 'REQUIRED'}
                         </span>
-                        {isSigned && <FiCheckCircle className="text-[#00ff88]" />}
+                        {isSigned && <FiCheckCircle className="text-[#00c477]" />}
                       </div>
                       <div className="text-xs font-bold leading-tight mb-3">{title}</div>
                       {!isSigned && (

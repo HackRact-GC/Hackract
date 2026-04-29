@@ -6,14 +6,7 @@ import { useAuth0 } from "@auth0/auth0-react";
 import { useAuth } from "../context/authContext.jsx";
 import { validatePassword } from "../utils/validators";
 
-<<<<<<< HEAD
-<<<<<<< HEAD
 
-const InputField = ({ label, type, placeholder, id, name, value, onChange }) => (
-=======
-const InputField = ({ label, type, placeholder, id, name, value, onChange, icon, onIconClick }) => (
->>>>>>> a7a1de65b69231061612de7e72db6f45e70590a5
-=======
 const InputField = ({ 
   label, 
   type, 
@@ -26,7 +19,6 @@ const InputField = ({
   onIconClick, 
   required = true 
 }) => (
->>>>>>> 29cf968ad6e921e78b6c17cae03c9ce911d6c293
   <div className="flex flex-col gap-2 group">
     <label
       htmlFor={id}
@@ -232,7 +224,7 @@ const Register = () => {
               onClick={() => handleAccountTypeChange(option.id)}
               className={`flex-1 py-2.5 border text-xs font-mono uppercase tracking-widest rounded-sm transition-all duration-300 cursor-pointer ${
                 isActive
-                  ? "bg-black text-[#00ff88] border-black shadow-lg shadow-[#00ff88]/30"
+                  ? "bg-black text-[#00c477] border-black shadow-lg shadow-[#00c477]/30"
                   : "bg-white text-gray-700 border-gray-300 hover:border-black hover:bg-gray-100"
               }`}
             >
@@ -331,7 +323,7 @@ const Register = () => {
         <button
           type="submit"
           disabled={loading}
-          className="w-full bg-black text-[#00ff88] font-mono font-bold py-3 uppercase tracking-widest hover:bg-[#00ff88] hover:text-black transition-all duration-300 mt-2 cursor-pointer shadow-lg disabled:cursor-not-allowed disabled:opacity-70"
+          className="w-full bg-black text-[#00c477] font-mono font-bold py-3 uppercase tracking-widest hover:bg-[#00c477] hover:text-black transition-all duration-300 mt-2 cursor-pointer shadow-lg disabled:cursor-not-allowed disabled:opacity-70"
         >
           {loading ? "Registering..." : "Register"}
         </button>
