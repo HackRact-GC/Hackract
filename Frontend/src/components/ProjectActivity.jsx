@@ -23,7 +23,7 @@ const ProjectActivity = ({ projectId }) => {
   const getActionIcon = (action) => {
     switch (action) {
       case "PROJECT_CREATED": return <FiPlusCircle className="text-sky-400" />;
-      case "HACKER_HIRED": return <FiUser className="text-[#00ff88]" />;
+      case "HACKER_HIRED": return <FiUser className="text-[#00c477]" />;
       case "FINDING_CREATED": return <FiActivity className="text-amber-500" />;
       case "PROJECT_KICKOFF": return <FiCheckCircle className="text-emerald-500" />;
       default: return <FiActivity className="text-gray-400" />;

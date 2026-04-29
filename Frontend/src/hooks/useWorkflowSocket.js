@@ -1,164 +1,221 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import { io } from 'socket.io-client';
+import { useAuth } from '../context/authContext.jsx';
 
 const SOCKET_URL = import.meta.env.VITE_SOCKET_URL || 'http://localhost:3000';
 
-export const useWorkflowSocket = (workflowId, initialNodes = [], initialEdges = []) => {
-  const [socket, setSocket] = useState(null);
-  const [collaborators, setCollaborators] = useState({});
-  const [cursors, setCursors] = useState({});
-  const [activeNodes, setActiveNodes] = useState({}); // { nodeId: { socketId: userInfo } }
-  
-  // React Flow State that syncs with Socket
-  const [nodes, setNodes] = useState(initialNodes);
-  const [edges, setEdges] = useState(initialEdges);
+/**
+ * useWorkflowSocket — Real-time collaboration hook for the WorkflowEditor.
+ *
+ * Key design decisions:
+ *  - Remote node/edge changes are delivered as PATCH events (only changed node positions)
+ *    via `workflow-patch`, so we never blindly overwrite the whole local node array.
+ *  - The hook exposes `applyRemotePatch` so WorkflowEditor can merge remote positions
+ *    into the React Flow state without disrupting local drag interactions.
+ *  - Cursor data includes `color` so remote cursors render with the correct user color.
+ */
+export const useWorkflowSocket = (workflowId) => {
+  const { user: authUser } = useAuth();
 
-  const [localUser] = useState({
-    name: `User_${Math.floor(Math.random() * 1000)}`,
-    color: `hsl(${Math.random() * 360}, 70%, 50%)`,
+  // ── Stable local user identity (color stays constant across renders) ──────
+  const localUserRef = useRef({
+    id: authUser?._id || authUser?.id || `anon_${Math.floor(Math.random() * 9000) + 1000}`,
+    name: authUser?.name || authUser?.username || `Hacker_${Math.floor(Math.random() * 9000) + 1000}`,
+    color: `hsl(${Math.floor(Math.random() * 360)}, 70%, 55%)`,
   });
 
+  // Update identity when auth resolves
+  useEffect(() => {
+    if (authUser) {
+      localUserRef.current = {
+        ...localUserRef.current,
+        id: authUser._id || authUser.id || localUserRef.current.id,
+        name: authUser.name || authUser.fullName || authUser.username || localUserRef.current.name,
+      };
+    }
+  }, [authUser]);
+
+  const [socket, setSocket] = useState(null);
+  const [collaborators, setCollaborators] = useState({});   // { socketId: { id, user, color } }
+  const [cursors, setCursors] = useState({});               // { socketId: { x, y, user, color } }
+  const [activeNodes, setActiveNodes] = useState({});       // { nodeId: { socketId: { user, color } } }
+
+  // Patch queue delivered from remote peers: array of { nodes?, edges? } deltas
+  // WorkflowEditor reads and clears this each render frame.
+  const [remotePatch, setRemotePatch] = useState(null);
+
+  // ── Connect ────────────────────────────────────────────────────────────────
   useEffect(() => {
     if (!workflowId) return;
 
-    // Connect to the WebSocket server
-    const newSocket = io(SOCKET_URL);
+    const newSocket = io(SOCKET_URL, {
+      transports: ['websocket'],   // skip polling for lower latency
+      reconnectionDelay: 1000,
+      reconnectionAttempts: 10,
+    });
+
     setSocket(newSocket);
 
-    // Join the specific workflow room with user info
-    newSocket.emit('join-workflow', { workflowId, user: localUser.name, color: localUser.color });
+    const me = localUserRef.current;
 
-    // -- Event Listeners --
+    // Join room — pass full user object so backend stores color
+    newSocket.emit('join-workflow', {
+      workflowId,
+      user: me.name,
+      color: me.color,
+      userId: me.id,
+    });
 
+    // ── Presence events ──────────────────────────────────────────────────────
     newSocket.on('collaborators-list', (list) => {
-      const collabMap = {};
-      list.forEach(c => { collabMap[c.id] = c; });
-      setCollaborators(collabMap);
+      const map = {};
+      list.forEach(c => { map[c.id] = c; });
+      setCollaborators(map);
     });
 
     newSocket.on('user-joined', (data) => {
-      setCollaborators((prev) => ({ ...prev, [data.id]: data }));
+      setCollaborators(prev => ({ ...prev, [data.id]: data }));
     });
 
-    newSocket.on('user-left', (data) => {
-      setCollaborators((prev) => {
-        const newCollabs = { ...prev };
-        delete newCollabs[data.id];
-        return newCollabs;
+    newSocket.on('user-left', ({ id }) => {
+      setCollaborators(prev => {
+        const next = { ...prev };
+        delete next[id];
+        return next;
       });
-      setCursors((prev) => {
-        const newCursors = { ...prev };
-        delete newCursors[data.id];
-        return newCursors;
+      setCursors(prev => {
+        const next = { ...prev };
+        delete next[id];
+        return next;
       });
-      setActiveNodes((prev) => {
-        const newActive = { ...prev };
-        Object.keys(newActive).forEach(nodeId => {
-          if (newActive[nodeId][data.id]) {
-            const users = { ...newActive[nodeId] };
-            delete users[data.id];
-            if (Object.keys(users).length === 0) {
-              delete newActive[nodeId];
-            } else {
-              newActive[nodeId] = users;
-            }
+      setActiveNodes(prev => {
+        const next = { ...prev };
+        Object.keys(next).forEach(nodeId => {
+          if (next[nodeId][id]) {
+            const users = { ...next[nodeId] };
+            delete users[id];
+            next[nodeId] = Object.keys(users).length ? users : undefined;
+            if (!next[nodeId]) delete next[nodeId];
           }
         });
-        return newActive;
+        return next;
       });
     });
 
-    // Handle Remote Graph Changes (someone else moved a node)
+    // ── Graph patch from remote peer ─────────────────────────────────────────
+    // `workflow-updated` now carries a PATCH: only the positions/edges that changed,
+    // not the full node list. WorkflowEditor merges this into its own state.
     newSocket.on('workflow-updated', (data) => {
-      if (data.nodes) setNodes(data.nodes);
-      if (data.edges) setEdges(data.edges);
+      // data: { nodes?: PositionPatch[], edges?: Edge[], senderId? }
+      // Ignore echoes of our own changes (backend already does socket.to(), but
+      // double-check in case of race conditions).
+      if (data.senderId === newSocket.id) return;
+      setRemotePatch(data);
     });
 
-    // Handle remote cursor movement
+    // ── Cursor events ────────────────────────────────────────────────────────
     newSocket.on('cursor-updated', (data) => {
-      setCursors((prev) => ({
+      // data: { workflowId, x, y, user, color, socketId }
+      if (data.socketId === newSocket.id) return;
+      setCursors(prev => ({
         ...prev,
-        [data.socketId]: { x: data.x, y: data.y, user: data.user }
+        [data.socketId]: { x: data.x, y: data.y, user: data.user, color: data.color },
       }));
     });
 
-    // Handle remote node focus
+    // ── Node focus ───────────────────────────────────────────────────────────
     newSocket.on('node-focused', (data) => {
-      setActiveNodes((prev) => {
-        const newActive = { ...prev };
-        
-        // Remove this user from any other node they were focused on
-        Object.keys(newActive).forEach(nodeId => {
-          if (newActive[nodeId][data.socketId]) {
-            const users = { ...newActive[nodeId] };
+      setActiveNodes(prev => {
+        const next = { ...prev };
+
+        // Remove this peer from whichever node they were on before
+        Object.keys(next).forEach(nodeId => {
+          if (next[nodeId]?.[data.socketId]) {
+            const users = { ...next[nodeId] };
             delete users[data.socketId];
-            if (Object.keys(users).length === 0) {
-              delete newActive[nodeId];
-            } else {
-              newActive[nodeId] = users;
-            }
+            if (Object.keys(users).length === 0) delete next[nodeId];
+            else next[nodeId] = users;
           }
         });
 
-        // Add to new node if nodeId is provided
+        // Register on new node (null nodeId means user deselected)
         if (data.nodeId) {
-          newActive[data.nodeId] = {
-            ...(newActive[data.nodeId] || {}),
-            [data.socketId]: { user: data.user, color: data.color }
+          next[data.nodeId] = {
+            ...(next[data.nodeId] || {}),
+            [data.socketId]: { user: data.user, color: data.color },
           };
         }
-        
-        return newActive;
+
+        return next;
       });
     });
 
-    // Cleanup when component unmounts
     return () => {
       newSocket.emit('leave-workflow', workflowId);
       newSocket.disconnect();
+      setSocket(null);
     };
-  }, [workflowId]);
+  }, [workflowId]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // -- Emitting Changes --
+  // ── Emit helpers ──────────────────────────────────────────────────────────
 
-  const emitWorkflowChange = useCallback((newNodes, newEdges) => {
-    if (!socket) return;
-    
-    // update local state
-    setNodes(newNodes);
-    setEdges(newEdges);
-
-    // broadcast to others
+  /**
+   * Broadcast a graph change to all peers.
+   * @param {Node[]} nodes  - full current nodes array
+   * @param {Edge[]} edges  - full current edges array
+   */
+  const emitWorkflowChange = useCallback((nodes, edges) => {
+    if (!socket?.connected) return;
     socket.emit('workflow-change', {
       workflowId,
-      nodes: newNodes,
-      edges: newEdges
+      nodes,
+      edges,
+      senderId: socket.id,   // so receivers can ignore their own echo
     });
   }, [socket, workflowId]);
 
-  const emitCursorMove = useCallback((x, y, user) => {
-    if (!socket) return;
-    socket.emit('cursor-move', { workflowId, x, y, user });
+  /**
+   * Broadcast cursor position. Include color so remote cursors render correctly.
+   */
+  const emitCursorMove = useCallback((x, y, userObj) => {
+    if (!socket?.connected) return;
+    socket.emit('cursor-move', {
+      workflowId,
+      x,
+      y,
+      user: userObj.name,
+      color: userObj.color,
+    });
   }, [socket, workflowId]);
 
+  /**
+   * Broadcast which node this user has selected/focused.
+   */
   const emitNodeFocus = useCallback((nodeId, user, color) => {
-    if (!socket) return;
+    if (!socket?.connected) return;
     socket.emit('node-focus', { workflowId, nodeId, user, color });
   }, [socket, workflowId]);
+
+  /**
+   * Consume and clear the latest remote patch. Call from WorkflowEditor's useEffect.
+   */
+  const consumeRemotePatch = useCallback(() => {
+    const patch = remotePatch;
+    setRemotePatch(null);
+    return patch;
+  }, [remotePatch]);
 
   return {
     socket,
     collaborators,
     cursors,
     activeNodes,
-    nodes,
-    setNodes: setNodes,
-    edges,
-    setEdges: setEdges,
+    remotePatch,
+    consumeRemotePatch,
     emitWorkflowChange,
     emitCursorMove,
     emitNodeFocus,
-    user: localUser
+    user: localUserRef.current,
   };
 };
 

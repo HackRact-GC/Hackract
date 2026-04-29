@@ -73,11 +73,7 @@ const HackerOnboarding = () => {
   };
 
   const handleSubmit = async () => {
-    if (missingAgreements.length > 0) {
-      toast.error('You must sign all mandatory agreements first.');
-      return;
-    }
-    
+    // NDA is no longer required at onboarding — only when joining an org project
     setSubmitting(true);
     try {
       const payload = {
@@ -90,8 +86,8 @@ const HackerOnboarding = () => {
       await api.put('/hacker-profiles/me', payload);
       toast.success('Profile completed successfully!');
       setTimeout(() => {
-        // Full page reload will reconstruct auth context and push them to dashboard automatically
-        window.location.href = '/dashboard';
+        // Reload auth context and redirect hacker to their own dashboard
+        window.location.href = '/hacker-dashboard';
       }, 1500);
     } catch (error) {
       toast.error('Submission failed. Please try again.');
@@ -118,7 +114,7 @@ const HackerOnboarding = () => {
 
   if (loading) {
     return (
-      <div className="w-full h-64 flex items-center justify-center font-mono text-[#00ff88] animate-pulse">
+      <div className="w-full h-64 flex items-center justify-center font-mono text-[#00c477] animate-pulse">
         [SYSTEM]: Fetching profile records...
       </div>
     );
@@ -131,17 +127,17 @@ const HackerOnboarding = () => {
       <div className="mb-8">
         <h1 className="text-3xl font-mono font-bold mb-2">Operator Registration</h1>
         <div className="flex items-center gap-4 text-xs font-mono uppercase tracking-widest text-gray-500 mb-6">
-            <span className={step >= 1 ? "text-[#00ff88]" : ""}>1. Identity</span>
+            <span className={step >= 1 ? "text-[#00c477]" : ""}>1. Identity</span>
             <FiChevronRight />
-            <span className={step >= 2 ? "text-[#00ff88]" : ""}>2. Experience</span>
+            <span className={step >= 2 ? "text-[#00c477]" : ""}>2. Experience</span>
             <FiChevronRight />
-            <span className={step >= 3 ? "text-[#00ff88]" : ""}>3. Compliance</span>
+            <span className={step >= 3 ? "text-[#00c477]" : ""}>3. Compliance</span>
         </div>
         
         {/* Progress bar */}
         <div className="h-1 w-full bg-gray-800 rounded-full overflow-hidden">
             <div 
-                className="h-full bg-[#00ff88] transition-all duration-500 ease-out" 
+                className="h-full bg-[#00c477] transition-all duration-500 ease-out" 
                 style={{ width: `${(step / totalSteps) * 100}%` }}
             ></div>
         </div>
@@ -152,7 +148,7 @@ const HackerOnboarding = () => {
         {step === 1 && (
           <div className="space-y-6 animate-fadeIn">
             <h2 className="text-xl font-semibold flex items-center gap-2 mb-6 text-gray-200">
-              <FiUser className="text-[#00ff88]" /> Primary Identity
+              <FiUser className="text-[#00c477]" /> Primary Identity
             </h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="space-y-2">
@@ -161,7 +157,7 @@ const HackerOnboarding = () => {
                         name="idDocumentNumber"
                         value={formData.idDocumentNumber}
                         onChange={handleChange}
-                        className="w-full bg-black/40 border border-white/10 rounded-lg px-4 py-2.5 focus:outline-none focus:border-[#00ff88] transition-colors"
+                        className="w-full bg-black/40 border border-white/10 rounded-lg px-4 py-2.5 focus:outline-none focus:border-[#00c477] transition-colors"
                         placeholder="e.g. A12345678"
                     />
                 </div>
@@ -171,7 +167,7 @@ const HackerOnboarding = () => {
                         name="country"
                         value={formData.country}
                         onChange={handleChange}
-                        className="w-full bg-black/40 border border-white/10 rounded-lg px-4 py-2.5 focus:outline-none focus:border-[#00ff88] transition-colors"
+                        className="w-full bg-black/40 border border-white/10 rounded-lg px-4 py-2.5 focus:outline-none focus:border-[#00c477] transition-colors"
                         placeholder="e.g. Estonia"
                     />
                 </div>
@@ -183,7 +179,7 @@ const HackerOnboarding = () => {
                     value={formData.bio}
                     onChange={handleChange}
                     rows={4}
-                    className="w-full bg-black/40 border border-white/10 rounded-lg px-4 py-2.5 focus:outline-none focus:border-[#00ff88] transition-colors resize-none"
+                    className="w-full bg-black/40 border border-white/10 rounded-lg px-4 py-2.5 focus:outline-none focus:border-[#00c477] transition-colors resize-none"
                     placeholder="Describe your technical expertise and background..."
                 />
             </div>
@@ -194,7 +190,7 @@ const HackerOnboarding = () => {
         {step === 2 && (
           <div className="space-y-6 animate-fadeIn">
             <h2 className="text-xl font-semibold flex items-center gap-2 mb-6 text-gray-200">
-              <FiCode className="text-[#00ff88]" /> Technical Background
+              <FiCode className="text-[#00c477]" /> Technical Background
             </h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="space-y-2">
@@ -204,7 +200,7 @@ const HackerOnboarding = () => {
                         type="number"
                         value={formData.yearsOfExperience}
                         onChange={handleChange}
-                        className="w-full bg-black/40 border border-white/10 rounded-lg px-4 py-2.5 focus:outline-none focus:border-[#00ff88] transition-colors"
+                        className="w-full bg-black/40 border border-white/10 rounded-lg px-4 py-2.5 focus:outline-none focus:border-[#00c477] transition-colors"
                         placeholder="e.g. 3"
                     />
                 </div>
@@ -214,7 +210,7 @@ const HackerOnboarding = () => {
                         name="githubUsername"
                         value={formData.githubUsername}
                         onChange={handleChange}
-                        className="w-full bg-black/40 border border-white/10 rounded-lg px-4 py-2.5 focus:outline-none focus:border-[#00ff88] transition-colors"
+                        className="w-full bg-black/40 border border-white/10 rounded-lg px-4 py-2.5 focus:outline-none focus:border-[#00c477] transition-colors"
                         placeholder="e.g. defsec0"
                     />
                 </div>
@@ -225,7 +221,7 @@ const HackerOnboarding = () => {
                     name="primarySkills"
                     value={formData.primarySkills}
                     onChange={handleChange}
-                    className="w-full bg-black/40 border border-white/10 rounded-lg px-4 py-2.5 focus:outline-none focus:border-[#00ff88] transition-colors"
+                    className="w-full bg-black/40 border border-white/10 rounded-lg px-4 py-2.5 focus:outline-none focus:border-[#00c477] transition-colors"
                     placeholder="Web App Sec, Reverse Engineering, Exploit Dev..."
                 />
             </div>
@@ -235,7 +231,7 @@ const HackerOnboarding = () => {
                     name="certifications"
                     value={formData.certifications}
                     onChange={handleChange}
-                    className="w-full bg-black/40 border border-white/10 rounded-lg px-4 py-2.5 focus:outline-none focus:border-[#00ff88] transition-colors"
+                    className="w-full bg-black/40 border border-white/10 rounded-lg px-4 py-2.5 focus:outline-none focus:border-[#00c477] transition-colors"
                     placeholder="OSCP, CEH, CISSP..."
                 />
             </div>
@@ -246,15 +242,15 @@ const HackerOnboarding = () => {
         {step === 3 && (
           <div className="space-y-6 animate-fadeIn">
             <h2 className="text-xl font-semibold flex items-center gap-2 mb-6 text-gray-200">
-              <FiFileText className="text-[#00ff88]" /> Legal Compliance
+              <FiFileText className="text-[#00c477]" /> Legal Compliance
             </h2>
             
-            <div className="bg-amber-500/5 border border-amber-500/20 rounded-xl p-4 mb-6">
-                <div className="flex items-center gap-2 text-amber-500 text-sm font-bold mb-2">
-                  <FiAlertTriangle /> Critical Legal Requirement
+            <div className="bg-sky-500/5 border border-sky-500/20 rounded-xl p-4 mb-6">
+                <div className="flex items-center gap-2 text-sky-400 text-sm font-bold mb-2">
+                  <FiFileText /> Legal Compliance Info
                 </div>
                 <p className="text-xs text-gray-400 leading-relaxed">
-                  Participation in organization-hosted pentests requires validating the Mutual Non-Disclosure Agreement (MNDA). Your digital signature legally binds you to maintaining strict confidentiality regarding vulnerabilities discovered.
+                  Signing agreements is <span className="text-white font-bold">optional</span> for personal labs and practice. However, when you apply to an organization-hosted security program, the platform will require you to sign the NDA before your application is submitted.
                 </p>
             </div>
 
@@ -262,21 +258,21 @@ const HackerOnboarding = () => {
               {['Mutual Non-Disclosure Agreement (MNDA)', 'Ethical Hacking Code of Conduct'].map(title => {
                 const isSigned = !missingAgreements.includes(title);
                 return (
-                  <div key={title} className={`p-4 rounded-xl border transition-all flex items-center justify-between ${isSigned ? 'bg-[#00ff88]/5 border-[#00ff88]/20' : 'bg-white/5 border-white/10'}`}>
+                  <div key={title} className={`p-4 rounded-xl border transition-all flex items-center justify-between ${isSigned ? 'bg-[#00c477]/5 border-[#00c477]/20' : 'bg-white/5 border-white/10'}`}>
                     <div>
                         <div className="text-sm font-bold leading-tight mb-1">{title}</div>
-                        <span className={`text-[10px] font-mono tracking-tighter uppercase px-2 py-0.5 rounded ${isSigned ? 'bg-[#00ff88]/20 text-[#00ff88]' : 'bg-gray-800 text-gray-400'}`}>
+                        <span className={`text-[10px] font-mono tracking-tighter uppercase px-2 py-0.5 rounded ${isSigned ? 'bg-[#00c477]/20 text-[#00c477]' : 'bg-gray-800 text-gray-400'}`}>
                           {isSigned ? 'COMPLETED' : 'SIGNATURE REQUIRED'}
                         </span>
                     </div>
                     <div>
                         {isSigned ? (
-                            <FiCheckCircle className="text-[#00ff88] text-2xl" />
+                            <FiCheckCircle className="text-[#00c477] text-2xl" />
                         ) : (
                             <button 
                                 onClick={() => handleSign(title)}
                                 disabled={signing}
-                                className="px-4 py-2 bg-[#00ff88] hover:bg-[#00cc6e] text-black rounded-md text-[10px] font-mono font-bold uppercase tracking-widest transition-colors disabled:opacity-50"
+                                className="px-4 py-2 bg-[#00c477] hover:bg-[#00cc6e] text-black rounded-md text-[10px] font-mono font-bold uppercase tracking-widest transition-colors disabled:opacity-50"
                             >
                                 {signing ? 'SIGNING...' : 'REVIEW & SIGN'}
                             </button>
@@ -310,8 +306,8 @@ const HackerOnboarding = () => {
         ) : (
             <button 
                 onClick={handleSubmit}
-                disabled={submitting || missingAgreements.length > 0}
-                className="flex items-center gap-2 px-6 py-2.5 bg-[#00ff88] text-black rounded-lg text-sm font-mono font-bold uppercase tracking-widest hover:bg-[#00cc6e] transition-all active:scale-95 shadow-lg shadow-[#00ff88]/20 disabled:opacity-50 disabled:cursor-not-allowed"
+                disabled={submitting}
+                className="flex items-center gap-2 px-6 py-2.5 bg-[#00c477] text-black rounded-lg text-sm font-mono font-bold uppercase tracking-widest hover:bg-[#00cc6e] transition-all active:scale-95 shadow-lg shadow-[#00c477]/20 disabled:opacity-50 disabled:cursor-not-allowed"
             >
                 {submitting ? 'PROCESSING...' : 'COMPLETE ONBOARDING'} <FiCheckCircle />
             </button>

@@ -1,5 +1,5 @@
 import React, { useState, useRef, useCallback, useEffect } from 'react';
-import { FiArrowLeft, FiSave, FiClock, FiMessageSquare } from 'react-icons/fi';
+import { FiArrowLeft, FiHome, FiSave, FiClock, FiMessageSquare } from 'react-icons/fi';
 import {
   ReactFlow,
   ReactFlowProvider,
@@ -9,10 +9,13 @@ import {
   Controls,
   Background,
   MiniMap,
-  Panel
+  Panel,
+  useStore
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 import { formatDistanceToNow } from 'date-fns';
+import { useNavigate } from 'react-router-dom';
+import { useParams } from 'react-router-dom';
 
 // Custom Nodes
 import StartingPointNode from './nodes/StartingPointNode';
@@ -27,6 +30,8 @@ import WorkflowControls from './components/WorkflowControls';
 // Hooks & Services
 import { useWorkflowSocket } from '../../hooks/useWorkflowSocket';
 import workflowService from '../../services/workflow.service';
+import { useAuth } from '../../context/authContext.jsx';
+import api from "../../api/axiosConfig";
 
 const nodeTypes = {
   startingPoint: StartingPointNode,
@@ -36,7 +41,44 @@ const nodeTypes = {
   terminal: TerminalNode,
 };
 
-const WorkflowEditor = ({ workflowId = "mock-id-123", pentestId }) => {
+const InteractiveBackground = () => {
+  const transform = useStore((s) => s.transform);
+  const [x, y] = transform;
+
+  return (
+    <>
+      {/* Base dots: Brighter static green, unscalable, only pans */}
+      <div
+        className="absolute inset-0 pointer-events-none bg-transparent"
+        style={{
+          zIndex: 0,
+          backgroundPosition: `${x}px ${y}px`,
+          backgroundImage: 'radial-gradient(rgba(0, 255, 65, 0.3) 1px, transparent 1.2px)',
+          backgroundSize: '20px 20px'
+        }}
+      />
+      {/* Hover dots: Maximum neon glow brightness, slightly larger dot diameter (1.5px) */}
+      <div
+        className="absolute inset-0 pointer-events-none bg-transparent"
+        style={{
+          zIndex: 0,
+          backgroundPosition: `${x}px ${y}px`,
+          backgroundImage: 'radial-gradient(rgba(200, 255, 220, 1) 1.5px, transparent 2px)',
+          backgroundSize: '20px 20px',
+          maskImage: 'radial-gradient(140px circle at var(--mouse-x, -1000px) var(--mouse-y, -1000px), black 0%, transparent 100%)',
+          WebkitMaskImage: 'radial-gradient(140px circle at var(--mouse-x, -1000px) var(--mouse-y, -1000px), black 0%, transparent 100%)',
+        }}
+      />
+    </>
+  );
+};
+
+const WorkflowEditor = ({ workflowId: propWorkflowId, pentestId: propPentestId }) => {
+  const params = useParams();
+  const navigate = useNavigate();
+  const workflowId = propWorkflowId || params.workflowId || "mock-id-123";
+  const pentestId = propPentestId || params.pentestId;
+
   const reactFlowWrapper = useRef(null);
   const [reactFlowInstance, setReactFlowInstance] = useState(null);
   const [lastSaved, setLastSaved] = useState(new Date());
@@ -44,43 +86,102 @@ const WorkflowEditor = ({ workflowId = "mock-id-123", pentestId }) => {
   const [isLocked, setIsLocked] = useState(false);
   const [canEdit, setCanEdit] = useState(true);
   const [findings, setFindings] = useState([]);
+  const [projectInfo, setProjectInfo] = useState({ name: 'Untitled Workflow', type: 'Audit' });
 
   const {
     socket,
     collaborators,
     cursors,
     activeNodes,
-    nodes: remoteNodes,
-    edges: remoteEdges,
+    remotePatch,
+    consumeRemotePatch,
     emitWorkflowChange,
     emitCursorMove,
     emitNodeFocus,
     user: localUser
   } = useWorkflowSocket(workflowId);
 
+  // Track whether we are locally dragging so we don't overwrite positions mid-drag
+  const isDraggingRef = useRef(false);
+
+  const { user: authUser } = useAuth();
+
   // Local React Flow State
   const [nodes, setNodes, onNodesChange] = useNodesState([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState([]);
 
-  // Sync Remote Changes into Local State
+  // ── Merge remote patches without disrupting local drag state ──────────────
   useEffect(() => {
-    if (remoteNodes && remoteNodes.length > 0) {
-      // We need to inject the onDelete handler into remote nodes since they come from network without functions
-      const nodesWithHandlers = remoteNodes.map(node => ({
-        ...node,
-        data: {
-          ...node.data,
-          onDelete: () => deleteNode(node.id),
-          onTitleChange: (newTitle) => updateNodeTitle(node.id, newTitle),
-          onLinkFinding: (findingId) => linkFinding(node.id, findingId),
-          findings,
-          activeUsers: activeNodes[node.id] || {}
+    if (!remotePatch) return;
+    const patch = consumeRemotePatch();
+    if (!patch) return;
+
+    // ── Node positions: merge by ID, never replace while locally dragging ────
+    if (patch.nodes && patch.nodes.length > 0) {
+      setNodes(localNodes => {
+        // Build a fast lookup: patchedNodeId → { position, data fields }
+        const patchMap = {};
+        patch.nodes.forEach(n => { patchMap[n.id] = n; });
+
+        const merged = localNodes.map(localNode => {
+          const remote = patchMap[localNode.id];
+          if (!remote) return localNode; // node not in patch → untouched
+
+          // Skip position merge if user is currently dragging this node
+          const isBeingDragged = isDraggingRef.current && localNode.dragging;
+          const nextPosition = isBeingDragged ? localNode.position : (remote.position || localNode.position);
+
+          return {
+            ...localNode,
+            position: nextPosition,
+            // Merge remote data fields (label, findingId, etc.) but keep local callbacks
+            data: {
+              ...localNode.data,
+              ...remote.data,
+              // Always preserve local function callbacks — they cannot serialise over the socket
+              onDelete: localNode.data.onDelete,
+              onTitleChange: localNode.data.onTitleChange,
+              onLinkFinding: localNode.data.onLinkFinding,
+              findings: localNode.data.findings,
+              activeUsers: activeNodes[localNode.id] || {},
+            },
+          };
+        });
+
+        // Handle new nodes added by a remote peer (not present locally)
+        const localIds = new Set(localNodes.map(n => n.id));
+        patch.nodes.forEach(remoteNode => {
+          if (!localIds.has(remoteNode.id)) {
+            // New node from remote — attach all local callbacks
+            merged.push({
+              ...remoteNode,
+              data: {
+                ...remoteNode.data,
+                onDelete: () => deleteNode(remoteNode.id),
+                onTitleChange: (newTitle) => updateNodeTitle(remoteNode.id, newTitle),
+                onLinkFinding: (findingId) => linkFinding(remoteNode.id, findingId),
+                findings,
+                activeUsers: activeNodes[remoteNode.id] || {},
+              },
+            });
+          }
+        });
+
+        // Handle nodes deleted by a remote peer
+        if (patch.deletedNodeIds && patch.deletedNodeIds.length > 0) {
+          const deletedSet = new Set(patch.deletedNodeIds);
+          return merged.filter(n => !deletedSet.has(n.id));
         }
-      }));
-      setNodes(nodesWithHandlers);
+
+        return merged;
+      });
     }
-    if (remoteEdges && remoteEdges.length > 0) setEdges(remoteEdges);
-  }, [remoteNodes, remoteEdges, setNodes, setEdges]);
+
+    // ── Edges: full replace is safe (edges have no callback functions) ────────
+    if (patch.edges) {
+      setEdges(patch.edges);
+    }
+  }, [remotePatch]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Load Initial Graph State
   useEffect(() => {
@@ -103,15 +204,41 @@ const WorkflowEditor = ({ workflowId = "mock-id-123", pentestId }) => {
         }
         if (data && data.edges) setEdges(data.edges);
         if (data && data.pentest?.findings) setFindings(data.pentest.findings);
-        
+        if (data) {
+          // Try to determine project name from workflow name or pentest relation
+          let projectName = data.pentest?.name;
+          let projectType = data.pentest?.status || 'ACTIVE';
+
+          // Robust Fallback: If pentest relation is empty but ID exists, fetch it specifically
+          if (!projectName && data.pentestId) {
+            try {
+              const pRes = await api.get(`/projects/${data.pentestId}`);
+              if (pRes.data?.success && pRes.data.data) {
+                projectName = pRes.data.data.name;
+                projectType = pRes.data.data.status;
+              }
+            } catch (pErr) {
+              console.warn("Could not find parent project name via API", pErr);
+            }
+          }
+
+          // Final fallback to workflow local name
+          if (!projectName) projectName = data.name || data.title;
+
+          setProjectInfo({
+            name: projectName || 'Untitled Workspace',
+            type: projectType
+          });
+        }
+
         // RBAC Check
-        const collaborators = data.pentest?.collaborators || [];
-        const isCollaborator = collaborators.some(c => 
-          c.userId === localUser.id && 
+        const pentestCollabs = data.pentest?.collaborators || [];
+        const isCollaborator = pentestCollabs.some(c =>
+          c.userId === localUser.id &&
           ["HACKER", "PROJECT_ADMIN", "ORG_ADMIN"].includes(c.role)
         );
-        const isSuperAdmin = localUser.roles?.some(r => r.type === "SUPER_ADMIN");
-        
+        const isSuperAdmin = authUser?.roles?.some(r => r.type === "SUPER_ADMIN");
+
         if (!isCollaborator && !isSuperAdmin) {
           setCanEdit(false);
           setIsLocked(true);
@@ -246,7 +373,7 @@ const WorkflowEditor = ({ workflowId = "mock-id-123", pentestId }) => {
   // Handle Connecting Nodes
   const onConnect = useCallback(
     (params) => {
-      const newEdges = addEdge(params, edges);
+      const newEdges = addEdge({ ...params, animated: true, style: { stroke: '#00ff41', strokeWidth: 1.5 } }, edges);
       setEdges(newEdges);
       emitWorkflowChange(nodes, newEdges);
       saveToDatabase(nodes, newEdges, "CONNECT_NODES");
@@ -281,25 +408,52 @@ const WorkflowEditor = ({ workflowId = "mock-id-123", pentestId }) => {
   const handleNodesChange = useCallback((changes) => {
     onNodesChange(changes);
 
-    // Only emit/save if it represents a structural change or move end, to avoid spanmung
-    const dragEndedOrDeleted = changes.some(c => (c.type === "position" && !c.dragging) || c.type === "remove");
-    if (dragEndedOrDeleted) {
+    const hasPositionChange = changes.some(c => c.type === 'position');
+    const isDraggingNow = changes.some(c => c.type === 'position' && c.dragging === true);
+    const dragEnded = changes.some(c => c.type === 'position' && c.dragging === false);
+    const hasRemoval = changes.some(c => c.type === 'remove');
+
+    // Update drag-in-progress ref so remote patches skip position merge
+    if (isDraggingNow) isDraggingRef.current = true;
+    if (dragEnded || hasRemoval) isDraggingRef.current = false;
+
+    if (hasPositionChange || hasRemoval) {
+      // Use a micro-delay so React Flow finishes applying the change to state first
+      setTimeout(() => {
+        setNodes(nds => {
+          setEdges(eds => {
+            // Broadcast live position to peers (throttling is handled by socket.io itself)
+            emitWorkflowChange(nds, eds);
+
+            // Only persist to DB on drag-end or deletion
+            if (dragEnded) saveToDatabase(nds, eds, 'MOVE_NODE');
+
+            return eds;
+          });
+          return nds;
+        });
+      }, 8);
+    }
+  }, [onNodesChange, emitWorkflowChange, setNodes, setEdges]);
+
+  // Handle Edge Deletions dynamically so all peers see the disconnect
+  const handleEdgesChange = useCallback((changes) => {
+    onEdgesChange(changes);
+
+    const isDelete = changes.some(c => c.type === "remove");
+    if (isDelete) {
        setTimeout(() => {
-         // A small closure-like check to get the latest state
          setNodes((nds) => {
            setEdges((eds) => {
              emitWorkflowChange(nds, eds);
-             const isDelete = changes.some(c => c.type === "remove");
-             if (!isDelete) {
-               saveToDatabase(nds, eds, "MOVE_NODE");
-             }
+             saveToDatabase(nds, eds, "DELETE_EDGE");
              return eds;
            });
            return nds;
          });
        }, 50);
     }
-  }, [onNodesChange, emitWorkflowChange, setNodes, setEdges]);
+  }, [onEdgesChange, emitWorkflowChange, setNodes, setEdges]);
 
   // Sync activeNodes to node data
   useEffect(() => {
@@ -323,70 +477,112 @@ const WorkflowEditor = ({ workflowId = "mock-id-123", pentestId }) => {
     }
   }, [emitNodeFocus, localUser]);
 
-  // Render Remote Cursors
+  // Render Remote Cursors — each with the peer's unique color
   const renderCursors = () => {
-    return Object.entries(cursors).map(([socketId, cursor]) => (
-      <div
-        key={socketId}
-        className="absolute pointer-events-none z-50 flex items-center gap-2 transition-transform duration-100 ease-out"
-        style={{ transform: `translate(${cursor.x}px, ${cursor.y}px)` }}
-      >
-        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <path d="M0.999967 0L6.64997 15.5L8.54997 9.5L14.45 7.6L0.999967 0Z" fill="#00ff41"/>
-        </svg>
-        <span className="bg-[#00ff41] text-black text-[10px] px-1 rounded font-bold">
-          {cursor.user || 'Peer'}
-        </span>
-      </div>
-    ));
+    return Object.entries(cursors).map(([socketId, cursor]) => {
+      const color = cursor.color || '#00ff41';
+      return (
+        <div
+          key={socketId}
+          className="absolute pointer-events-none z-50 flex items-center gap-1.5"
+          style={{
+            transform: `translate(${cursor.x}px, ${cursor.y}px)`,
+            transition: 'transform 80ms linear',
+          }}
+        >
+          {/* Cursor arrow */}
+          <svg width="14" height="18" viewBox="0 0 14 18" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M0 0L0 14L3.5 10.5L6 16L8 15L5.5 9.5H10L0 0Z" fill={color} />
+          </svg>
+          {/* Name tag */}
+          <span
+            className="text-[10px] px-2 py-0.5 rounded font-bold shadow-lg whitespace-nowrap"
+            style={{ backgroundColor: color, color: '#000' }}
+          >
+            {cursor.user || 'Peer'}
+          </span>
+        </div>
+      );
+    });
   };
 
-
   return (
-    <div className="flex flex-col h-screen bg-[#07090e] text-white overflow-hidden">
+    <div className="flex flex-col h-screen bg-[#13151a] text-white overflow-hidden relative">
       {/* Top Header Bar */}
-      <div className="h-14 border-b border-gray-800 flex items-center justify-between px-4 bg-[#0b0f19] z-20">
+      <div className="h-14 border-b border-[#252830] flex items-center justify-between px-4 bg-[#1a1c23]/90 backdrop-blur-md z-20 shadow-sm relative">
         <div className="flex items-center gap-4">
-          <button className="text-gray-400 hover:text-white flex items-center justify-center">
-            <FiArrowLeft size={18} />
+          <button
+            onClick={() => {
+              const isOrg = authUser?.roles?.some(r => ['ORGANIZATION', 'ORG_ADMIN', 'SUPER_ADMIN'].includes(r.type));
+              navigate(isOrg ? '/dashboard' : '/hacker-dashboard');
+            }}
+            className="w-9 h-9 flex items-center justify-center rounded-xl bg-white/5 border border-white/10 text-gray-400 hover:text-[#00ff41] hover:border-[#00ff41]/30 transition-all shadow-sm"
+            title="Back to Dashboard"
+          >
+            <FiHome size={18} />
           </button>
-          <div className="font-bold font-mono text-xs uppercase tracking-widest text-[#00ff41]">Audit Workflow</div>
-          <div className="font-bold font-mono max-w-[200px] truncate">E-Commerce Security Audit...</div>
-          <div className="text-gray-500 text-[10px] font-mono flex items-center gap-1 bg-black/30 px-2 py-1 rounded border border-gray-800">
-            <FiSave size={12} className="text-[#00ff41]" />
-            SYNCED: {formatDistanceToNow(lastSaved, { addSuffix: true })}
+
+          <div className="flex items-center gap-3 overflow-hidden">
+            <span className="text-gray-700 font-medium text-lg leading-none select-none">/</span>
+            <div className="flex flex-col md:flex-row md:items-center gap-1 md:gap-3 overflow-hidden">
+              <h1
+                className="text-sm md:text-[16px] font-bold text-white tracking-tight truncate max-w-[300px] md:max-w-[600px] lg:max-w-none"
+                title={projectInfo.name}
+              >
+                {projectInfo.name}
+              </h1>
+              <div className="flex items-center gap-2">
+                <span className="hidden md:block w-1.5 h-1.5 rounded-full bg-white/10" />
+                <span className="text-[9px] font-black text-[#00ff41] bg-[#00ff41]/5 border border-[#00ff41]/20 px-2 py-0.5 rounded uppercase tracking-[0.2em] opacity-80">
+                  {projectInfo.type} NODE
+                </span>
+              </div>
+            </div>
+          </div>
+
+          <div className="hidden lg:flex items-center gap-1.5 bg-black/40 px-3 py-1.5 rounded-full border border-white/5 shadow-inner">
+            <FiSave size={11} className="text-[#00ff41] animate-pulse" />
+            <span className="text-gray-500 text-[9px] font-bold uppercase tracking-widest">
+              LATEST_SYNC: {formatDistanceToNow(lastSaved, { addSuffix: true })}
+            </span>
           </div>
         </div>
 
-        <div className="flex items-center gap-3">
-            {/* Active Collaborators Bubbles */}
+        <div className="flex items-center gap-4">
+            {/* Active Collaborators Profiles */}
             <div className="flex -space-x-2 items-center">
                {Object.values(collaborators).map((collab, index) => (
                  <div
                    key={collab.id}
-                   className="w-8 h-8 rounded-full border-2 border-[#0b0f19] flex items-center justify-center text-xs font-bold shadow-lg transition-transform hover:-translate-y-1 hover:z-30 cursor-help"
-                   style={{ backgroundColor: collab.color || '#00ff41', color: '#fff', zIndex: 10 + index }}
-                   title={collab.user}
+                   className="relative group transition-transform hover:-translate-y-1 hover:z-30 cursor-help"
+                   style={{ zIndex: 10 + index }}
+                   title={collab.user || 'Online Hacker'}
                 >
-                   {collab.user?.[0] || 'U'}
+                   <div
+                     className="w-8 h-8 rounded-full border-2 border-[#1a1c23] flex items-center justify-center text-xs font-bold shadow-md bg-[#13151a]"
+                     style={{ backgroundColor: collab.color || '#00ff41', color: '#000' }}
+                   >
+                     {collab.user?.[0]?.toUpperCase() || 'H'}
+                   </div>
+                   <span className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-[#00ff41] border-[1.5px] border-[#1a1c23] rounded-full shadow-[0_0_5px_rgba(0,255,65,0.4)]"></span>
                  </div>
                ))}
             </div>
 
-           <div className="h-6 w-px bg-gray-700 mx-2"></div>
+           <div className="h-6 w-px bg-gray-700 mx-1"></div>
 
            <button
-             className={`hover:text-white transition-colors flex items-center gap-2 font-mono text-xs ${isHistoryOpen ? 'text-[#00a3ff]' : 'text-gray-400'}`}
+             className={`hover:text-[#00ff41] transition-colors flex items-center gap-2 font-semibold text-xs ${isHistoryOpen ? 'text-[#00ff41]' : 'text-gray-400'}`}
              title="History"
              onClick={() => setIsHistoryOpen(!isHistoryOpen)}
            >
              <FiClock size={16} />
-             <span>LOGS</span>
+             <span>HISTORY</span>
            </button>
-           <button className="text-gray-400 hover:text-white" title="Comments">
+           <button className="text-gray-400 hover:text-[#00ff41] transition-colors" title="Comments">
              <FiMessageSquare size={16} />
            </button>
-           <button className="bg-[#00a3ff] hover:bg-[#0082cc] text-white px-4 py-1.5 rounded text-xs font-mono font-bold transition-all shadow-[0_0_10px_rgba(0,163,255,0.4)] active:scale-95">
+           <button className="bg-[#00ff41] hover:bg-[#00cc33] text-black px-4 py-1.5 rounded-md text-xs font-bold transition-all shadow-[0_0_10px_rgba(0,255,65,0.2)] active:scale-95">
               PUBLISH
            </button>
         </div>
@@ -394,7 +590,24 @@ const WorkflowEditor = ({ workflowId = "mock-id-123", pentestId }) => {
 
       {/* Main Workspace */}
       <div className="flex flex-1 overflow-hidden relative"
-           onMouseMove={(e) => emitCursorMove(e.clientX, e.clientY, localUser.name)}>
+           onMouseMove={(e) => {
+             if (reactFlowWrapper.current) {
+                const rect = reactFlowWrapper.current.getBoundingClientRect();
+                const x = e.clientX - rect.left;
+                const y = e.clientY - rect.top;
+                
+                emitCursorMove(x, y, localUser);
+                
+                reactFlowWrapper.current.style.setProperty('--mouse-x', `${x}px`);
+                reactFlowWrapper.current.style.setProperty('--mouse-y', `${y}px`);
+             }
+           }}
+           onMouseLeave={() => {
+             if (reactFlowWrapper.current) {
+               reactFlowWrapper.current.style.setProperty('--mouse-x', `-1000px`);
+               reactFlowWrapper.current.style.setProperty('--mouse-y', `-1000px`);
+             }
+           }}>
 
         <Sidebar onAdd={addNodeByClick} />
 
@@ -406,30 +619,29 @@ const WorkflowEditor = ({ workflowId = "mock-id-123", pentestId }) => {
               nodes={nodes}
               edges={edges}
               onNodesChange={handleNodesChange}
-              onEdgesChange={onEdgesChange}
+              onEdgesChange={handleEdgesChange}
               onConnect={onConnect}
               onInit={setReactFlowInstance}
               onDrop={onDrop}
               onDragOver={onDragOver}
               onSelectionChange={onSelectionChange}
               nodeTypes={nodeTypes}
+              defaultEdgeOptions={{
+                animated: true,
+                style: { stroke: '#00ff41', strokeWidth: 1.5, opacity: 0.6 }
+              }}
               fitView
-              className="bg-[#07090e]"
+              className="bg-transparent"
               nodesDraggable={!isLocked}
               nodesConnectable={!isLocked}
               elementsSelectable={!isLocked}
               panOnDrag={!isLocked}
             >
-              <Background
-                variant="lines"
-                color="rgba(0, 255, 65, 0.15)"
-                gap={40}
-                className="bg-[#07090e]"
-              />
+              <InteractiveBackground />
               <Panel position="bottom-left">
-                <WorkflowControls 
-                  isLocked={isLocked} 
-                  onToggleLock={() => canEdit && setIsLocked(!isLocked)} 
+                <WorkflowControls
+                  isLocked={isLocked}
+                  onToggleLock={() => canEdit && setIsLocked(!isLocked)}
                   disabled={!canEdit}
                 />
               </Panel>
@@ -442,9 +654,9 @@ const WorkflowEditor = ({ workflowId = "mock-id-123", pentestId }) => {
                   if (n.type === 'terminal') return '#ffb000';
                   return '#333';
                 }}
-                maskColor="rgba(0, 0,0, 0.6)"
+                maskColor="rgba(19, 21, 26, 0.7)"
                 activeColor="#00ff41"
-                className="bg-[#0b0f19] border border-[#00ff41]/20 rounded-lg overflow-hidden shadow-2xl scale-75 origin-bottom-right"
+                className="bg-[#1a1c23] border border-[#252830] rounded-lg overflow-hidden shadow-2xl scale-75 origin-bottom-right"
                 style={{ bottom: 10, right: 10 }}
               />
             </ReactFlow>

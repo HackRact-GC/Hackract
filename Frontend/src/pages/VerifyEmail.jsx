@@ -1,9 +1,8 @@
-import { useState } from "react";
-import { Link } from "react-router-dom";
+import { useEffect, useMemo, useState } from "react";
+import { Link, useLocation, useSearchParams, useNavigate } from "react-router-dom";
+
 import toast from "react-hot-toast";
 import api from "../api/axiosConfig";
-import { useNavigate } from "react-router-dom";
-import { useSearchParams } from "react-router-dom";
 
 const StatusBadge = ({ status, children }) => {
   const colors = {
@@ -18,13 +17,31 @@ const StatusBadge = ({ status, children }) => {
 
 const VerifyEmail = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const [searchParams] = useSearchParams();
   const [status, setStatus] = useState("idle");
   const [message, setMessage] = useState("Enter the 6-digit code we emailed you.");
-  const [form, setForm] = useState({
-    email: searchParams.get("email") || "",
-    code: "",
-  });
+  const tokenFromUrl = useMemo(() => {
+    const t = searchParams.get("token");
+    return t ? String(t).trim() : "";
+  }, [searchParams]);
+
+  const initialEmail = useMemo(() => {
+    const emailFromUrl = searchParams.get("email");
+    const emailFromState = location?.state?.email;
+    return typeof emailFromState === "string" ? emailFromState : (emailFromUrl || "");
+  }, [location?.state?.email, searchParams]);
+
+  const [form, setForm] = useState({ email: initialEmail, code: tokenFromUrl || "" });
+
+  useEffect(() => {
+    setForm((prev) => ({
+      ...prev,
+      email: prev.email || initialEmail,
+      code: prev.code || tokenFromUrl,
+    }));
+  }, [initialEmail, tokenFromUrl]);
+
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -104,7 +121,7 @@ const VerifyEmail = () => {
         <button
           type="submit"
           disabled={status === "loading"}
-          className="w-full bg-black text-[#00ff88] font-mono font-bold py-3 uppercase tracking-widest hover:bg-[#00ff88] hover:text-black transition-all duration-300 mt-2 cursor-pointer shadow-lg disabled:opacity-60"
+          className="w-full bg-black text-[#00c477] font-mono font-bold py-3 uppercase tracking-widest hover:bg-[#00c477] hover:text-black transition-all duration-300 mt-2 cursor-pointer shadow-lg disabled:opacity-60"
         >
           {status === "loading" ? "Validating..." : "Execute Verification"}
         </button>
@@ -118,7 +135,7 @@ const VerifyEmail = () => {
         <div className="flex gap-3">
           <Link
             to="/login"
-            className="px-4 py-2 bg-black text-[#00ff88] rounded-sm font-bold uppercase tracking-widest hover:bg-[#00ff88] hover:text-black transition-all duration-300"
+            className="px-4 py-2 bg-black text-[#00c477] rounded-sm font-bold uppercase tracking-widest hover:bg-[#00c477] hover:text-black transition-all duration-300"
           >
             Go to login
           </Link>

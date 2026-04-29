@@ -59,6 +59,43 @@ class OrganizationService {
     return organizationRepository.updateOrganization(id, data);
   }
 
+
+
+  async submitVerification(id, data, userId) {
+    const organization = await organizationRepository.getOrganizationById(id);
+    if (!organization) {
+      throw new AppError('Organization not found', 404);
+    }
+    if (organization.verificationStatus === VerificationStatus.APPROVED) {
+      return organization;
+    }
+
+    return await organizationRepository.updateOrganization(id, {
+      ...data,
+      verificationStatus: VerificationStatus.SUBMITTED
+    });
+  }
+
+  async approveOrganization(id, adminId) {
+    const organization = await organizationRepository.getOrganizationById(id);
+    if (!organization) {
+      throw new AppError('Organization not found', 404);
+    }
+    return await organizationRepository.updateOrganization(id, {
+      verificationStatus: VerificationStatus.APPROVED
+    });
+  }
+
+  async rejectOrganization(id, adminId) {
+    const organization = await organizationRepository.getOrganizationById(id);
+    if (!organization) {
+      throw new AppError('Organization not found', 404);
+    }
+    return await organizationRepository.updateOrganization(id, {
+      verificationStatus: VerificationStatus.REJECTED
+    });
+  }
+
   async deleteOrganization(id, user) {
     if (isSuperAdmin(user)) {
       return organizationRepository.deleteOrganization(id);
@@ -77,41 +114,6 @@ class OrganizationService {
     }
 
     return organizationRepository.deleteOrganization(id);
-  }
-
-  async submitVerification(id, data, userId) {
-    const organization = await organizationRepository.getOrganizationById(id);
-    if (!organization) {
-        throw new AppError('Organization not found', 404);
-    }
-    if (organization.verificationStatus === VerificationStatus.APPROVED) {
-        return organization;
-    }
-
-    return await organizationRepository.updateOrganization(id, {
-        ...data,
-        verificationStatus: VerificationStatus.SUBMITTED
-    });
-  }
-
-  async approveOrganization(id, adminId) {
-    const organization = await organizationRepository.getOrganizationById(id);
-    if (!organization) {
-        throw new AppError('Organization not found', 404);
-    }
-    return await organizationRepository.updateOrganization(id, {
-        verificationStatus: VerificationStatus.APPROVED
-    });
-  }
-
-  async rejectOrganization(id, adminId) {
-    const organization = await organizationRepository.getOrganizationById(id);
-    if (!organization) {
-        throw new AppError('Organization not found', 404);
-    }
-    return await organizationRepository.updateOrganization(id, {
-        verificationStatus: VerificationStatus.REJECTED
-    });
   }
 
   async listOrganizations(query, user) {
@@ -153,6 +155,128 @@ class OrganizationService {
   }
 
 
+
+  async getMembers(organizationId) {
+    return prisma.organizationMember.findMany({
+      where: { organizationId },
+      include: {
+        user: {
+          select: {
+            id: true,
+            email: true,
+            fullName: true,
+            handle: true,
+            status: true,
+          },
+        },
+      },
+    });
+  }
+
+  async addMember(organizationId, data, adminId) {
+    const user = await prisma.user.findUnique({
+      where: { email: data.email }
+    });
+
+    if (!user) {
+      throw new AppError('User with this email not found', 404);
+    }
+
+    const existingMember = await prisma.organizationMember.findFirst({
+      where: { organizationId, userId: user.id }
+    });
+
+    if (existingMember) {
+      throw new AppError('User is already a member of this organization', 400);
+    }
+
+    return prisma.organizationMember.create({
+      data: {
+        organizationId,
+        userId: user.id,
+        role: data.role || 'member',
+        canCreatePentests: data.canCreatePentests || false,
+        canInviteMembers: data.canInviteMembers || false
+      }
+    });
+  }
+
+  async updateMember(organizationId, userId, data, adminId) {
+    try {
+      return await prisma.organizationMember.update({
+        where: {
+          organizationId_userId: {
+            organizationId,
+            userId
+          }
+        },
+        data
+      });
+    } catch (error) {
+      if (error.code === 'P2025') {
+        throw new AppError('Member not found', 404);
+      }
+      throw error;
+    }
+  }
+
+  async removeMember(organizationId, userId, adminId) {
+    const member = await prisma.organizationMember.findUnique({
+      where: {
+        organizationId_userId: {
+          organizationId,
+          userId
+        }
+      }
+    });
+
+    if (!member) {
+      throw new AppError('Member not found', 404);
+    }
+
+    if (member.role === 'owner') {
+      const ownerCount = await prisma.organizationMember.count({
+        where: { organizationId, role: 'owner' }
+      });
+      if (ownerCount <= 1) {
+        throw new AppError('Cannot remove the last owner of the organization', 400);
+      }
+    }
+
+    return prisma.organizationMember.delete({
+      where: {
+        organizationId_userId: {
+          organizationId,
+          userId
+        }
+      }
+    });
+  }
+
+  async validateDomain(organizationId, userId) {
+    const org = await organizationRepository.getOrganizationById(organizationId);
+    if (!org.website) {
+      throw new AppError('Organization website is required for domain validation', 400);
+    }
+    const user = await prisma.user.findUnique({ where: { id: userId } });
+    const emailDomain = user.email.split('@')[1].toLowerCase();
+    const websiteDomain = org.website.replace(/^https?:\/\/(www\.)?/, '').split('/')[0].toLowerCase();
+
+    const isMatch = emailDomain === websiteDomain;
+
+    if (isMatch) {
+      await organizationRepository.updateOrganization(organizationId, {
+        verificationStatus: VerificationStatus.APPROVED
+      });
+    }
+
+    return {
+      valid: isMatch,
+      emailDomain,
+      websiteDomain,
+      message: isMatch ? 'Domain validated successfully' : 'Domain mismatch'
+    };
+  }
 
   async getUserOrganizations(userId) {
     const memberships = await prisma.organizationMember.findMany({

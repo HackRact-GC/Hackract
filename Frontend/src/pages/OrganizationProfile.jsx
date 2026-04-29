@@ -1,8 +1,9 @@
 import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import api from "../api/axiosConfig";
+import { motion, AnimatePresence } from "framer-motion";
 
-// ─── Icon SVGs (inline, no extra dep needed) ─────────────────────────────────
+// ─── Icons ───────────────────────────────────────────────────────────────────
 const Icons = {
   Building: () => (
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="w-5 h-5">
@@ -12,7 +13,7 @@ const Icons = {
   Settings: () => (
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="w-5 h-5">
       <circle cx="12" cy="12" r="3" />
-      <path strokeLinecap="round" strokeLinejoin="round" d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
+      <path strokeLinecap="round" strokeLinejoin="round" d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
     </svg>
   ),
   Users: () => (
@@ -40,7 +41,7 @@ const Icons = {
     </svg>
   ),
   Camera: () => (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="w-5 h-5">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="w-4 h-4">
       <path strokeLinecap="round" strokeLinejoin="round" d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z" />
       <circle cx="12" cy="13" r="4" />
     </svg>
@@ -83,93 +84,88 @@ const Icons = {
   ),
 };
 
-// ─── Sidebar nav items ────────────────────────────────────────────────────────
 const NAV_ITEMS = [
-  { key: "overview",      label: "Overview",       Icon: Icons.Dashboard },
   { key: "profile",       label: "Organization",   Icon: Icons.Building },
+  { key: "overview",      label: "Overview",       Icon: Icons.Dashboard },
   { key: "members",       label: "Members",        Icon: Icons.Users },
   { key: "security",      label: "Security",       Icon: Icons.Shield },
   { key: "notifications", label: "Notifications",  Icon: Icons.Bell },
   { key: "billing",       label: "Billing",        Icon: Icons.Billing },
 ];
 
-// ─── Utility ─────────────────────────────────────────────────────────────────
 const initials = (name) =>
   name
     ? name.split(" ").slice(0, 2).map((w) => w[0]).join("").toUpperCase()
     : "ORG";
 
-// ─── Field wrapper ────────────────────────────────────────────────────────────
 const Field = ({ label, required, children, hint }) => (
-  <div className="flex flex-col gap-1.5">
-    <label className="text-xs font-semibold text-gray-500 uppercase tracking-widest flex items-center gap-1">
+  <div className="flex flex-col gap-2">
+    <label className="text-[10px] font-mono font-black text-gray-500 uppercase tracking-[0.2em] flex items-center gap-1.5 ml-1">
       {label}
-      {required && <span className="text-rose-500 text-xs">*</span>}
+      {required && <span className="text-[#00c477]/60 text-xs">*</span>}
     </label>
     {children}
-    {hint && <p className="text-[11px] text-gray-400 leading-relaxed">{hint}</p>}
+    {hint && <p className="text-[9px] font-mono text-gray-600 leading-relaxed uppercase tracking-widest pl-1">{hint}</p>}
   </div>
 );
 
-// ─── Input ────────────────────────────────────────────────────────────────────
 const Input = ({ icon: IconComp, ...props }) => (
-  <div className="relative">
+  <div className="relative group">
     {IconComp && (
-      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none">
+      <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-600 group-focus-within:text-[#00c477] transition-colors pointer-events-none">
         <IconComp />
       </span>
     )}
     <input
       {...props}
-      className={`w-full border border-gray-200 rounded-lg bg-gray-50 text-sm text-gray-800 placeholder-gray-400
-        focus:outline-none focus:ring-2 focus:ring-indigo-500/40 focus:border-indigo-500 transition-all
-        py-2.5 ${IconComp ? "pl-10 pr-3" : "px-3"}`}
+      className={`w-full border border-white/10 rounded-[20px] bg-white/[0.02] text-sm text-white placeholder-gray-600
+        focus:outline-none focus:border-[#00c477]/50 focus:ring-1 focus:ring-[#00c477]/20 transition-all font-mono
+        py-3.5 ${IconComp ? "pl-12 pr-4" : "px-5"}`}
     />
   </div>
 );
 
-// ─── Select ───────────────────────────────────────────────────────────────────
 const Select = ({ children, ...props }) => (
   <select
     {...props}
-    className="w-full border border-gray-200 rounded-lg bg-gray-50 text-sm text-gray-800
-      focus:outline-none focus:ring-2 focus:ring-indigo-500/40 focus:border-indigo-500 transition-all
-      px-3 py-2.5 appearance-none cursor-pointer"
+    className="w-full border border-white/10 rounded-[20px] bg-white/[0.02] text-sm text-white focus:outline-none focus:border-[#00c477]/50 focus:ring-1 focus:ring-[#00c477]/20 transition-all px-5 py-3.5 cursor-pointer font-mono appearance-none"
   >
     {children}
   </select>
 );
 
-// ─── Section card ─────────────────────────────────────────────────────────────
 const SectionCard = ({ title, subtitle, children }) => (
-  <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+  <motion.div 
+    initial={{ opacity: 0, y: 10 }}
+    animate={{ opacity: 1, y: 0 }}
+    className="bg-white/[0.02] border border-white/5 rounded-[40px] overflow-hidden mb-10 relative group shadow-2xl"
+  >
+    <div className="absolute top-0 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-[#00c477]/20 to-transparent" />
     {(title || subtitle) && (
-      <div className="px-6 py-4 border-b border-gray-100 bg-gradient-to-r from-gray-50 to-white">
-        <h3 className="text-sm font-semibold text-gray-800">{title}</h3>
-        {subtitle && <p className="text-xs text-gray-500 mt-0.5">{subtitle}</p>}
+      <div className="px-10 py-6 border-b border-white/5 bg-white/[0.01]">
+        <h3 className="text-[11px] font-mono font-black text-white uppercase tracking-[0.3em] group-hover:text-[#00c477] transition-colors">{title}</h3>
+        {subtitle && <p className="text-[9px] font-mono text-gray-600 mt-1 uppercase tracking-widest">{subtitle}</p>}
       </div>
     )}
-    <div className="px-6 py-5 space-y-5">{children}</div>
-  </div>
+    <div className="px-10 py-8 space-y-8">{children}</div>
+  </motion.div>
 );
 
-// ─── Stat badge ───────────────────────────────────────────────────────────────
 const StatBadge = ({ label, value, color = "indigo" }) => {
   const colors = {
-    indigo: "bg-indigo-50 text-indigo-700 border-indigo-100",
-    green:  "bg-emerald-50 text-emerald-700 border-emerald-100",
-    amber:  "bg-amber-50 text-amber-700 border-amber-100",
-    rose:   "bg-rose-50 text-rose-700 border-rose-100",
+    indigo: "bg-[#00c477]/10 text-[#00c477] border-[#00c477]/20",
+    green:  "bg-emerald-500/10 text-emerald-400 border-emerald-500/20",
+    amber:  "bg-amber-500/10 text-amber-400 border-amber-500/20",
+    rose:   "bg-rose-500/10 text-rose-400 border-rose-500/20",
   };
   return (
-    <div className={`flex flex-col items-center justify-center rounded-xl border px-4 py-3 ${colors[color]}`}>
-      <span className="text-xl font-bold">{value}</span>
-      <span className="text-[11px] font-medium uppercase tracking-wider mt-0.5">{label}</span>
+    <div className={`flex flex-col items-center justify-center rounded-[24px] border px-4 py-4 ${colors[color]} hover:scale-105 transition-all cursor-default group/stat`}>
+      <span className="text-xl font-black group-hover/stat:scale-110 transition-all font-mono">{value}</span>
+      <span className="text-[8px] font-mono font-black uppercase tracking-[0.2em] mt-1 text-gray-600 group-hover/stat:text-white transition-colors">{label}</span>
     </div>
   );
 };
 
-// ─── Main Component ───────────────────────────────────────────────────────────
 const OrganizationProfile = () => {
   const navigate = useNavigate();
   const fileInputRef = useRef(null);
@@ -203,7 +199,6 @@ const OrganizationProfile = () => {
     taxId:              "",
   });
 
-  // ── Fetch org ──────────────────────────────────────────────────────────────
   useEffect(() => {
     (async () => {
       try {
@@ -235,11 +230,8 @@ const OrganizationProfile = () => {
           });
           if (org.logoUrl) setLogoPreview(org.logoUrl);
         }
-      } catch {
-        // org may not exist yet
-      } finally {
-        setLoading(false);
-      }
+      } catch { /* empty */ }
+      finally { setLoading(false); }
     })();
   }, []);
 
@@ -286,141 +278,112 @@ const OrganizationProfile = () => {
 
       if (organizationId) {
         const { data } = await api.patch(`/organizations/${organizationId}`, payload);
-        setSuccess(data?.message || "Organization profile updated successfully.");
+        setSuccess("Organization synchronized.");
       } else {
         const { data } = await api.post("/organizations", payload);
         if (data?.data?.id) setOrganizationId(data.data.id);
-        setSuccess(data?.message || "Organization created successfully.");
+        setSuccess("Organization materialized.");
       }
+      setTimeout(() => setSuccess(""), 3000);
     } catch (err) {
-      setError(
-        err?.response?.data?.error ||
-        err?.response?.data?.message ||
-        "Failed to save. Please try again."
-      );
+      setError(err?.response?.data?.message || "Transmission failure.");
     } finally {
       setSaving(false);
     }
   };
 
-  // ── Loading ────────────────────────────────────────────────────────────────
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="flex flex-col items-center gap-3">
-          <div className="w-10 h-10 rounded-full border-4 border-indigo-200 border-t-indigo-600 animate-spin" />
-          <p className="text-sm text-gray-500 font-medium">Loading organization…</p>
+      <div className="min-h-screen flex items-center justify-center bg-[#050505]">
+        <div className="flex flex-col items-center gap-6">
+          <div className="w-12 h-12 rounded-full border-2 border-white/5 border-t-[#00c477] animate-spin shadow-[0_0_20px_rgba(0,255,136,0.2)]" />
+          <p className="text-[10px] font-mono font-black text-[#00c477] uppercase tracking-[0.4em] animate-pulse">Scanning Entity Data...</p>
         </div>
       </div>
     );
   }
 
-  const displayName = form.name || "Your Organization";
+  const displayName = form.name || "Root Organization";
 
-  // ── Content panels ─────────────────────────────────────────────────────────
   const renderContent = () => {
     if (activeNav !== "profile") {
-      const labels = {
-        overview:      "Overview",
-        members:       "Members",
-        security:      "Security",
-        notifications: "Notifications",
-        billing:       "Billing",
-      };
       return (
-        <div className="flex flex-col items-center justify-center h-80 text-center">
-          <div className="w-16 h-16 rounded-2xl bg-indigo-50 flex items-center justify-center mb-4 text-indigo-400">
+        <div className="flex flex-col items-center justify-center h-96 text-center bg-white/[0.01] border border-white/5 rounded-[48px] shadow-inner">
+          <div className="w-20 h-20 rounded-3xl bg-[#00c477]/10 flex items-center justify-center mb-6 text-[#00c477] shadow-lg">
             {NAV_ITEMS.find((n) => n.key === activeNav)?.Icon?.()}
           </div>
-          <h3 className="text-base font-semibold text-gray-700">{labels[activeNav]}</h3>
-          <p className="text-sm text-gray-400 mt-1">This section will be available soon.</p>
+          <h3 className="text-sm font-black text-white font-mono uppercase tracking-[0.4em]">{activeNav} Zone</h3>
+          <p className="text-[10px] font-mono text-gray-600 mt-4 uppercase tracking-[0.2em] max-w-sm px-10 leading-relaxed">This quadrant of the entity matrix is currently being calibrated for strategic operations.</p>
         </div>
       );
     }
 
     return (
-      <form onSubmit={handleSubmit} className="space-y-6">
-        {/* Alerts */}
-        {error && (
-          <div className="flex items-start gap-3 bg-rose-50 border border-rose-200 text-rose-700 rounded-xl px-4 py-3 text-sm">
-            <span className="mt-0.5 shrink-0"><Icons.Alert /></span>
-            <span>{error}</span>
-          </div>
-        )}
-        {success && (
-          <div className="flex items-start gap-3 bg-emerald-50 border border-emerald-200 text-emerald-700 rounded-xl px-4 py-3 text-sm">
-            <span className="mt-0.5 shrink-0"><Icons.Check /></span>
-            <span>{success}</span>
-          </div>
-        )}
-
-        {/* Basic Info */}
-        <SectionCard title="Basic Information" subtitle="Core details shown publicly on your organization profile.">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-            <Field label="Organization Name" required>
+      <form onSubmit={handleSubmit} className="space-y-10">
+        <SectionCard title="Core Directive" subtitle="Primary identifiers that synchronize your entity with the global grid.">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+            <Field label="Entity Identity" required>
               <Input
                 type="text" name="name" value={form.name} onChange={handleChange}
-                required placeholder="e.g. HackRact Security" icon={Icons.Building}
+                required placeholder="e.g. Nexus Security Core" icon={Icons.Building}
               />
             </Field>
-            <Field label="Slug" hint="Used in URLs — lowercase, hyphens only.">
+            <Field label="Slug / URN" hint="Unique Resource Name identifiers.">
               <Input
                 type="text" name="slug" value={form.slug} onChange={handleChange}
-                placeholder="e.g. hackract-security"
+                placeholder="e.g. nexus-core-prime"
               />
             </Field>
           </div>
-          <Field label="Description" hint="Max 500 characters.">
+          <Field label="Description Matrix" hint="Max 500 characters for mission overview.">
             <textarea
-              name="description" value={form.description} onChange={handleChange} rows={3}
-              placeholder="Briefly describe your organization's mission and scope…"
-              className="w-full border border-gray-200 rounded-lg bg-gray-50 text-sm text-gray-800 placeholder-gray-400
-                focus:outline-none focus:ring-2 focus:ring-indigo-500/40 focus:border-indigo-500 transition-all px-3 py-2.5 resize-none"
+              name="description" value={form.description} onChange={handleChange} rows={4}
+              placeholder="Define organization scope and strategic objectives…"
+              className="w-full border border-white/10 rounded-[24px] bg-white/[0.02] text-sm text-white placeholder-gray-600
+                focus:outline-none focus:border-[#00c477]/50 focus:ring-1 focus:ring-[#00c477]/20 transition-all px-5 py-4 resize-none font-mono"
             />
           </Field>
         </SectionCard>
 
-        {/* Contact */}
-        <SectionCard title="Contact Information" subtitle="How clients and partners can reach your organization.">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-            <Field label="Primary Email">
+        <SectionCard title="Interface Protocol" subtitle="Communication vectors for cross-entity synchronization.">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+            <Field label="Primary Comms Loop">
               <Input
                 type="email" name="primaryEmail" value={form.primaryEmail} onChange={handleChange}
-                placeholder="contact@yourorg.com"
+                placeholder="ops@nexus.core"
               />
             </Field>
-            <Field label="Phone Number">
+            <Field label="Direct Link (Phone)">
               <Input
                 type="text" name="phoneNumber" value={form.phoneNumber} onChange={handleChange}
-                placeholder="+1 555 123 4567"
+                placeholder="+1 555-0199"
               />
             </Field>
-            <Field label="Website">
+            <Field label="Global Grid URL">
               <Input
                 type="url" name="website" value={form.website} onChange={handleChange}
-                placeholder="https://yourorg.com" icon={Icons.Globe}
+                placeholder="https://nexus.core" icon={Icons.Globe}
               />
             </Field>
-            <Field label="Industry">
+            <Field label="Sector / Industry">
               <Select name="industry" value={form.industry} onChange={handleChange}>
                 <option value="">Select industry…</option>
-                {["FinTech","HealthTech","CyberSecurity","E-Commerce","SaaS",
-                  "Government","Defense","Education","Manufacturing","Other"].map(i => (
+                {["CyberSecurity","FinTech","Defense","HealthTech","SaaS","GovTech","E-Commerce","Other"].map(i => (
                   <option key={i} value={i}>{i}</option>
                 ))}
               </Select>
             </Field>
           </div>
-          <Field label="Company Size">
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-              {["1–10","11–50","51–200","201–500","501–1000","1001–5000","5000+"].map((s) => (
+          <Field label="Personnel Scale (Company Size)">
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+              {["1–10","11–50","51–200","201–500","501–1000","5000+"].map((s) => (
                 <button
                   key={s} type="button"
                   onClick={() => setForm((p) => ({ ...p, size: s }))}
-                  className={`rounded-lg border text-xs font-medium py-2 px-3 transition-all
+                  className={`rounded-[18px] border text-[10px] font-mono font-black py-3.5 px-4 transition-all uppercase tracking-widest
                     ${form.size === s
-                      ? "bg-indigo-600 border-indigo-600 text-white shadow-sm"
-                      : "bg-gray-50 border-gray-200 text-gray-600 hover:border-indigo-400 hover:text-indigo-600"
+                      ? "bg-[#00c477] border-[#00c477] text-black shadow-[0_0_20px_rgba(0,255,136,0.2)] scale-105"
+                      : "bg-white/[0.02] border-white/5 text-gray-600 hover:border-[#00c477]/30 hover:text-white"
                     }`}
                 >
                   {s}
@@ -430,224 +393,150 @@ const OrganizationProfile = () => {
           </Field>
         </SectionCard>
 
-        {/* Address */}
-        <SectionCard title="Address" subtitle="Physical location of your organization's headquarters.">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-            <Field label="Address Line 1">
-              <Input type="text" name="addressLine1" value={form.addressLine1} onChange={handleChange} placeholder="123 Main Street" />
-            </Field>
-            <Field label="Address Line 2">
-              <Input type="text" name="addressLine2" value={form.addressLine2} onChange={handleChange} placeholder="Suite / Floor" />
-            </Field>
-            <Field label="City">
-              <Input type="text" name="city" value={form.city} onChange={handleChange} placeholder="New York" />
-            </Field>
-            <Field label="State / Province">
-              <Input type="text" name="state" value={form.state} onChange={handleChange} placeholder="NY" />
-            </Field>
-            <Field label="Postal Code">
-              <Input type="text" name="postalCode" value={form.postalCode} onChange={handleChange} placeholder="10001" />
-            </Field>
-            <Field label="Country">
-              <Input type="text" name="country" value={form.country} onChange={handleChange} placeholder="United States" />
-            </Field>
+        <SectionCard title="Coordinate Points" subtitle="Physical headquarters and geographical mission centers.">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+            <Field label="Base Vector 1"><Input name="addressLine1" value={form.addressLine1} onChange={handleChange} placeholder="Coordinate 12-A" /></Field>
+            <Field label="Base Vector 2"><Input name="addressLine2" value={form.addressLine2} onChange={handleChange} placeholder="Level / Sub-bay" /></Field>
+            <Field label="Zone / City"><Input name="city" value={form.city} onChange={handleChange} placeholder="Neo Tokyo" /></Field>
+            <Field label="Prefecture / State"><Input name="state" value={form.state} onChange={handleChange} placeholder="NT-01" /></Field>
+            <Field label="Grid Code"><Input name="postalCode" value={form.postalCode} onChange={handleChange} placeholder="581-000" /></Field>
+            <Field label="Entity Region"><Input name="country" value={form.country} onChange={handleChange} placeholder="Pan-Pacific" /></Field>
           </div>
         </SectionCard>
 
-        {/* Legal & Finance */}
-        <SectionCard title="Legal & Financial" subtitle="Compliance and financial identifiers for your organization.">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-            <Field label="Registration Number">
-              <Input type="text" name="registrationNumber" value={form.registrationNumber} onChange={handleChange} placeholder="e.g. US-123456789" />
-            </Field>
-            <Field label="Tax ID / VAT">
-              <Input type="text" name="taxId" value={form.taxId} onChange={handleChange} placeholder="e.g. 12-3456789" />
-            </Field>
-            <Field label="Timezone">
-              <Select name="timezone" value={form.timezone} onChange={handleChange}>
-                <option value="">Select timezone…</option>
-                {["UTC","America/New_York","America/Chicago","America/Denver","America/Los_Angeles",
-                  "Europe/London","Europe/Paris","Europe/Berlin","Asia/Dubai","Asia/Kolkata",
-                  "Asia/Singapore","Asia/Tokyo","Australia/Sydney"].map(tz => (
-                  <option key={tz} value={tz}>{tz.replace("_"," ")}</option>
-                ))}
-              </Select>
-            </Field>
-            <Field label="Currency">
-              <Select name="currency" value={form.currency} onChange={handleChange}>
-                <option value="">Select currency…</option>
-                {["USD","EUR","GBP","AED","INR","SGD","JPY","AUD","CAD"].map(c => (
-                  <option key={c} value={c}>{c}</option>
-                ))}
-              </Select>
-            </Field>
-          </div>
-        </SectionCard>
-
-        {/* Actions */}
-        <div className="flex flex-wrap items-center gap-3 pt-1">
+        <div className="flex flex-wrap items-center gap-6 pt-2 bg-white/[0.01] p-10 rounded-[48px] border border-white/5 shadow-inner">
           <button
             type="submit" disabled={saving}
-            className="inline-flex items-center gap-2 px-6 py-2.5 bg-indigo-600 hover:bg-indigo-700
-              text-white text-sm font-semibold rounded-xl shadow-sm transition-all disabled:opacity-60 disabled:cursor-not-allowed"
+            className="flex items-center gap-4 px-10 py-5 bg-[#00c477] text-black rounded-[24px] text-[11px] font-mono font-black uppercase tracking-widest shadow-[0_0_30px_rgba(0,255,136,0.2)] hover:scale-105 transition-all disabled:opacity-60"
           >
-            {saving ? (
-              <>
-                <span className="w-4 h-4 rounded-full border-2 border-white/30 border-t-white animate-spin" />
-                Saving…
-              </>
-            ) : (
-              <>
-                <Icons.Check />
-                {organizationId ? "Save Changes" : "Create Organization"}
-              </>
-            )}
+            {saving ? "Transmitting…" : <><Icons.Check /> Commit Profile</>}
           </button>
-          <button
-            type="button" disabled={saving}
-            onClick={() => navigate("/organization-dashboard")}
-            className="inline-flex items-center gap-2 px-5 py-2.5 bg-white border border-gray-200 hover:border-gray-400
-              text-gray-600 hover:text-gray-800 text-sm font-semibold rounded-xl transition-all disabled:opacity-60"
-          >
-            Back to Dashboard
-          </button>
+          
+          {success && (
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex items-center gap-3 px-6 py-4 bg-emerald-500/10 border border-emerald-500/30 rounded-2xl text-[10px] font-mono font-black text-emerald-400 uppercase tracking-widest">
+              <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 shadow-[0_0_10px_#34d399] animate-pulse"/>
+              {success}
+            </motion.div>
+          )}
+          {error && (
+            <div className="flex items-center gap-3 px-6 py-4 bg-rose-500/10 border border-rose-500/30 rounded-2xl text-[10px] font-mono font-black text-rose-400 uppercase tracking-widest">
+              <Icons.Alert />
+              {error}
+            </div>
+          )}
         </div>
       </form>
     );
   };
 
-  // ── Render ─────────────────────────────────────────────────────────────────
   return (
-    <div className="min-h-screen bg-gray-50 font-sans">
-      {/* ── Top Header Bar ───────────────────────────────────────────────── */}
-      <header className="bg-white border-b border-gray-200 h-14 flex items-center px-6 sticky top-0 z-30">
-        <div className="flex items-center gap-2 text-xs text-gray-500">
-          <button onClick={() => navigate("/organization-dashboard")} className="hover:text-indigo-600 font-medium transition-colors">
-            Dashboard
-          </button>
+    <div className="min-h-screen bg-[#050505] font-sans text-white selection:bg-[#00c477]/30 selection:text-[#00c477] transition-colors">
+      <div className="fixed top-1/4 left-1/4 w-96 h-96 bg-[#00c477]/5 rounded-full blur-[140px] pointer-events-none" />
+
+      <header className="h-20 bg-black/40 backdrop-blur-3xl border-b border-white/5 flex items-center px-10 sticky top-0 z-[60] gap-8">
+        <div className="flex items-center gap-3">
+          <button onClick={() => navigate("/dashboard")} className="text-[10px] font-mono font-black text-gray-500 hover:text-[#00c477] transition-colors uppercase tracking-[0.2em]">Dashboard</button>
           <Icons.ChevronRight />
-          <span className="text-gray-800 font-semibold">Organization Settings</span>
+          <span className="text-[10px] font-mono font-black text-white uppercase tracking-[0.2em] opacity-80">Entity Strategy Control</span>
         </div>
-        <div className="ml-auto flex items-center gap-3">
-          <div className="w-8 h-8 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-700 font-bold text-xs">
+        <div className="ml-auto flex items-center gap-6">
+          <div className="w-10 h-10 rounded-xl bg-black border border-[#00c477]/30 text-[#00c477] flex items-center justify-center font-mono font-black text-xs shadow-inner shadow-[#00c477]/10">
             {initials(form.name)}
           </div>
         </div>
       </header>
 
-      <div className="flex">
+      <div className="flex px-10 gap-10">
         {/* ── Sidebar ──────────────────────────────────────────────────────── */}
-        <aside className="w-64 bg-white border-r border-gray-200 min-h-[calc(100vh-56px)] flex flex-col sticky top-14 self-start">
-          {/* Org identity */}
-          <div className="px-5 py-6 border-b border-gray-100">
-            {/* Logo upload */}
-            <div className="flex flex-col items-center gap-3">
-              <div className="relative group">
-                <div className="w-20 h-20 rounded-2xl border-2 border-gray-200 shadow-sm overflow-hidden bg-gradient-to-br from-indigo-100 to-indigo-50 flex items-center justify-center">
-                  {logoPreview ? (
-                    <img src={logoPreview} alt="org logo" className="w-full h-full object-cover" />
-                  ) : (
-                    <span className="text-2xl font-black text-indigo-600 tracking-tight">
-                      {initials(form.name)}
-                    </span>
-                  )}
-                </div>
-                <button
-                  type="button"
-                  onClick={() => fileInputRef.current?.click()}
-                  className="absolute -bottom-2 -right-2 w-7 h-7 rounded-full bg-indigo-600 border-2 border-white shadow
-                    flex items-center justify-center text-white hover:bg-indigo-700 transition-colors opacity-0 group-hover:opacity-100"
-                  title="Upload logo"
-                >
-                  <Icons.Camera />
-                </button>
-                <input
-                  ref={fileInputRef}
-                  type="file"
-                  accept="image/*"
-                  className="hidden"
-                  onChange={handleLogoChange}
-                />
-              </div>
-              <div className="text-center">
-                <p className="text-sm font-bold text-gray-800 truncate max-w-[160px]">{displayName}</p>
-                {form.slug && (
-                  <p className="text-xs text-indigo-500 mt-0.5">/{form.slug}</p>
-                )}
-                {organizationId ? (
-                  <span className="inline-flex items-center gap-1 mt-1.5 text-[10px] font-semibold uppercase tracking-wider bg-emerald-100 text-emerald-700 rounded-full px-2 py-0.5">
-                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-                    Active
-                  </span>
+        <aside className="w-80 mt-12 shrink-0 space-y-2 sticky top-36 h-fit self-start">
+          <div className="bg-white/[0.02] border border-white/5 rounded-[40px] p-10 mb-8 shadow-2xl flex flex-col items-center relative overflow-hidden group">
+            <div className="absolute top-0 right-0 w-24 h-24 bg-[#00c477]/5 rounded-full -mr-12 -mt-12 blur-2xl group-hover:bg-[#00c477]/10 transition-all" />
+            <div className="relative group mb-8">
+              <div className="w-28 h-28 rounded-[36px] border border-white/10 bg-black/50 overflow-hidden shadow-inner flex items-center justify-center group-hover:border-[#00c477]/30 transition-all">
+                {logoPreview ? (
+                  <img src={logoPreview} alt="org logo" className="w-full h-full object-cover" />
                 ) : (
-                  <span className="inline-flex items-center gap-1 mt-1.5 text-[10px] font-semibold uppercase tracking-wider bg-amber-100 text-amber-700 rounded-full px-2 py-0.5">
-                    Not created
+                  <span className="text-3xl font-black text-[#00c477] font-mono drop-shadow-[0_0_10px_#00c477]">
+                    {initials(form.name)}
                   </span>
                 )}
+              </div>
+              <button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                className="absolute -bottom-2 -right-2 w-10 h-10 rounded-[14px] bg-[#00c477] text-black border-4 border-[#050505] shadow-2xl flex items-center justify-center hover:scale-110 transition-all z-10"
+                title="Update Manifest"
+              >
+                <Icons.Camera />
+              </button>
+              <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handleLogoChange} />
+            </div>
+            
+            <div className="text-center w-full">
+              <p className="text-2xl font-black text-white truncate px-2 leading-none mb-1 uppercase tracking-tight">{displayName}</p>
+              {form.slug && (
+                <p className="text-[10px] font-mono text-[#00c477] uppercase tracking-[0.2em] mb-8 font-bold opacity-70">URN: /{form.slug}</p>
+              )}
+              
+              <div className="grid grid-cols-3 gap-3 w-full border-t border-white/5 pt-8">
+                <StatBadge label="Assets" value="—" color="indigo" />
+                <StatBadge label="Tactics" value="—" color="green" />
+                <StatBadge label="Threats" value="0" color="rose" />
               </div>
             </div>
           </div>
 
-          {/* Stats */}
-          <div className="px-4 py-4 border-b border-gray-100">
-            <div className="grid grid-cols-3 gap-2">
-              <StatBadge label="Members" value="—" color="indigo" />
-              <StatBadge label="Pentests" value="—" color="green" />
-              <StatBadge label="Alerts" value="0" color="amber" />
-            </div>
-          </div>
-
-          {/* Nav */}
-          <nav className="flex-1 px-3 py-3 space-y-0.5">
+          <nav className="space-y-2 px-2 pb-10">
             {NAV_ITEMS.map(({ key, label, Icon }) => (
               <button
                 key={key}
                 onClick={() => setActiveNav(key)}
-                className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all
+                className={`w-full flex items-center gap-5 px-8 py-4.5 rounded-[24px] text-[11px] font-mono font-black uppercase tracking-[0.2em] transition-all relative overflow-hidden group
                   ${activeNav === key
-                    ? "bg-indigo-50 text-indigo-700"
-                    : "text-gray-500 hover:bg-gray-50 hover:text-gray-800"
+                    ? "bg-white/[0.04] text-[#00c477] shadow-2xl border border-[#00c477]/20 -translate-x-2"
+                    : "text-gray-500 hover:bg-white/[0.02] hover:text-white hover:translate-x-1"
                   }`}
               >
-                <span className={activeNav === key ? "text-indigo-500" : "text-gray-400"}>
+                <span className={activeNav === key ? "text-[#00c477] drop-shadow-[0_0_8px_rgba(0,255,136,0.6)]" : "text-gray-600 group-hover:text-gray-400"}>
                   <Icon />
                 </span>
                 {label}
-                {activeNav === key && (
-                  <span className="ml-auto w-1.5 h-1.5 rounded-full bg-indigo-500" />
-                )}
+                {activeNav === key && <div className="ml-auto w-1.5 h-1.5 rounded-full bg-[#00c477] shadow-[0_0_10px_#00c477] animate-pulse"/>}
               </button>
             ))}
-          </nav>
-
-          {/* Bottom */}
-          <div className="px-3 pb-4">
+            
             <button
-              onClick={() => navigate("/organization-dashboard")}
-              className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-gray-500
-                hover:bg-rose-50 hover:text-rose-600 transition-all"
+              onClick={() => navigate("/dashboard")}
+              className="w-full flex items-center gap-5 px-8 py-4.5 rounded-[24px] text-[10px] font-mono font-black text-gray-600 hover:text-rose-500 hover:bg-rose-500/5 transition-all uppercase tracking-widest mt-12 border border-transparent hover:border-rose-500/10"
             >
-              <span className="text-gray-400"><Icons.LogOut /></span>
-              Back to Dashboard
+              <Icons.LogOut /> 
+              Terminate Link
             </button>
-          </div>
+          </nav>
         </aside>
 
         {/* ── Main Content ─────────────────────────────────────────────────── */}
-        <main className="flex-1 px-6 py-8 max-w-3xl">
-          {/* Page heading */}
-          <div className="mb-6">
-            <h1 className="text-xl font-bold text-gray-900">
-              {NAV_ITEMS.find((n) => n.key === activeNav)?.label}
+        <main className="flex-1 py-12 min-w-0 max-w-4xl">
+          <div className="mb-14 pl-1">
+            <h1 className="text-4xl font-black text-white uppercase tracking-tight">
+              {NAV_ITEMS.find((n) => n.key === activeNav)?.label} Matrix
             </h1>
-            <p className="text-sm text-gray-500 mt-0.5">
-              {activeNav === "profile"
-                ? "Manage your organization's public profile, contact details, and legal info."
-                : "This section is currently under construction."}
+            <p className="text-[11px] font-mono text-gray-600 mt-2 uppercase tracking-[0.3em] font-bold">
+              Adjusting entity synchronization parameters / Node_v.Prime
             </p>
           </div>
 
-          {renderContent()}
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={activeNav}
+              initial={{ opacity: 0, x: 10 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -10 }}
+              transition={{ duration: 0.2 }}
+            >
+              {renderContent()}
+            </motion.div>
+          </AnimatePresence>
         </main>
       </div>
     </div>

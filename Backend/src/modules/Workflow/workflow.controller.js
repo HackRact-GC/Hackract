@@ -42,16 +42,16 @@ export const get = asyncHandler(async (req, res) => {
   const workflow = await prisma.workflow.findUnique({
     where: { id },
     include: {
-        pentest: {
-            include: {
-                findings: {
-                    select: { id: true, title: true, severity: true, status: true }
-                },
-                collaborators: {
-                    select: { userId: true, role: true }
-                }
-            }
+      pentest: {
+        include: {
+          findings: {
+            select: { id: true, title: true, severity: true, status: true }
+          },
+          collaborators: {
+            select: { userId: true, role: true }
+          }
         }
+      }
     }
   });
 

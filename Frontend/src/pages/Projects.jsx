@@ -1,219 +1,498 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { motion, AnimatePresence } from "framer-motion";
 import toast from "react-hot-toast";
 import api from "../api/axiosConfig";
 import { useAuth } from "../context/authContext.jsx";
+import {
+  FiTerminal, FiArrowRight, FiZap,
+  FiCheck, FiX, FiLock, FiActivity,
+  FiTarget, FiClock, FiBell, FiCode, FiCpu,
+  FiChevronRight, FiFolder, FiCheckCircle
+} from "react-icons/fi";
 
-const Projects = () => {
-  const navigate = useNavigate();
-  const { user } = useAuth();
-  const [organizations, setOrganizations] = useState([]);
-  const [selectedOrgId, setSelectedOrgId] = useState("");
-  const [orgMembers, setOrgMembers] = useState([]);
-  const [projects, setProjects] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [submitting, setSubmitting] = useState(false);
-  const [form, setForm] = useState({
-    name: "",
-    description: "",
-    projectAdminId: "",
-    hackerIds: [],
-  });
+// ─── MOCK ASSIGNED PROJECTS (org-side) ───────────────────────────────────────
+const MOCK_ORG_ASSIGNMENTS = [
+  {
+    id: "org-1",
+    name: "Alpha Bank Core API Pentest",
+    orgName: "Alpha Bank Corp",
+    orgAvatar: "https://api.dicebear.com/7.x/identicon/svg?seed=AlphaBank&baseColor=00c477",
+    role: "LEAD",
+    status: "IN_PROGRESS",
+    inviteStatus: "ACCEPTED",
+    assignedAt: "Apr 05, 2026",
+    deadline: "Apr 28, 2026",
+    findings: 14,
+    description: "Full penetration test on core banking REST API endpoints.",
+  },
+  {
+    id: "org-2",
+    name: "CloudStack Infrastructure Audit",
+    orgName: "NexCloud Systems",
+    orgAvatar: "https://api.dicebear.com/7.x/identicon/svg?seed=NexCloud&baseColor=00c477",
+    role: "CONTRIBUTOR",
+    status: "PLANNING",
+    inviteStatus: "PENDING",
+    assignedAt: "Apr 10, 2026",
+    deadline: "May 15, 2026",
+    findings: 0,
+    description: "AWS IAM and VPC misconfiguration review.",
+  },
+  {
+    id: "org-3",
+    name: "Mobile App Security Review",
+    orgName: "Veloce Fintech",
+    orgAvatar: "https://api.dicebear.com/7.x/identicon/svg?seed=Veloce&baseColor=00c477",
+    role: "CONTRIBUTOR",
+    status: "REPORTING",
+    inviteStatus: "ACCEPTED",
+    assignedAt: "Mar 14, 2026",
+    deadline: "Apr 20, 2026",
+    findings: 27,
+    description: "Android & iOS binary analysis and certificate pinning bypass.",
+  },
+];
 
-  const isOrgAdmin = useMemo(
-    () => user?.roles?.some((r) => r.type === "ORG_ADMIN" || r.type === "SUPER_ADMIN"),
-    [user]
+// ─── CONSTANTS & CONFIG ────────────────────────────────────────────────
+const STATUS_CONFIG = {
+  PLANNING:    { label: "Planning",    color: "text-amber-400",  bg: "bg-amber-400/10",  border: "border-amber-400/30" },
+  IN_PROGRESS: { label: "In Progress", color: "text-[#00c477]", bg: "bg-[#00c477]/10", border: "border-[#00c477]/30"  },
+  REPORTING:   { label: "Reporting",   color: "text-purple-400", bg: "bg-purple-400/10", border: "border-purple-400/30"},
+  CLOSED:      { label: "Closed",      color: "text-gray-500",   bg: "bg-gray-500/10",   border: "border-gray-500/30"  },
+};
+
+const TABS = [
+  { id: "ALL_ACCESS", label: "All Projects" },
+  { id: "LOCAL_LABS", label: "Local Labs" },
+  { id: "MISSIONS", label: "Active Engagements" },
+  { id: "INBOUND_REQS", label: "Pending Invitations" }
+];
+
+const getProjectDisplayName = (project) => {
+  const rawName = project?.name || project?.title;
+  return rawName && rawName.trim() ? rawName : "My Application";
+};
+
+// ─── SUB-COMPONENTS ───────────────────────────────────────────────────────────
+
+const StatusBadge = ({ status }) => {
+  const cfg = STATUS_CONFIG[status] || STATUS_CONFIG.PLANNING;
+  return (
+    <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[10px] font-bold tracking-wider uppercase border ${cfg.color} ${cfg.bg} ${cfg.border}`}>
+      <span className={`w-1.5 h-1.5 rounded-full ${cfg.color.replace('text-', 'bg-')}`} />
+      {cfg.label}
+    </span>
   );
+};
 
-  const loadProjects = async (organizationId) => {
-    const { data } = await api.get("/projects", { params: organizationId ? { organizationId } : {} });
-    setProjects(data?.data || []);
-  };
+const RoleBadge = ({ role }) => (
+  <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-[10px] font-bold tracking-wider uppercase border ${
+    role === 'LEAD'
+      ? 'text-[#00c477] bg-[#00c477]/10 border-[#00c477]/30'
+      : 'text-cyan-400 bg-cyan-400/10 border-cyan-400/30'
+  }`}>
+    {role === 'LEAD' ? 'Lead' : 'Contributor'}
+  </span>
+);
 
-  const loadOrganizations = async () => {
-    const { data } = await api.get("/organizations/me");
-    const orgList = data?.data || [];
-    setOrganizations(orgList);
-    if (orgList.length > 0) {
-      setSelectedOrgId((prev) => prev || orgList[0].id);
-    }
-    return orgList;
-  };
+// Personal Project Card (Hacker styling)
+const PersonalProjectCard = ({ project, onOpen, index }) => (
+  <motion.div
+    initial={{ opacity: 0, scale: 0.98 }}
+    animate={{ opacity: 1, scale: 1 }}
+    transition={{ delay: index * 0.05, duration: 0.3 }}
+    className="bg-[#050505] border border-white/5 hover:border-[#00c477]/30 rounded-2xl p-6 group transition-all relative flex flex-col font-sans hover:shadow-[0_0_30px_rgba(0,196,119,0.05)] cursor-pointer"
+    onClick={() => onOpen(project.id)}
+  >
+    <div className="flex justify-between items-start mb-4">
+      <div className="flex items-center gap-2 flex-wrap">
+        <StatusBadge status={project.status} />
+        <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-[10px] font-bold border text-gray-400 bg-white/5 border-white/10 uppercase tracking-wider">
+          Local Lab
+        </span>
+      </div>
+      <div className="w-8 h-8 rounded-full bg-white/5 group-hover:bg-[#00c477]/10 flex items-center justify-center transition-colors">
+         <FiCode className="text-gray-400 group-hover:text-[#00c477]" />
+      </div>
+    </div>
 
-  const loadOrgMembers = async (organizationId) => {
-    if (!organizationId) return;
+    <h3 className="text-lg font-bold text-white group-hover:text-[#00c477] transition-colors mb-2 leading-snug">
+      {getProjectDisplayName(project)}
+    </h3>
+    <p className="text-sm text-gray-500 leading-relaxed line-clamp-2 mb-6">
+      {project.description || "No specific target scope defined. This is an independent local runtime."}
+    </p>
+
+    <div className="mt-auto pt-4 border-t border-white/5 text-[12px] text-gray-400 flex items-center justify-between font-medium">
+      <span className="flex items-center gap-1.5"><FiCode size={14} className="text-gray-500" /> {project.collaborators?.length || 0} Operators</span>
+      {project.createdAt && (
+        <span className="flex items-center gap-1.5"><FiClock size={14} className="text-gray-500" /> Init: {new Date(project.createdAt).toLocaleDateString()}</span>
+      )}
+    </div>
+  </motion.div>
+);
+
+// Org Assignment Card
+const OrgProjectCard = ({ project, onOpen, onAccept, onDecline, index }) => {
+  const isPending = project.inviteStatus === 'PENDING';
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, scale: 0.98 }}
+      animate={{ opacity: 1, scale: 1 }}
+      transition={{ delay: index * 0.05, duration: 0.3 }}
+      className={`bg-[#050505] border rounded-2xl p-6 group transition-all relative flex flex-col font-sans hover:shadow-lg ${
+        isPending
+          ? 'border-amber-500/30 hover:border-amber-400/60 shadow-[0_4px_20px_rgba(245,158,11,0.05)]'
+          : 'border-white/5 hover:border-white/20 cursor-pointer'
+      }`}
+      onClick={() => { if (!isPending) onOpen(project.id); }}
+    >
+      {/* Status + Role row */}
+      <div className="flex items-center gap-2 mb-5 flex-wrap">
+        <StatusBadge status={project.status} />
+        <RoleBadge role={project.role} />
+        {isPending && (
+          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[10px] font-bold border text-amber-500 bg-amber-500/10 border-amber-500/30 uppercase tracking-wider animate-pulse">
+            <FiBell size={10} /> Pending
+          </span>
+        )}
+      </div>
+
+      <div className="flex items-start gap-4 mb-4">
+        <div className="w-10 h-10 rounded-xl border border-white/10 bg-white/5 shrink-0 overflow-hidden flex items-center justify-center">
+          <img
+            src={project.orgAvatar}
+            alt={project.orgName}
+            className={`w-10 h-10 object-cover ${!isPending ? 'group-hover:scale-110 transition-transform' : ''}`}
+          />
+        </div>
+        <div>
+          <h3 className={`text-lg font-bold ${isPending ? 'text-white' : 'text-white group-hover:text-[#00c477]'} transition-colors leading-snug`}>
+            {getProjectDisplayName(project)}
+          </h3>
+          <p className="text-[12px] text-gray-400 font-medium mt-0.5">{project.orgName}</p>
+        </div>
+      </div>
+
+      <p className="text-sm text-gray-500 leading-relaxed line-clamp-2 mb-6">
+        {project.description}
+      </p>
+
+      {/* Stats */}
+      <div className="mt-auto pt-4 border-t border-white/5 flex items-center justify-between mb-5">
+        <div className="flex items-center gap-2">
+          <div className="w-6 h-6 rounded-md bg-white/5 flex items-center justify-center text-gray-400">
+             <FiTarget size={12} />
+          </div>
+          <span className="text-[12px] text-gray-300 font-bold">{project.findings} <span className="font-normal text-gray-500">Vulns</span></span>
+        </div>
+        <div className={`flex items-center gap-1.5 text-[12px] font-medium ${isPending ? 'text-amber-500' : 'text-gray-400'}`}>
+          <FiClock size={13} />
+          {project.deadline}
+        </div>
+      </div>
+
+      {/* CTA */}
+      <div>
+        {isPending ? (
+          <div className="flex gap-3 pt-2">
+            <button
+              onClick={(e) => { e.stopPropagation(); onDecline(project.id); }}
+              className="flex-1 py-2.5 rounded-xl border border-red-500/20 hover:bg-red-500/10 text-red-500 text-[13px] font-bold transition-all"
+            >
+              Decline
+            </button>
+            <button
+              onClick={(e) => { e.stopPropagation(); onAccept(project.id); }}
+              className="flex-1 py-2.5 rounded-xl bg-[#00c477] hover:bg-[#00a665] text-black text-[13px] font-bold transition-all shadow-md"
+            >
+              Accept Invite
+            </button>
+          </div>
+        ) : (
+          <div className="pt-2 text-[13px] font-bold text-gray-400 group-hover:text-[#00c477] transition-colors flex items-center gap-1">
+             Enter Workspace <FiChevronRight className="group-hover:translate-x-1 transition-transform" />
+          </div>
+        )}
+      </div>
+    </motion.div>
+  );
+};
+
+// Personal Quick-Create Card
+const PersonalWorkspaceCard = ({ onCreate }) => {
+  const [expanded, setExpanded] = useState(false);
+  const [name, setName] = useState("");
+  const [description, setDescription] = useState("");
+  const [loading, setLoading] = useState(false);
+
+  const handleCreate = async () => {
+    if (!name.trim()) return toast.error("Please provide a project name.");
+    setLoading(true);
     try {
-      const { data } = await api.get(`/organizations/${organizationId}/members`);
-      setOrgMembers(data?.data || []);
-    } catch {
-      setOrgMembers([]);
-    }
-  };
-
-  useEffect(() => {
-    const run = async () => {
-      setLoading(true);
-      try {
-        const orgs = await loadOrganizations();
-        await loadProjects(orgs[0]?.id);
-      } catch (error) {
-        toast.error(error?.response?.data?.error || "Failed to load projects");
-      } finally {
-        setLoading(false);
-      }
-    };
-    run();
-  }, []);
-
-  useEffect(() => {
-    if (!selectedOrgId) return;
-    loadOrgMembers(selectedOrgId);
-    loadProjects(selectedOrgId);
-  }, [selectedOrgId]);
-
-  const onChange = (e) => {
-    const { name, value } = e.target;
-    setForm((prev) => ({ ...prev, [name]: value }));
-  };
-
-  const toggleHacker = (memberUserId) => {
-    setForm((prev) => {
-      const exists = prev.hackerIds.includes(memberUserId);
-      return {
-        ...prev,
-        hackerIds: exists ? prev.hackerIds.filter((id) => id !== memberUserId) : [...prev.hackerIds, memberUserId],
-      };
-    });
-  };
-
-  const createProject = async (e) => {
-    e.preventDefault();
-    if (!selectedOrgId) return toast.error("Select organization first");
-    setSubmitting(true);
-    try {
-      await api.post("/projects", { ...form, organizationId: selectedOrgId });
-      toast.success("Project created");
-      setForm({ name: "", description: "", projectAdminId: "", hackerIds: [] });
-      await loadProjects(selectedOrgId);
-    } catch (error) {
-      toast.error(error?.response?.data?.error || "Project creation failed");
+      const { data } = await api.post("/projects/personal", { name: name.trim(), description: description.trim() });
+      toast.success("Workspace Initiated.");
+      setExpanded(false);
+      setName(""); setDescription("");
+      onCreate(data.data);
+    } catch (err) {
+      toast.error(err?.response?.data?.error || "Failed to initialize workspace");
     } finally {
-      setSubmitting(false);
+      setLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen bg-[#0a0a0a] text-white p-6 md:p-10 space-y-8">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold">Projects</h1>
-          <p className="text-gray-400 text-sm">Create projects, assign project admins, and hire hackers.</p>
+    <motion.div layout className="border border-white/5 bg-[#050505] rounded-3xl overflow-hidden relative group font-sans">
+      <div className="p-6 md:p-8 flex flex-col md:flex-row items-start md:items-center gap-6 relative z-10">
+        <div className="w-14 h-14 rounded-2xl bg-white/5 flex items-center justify-center text-gray-400 shrink-0 shadow-sm border border-white/5">
+          <FiFolder size={24} />
+        </div>
+        <div className="flex-1 min-w-0">
+          <h3 className="font-bold text-white text-lg flex items-center gap-3">
+            Initialize Local Lab
+            <span className="text-[10px] bg-white/10 px-2 py-0.5 rounded-md text-gray-400 uppercase tracking-widest font-bold">Offline Sandbox</span>
+          </h3>
+          <p className="text-sm text-gray-500 mt-1">
+            Create an isolated local sandbox for independent exploitation testing, research, and personal tooling.
+          </p>
         </div>
         <button
-          onClick={() => navigate("/dashboard")}
-          className="px-4 py-2 bg-white/10 border border-white/20 rounded-md text-xs uppercase tracking-widest"
+          onClick={() => setExpanded(v => !v)}
+          className={`w-full md:w-auto px-6 py-3 rounded-xl flex items-center justify-center transition-all text-sm font-bold gap-2 ${
+            expanded
+              ? "bg-white/10 text-white hover:bg-white/20"
+              : "bg-[#00c477] text-black hover:bg-[#00a665] shadow-[0_4px_20px_rgba(0,196,119,0.2)]"
+          }`}
         >
-          Back to dashboard
+          {expanded ? <><FiX /> Cancel</> : <><FiTerminal /> Create Project</>}
         </button>
       </div>
 
-      <div className="grid lg:grid-cols-[1.2fr_2fr] gap-6">
-        {isOrgAdmin && (
-          <form onSubmit={createProject} className="bg-white/5 border border-white/10 rounded-2xl p-5 space-y-4">
-            <h2 className="font-semibold text-lg">Create project</h2>
-            <select
-              className="w-full bg-black/40 border border-white/20 rounded-md px-3 py-2 text-sm"
-              value={selectedOrgId}
-              onChange={(e) => setSelectedOrgId(e.target.value)}
-            >
-              <option value="">Select organization</option>
-              {organizations.map((org) => (
-                <option key={org.id} value={org.id}>
-                  {org.name}
-                </option>
-              ))}
-            </select>
-            <input
-              name="name"
-              value={form.name}
-              onChange={onChange}
-              placeholder="Project name"
-              required
-              className="w-full bg-black/40 border border-white/20 rounded-md px-3 py-2 text-sm"
-            />
-            <textarea
-              name="description"
-              value={form.description}
-              onChange={onChange}
-              placeholder="Scope and objective"
-              rows={3}
-              className="w-full bg-black/40 border border-white/20 rounded-md px-3 py-2 text-sm"
-            />
-            <select
-              name="projectAdminId"
-              value={form.projectAdminId}
-              onChange={onChange}
-              className="w-full bg-black/40 border border-white/20 rounded-md px-3 py-2 text-sm"
-            >
-              <option value="">Select project admin</option>
-              {orgMembers.map((m) => (
-                <option key={m.userId} value={m.userId}>
-                  {m.user?.fullName || m.user?.email} ({m.role})
-                </option>
-              ))}
-            </select>
-            <div className="space-y-2">
-              <div className="text-xs uppercase tracking-wider text-gray-400">Assign hackers</div>
-              <div className="max-h-40 overflow-auto space-y-2">
-                {orgMembers.map((m) => (
-                  <label key={m.userId} className="flex items-center gap-2 text-sm">
-                    <input
-                      type="checkbox"
-                      checked={form.hackerIds.includes(m.userId)}
-                      onChange={() => toggleHacker(m.userId)}
-                    />
-                    {m.user?.fullName || m.user?.email}
-                  </label>
-                ))}
+      <AnimatePresence>
+        {expanded && (
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: "auto", opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            className="border-t border-white/5 bg-[#0a0a0a]"
+          >
+            <div className="p-6 md:p-8 space-y-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                 <div>
+                   <label className="text-[11px] font-bold text-gray-400 uppercase tracking-wider block mb-2">Project Name</label>
+                   <input
+                     value={name}
+                     onChange={e => setName(e.target.value)}
+                     onKeyDown={e => e.key === "Enter" && handleCreate()}
+                     className="w-full bg-[#111] border border-white/10 focus:border-[#00c477] rounded-xl px-4 py-3 text-sm text-white outline-none transition-colors"
+                     placeholder="e.g. Android Root Detection Bypass Lab"
+                   />
+                </div>
+
+                <div>
+                   <label className="text-[11px] font-bold text-gray-400 uppercase tracking-wider block mb-2">Scope / Objective</label>
+                   <input
+                     value={description}
+                     onChange={e => setDescription(e.target.value)}
+                     className="w-full bg-[#111] border border-white/10 focus:border-[#00c477] rounded-xl px-4 py-3 text-sm text-white outline-none transition-colors"
+                     placeholder="Define attack vectors or testing goals..."
+                   />
+                </div>
+              </div>
+
+              <div className="flex flex-col md:flex-row items-center justify-between pt-2 gap-4">
+                <div className="flex items-center gap-3 text-xs text-gray-500 font-medium">
+                  <FiLock className="text-[#00c477]" />
+                  <span>Private by default. Unlisted from org directories.</span>
+                </div>
+                <button
+                  onClick={handleCreate}
+                  disabled={loading}
+                  className="w-full md:w-auto flex items-center justify-center gap-2 px-6 py-2.5 rounded-xl bg-[#00c477] hover:bg-[#00a665] text-black text-sm font-bold transition-all disabled:opacity-50"
+                >
+                  {loading ? <div className="w-4 h-4 border-2 border-black/30 border-t-black rounded-full animate-spin" /> : <FiZap />}
+                  {loading ? "Initializing..." : "Launch Workspace"}
+                </button>
               </div>
             </div>
-            <button
-              type="submit"
-              disabled={submitting}
-              className="w-full bg-[#00ff88] text-black font-semibold py-2 rounded-md disabled:opacity-60"
-            >
-              {submitting ? "Creating..." : "Create project"}
-            </button>
-          </form>
+          </motion.div>
         )}
+      </AnimatePresence>
+    </motion.div>
+  );
+};
 
-        <div className="bg-white/5 border border-white/10 rounded-2xl p-5">
-          <h2 className="font-semibold text-lg mb-4">Project pipeline</h2>
-          {loading ? (
-            <p className="text-gray-400 text-sm">Loading projects...</p>
-          ) : projects.length === 0 ? (
-            <p className="text-gray-400 text-sm">No projects yet.</p>
-          ) : (
-            <div className="space-y-3">
-              {projects.map((project) => (
-                <button
-                  key={project.id}
-                  onClick={() => navigate(`/projects/${project.id}`)}
-                  className="w-full text-left p-4 rounded-xl border border-white/10 bg-black/40 hover:border-[#00ff88]/60 transition-colors"
-                >
-                  <div className="flex items-center justify-between">
-                    <div className="font-semibold">{project.name}</div>
-                    <span className="text-xs text-[#00ff88] uppercase">{project.status}</span>
-                  </div>
-                  <p className="text-xs text-gray-400 mt-1">{project.description || "No description provided."}</p>
-                  <div className="text-xs text-gray-500 mt-2">
-                    {project.organization?.name} • {project.collaborators?.length || 0} collaborators
-                  </div>
-                </button>
+// ─── MAIN COMPONENT ───────────────────────────────────────────────────────────
+const Projects = () => {
+  const navigate = useNavigate();
+  const { user } = useAuth();
+
+  const [personalProjects, setPersonalProjects] = useState([]);
+  const [orgAssignments, setOrgAssignments] = useState(MOCK_ORG_ASSIGNMENTS);
+  const [loading, setLoading] = useState(true);
+  const [activeTab, setActiveTab] = useState("ALL_ACCESS");
+
+  // Load real personal + org projects from API
+  useEffect(() => {
+    (async () => {
+      setLoading(true);
+      try {
+        const { data } = await api.get("/projects");
+        const all = data?.data || [];
+        setPersonalProjects(all.filter(p => p.isPersonal || p.leadPentesterId === user?.id));
+      } catch {
+        // silently fall back to mock data
+      } finally {
+        setLoading(false);
+      }
+    })();
+  }, [user]);
+
+  const pendingCount = orgAssignments.filter(p => p.inviteStatus === 'PENDING').length;
+  const acceptedOrg  = orgAssignments.filter(p => p.inviteStatus === 'ACCEPTED');
+
+  // Tab filtering
+  const displayPersonal = activeTab === 'ALL_ACCESS' || activeTab === 'LOCAL_LABS';
+  const displayOrg      = activeTab === 'ALL_ACCESS' || activeTab === 'MISSIONS';
+  const displayPending  = activeTab === 'ALL_ACCESS' || activeTab === 'INBOUND_REQS';
+
+  const handleAccept  = id => setOrgAssignments(prev => prev.map(p => p.id === id ? { ...p, inviteStatus: 'ACCEPTED' } : p));
+  const handleDecline = id => setOrgAssignments(prev => prev.filter(p => p.id !== id));
+  const handlePersonalCreated = p => {
+    setPersonalProjects(prev => [p, ...prev]);
+    navigate(`/projects/${p.id}`);
+  };
+
+  return (
+    <div className="flex flex-col h-full bg-[#050505] p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto w-full text-gray-300 font-sans space-y-6 lg:space-y-8 min-h-[calc(100vh-80px)]">
+
+      {/* ── Header ── */}
+      <div>
+        <h1 className="text-3xl font-extrabold text-white tracking-tight mb-2">My Applications</h1>
+        <p className="text-gray-500 text-sm max-w-2xl">
+          Manage your personal labs and track assigned organizational engagements in one place.
+        </p>
+      </div>
+
+      {/* Tab Nav & pending alert */}
+      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+        <div className="flex items-center gap-1 bg-[#111] border border-white/5 rounded-xl p-1 w-full lg:w-auto overflow-x-auto hide-scrollbar">
+          {TABS.map(tab => (
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id)}
+              className={`px-4 py-2 rounded-lg text-xs font-bold transition-all whitespace-nowrap flex items-center justify-center gap-2 ${
+                activeTab === tab.id
+                  ? 'bg-white/10 text-white shadow-sm'
+                  : 'text-gray-500 hover:text-white hover:bg-white/5'
+              }`}
+            >
+              {tab.label}
+              {tab.id === 'INBOUND_REQS' && pendingCount > 0 && (
+                <span className="bg-amber-500 text-black text-[10px] font-bold px-1.5 py-0.5 rounded-md min-w-[20px] text-center">
+                  {pendingCount}
+                </span>
+              )}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* ── Content ── */}
+      <div className="space-y-12 pb-12">
+        {/* Pending Invites Alert */}
+        <AnimatePresence>
+          {pendingCount > 0 && (activeTab === 'ALL_ACCESS' || activeTab === 'INBOUND_REQS') && (
+            <motion.div
+              initial={{ opacity: 0, height: 0, y: -10 }}
+              animate={{ opacity: 1, height: "auto", y: 0 }}
+              exit={{ opacity: 0, height: 0, scale: 0.95 }}
+              className="flex items-start sm:items-center justify-between gap-4 p-5 rounded-2xl border border-amber-500/30 bg-amber-500/10 shadow-sm"
+            >
+              <div className="flex items-center gap-4">
+                <div className="w-10 h-10 bg-amber-500/20 rounded-xl flex items-center justify-center shrink-0">
+                  <FiBell className="text-amber-500 text-lg" />
+                </div>
+                <div>
+                  <h3 className="text-sm font-bold text-white flex items-center gap-2">
+                    Action Required
+                  </h3>
+                  <p className="text-xs text-amber-200/70 mt-0.5 font-medium">You have {pendingCount} outstanding mission request(s) awaiting your decision.</p>
+                </div>
+              </div>
+              <button
+                className="hidden sm:block text-sm font-bold text-amber-500 hover:text-amber-400"
+                onClick={() => setActiveTab('INBOUND_REQS')}
+              >
+                View Requests
+              </button>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* Pending Invites Grid */}
+        {displayPending && orgAssignments.filter(p => p.inviteStatus === 'PENDING').length > 0 && (
+          <section className="space-y-5">
+            <h2 className="text-sm font-bold text-gray-400 tracking-wider uppercase flex items-center gap-3">
+              <span className="w-2 h-2 rounded-full bg-amber-500" /> Pending Invitations
+            </h2>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+              {orgAssignments.filter(p => p.inviteStatus === 'PENDING').map((p, i) => (
+                <OrgProjectCard key={p.id} project={p} index={i} onOpen={id => navigate(`/projects/${id}`)} onAccept={handleAccept} onDecline={handleDecline} />
               ))}
             </div>
-          )}
-        </div>
+          </section>
+        )}
+
+        {/* Personal Projects section */}
+        {displayPersonal && (
+          <section className="space-y-5">
+            <h2 className="text-sm font-bold text-gray-400 tracking-wider uppercase flex items-center gap-3">
+              <span className="w-2 h-2 rounded-full bg-blue-500" /> Independent Resources
+            </h2>
+
+            <PersonalWorkspaceCard onCreate={handlePersonalCreated} />
+
+            {loading ? (
+               <div className="py-12 flex justify-center">
+                 <div className="w-8 h-8 border-2 border-white/10 border-t-[#00c477] rounded-full animate-spin" />
+               </div>
+            ) : personalProjects.length > 0 ? (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5 mt-6">
+                {personalProjects.map((p, i) => (
+                  <PersonalProjectCard key={p.id} project={p} index={i} onOpen={id => navigate(`/projects/${id}`)} />
+                ))}
+              </div>
+            ) : (
+                null // we already show the creation card, no need for redundant empty state
+            )}
+          </section>
+        )}
+
+        {/* Active Engagements section */}
+        {displayOrg && (
+          <section className="space-y-5">
+            <h2 className="text-sm font-bold text-gray-400 tracking-wider uppercase flex items-center gap-3">
+              <span className="w-2 h-2 rounded-full bg-[#00c477]" /> Active Organization Nodes
+            </h2>
+
+            {acceptedOrg.length === 0 ? (
+              <div className="py-16 flex flex-col items-center justify-center gap-4 border-2 border-dashed border-white/5 bg-[#0a0a0a] rounded-3xl text-gray-500 text-sm">
+                <FiActivity size={32} className="opacity-30 mb-2" />
+                <p>No active organizational engagements currently underway.</p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+                {acceptedOrg.map((p, i) => (
+                   <OrgProjectCard key={p.id} project={p} index={i} onOpen={id => navigate(`/projects/${id}`)} onAccept={handleAccept} onDecline={handleDecline} />
+                ))}
+              </div>
+            )}
+          </section>
+        )}
       </div>
     </div>
   );

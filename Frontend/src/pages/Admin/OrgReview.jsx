@@ -67,7 +67,7 @@ const OrgReview = () => {
             </button>
             <button 
               onClick={() => handleAction('approve')}
-              className="px-6 py-2.5 bg-[#00ff88] text-black rounded-lg font-mono text-sm font-bold uppercase tracking-widest hover:bg-green-400 shadow-lg shadow-[#00ff88]/20 transition-all flex items-center gap-2"
+              className="px-6 py-2.5 bg-[#00c477] text-black rounded-lg font-mono text-sm font-bold uppercase tracking-widest hover:bg-green-400 shadow-lg shadow-[#00c477]/20 transition-all flex items-center gap-2"
             >
               <FiCheckCircle /> Approve App
             </button>
@@ -80,16 +80,16 @@ const OrgReview = () => {
             {/* Left Column: Brand Identity */}
             <div className="md:col-span-1 space-y-6">
                 <div className="bg-white/5 border border-white/10 p-6 rounded-2xl flex flex-col items-center text-center">
-                    <div className="h-24 w-24 rounded-full bg-[#00ff88]/20 flex items-center justify-center text-[#00ff88] mb-4">
+                    <div className="h-24 w-24 rounded-full bg-[#00c477]/20 flex items-center justify-center text-[#00c477] mb-4">
                         <FiBriefcase size={40} />
                     </div>
                     <h2 className="text-xl font-bold">{org.name}</h2>
-                    <p className="text-[#00ff88] font-mono text-sm mt-1">/{org.slug}</p>
+                    <p className="text-[#00c477] font-mono text-sm mt-1">/{org.slug}</p>
                     
                     <div className="w-full mt-6 pt-6 border-t border-white/10 text-left space-y-3">
                         <div>
                             <p className="text-gray-500 text-xs font-mono uppercase text-center mb-2 justify-center flex items-center gap-1"><FiGlobe /> Official Website</p>
-                            <a href={org.website} target="_blank" rel="noreferrer" className="text-gray-200 font-mono text-sm text-center block truncate hover:text-[#00ff88] transition-colors">{org.website || 'Not Provided'}</a>
+                            <a href={org.website} target="_blank" rel="noreferrer" className="text-gray-200 font-mono text-sm text-center block truncate hover:text-[#00c477] transition-colors">{org.website || 'Not Provided'}</a>
                         </div>
                     </div>
                 </div>
@@ -100,7 +100,7 @@ const OrgReview = () => {
                 
                 <div className="bg-white/5 border border-white/10 p-6 rounded-2xl">
                     <h3 className="flex items-center gap-2 text-sm font-semibold text-gray-200 mb-4 uppercase tracking-widest font-mono">
-                        <FiMapPin className="text-[#00ff88]" /> Registered Address
+                        <FiMapPin className="text-[#00c477]" /> Registered Address
                     </h3>
                     <p className="text-gray-400 leading-relaxed text-sm whitespace-pre-wrap font-mono bg-black/40 p-4 rounded-lg border border-white/5">
                         {org.address || 'No address provided.'}
@@ -110,14 +110,14 @@ const OrgReview = () => {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div className="bg-white/5 border border-white/10 p-6 rounded-2xl">
                         <h3 className="flex items-center gap-2 text-sm font-semibold text-gray-200 mb-4 uppercase tracking-widest font-mono">
-                            <FiTag className="text-[#00ff88]" /> Industry
+                            <FiTag className="text-[#00c477]" /> Industry
                         </h3>
                         <p className="text-white text-lg font-mono">{org.industry || 'Unknown'}</p>
                     </div>
 
                     <div className="bg-white/5 border border-white/10 p-6 rounded-2xl">
                         <h3 className="flex items-center gap-2 text-sm font-semibold text-gray-200 mb-4 uppercase tracking-widest font-mono">
-                            <FiUsers className="text-[#00ff88]" /> Company Size
+                            <FiUsers className="text-[#00c477]" /> Company Size
                         </h3>
                         <p className="text-white text-lg font-mono">{org.companySize || 'Unknown'} <span className="text-gray-500 text-sm">Employees</span></p>
                     </div>

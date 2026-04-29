@@ -28,13 +28,13 @@ const startServer = async () => {
     // Join a specific workflow room (e.g., roomID = workflowId)
     socket.on("join-workflow", ({ workflowId, user, color }) => {
       socket.join(workflowId);
-      
+
       // Store user info
       if (!workflowUsers[workflowId]) workflowUsers[workflowId] = {};
       workflowUsers[workflowId][socket.id] = { id: socket.id, user, color, joinedAt: new Date() };
 
       console.log(`Client ${socket.id} (${user}) joined workflow room: ${workflowId}`);
-      
+
       // Send the current list of collaborators to the new user
       socket.emit("collaborators-list", Object.values(workflowUsers[workflowId]));
 
@@ -44,19 +44,26 @@ const startServer = async () => {
 
     // Handle incoming changes (nodes moving, edits, etc)
     socket.on("workflow-change", (data) => {
-      // data ideally contains { workflowId, action, details, user }
-
-      // Broadcast the change to everyone ELSE in that room
-      socket.to(data.workflowId).emit("workflow-updated", data);
-
-      // TODO: Here we could optionally persist this atomic change to Prisma WorkflowHistory
-      // to avoid storing every single drag event, we typically batch or save on throttle.
+      // Broadcast the change to everyone ELSE in that room.
+      // Forward senderId so receivers can suppress their own echo.
+      socket.to(data.workflowId).emit("workflow-updated", {
+        nodes: data.nodes,
+        edges: data.edges,
+        deletedNodeIds: data.deletedNodeIds || [],
+        senderId: data.senderId || socket.id,
+      });
     });
 
-    // Handle cursor movement optionally showing where users are
+    // Handle cursor movement — forward color so remote cursors render correctly
     socket.on("cursor-move", (data) => {
-      // data: { workflowId, x, y, user }
-      socket.to(data.workflowId).emit("cursor-updated", { ...data, socketId: socket.id });
+      // data: { workflowId, x, y, user, color }
+      socket.to(data.workflowId).emit("cursor-updated", {
+        x: data.x,
+        y: data.y,
+        user: data.user,
+        color: data.color || '#00ff41',
+        socketId: socket.id,
+      });
     });
 
     // Handle node-level presence (focus/selection)
