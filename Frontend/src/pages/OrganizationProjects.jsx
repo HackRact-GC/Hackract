@@ -225,7 +225,7 @@ const ProjectCard = ({ project, onManage, index }) => {
 // ─── CREATE PROJECT MODAL ─────────────────────────────────────────────────────
 const CreateProjectModal = ({ onClose, onCreate }) => {
   const [form, setForm] = useState({
-    name: '', description: '', scope: '', threatLevel: 'MEDIUM', deadline: '',
+    name: '', description: '', type: 'WEB_APP', threatLevel: 'HIGH', deadline: '',
   });
   const [loading, setLoading] = useState(false);
 
@@ -235,7 +235,14 @@ const CreateProjectModal = ({ onClose, onCreate }) => {
     setLoading(true);
     // Simulate API call
     await new Promise(r => setTimeout(r, 800));
-    onCreate({ ...form, id: Date.now(), status: 'PLANNING', assignedHackers: [], findings: 0, createdAt: 'Today' });
+    onCreate({ 
+      ...form, 
+      id: Date.now(), 
+      status: 'PLANNING', 
+      assignedHackers: [], 
+      findings: 0, 
+      createdAt: 'Today' 
+    });
     setLoading(false);
     onClose();
   };
@@ -245,128 +252,173 @@ const CreateProjectModal = ({ onClose, onCreate }) => {
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      className="fixed inset-0 bg-black/80 backdrop-blur-md z-50 flex items-center justify-center p-6"
+      className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 sm:p-6"
       onClick={onClose}
     >
       <motion.form
         onSubmit={handleSubmit}
-        initial={{ opacity: 0, scale: 0.96, y: 20 }}
+        initial={{ opacity: 0, scale: 0.95, y: 20 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
-        exit={{ opacity: 0, scale: 0.96, y: 20 }}
-        className="bg-[#0a0a0a] border border-white/10 rounded-3xl p-8 w-full max-w-lg shadow-[0_20px_60px_-10px_rgba(0,196,119,0.1)] relative overflow-hidden"
+        exit={{ opacity: 0, scale: 0.95, y: 20 }}
+        className="bg-[#050505] border border-white/10 rounded-3xl w-full max-w-4xl shadow-[0_20px_80px_-15px_rgba(0,196,119,0.15)] relative overflow-hidden flex flex-col md:flex-row"
         onClick={e => e.stopPropagation()}
       >
-        {/* Subtle background glow */}
-        <div className="absolute -top-32 -right-32 w-64 h-64 bg-[#00c477]/10 rounded-full blur-[80px] pointer-events-none" />
+        {/* Left Pane - Context & Branding */}
+        <div className="md:w-5/12 relative p-8 md:p-10 border-b md:border-b-0 md:border-r border-white/5 flex flex-col justify-between overflow-hidden">
+          {/* Ambient Glow */}
+          <div className="absolute -top-32 -left-32 w-64 h-64 bg-[#00c477]/10 rounded-full blur-[80px] pointer-events-none" />
+          <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-[0.02]" />
 
-        {/* Modal header */}
-        <div className="flex items-center justify-between mb-8 relative z-10">
-          <div className="flex items-center gap-4">
-            <div className="w-12 h-12 rounded-2xl bg-[#00c477]/10 border border-[#00c477]/20 flex items-center justify-center">
-              <FiBriefcase className="text-[#00c477] text-xl" />
+          <div className="relative z-10">
+            <div className="w-14 h-14 rounded-2xl bg-[#00c477]/10 border border-[#00c477]/20 flex items-center justify-center mb-8 shadow-[0_0_20px_rgba(0,196,119,0.1)]">
+              <FiBriefcase className="text-[#00c477] text-2xl" />
             </div>
-            <div>
-              <h2 className="text-xl font-bold text-white tracking-tight">New Security Program</h2>
-              <p className="text-[13px] text-gray-400 mt-1">Configure parameters for the new engagement.</p>
-            </div>
-          </div>
-          <button type="button" onClick={onClose} className="w-8 h-8 rounded-full flex items-center justify-center text-gray-500 hover:text-white hover:bg-white/10 transition-all">
-            <FiX size={18} />
-          </button>
-        </div>
-
-        <div className="space-y-5 relative z-10">
-          {/* Program name */}
-          <div>
-            <label className="text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-2 block">
-              Program Name <span className="text-[#00c477]">*</span>
-            </label>
-            <input
-              value={form.name}
-              onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
-              placeholder="e.g. Web App Security Audit Q2"
-              required
-              className="w-full bg-black border border-white/10 focus:border-[#00c477] focus:ring-1 focus:ring-[#00c477] rounded-xl px-4 py-3 text-sm text-white outline-none transition-all placeholder-gray-600 shadow-inner"
-            />
-          </div>
-
-          {/* Description */}
-          <div>
-            <label className="text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-2 block">
-              Objectives & Scope
-            </label>
-            <textarea
-              value={form.description}
-              onChange={e => setForm(f => ({ ...f, description: e.target.value }))}
-              rows={3}
-              placeholder="Describe the target systems, authorized scope, and objectives..."
-              className="w-full bg-black border border-white/10 focus:border-[#00c477] focus:ring-1 focus:ring-[#00c477] rounded-xl px-4 py-3 text-sm text-white outline-none transition-all placeholder-gray-600 resize-none shadow-inner"
-            />
-          </div>
-
-          {/* Threat Level + Deadline row */}
-          <div className="grid grid-cols-2 gap-5">
-            <div>
-              <label className="text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-2 block">
-                Relative Threat Level
-              </label>
-              <div className="relative">
-                <select
-                  value={form.threatLevel}
-                  onChange={e => setForm(f => ({ ...f, threatLevel: e.target.value }))}
-                  className="w-full bg-black border border-white/10 focus:border-[#00c477] focus:ring-1 focus:ring-[#00c477] rounded-xl px-4 py-3 text-sm text-white outline-none transition-all appearance-none"
-                >
-                  {['CRITICAL', 'HIGH', 'MEDIUM', 'LOW'].map(l => (
-                    <option key={l} value={l}>{l.charAt(0) + l.slice(1).toLowerCase()}</option>
-                  ))}
-                </select>
-                <div className="absolute inset-y-0 right-4 flex items-center pointer-events-none">
-                  <FiAlertTriangle className="text-gray-500 text-sm" />
-                </div>
-              </div>
-            </div>
-            <div>
-              <label className="text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-2 block">
-                Target Deadline
-              </label>
-              <input
-                type="date"
-                value={form.deadline}
-                onChange={e => setForm(f => ({ ...f, deadline: e.target.value }))}
-                className="w-full bg-black border border-white/10 focus:border-[#00c477] focus:ring-1 focus:ring-[#00c477] rounded-xl px-4 py-3 text-sm text-white outline-none transition-all"
-                style={{ colorScheme: 'dark' }}
-              />
-            </div>
-          </div>
-
-          {/* Info note */}
-          <div className="flex items-start gap-3 p-4 rounded-xl border border-[#00c477]/20 bg-[#00c477]/10">
-            <FiUsers className="text-[#00c477] mt-0.5 shrink-0" size={16} />
-            <p className="text-[12px] text-[#00c477]/80 leading-relaxed font-medium">
-              After initialization, navigate to the <span className="text-[#00c477] font-bold">Discover</span> tab to delegate assignments to verified professionals.
+            <h2 className="text-3xl font-black text-white tracking-tight leading-tight mb-4">
+              Initialize<br />Security Program
+            </h2>
+            <p className="text-sm text-gray-400 leading-relaxed">
+              Configure parameters for the new engagement. Once initialized, the program enters the <strong className="text-[#00c477] font-bold">PLANNING</strong> phase for resource allocation and scoping.
             </p>
           </div>
 
-          {/* Actions */}
-          <div className="flex gap-4 pt-4 border-t border-white/5">
-            <button
-              type="button"
-              onClick={onClose}
-              className="flex-1 py-3 rounded-xl border border-white/10 bg-white/5 hover:bg-white/10 text-white text-sm font-bold transition-all"
-            >
-              Cancel
-            </button>
-            <button
-              type="submit"
-              disabled={loading || !form.name.trim()}
-              className="flex-1 py-3 rounded-xl bg-[#00c477] hover:bg-[#009a5e] text-black font-extrabold text-sm shadow-[0_0_20px_rgba(0,196,119,0.3)] focus:ring-4 focus:ring-[#00c477]/30 transition-all disabled:opacity-50 flex items-center justify-center gap-2"
-            >
-              {loading
-                ? <div className="w-4 h-4 border-2 border-black/20 border-t-black rounded-full animate-spin" />
-                : <FiCheck size={16} />
-              }
-              {loading ? 'Initializing…' : 'Create Program'}
-            </button>
+          <div className="relative z-10 mt-10">
+            <div className="bg-black/50 border border-white/5 rounded-xl p-5 backdrop-blur-md">
+              <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-2 h-2 rounded-full bg-[#00c477] animate-pulse shadow-[0_0_8px_#00c477]" />
+                  <span className="text-[10px] font-black text-white tracking-widest uppercase">Network Status</span>
+                </div>
+                <FiActivity className="text-[#00c477]/50" />
+              </div>
+              <p className="text-[11px] text-gray-500 font-mono leading-relaxed">
+                Sentinel Command is ready to deploy your infrastructure requirements to the verified hacker network.
+              </p>
+            </div>
+          </div>
+        </div>
+
+        {/* Right Pane - Form Fields */}
+        <div className="md:w-7/12 p-8 md:p-10 relative bg-[#0a0a0a]">
+          <button 
+            type="button" 
+            onClick={onClose} 
+            className="absolute top-6 right-6 w-8 h-8 rounded-full flex items-center justify-center text-gray-500 hover:text-white hover:bg-white/10 transition-colors z-20"
+          >
+            <FiX size={18} />
+          </button>
+
+          <div className="space-y-6 relative z-10">
+            {/* Program Name */}
+            <div>
+              <label className="text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-2.5 block">
+                Program Nomenclature <span className="text-[#00c477]">*</span>
+              </label>
+              <input
+                value={form.name}
+                onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
+                placeholder="e.g., Core Banking API Audit Q3"
+                required
+                className="w-full bg-[#050505] border border-white/10 focus:border-[#00c477] focus:ring-1 focus:ring-[#00c477] rounded-xl px-4 py-3.5 text-sm text-white outline-none transition-all placeholder-gray-600 shadow-inner"
+              />
+            </div>
+
+            {/* Target Type */}
+            <div>
+              <label className="text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-2.5 block">
+                Primary Target Asset
+              </label>
+              <div className="grid grid-cols-3 gap-3">
+                {[
+                  { id: 'WEB_APP', label: 'Web App' },
+                  { id: 'MOBILE', label: 'Mobile' },
+                  { id: 'NETWORK', label: 'Network' }
+                ].map(type => (
+                  <button
+                    key={type.id}
+                    type="button"
+                    onClick={() => setForm(f => ({ ...f, type: type.id }))}
+                    className={`py-2.5 rounded-lg text-xs font-bold transition-all border ${
+                      form.type === type.id 
+                        ? 'bg-[#00c477]/10 border-[#00c477] text-[#00c477]' 
+                        : 'bg-black border-white/5 text-gray-500 hover:border-white/20'
+                    }`}
+                  >
+                    {type.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Objectives */}
+            <div>
+              <label className="text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-2.5 block">
+                Objectives & Scope Directives
+              </label>
+              <textarea
+                value={form.description}
+                onChange={e => setForm(f => ({ ...f, description: e.target.value }))}
+                rows={3}
+                placeholder="Detail the primary systems, authorized subdomains, and specific attack vectors to test..."
+                className="w-full bg-[#050505] border border-white/10 focus:border-[#00c477] focus:ring-1 focus:ring-[#00c477] rounded-xl px-4 py-3.5 text-sm text-white outline-none transition-all placeholder-gray-600 resize-none shadow-inner"
+              />
+            </div>
+
+            {/* Attributes Row */}
+            <div className="grid grid-cols-2 gap-5">
+              <div>
+                <label className="text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-2.5 block">
+                  Threat Tier
+                </label>
+                <div className="relative">
+                  <select
+                    value={form.threatLevel}
+                    onChange={e => setForm(f => ({ ...f, threatLevel: e.target.value }))}
+                    className="w-full bg-[#050505] border border-white/10 focus:border-[#00c477] focus:ring-1 focus:ring-[#00c477] rounded-xl px-4 py-3.5 text-sm text-white outline-none transition-all appearance-none"
+                  >
+                    {['CRITICAL', 'HIGH', 'MEDIUM', 'LOW'].map(l => (
+                      <option key={l} value={l}>{l.charAt(0) + l.slice(1).toLowerCase()} Priority</option>
+                    ))}
+                  </select>
+                  <div className="absolute inset-y-0 right-4 flex items-center pointer-events-none">
+                    <FiAlertTriangle className="text-gray-500 text-sm" />
+                  </div>
+                </div>
+              </div>
+              <div>
+                <label className="text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-2.5 block">
+                  Target Deadline
+                </label>
+                <input
+                  type="date"
+                  value={form.deadline}
+                  onChange={e => setForm(f => ({ ...f, deadline: e.target.value }))}
+                  className="w-full bg-[#050505] border border-white/10 focus:border-[#00c477] focus:ring-1 focus:ring-[#00c477] rounded-xl px-4 py-3.5 text-sm text-white outline-none transition-all"
+                  style={{ colorScheme: 'dark' }}
+                />
+              </div>
+            </div>
+
+            {/* Actions */}
+            <div className="flex items-center justify-end gap-3 pt-6 mt-6 border-t border-white/5">
+              <button
+                type="button"
+                onClick={onClose}
+                className="px-6 py-3 rounded-xl bg-transparent hover:bg-white/5 text-gray-300 text-sm font-bold transition-all"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                disabled={loading || !form.name.trim()}
+                className="px-8 py-3 rounded-xl bg-[#00c477] hover:bg-[#009a5e] text-black font-extrabold text-sm shadow-[0_0_20px_rgba(0,196,119,0.3)] focus:ring-4 focus:ring-[#00c477]/30 transition-all disabled:opacity-50 flex items-center gap-2"
+              >
+                {loading
+                  ? <div className="w-4 h-4 border-2 border-black/20 border-t-black rounded-full animate-spin" />
+                  : <FiCheck size={16} />
+                }
+                {loading ? 'Initializing...' : 'Deploy Program'}
+              </button>
+            </div>
           </div>
         </div>
       </motion.form>

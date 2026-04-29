@@ -93,13 +93,16 @@ const WorkflowEditor = ({ workflowId: propWorkflowId, pentestId: propPentestId }
     collaborators,
     cursors,
     activeNodes,
-    nodes: remoteNodes,
-    edges: remoteEdges,
+    remotePatch,
+    consumeRemotePatch,
     emitWorkflowChange,
     emitCursorMove,
     emitNodeFocus,
     user: localUser
   } = useWorkflowSocket(workflowId);
+
+  // Track whether we are locally dragging so we don't overwrite positions mid-drag
+  const isDraggingRef = useRef(false);
 
   const { user: authUser } = useAuth();
 
@@ -107,25 +110,78 @@ const WorkflowEditor = ({ workflowId: propWorkflowId, pentestId: propPentestId }
   const [nodes, setNodes, onNodesChange] = useNodesState([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState([]);
 
-  // Sync Remote Changes into Local State
+  // ── Merge remote patches without disrupting local drag state ──────────────
   useEffect(() => {
-    if (remoteNodes && remoteNodes.length > 0) {
-      // We need to inject the onDelete handler into remote nodes since they come from network without functions
-      const nodesWithHandlers = remoteNodes.map(node => ({
-        ...node,
-        data: {
-          ...node.data,
-          onDelete: () => deleteNode(node.id),
-          onTitleChange: (newTitle) => updateNodeTitle(node.id, newTitle),
-          onLinkFinding: (findingId) => linkFinding(node.id, findingId),
-          findings,
-          activeUsers: activeNodes[node.id] || {}
+    if (!remotePatch) return;
+    const patch = consumeRemotePatch();
+    if (!patch) return;
+
+    // ── Node positions: merge by ID, never replace while locally dragging ────
+    if (patch.nodes && patch.nodes.length > 0) {
+      setNodes(localNodes => {
+        // Build a fast lookup: patchedNodeId → { position, data fields }
+        const patchMap = {};
+        patch.nodes.forEach(n => { patchMap[n.id] = n; });
+
+        const merged = localNodes.map(localNode => {
+          const remote = patchMap[localNode.id];
+          if (!remote) return localNode; // node not in patch → untouched
+
+          // Skip position merge if user is currently dragging this node
+          const isBeingDragged = isDraggingRef.current && localNode.dragging;
+          const nextPosition = isBeingDragged ? localNode.position : (remote.position || localNode.position);
+
+          return {
+            ...localNode,
+            position: nextPosition,
+            // Merge remote data fields (label, findingId, etc.) but keep local callbacks
+            data: {
+              ...localNode.data,
+              ...remote.data,
+              // Always preserve local function callbacks — they cannot serialise over the socket
+              onDelete: localNode.data.onDelete,
+              onTitleChange: localNode.data.onTitleChange,
+              onLinkFinding: localNode.data.onLinkFinding,
+              findings: localNode.data.findings,
+              activeUsers: activeNodes[localNode.id] || {},
+            },
+          };
+        });
+
+        // Handle new nodes added by a remote peer (not present locally)
+        const localIds = new Set(localNodes.map(n => n.id));
+        patch.nodes.forEach(remoteNode => {
+          if (!localIds.has(remoteNode.id)) {
+            // New node from remote — attach all local callbacks
+            merged.push({
+              ...remoteNode,
+              data: {
+                ...remoteNode.data,
+                onDelete: () => deleteNode(remoteNode.id),
+                onTitleChange: (newTitle) => updateNodeTitle(remoteNode.id, newTitle),
+                onLinkFinding: (findingId) => linkFinding(remoteNode.id, findingId),
+                findings,
+                activeUsers: activeNodes[remoteNode.id] || {},
+              },
+            });
+          }
+        });
+
+        // Handle nodes deleted by a remote peer
+        if (patch.deletedNodeIds && patch.deletedNodeIds.length > 0) {
+          const deletedSet = new Set(patch.deletedNodeIds);
+          return merged.filter(n => !deletedSet.has(n.id));
         }
-      }));
-      setNodes(nodesWithHandlers);
+
+        return merged;
+      });
     }
-    if (remoteEdges && remoteEdges.length > 0) setEdges(remoteEdges);
-  }, [remoteNodes, remoteEdges, setNodes, setEdges]);
+
+    // ── Edges: full replace is safe (edges have no callback functions) ────────
+    if (patch.edges) {
+      setEdges(patch.edges);
+    }
+  }, [remotePatch]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Load Initial Graph State
   useEffect(() => {
@@ -352,28 +408,31 @@ const WorkflowEditor = ({ workflowId: propWorkflowId, pentestId: propPentestId }
   const handleNodesChange = useCallback((changes) => {
     onNodesChange(changes);
 
-    const positionChanged = changes.some(c => c.type === "position");
-    const dragEndedOrDeleted = changes.some(c => (c.type === "position" && !c.dragging) || c.type === "remove");
+    const hasPositionChange = changes.some(c => c.type === 'position');
+    const isDraggingNow = changes.some(c => c.type === 'position' && c.dragging === true);
+    const dragEnded = changes.some(c => c.type === 'position' && c.dragging === false);
+    const hasRemoval = changes.some(c => c.type === 'remove');
 
-    // Emit live position updates via WebSocket for real-time tracking
-    if (positionChanged || dragEndedOrDeleted) {
-       setTimeout(() => {
-         setNodes((nds) => {
-           setEdges((eds) => {
-             emitWorkflowChange(nds, eds);
-             
-             // Only incur DB overhead when drag has finished natively
-             if (dragEndedOrDeleted) {
-               const isDelete = changes.some(c => c.type === "remove");
-               if (!isDelete) {
-                 saveToDatabase(nds, eds, "MOVE_NODE");
-               }
-             }
-             return eds;
-           });
-           return nds;
-         });
-       }, 5);
+    // Update drag-in-progress ref so remote patches skip position merge
+    if (isDraggingNow) isDraggingRef.current = true;
+    if (dragEnded || hasRemoval) isDraggingRef.current = false;
+
+    if (hasPositionChange || hasRemoval) {
+      // Use a micro-delay so React Flow finishes applying the change to state first
+      setTimeout(() => {
+        setNodes(nds => {
+          setEdges(eds => {
+            // Broadcast live position to peers (throttling is handled by socket.io itself)
+            emitWorkflowChange(nds, eds);
+
+            // Only persist to DB on drag-end or deletion
+            if (dragEnded) saveToDatabase(nds, eds, 'MOVE_NODE');
+
+            return eds;
+          });
+          return nds;
+        });
+      }, 8);
     }
   }, [onNodesChange, emitWorkflowChange, setNodes, setEdges]);
 
@@ -418,23 +477,33 @@ const WorkflowEditor = ({ workflowId: propWorkflowId, pentestId: propPentestId }
     }
   }, [emitNodeFocus, localUser]);
 
-  // Render Remote Cursors
+  // Render Remote Cursors — each with the peer's unique color
   const renderCursors = () => {
-    return Object.entries(cursors).map(([socketId, cursor]) => (
-      <div
-        key={socketId}
-        className="absolute pointer-events-none z-50 flex items-center gap-2 transition-transform duration-100 ease-out"
-        style={{ transform: `translate(${cursor.x}px, ${cursor.y}px)` }}
-      >
-        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <path d="M0.999967 0L6.64997 15.5L8.54997 9.5L14.45 7.6L0.999967 0Z" fill={cursor.color || "#00ff41"}/>
-        </svg>
-        <span className="text-black text-[10px] px-1.5 py-0.5 rounded font-bold shadow-sm"
-              style={{ backgroundColor: cursor.color || "#00ff41" }}>
-          {cursor.user || 'Peer'}
-        </span>
-      </div>
-    ));
+    return Object.entries(cursors).map(([socketId, cursor]) => {
+      const color = cursor.color || '#00ff41';
+      return (
+        <div
+          key={socketId}
+          className="absolute pointer-events-none z-50 flex items-center gap-1.5"
+          style={{
+            transform: `translate(${cursor.x}px, ${cursor.y}px)`,
+            transition: 'transform 80ms linear',
+          }}
+        >
+          {/* Cursor arrow */}
+          <svg width="14" height="18" viewBox="0 0 14 18" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M0 0L0 14L3.5 10.5L6 16L8 15L5.5 9.5H10L0 0Z" fill={color} />
+          </svg>
+          {/* Name tag */}
+          <span
+            className="text-[10px] px-2 py-0.5 rounded font-bold shadow-lg whitespace-nowrap"
+            style={{ backgroundColor: color, color: '#000' }}
+          >
+            {cursor.user || 'Peer'}
+          </span>
+        </div>
+      );
+    });
   };
 
   return (
