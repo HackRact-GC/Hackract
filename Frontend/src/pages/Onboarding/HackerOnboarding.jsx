@@ -1,20 +1,51 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/authContext.jsx';
 import api from '../../api/axiosConfig';
 import toast from 'react-hot-toast';
-import { FiCheckCircle, FiChevronRight, FiChevronLeft, FiAlertTriangle, FiUser, FiCode, FiFileText } from 'react-icons/fi';
+import { FiUser, FiCode, FiAward, FiFileText, FiCamera, FiUploadCloud, FiCpu, FiShield, FiCheckCircle } from 'react-icons/fi';
+
+// ── Components ─────────────────────────────────────────────────────────────
+
+const SectionHeader = ({ icon: Icon, title }) => (
+  <div className="flex items-center gap-3 mb-6">
+    <div className="w-8 h-8 rounded-lg bg-[#00c477]/10 flex items-center justify-center text-[#00c477]">
+      <Icon size={18} />
+    </div>
+    <h2 className="text-sm font-black uppercase tracking-[0.2em] text-white/90 font-mono">{title}</h2>
+  </div>
+);
+
+const Field = ({ label, children }) => (
+  <div className="space-y-2">
+    <label className="block text-[10px] text-white/40 uppercase tracking-[0.14em] font-mono font-bold">{label}</label>
+    {children}
+  </div>
+);
+
+const Input = (props) => (
+  <input
+    {...props}
+    className="w-full bg-[#0a0a0a] border border-white/5 rounded-xl px-4 py-3 text-sm text-white placeholder:text-white/20 focus:outline-none focus:border-[#00c477]/30 focus:bg-[#0c0c0c] transition-all duration-300 shadow-inner"
+  />
+);
+
+const TextArea = (props) => (
+  <textarea
+    {...props}
+    className="w-full bg-[#0a0a0a] border border-white/5 rounded-xl px-4 py-3 text-sm text-white placeholder:text-white/20 focus:outline-none focus:border-[#00c477]/30 focus:bg-[#0c0c0c] transition-all duration-300 shadow-inner resize-none min-h-[120px]"
+  />
+);
 
 const HackerOnboarding = () => {
   const navigate = useNavigate();
+  const { user, refreshUser } = useAuth();
+  const fileInputRef = useRef(null);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
+  const [logoPreview, setLogoPreview] = useState(null);
   const [missingAgreements, setMissingAgreements] = useState([]);
-  const [signing, setSigning] = useState(false);
   
-  const [step, setStep] = useState(1);
-  const totalSteps = 3;
-
   const [formData, setFormData] = useState({
     idDocumentNumber: '',
     bio: '',
@@ -23,7 +54,10 @@ const HackerOnboarding = () => {
     primarySkills: '',
     certifications: '',
     githubUsername: '',
-    linkedinProfile: ''
+    linkedinProfile: '',
+    fullName: user?.fullName || '',
+    email: user?.email || '',
+    specialization: '',
   });
 
   const fetchStatus = async () => {
@@ -40,11 +74,12 @@ const HackerOnboarding = () => {
           primarySkills: data.data.profile.primarySkills?.join(', ') || '',
           certifications: data.data.profile.certifications?.join(', ') || '',
           githubUsername: data.data.profile.githubUsername || '',
-          linkedinProfile: data.data.profile.linkedinProfile || ''
+          linkedinProfile: data.data.profile.linkedinProfile || '',
+          specialization: data.data.profile.specialization || ''
         }));
       }
     } catch (error) {
-      toast.error('Failed to load profile status');
+      // It's okay if profile doesn't exist yet
     } finally {
       setLoading(false);
     }
@@ -59,261 +94,256 @@ const HackerOnboarding = () => {
     setFormData(prev => ({ ...prev, [name]: value }));
   };
 
-  const handleSign = async (title) => {
-    setSigning(true);
-    try {
-      await api.post('/hacker-profiles/me/sign-agreement', { agreementTitle: title });
-      toast.success(`Successfully signed: ${title}`);
-      fetchStatus();
-    } catch (error) {
-      toast.error('Failed to sign agreement');
-    } finally {
-      setSigning(false);
-    }
+  const handleLogoChange = (event) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onloadend = () => setLogoPreview(reader.result);
+    reader.readAsDataURL(file);
   };
 
-  const handleSubmit = async () => {
-    // NDA is no longer required at onboarding — only when joining an org project
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    
+    if (!formData.bio || formData.bio.length < 10) {
+        toast.error("Please provide a background narrative (min 10 chars).");
+        return;
+    }
+
     setSubmitting(true);
     try {
       const payload = {
         ...formData,
         primarySkills: formData.primarySkills.split(',').map(s => s.trim()).filter(Boolean),
         certifications: formData.certifications.split(',').map(s => s.trim()).filter(Boolean),
+        yearsOfExperience: formData.yearsOfExperience ? Number(formData.yearsOfExperience) : null,
         status: 'SUBMITTED'
       };
 
       await api.put('/hacker-profiles/me', payload);
-      toast.success('Profile completed successfully!');
+      toast.success('Profile created successfully!');
+      
+      if (refreshUser) await refreshUser();
+      
       setTimeout(() => {
-        // Reload auth context and redirect hacker to their own dashboard
         window.location.href = '/hacker-dashboard';
       }, 1500);
     } catch (error) {
-      toast.error('Submission failed. Please try again.');
+      toast.error(error?.response?.data?.message || 'Submission failed. Please try again.');
       setSubmitting(false);
     }
   };
 
-  const nextStep = () => {
-    if (step === 1) {
-      if (!formData.country || !formData.idDocumentNumber || !formData.bio) {
-        toast.error('Please complete all required fields in this step.');
-        return;
-      }
-    } else if (step === 2) {
-      if (!formData.yearsOfExperience) {
-        toast.error('Please input your years of experience.');
-        return;
-      }
-    }
-    setStep(prev => Math.min(prev + 1, totalSteps));
-  };
-
-  const prevStep = () => setStep(prev => Math.max(prev - 1, 1));
-
   if (loading) {
     return (
-      <div className="w-full h-64 flex items-center justify-center font-mono text-[#00c477] animate-pulse">
-        [SYSTEM]: Fetching profile records...
+      <div className="w-full h-[60vh] flex flex-col items-center justify-center gap-4">
+        <div className="w-12 h-12 border-2 border-[#00c477]/20 border-t-[#00c477] rounded-full animate-spin" />
+        <div className="font-mono text-[10px] uppercase tracking-[0.2em] text-[#00c477] animate-pulse">
+          Initializing Operator Onboarding...
+        </div>
       </div>
     );
   }
 
+  const displayName = formData.fullName || user?.handle || "Digital Ghost";
+  const initials = displayName.split(" ").map(n => n[0]).join("").toUpperCase().slice(0, 2);
+
   return (
-    <div className="w-full bg-white/5 border border-white/10 rounded-2xl p-8 shadow-2xl backdrop-blur-md">
-      
-      {/* Progress Indicator */}
-      <div className="mb-8">
-        <h1 className="text-3xl font-mono font-bold mb-2">Operator Registration</h1>
-        <div className="flex items-center gap-4 text-xs font-mono uppercase tracking-widest text-gray-500 mb-6">
-            <span className={step >= 1 ? "text-[#00c477]" : ""}>1. Identity</span>
-            <FiChevronRight />
-            <span className={step >= 2 ? "text-[#00c477]" : ""}>2. Experience</span>
-            <FiChevronRight />
-            <span className={step >= 3 ? "text-[#00c477]" : ""}>3. Compliance</span>
-        </div>
+    <div className="min-h-screen bg-[#050505] text-white p-4 lg:p-8 selection:bg-[#00c477]/30">
+      <div className="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-[320px_1fr] gap-8">
         
-        {/* Progress bar */}
-        <div className="h-1 w-full bg-gray-800 rounded-full overflow-hidden">
-            <div 
-                className="h-full bg-[#00c477] transition-all duration-500 ease-out" 
-                style={{ width: `${(step / totalSteps) * 100}%` }}
-            ></div>
-        </div>
-      </div>
-
-      <div className="min-h-[400px]">
-        {/* STEP 1: IDENTITY */}
-        {step === 1 && (
-          <div className="space-y-6 animate-fadeIn">
-            <h2 className="text-xl font-semibold flex items-center gap-2 mb-6 text-gray-200">
-              <FiUser className="text-[#00c477]" /> Primary Identity
-            </h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="space-y-2">
-                    <label className="text-xs text-gray-400 uppercase font-mono tracking-tighter">ID / Passport Number *</label>
-                    <input 
-                        name="idDocumentNumber"
-                        value={formData.idDocumentNumber}
-                        onChange={handleChange}
-                        className="w-full bg-black/40 border border-white/10 rounded-lg px-4 py-2.5 focus:outline-none focus:border-[#00c477] transition-colors"
-                        placeholder="e.g. A12345678"
-                    />
-                </div>
-                <div className="space-y-2">
-                    <label className="text-xs text-gray-400 uppercase font-mono tracking-tighter">Country of Residence *</label>
-                    <input 
-                        name="country"
-                        value={formData.country}
-                        onChange={handleChange}
-                        className="w-full bg-black/40 border border-white/10 rounded-lg px-4 py-2.5 focus:outline-none focus:border-[#00c477] transition-colors"
-                        placeholder="e.g. Estonia"
-                    />
-                </div>
-            </div>
-            <div className="space-y-2">
-                <label className="text-xs text-gray-400 uppercase font-mono tracking-tighter">Mission Profile (Bio) *</label>
-                <textarea 
-                    name="bio"
-                    value={formData.bio}
-                    onChange={handleChange}
-                    rows={4}
-                    className="w-full bg-black/40 border border-white/10 rounded-lg px-4 py-2.5 focus:outline-none focus:border-[#00c477] transition-colors resize-none"
-                    placeholder="Describe your technical expertise and background..."
-                />
-            </div>
-          </div>
-        )}
-
-        {/* STEP 2: EXPERIENCE */}
-        {step === 2 && (
-          <div className="space-y-6 animate-fadeIn">
-            <h2 className="text-xl font-semibold flex items-center gap-2 mb-6 text-gray-200">
-              <FiCode className="text-[#00c477]" /> Technical Background
-            </h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="space-y-2">
-                    <label className="text-xs text-gray-400 uppercase font-mono tracking-tighter">Years of Experience *</label>
-                    <input 
-                        name="yearsOfExperience"
-                        type="number"
-                        value={formData.yearsOfExperience}
-                        onChange={handleChange}
-                        className="w-full bg-black/40 border border-white/10 rounded-lg px-4 py-2.5 focus:outline-none focus:border-[#00c477] transition-colors"
-                        placeholder="e.g. 3"
-                    />
-                </div>
-                <div className="space-y-2">
-                    <label className="text-xs text-gray-400 uppercase font-mono tracking-tighter">GitHub Username</label>
-                    <input 
-                        name="githubUsername"
-                        value={formData.githubUsername}
-                        onChange={handleChange}
-                        className="w-full bg-black/40 border border-white/10 rounded-lg px-4 py-2.5 focus:outline-none focus:border-[#00c477] transition-colors"
-                        placeholder="e.g. defsec0"
-                    />
-                </div>
-            </div>
-            <div className="space-y-2">
-                <label className="text-xs text-gray-400 uppercase font-mono tracking-tighter">Primary Skills (Comma Separated)</label>
-                <input 
-                    name="primarySkills"
-                    value={formData.primarySkills}
-                    onChange={handleChange}
-                    className="w-full bg-black/40 border border-white/10 rounded-lg px-4 py-2.5 focus:outline-none focus:border-[#00c477] transition-colors"
-                    placeholder="Web App Sec, Reverse Engineering, Exploit Dev..."
-                />
-            </div>
-            <div className="space-y-2">
-                <label className="text-xs text-gray-400 uppercase font-mono tracking-tighter">Certifications (Comma Separated)</label>
-                <input 
-                    name="certifications"
-                    value={formData.certifications}
-                    onChange={handleChange}
-                    className="w-full bg-black/40 border border-white/10 rounded-lg px-4 py-2.5 focus:outline-none focus:border-[#00c477] transition-colors"
-                    placeholder="OSCP, CEH, CISSP..."
-                />
-            </div>
-          </div>
-        )}
-
-        {/* STEP 3: COMPLIANCE */}
-        {step === 3 && (
-          <div className="space-y-6 animate-fadeIn">
-            <h2 className="text-xl font-semibold flex items-center gap-2 mb-6 text-gray-200">
-              <FiFileText className="text-[#00c477]" /> Legal Compliance
-            </h2>
+        {/* ── SIDEBAR ─────────────────────────────────────────────────── */}
+        <aside className="space-y-6">
+          <div className="bg-[#0c0c0c] border border-white/5 rounded-[32px] p-8 flex flex-col items-center text-center shadow-2xl relative overflow-hidden group">
+            <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full h-1/2 bg-[#00c477]/5 blur-[60px] pointer-events-none" />
             
-            <div className="bg-sky-500/5 border border-sky-500/20 rounded-xl p-4 mb-6">
-                <div className="flex items-center gap-2 text-sky-400 text-sm font-bold mb-2">
-                  <FiFileText /> Legal Compliance Info
-                </div>
-                <p className="text-xs text-gray-400 leading-relaxed">
-                  Signing agreements is <span className="text-white font-bold">optional</span> for personal labs and practice. However, when you apply to an organization-hosted security program, the platform will require you to sign the NDA before your application is submitted.
-                </p>
+            <div className="relative mb-6">
+              <div className="w-32 h-32 rounded-full bg-gradient-to-br from-[#111] to-[#050505] border border-white/10 flex items-center justify-center overflow-hidden shadow-[0_0_40px_rgba(0,0,0,0.5)] ring-4 ring-[#00c477]/10">
+                {logoPreview ? (
+                  <img src={logoPreview} alt="avatar" className="w-full h-full object-cover" />
+                ) : (
+                  <div className="flex flex-col items-center">
+                    <FiUser size={40} className="text-white/10 mb-1" />
+                    <span className="text-2xl font-black text-[#00c477] tracking-tighter">{initials}</span>
+                  </div>
+                )}
+              </div>
+              
+              <button
+                onClick={() => fileInputRef.current?.click()}
+                className="absolute bottom-0 right-0 w-10 h-10 rounded-full bg-[#00c477] text-black border-4 border-[#0c0c0c] flex items-center justify-center hover:scale-110 transition-transform shadow-lg"
+              >
+                <FiCamera size={16} />
+              </button>
+              <input ref={fileInputRef} type="file" className="hidden" accept="image/*" onChange={handleLogoChange} />
             </div>
 
-            <div className="space-y-3">
-              {['Mutual Non-Disclosure Agreement (MNDA)', 'Ethical Hacking Code of Conduct'].map(title => {
-                const isSigned = !missingAgreements.includes(title);
-                return (
-                  <div key={title} className={`p-4 rounded-xl border transition-all flex items-center justify-between ${isSigned ? 'bg-[#00c477]/5 border-[#00c477]/20' : 'bg-white/5 border-white/10'}`}>
-                    <div>
-                        <div className="text-sm font-bold leading-tight mb-1">{title}</div>
-                        <span className={`text-[10px] font-mono tracking-tighter uppercase px-2 py-0.5 rounded ${isSigned ? 'bg-[#00c477]/20 text-[#00c477]' : 'bg-gray-800 text-gray-400'}`}>
-                          {isSigned ? 'COMPLETED' : 'SIGNATURE REQUIRED'}
-                        </span>
-                    </div>
-                    <div>
-                        {isSigned ? (
-                            <FiCheckCircle className="text-[#00c477] text-2xl" />
-                        ) : (
-                            <button 
-                                onClick={() => handleSign(title)}
-                                disabled={signing}
-                                className="px-4 py-2 bg-[#00c477] hover:bg-[#00cc6e] text-black rounded-md text-[10px] font-mono font-bold uppercase tracking-widest transition-colors disabled:opacity-50"
-                            >
-                                {signing ? 'SIGNING...' : 'REVIEW & SIGN'}
-                            </button>
-                        )}
-                    </div>
-                  </div>
-                );
-              })}
+            <h3 className="text-2xl font-black tracking-tight mb-1">{displayName}</h3>
+            <div className="text-[10px] font-mono font-bold uppercase tracking-[0.2em] text-[#00c477] bg-[#00c477]/10 px-3 py-1 rounded-full mb-8 border border-[#00c477]/20">
+              Awaiting Verification
+            </div>
+
+            <div className="w-full bg-[#111] border border-[#00c477]/20 rounded-2xl p-4 text-left relative overflow-hidden">
+               <div className="absolute top-0 left-0 w-1 h-full bg-[#00c477]/50" />
+               <div className="text-[10px] font-mono font-bold text-[#00c477] uppercase tracking-widest mb-1">System_Notice</div>
+               <p className="text-[11px] text-white/50 leading-relaxed font-medium">
+                 Identity encryption active. Complete the profile to access the private bounty lab.
+               </p>
             </div>
           </div>
-        )}
-      </div>
 
-      {/* Footer Controls */}
-      <div className="mt-8 pt-6 border-t border-white/10 flex items-center justify-between">
-        <button 
-            onClick={prevStep}
-            disabled={step === 1 || submitting}
-            className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-mono uppercase tracking-widest text-gray-400 hover:text-white transition-colors disabled:opacity-30"
-        >
-            <FiChevronLeft /> Back
-        </button>
-        
-        {step < totalSteps ? (
-            <button 
-                onClick={nextStep}
-                className="flex items-center gap-2 px-6 py-2.5 bg-white text-black rounded-lg text-sm font-mono font-bold uppercase tracking-widest hover:bg-gray-200 transition-all active:scale-95 shadow-lg shadow-white/10"
-            >
-                Continue <FiChevronRight />
-            </button>
-        ) : (
-            <button 
-                onClick={handleSubmit}
-                disabled={submitting}
-                className="flex items-center gap-2 px-6 py-2.5 bg-[#00c477] text-black rounded-lg text-sm font-mono font-bold uppercase tracking-widest hover:bg-[#00cc6e] transition-all active:scale-95 shadow-lg shadow-[#00c477]/20 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-                {submitting ? 'PROCESSING...' : 'COMPLETE ONBOARDING'} <FiCheckCircle />
-            </button>
-        )}
-      </div>
+          <div className="bg-[#0c0c0c] border border-white/5 rounded-[32px] p-6 space-y-4">
+             <div className="flex items-center gap-3">
+               <div className="w-8 h-8 rounded-lg bg-blue-500/10 flex items-center justify-center text-blue-400">
+                 <FiCpu size={16} />
+               </div>
+               <div className="text-[11px] font-mono uppercase tracking-widest text-white/40">Onboarding Progress</div>
+             </div>
+             <div className="h-1.5 w-full bg-white/5 rounded-full overflow-hidden">
+                <div className="h-full bg-blue-500 w-1/4 shadow-[0_0_10px_rgba(59,130,246,0.5)]" />
+             </div>
+          </div>
+        </aside>
 
+        {/* ── MAIN CONTENT ────────────────────────────────────────────── */}
+        <main className="bg-[#0c0c0c] border border-white/5 rounded-[40px] p-8 lg:p-12 shadow-2xl relative">
+          <form onSubmit={handleSubmit} className="space-y-12">
+            
+            {/* Section: Personal Info */}
+            <section>
+              <SectionHeader icon={FiShield} title="Personal Info" />
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <Field label="Full Identity">
+                  <Input 
+                    name="fullName" 
+                    value={formData.fullName} 
+                    onChange={handleChange} 
+                    placeholder="John 'Zero' Doe" 
+                  />
+                </Field>
+                <Field label="Comms Address">
+                  <Input 
+                    name="email" 
+                    value={formData.email} 
+                    onChange={handleChange} 
+                    placeholder="zero@hackract.io" 
+                    readOnly 
+                  />
+                </Field>
+                <Field label="ID / Passport Number">
+                  <Input 
+                    name="idDocumentNumber" 
+                    value={formData.idDocumentNumber} 
+                    onChange={handleChange} 
+                    placeholder="e.g. A12345678" 
+                  />
+                </Field>
+                <Field label="Country">
+                  <Input 
+                    name="country" 
+                    value={formData.country} 
+                    onChange={handleChange} 
+                    placeholder="e.g. Estonia" 
+                  />
+                </Field>
+                <Field label="Specialization">
+                  <Input 
+                    name="specialization" 
+                    value={formData.specialization} 
+                    onChange={handleChange} 
+                    placeholder="e.g. Web App Security" 
+                  />
+                </Field>
+                <Field label="Experience (Years)">
+                  <Input 
+                    name="yearsOfExperience" 
+                    type="number"
+                    value={formData.yearsOfExperience} 
+                    onChange={handleChange} 
+                    placeholder="e.g. 5" 
+                  />
+                </Field>
+              </div>
+            </section>
+
+            {/* Section: Arsenal & Skills */}
+            <section>
+              <SectionHeader icon={FiCode} title="Arsenal & Skills" />
+              <div className="space-y-4">
+                <Input 
+                  name="primarySkills" 
+                  value={formData.primarySkills} 
+                  onChange={handleChange} 
+                  placeholder="e.g. Nmap, Metasploit, Burp Suite, Wireshark (comma separated)" 
+                />
+                <div className="flex flex-wrap gap-2">
+                  {formData.primarySkills.split(",").map(s => s.trim()).filter(Boolean).map((skill, idx) => (
+                    <span 
+                      key={idx} 
+                      className="px-4 py-1.5 bg-[#1a1a1a] border border-white/5 text-white/60 rounded-full text-[11px] font-mono hover:border-[#00c477]/30 hover:text-[#00c477] transition-all cursor-default"
+                    >
+                      {skill}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            </section>
+
+            {/* Section: Certifications */}
+            <section>
+              <SectionHeader icon={FiAward} title="Certifications" />
+              <div 
+                className="w-full aspect-[4/1] bg-[#0a0a0a] border-2 border-dashed border-white/5 rounded-3xl flex flex-col items-center justify-center gap-3 hover:border-[#00c477]/30 transition-all cursor-pointer group"
+              >
+                <div className="w-12 h-12 rounded-full bg-white/5 flex items-center justify-center group-hover:scale-110 transition-transform">
+                  <FiUploadCloud size={24} className="text-white/20 group-hover:text-[#00c477]" />
+                </div>
+                <div className="text-center">
+                  <div className="text-xs font-bold text-white/40 uppercase tracking-widest mb-1 group-hover:text-white transition-colors">Drag & Drop Documents</div>
+                  <div className="text-[10px] text-white/20 font-medium">Only .PDF formats supported (Max 10MB)</div>
+                </div>
+                <button 
+                  type="button" 
+                  className="mt-2 px-6 py-2 bg-white/5 hover:bg-white/10 rounded-xl text-[10px] font-mono font-bold uppercase tracking-widest text-white transition-all"
+                >
+                  Upload PDF
+                </button>
+              </div>
+            </section>
+
+            {/* Section: Operational Bio */}
+            <section>
+              <SectionHeader icon={FiFileText} title="Operational Bio" />
+              <Field label="Background Narrative">
+                <TextArea 
+                  name="bio" 
+                  value={formData.bio} 
+                  onChange={handleChange} 
+                  placeholder="Briefly describe your white-hat history and preferred targets..." 
+                />
+              </Field>
+            </section>
+
+            {/* Footer Actions */}
+            <div className="pt-8 border-t border-white/5 flex flex-col sm:flex-row items-center justify-between gap-6">
+               <div className="flex items-center gap-3">
+                  <div className="w-2 h-2 rounded-full bg-[#00c477] animate-pulse shadow-[0_0_8px_#00c477]" />
+                  <span className="text-[10px] font-mono font-bold uppercase tracking-[0.2em] text-white/30">System Ready</span>
+               </div>
+               
+               <button
+                 type="submit"
+                 disabled={submitting}
+                 className="w-full sm:w-auto px-10 py-4 bg-[#00c477] text-black font-black uppercase tracking-[0.2em] rounded-2xl hover:bg-[#00ff9d] transition-all hover:shadow-[0_0_30px_rgba(0,255,157,0.3)] active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
+               >
+                 {submitting ? "Processing..." : "Create Profile"}
+               </button>
+            </div>
+
+          </form>
+        </main>
+      </div>
     </div>
   );
 };
