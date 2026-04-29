@@ -26,11 +26,25 @@ class CodeExecutionTool(Tool):
     def kill_running(self) -> None:
         """Kill the currently running subprocess (called by Agent.stop())."""
         proc = self._running_process
-        if proc and proc.returncode is None:
-            try:
-                proc.kill()
-            except ProcessLookupError:
-                pass
+        if proc is None or proc.returncode is not None:
+            return
+
+        # Try graceful stop first, then force-kill process tree if it doesn't exit quickly.
+        self._request_stop(proc)
+        try:
+            loop = asyncio.get_running_loop()
+            loop.create_task(self._force_kill_later(proc, delay=1.5))
+        except RuntimeError:
+            self._kill_proc(proc)
+
+    async def _force_kill_later(self, proc: asyncio.subprocess.Process, delay: float = 1.5) -> None:
+        """Force-kill process tree if graceful stop did not terminate it in time."""
+        try:
+            await asyncio.sleep(delay)
+        except asyncio.CancelledError:
+            return
+        if proc.returncode is None:
+            self._kill_proc(proc)
 
     async def _emit_stream_chunk(self, text: str, is_stderr: bool = False) -> None:
         """Forward process output to the web UI in real time."""
@@ -122,11 +136,14 @@ class CodeExecutionTool(Tool):
     
     async def _execute_shell(self, code: str, timeout: int) -> Dict[str, Any]:
         """Execute shell commands"""
+        process: Optional[asyncio.subprocess.Process] = None
         try:
             # Run in PowerShell on Windows, bash on Linux
-            pg_kwargs: Dict[str, Any] = {}
-            if os.name != "nt":
-                pg_kwargs["start_new_session"] = True
+            proc_kwargs: Dict[str, Any] = {}
+            if os.name == "nt":
+                proc_kwargs["creationflags"] = getattr(subprocess, "CREATE_NEW_PROCESS_GROUP", 0)
+            else:
+                proc_kwargs["start_new_session"] = True
 
             if os.name == 'nt':  # Windows
                 process = await asyncio.create_subprocess_shell(
@@ -135,6 +152,7 @@ class CodeExecutionTool(Tool):
                     stderr=asyncio.subprocess.PIPE,
                     shell=True,
                     cwd=self.work_dir,
+                    **proc_kwargs,
                 )
             else:  # Linux/Mac
                 sandboxed_code = f"ulimit -v 4194304; ulimit -u 100; {code}"
@@ -145,7 +163,7 @@ class CodeExecutionTool(Tool):
                     shell=True,
                     executable='/bin/bash',
                     cwd=self.work_dir,
-                    **pg_kwargs,
+                    **proc_kwargs,
                 )
             self._running_process = process
             
@@ -181,7 +199,7 @@ class CodeExecutionTool(Tool):
                     timeout=timeout,
                 )
             except asyncio.TimeoutError:
-                process.kill()
+                self._kill_proc(process)
                 raise asyncio.TimeoutError("Command timed out")
             
             # --- Structured Output Parsing (Nmap) ---
@@ -283,6 +301,10 @@ class CodeExecutionTool(Tool):
                 "streamed_to_ui": True,
             }
 
+        except asyncio.CancelledError:
+            self._kill_proc(process)
+            self._running_process = None
+            raise
         except asyncio.TimeoutError:
             self._kill_proc(process)
             self._running_process = None
@@ -295,11 +317,41 @@ class CodeExecutionTool(Tool):
             }
 
     @staticmethod
+    def _request_stop(proc: asyncio.subprocess.Process) -> None:
+        """Try a graceful interrupt before force killing."""
+        if proc is None or proc.returncode is not None:
+            return
+        try:
+            if os.name == "nt":
+                ctrl_break = getattr(signal, "CTRL_BREAK_EVENT", None)
+                if ctrl_break is not None:
+                    proc.send_signal(ctrl_break)
+                else:
+                    proc.terminate()
+            elif hasattr(os, "killpg"):
+                os.killpg(os.getpgid(proc.pid), signal.SIGINT)
+            else:
+                proc.terminate()
+        except (ProcessLookupError, PermissionError, OSError):
+            pass
+
+    @staticmethod
     def _kill_proc(proc: asyncio.subprocess.Process) -> None:
         if proc is None or proc.returncode is not None:
             return
         try:
-            if os.name != "nt" and hasattr(os, "killpg"):
+            if os.name == "nt":
+                try:
+                    subprocess.run(
+                        ["taskkill", "/PID", str(proc.pid), "/T", "/F"],
+                        stdout=subprocess.DEVNULL,
+                        stderr=subprocess.DEVNULL,
+                        check=False,
+                    )
+                except Exception:
+                    pass
+                proc.kill()
+            elif hasattr(os, "killpg"):
                 os.killpg(os.getpgid(proc.pid), signal.SIGKILL)
             else:
                 proc.kill()
@@ -313,13 +365,21 @@ class CodeExecutionTool(Tool):
         with open(temp_file, 'w') as f:
             f.write(code)
         
+        process: Optional[asyncio.subprocess.Process] = None
         try:
+            exec_kwargs: Dict[str, Any] = {}
+            if os.name == "nt":
+                exec_kwargs["creationflags"] = getattr(subprocess, "CREATE_NEW_PROCESS_GROUP", 0)
+            else:
+                exec_kwargs["start_new_session"] = True
+
             process = await asyncio.create_subprocess_exec(
                 "python3" if os.name != "nt" else "python",
                 temp_file,
                 stdout=asyncio.subprocess.PIPE,
                 stderr=asyncio.subprocess.PIPE,
                 cwd=self.work_dir,
+                **exec_kwargs,
             )
             self._running_process = process
             out_acc = ""
@@ -357,6 +417,10 @@ class CodeExecutionTool(Tool):
                 "streamed_to_ui": True,
             }
 
+        except asyncio.CancelledError:
+            self._kill_proc(process)
+            self._running_process = None
+            raise
         except asyncio.TimeoutError:
             self._kill_proc(process)
             self._running_process = None
@@ -378,13 +442,21 @@ class CodeExecutionTool(Tool):
         with open(temp_file, 'w') as f:
             f.write(code)
         
+        process: Optional[asyncio.subprocess.Process] = None
         try:
+            exec_kwargs: Dict[str, Any] = {}
+            if os.name == "nt":
+                exec_kwargs["creationflags"] = getattr(subprocess, "CREATE_NEW_PROCESS_GROUP", 0)
+            else:
+                exec_kwargs["start_new_session"] = True
+
             process = await asyncio.create_subprocess_exec(
                 "node",
                 temp_file,
                 stdout=asyncio.subprocess.PIPE,
                 stderr=asyncio.subprocess.PIPE,
                 cwd=self.work_dir,
+                **exec_kwargs,
             )
             self._running_process = process
             out_acc = ""
@@ -422,6 +494,10 @@ class CodeExecutionTool(Tool):
                 "streamed_to_ui": True,
             }
 
+        except asyncio.CancelledError:
+            self._kill_proc(process)
+            self._running_process = None
+            raise
         except asyncio.TimeoutError:
             self._kill_proc(process)
             self._running_process = None
