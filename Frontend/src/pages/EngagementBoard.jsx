@@ -3,42 +3,198 @@ import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import toast from "react-hot-toast";
 import api from "../api/axiosConfig";
-import { FiSearch, FiBriefcase, FiArrowRight, FiClock, FiShield, FiCpu, FiExternalLink } from "react-icons/fi";
+import {
+  FiSearch, FiBriefcase, FiArrowRight, FiClock, FiShield, FiCpu,
+  FiExternalLink, FiFileText, FiCheckCircle, FiLock, FiX, FiAlertTriangle,
+} from "react-icons/fi";
 
+// ──────────────────────────────────────────────────────────────────────
+// Inline NDA Modal shown before applying to an org project
+// ──────────────────────────────────────────────────────────────────────
+const NdaModal = ({ agreement, onSigned, onCancel }) => {
+  const [acknowledged, setAcknowledged] = useState(false);
+  const [scrolled, setScrolled]         = useState(false);
+  const [signing, setSigning]           = useState(false);
+
+  const handleSign = async () => {
+    if (!acknowledged) return toast.error("Please read and acknowledge the agreement first.");
+    setSigning(true);
+    try {
+      await api.post("/user-signatures/sign", { agreementId: agreement.id });
+      toast.success("NDA signed — you may now register interest.");
+      onSigned();
+    } catch (err) {
+      toast.error(err?.response?.data?.error || "Signing failed.");
+    } finally {
+      setSigning(false);
+    }
+  };
+
+  return (
+    // Backdrop
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4"
+    >
+      <motion.div
+        initial={{ scale: 0.95, opacity: 0, y: 20 }}
+        animate={{ scale: 1, opacity: 1, y: 0 }}
+        exit={{ scale: 0.95, opacity: 0, y: 20 }}
+        className="w-full max-w-xl bg-[#080d14] border border-slate-800 rounded-3xl overflow-hidden shadow-2xl"
+      >
+        {/* Header */}
+        <div className="px-8 py-5 border-b border-slate-800 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-amber-400">
+              <FiFileText size={18} />
+            </div>
+            <div>
+              <p className="text-xs font-black text-white uppercase tracking-widest">{agreement.title}</p>
+              <p className="text-[10px] text-slate-600 font-mono mt-0.5">v{agreement.version} · Required to apply</p>
+            </div>
+          </div>
+          <button onClick={onCancel} className="w-8 h-8 rounded-lg bg-slate-900 hover:bg-slate-800 flex items-center justify-center text-slate-400 hover:text-white transition-colors">
+            <FiX size={14} />
+          </button>
+        </div>
+
+        {/* NDA Body — scrollable */}
+        <div
+          className="px-8 py-5 max-h-64 overflow-y-auto text-xs text-slate-400 leading-relaxed space-y-3"
+          onScroll={e => {
+            const el = e.target;
+            if (el.scrollHeight - el.scrollTop <= el.clientHeight + 40) setScrolled(true);
+          }}
+        >
+          {agreement.content.split("\n").map((line, i) =>
+            line.trim() ? <p key={i}>{line}</p> : <br key={i} />
+          )}
+        </div>
+
+        {!scrolled && (
+          <div className="px-8 py-2 text-[9px] font-mono text-slate-700 uppercase tracking-[0.2em] flex items-center gap-2 border-t border-slate-900">
+            <FiClock size={10} /> Scroll to read the full agreement
+          </div>
+        )}
+
+        {/* Acknowledgment */}
+        <div className="px-8 py-5 border-t border-slate-800 bg-slate-900/30">
+          <label className="flex items-start gap-3 cursor-pointer group">
+            <div
+              onClick={() => setAcknowledged(v => !v)}
+              className={`mt-0.5 w-5 h-5 shrink-0 rounded-md border-2 flex items-center justify-center transition-all ${
+                acknowledged ? "bg-[#00ff88] border-[#00ff88]" : "border-slate-700 group-hover:border-slate-500"
+              }`}
+            >
+              <AnimatePresence>
+                {acknowledged && (
+                  <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} exit={{ scale: 0 }}>
+                    <FiCheckCircle size={11} className="text-black" />
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
+            <p className="text-xs text-slate-400 leading-relaxed select-none group-hover:text-slate-300 transition-colors">
+              I have read and agree to be legally bound by this Non-Disclosure Agreement.
+            </p>
+          </label>
+        </div>
+
+        {/* Actions */}
+        <div className="px-8 py-5 border-t border-slate-800 flex items-center gap-3">
+          <div className="flex items-center gap-2 text-slate-700 text-[10px] font-mono flex-1">
+            <FiLock size={10} /> Signature is logged with IP & timestamp
+          </div>
+          <button onClick={onCancel} className="px-4 py-2 text-xs text-slate-500 hover:text-slate-300 uppercase tracking-widest font-bold transition-colors">
+            Cancel
+          </button>
+          <button
+            onClick={handleSign}
+            disabled={signing || !acknowledged}
+            className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs font-black uppercase tracking-widest transition-all ${
+              acknowledged && !signing
+                ? "bg-[#00ff88] text-black hover:bg-[#00cc6e] active:scale-95"
+                : "bg-slate-800 text-slate-600 cursor-not-allowed"
+            }`}
+          >
+            {signing ? <div className="w-3.5 h-3.5 border-2 border-current border-t-transparent rounded-full animate-spin" /> : <FiCheckCircle size={13} />}
+            {signing ? "Signing…" : "Sign & Continue"}
+          </button>
+        </div>
+      </motion.div>
+    </motion.div>
+  );
+};
+
+// ──────────────────────────────────────────────────────────────────────
+// Main EngagementBoard
+// ──────────────────────────────────────────────────────────────────────
 const EngagementBoard = () => {
   const navigate = useNavigate();
-  const [projects, setProjects] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [applying, setApplying] = useState(null);
-  const [searchQuery, setSearchQuery] = useState("");
+  const [projects, setProjects]           = useState([]);
+  const [loading, setLoading]             = useState(true);
+  const [applying, setApplying]           = useState(null);
+  const [searchQuery, setSearchQuery]     = useState("");
+
+  // NDA gate state
+  const [ndaModal, setNdaModal]           = useState(null); // { agreement, pendingProjectId }
 
   const loadEngagements = async () => {
     setLoading(true);
     try {
       const { data } = await api.get("/projects/marketplace");
       setProjects(data?.data || []);
-    } catch (error) {
+    } catch {
       toast.error("Failed to synchronize with engagement ledger");
     } finally {
       setLoading(false);
     }
   };
 
-  useEffect(() => {
-    loadEngagements();
-  }, []);
+  useEffect(() => { loadEngagements(); }, []);
 
-  const handleApply = async (projectId) => {
+  // Submit the actual application
+  const submitApplication = async (projectId) => {
     setApplying(projectId);
     try {
       await api.post(`/projects/${projectId}/apply`);
       toast.success("Engagement proposal submitted successfully");
       loadEngagements();
-    } catch (error) {
-      toast.error(error?.response?.data?.error || "Submission failed");
+    } catch (err) {
+      toast.error(err?.response?.data?.error || "Submission failed");
     } finally {
       setApplying(null);
     }
+  };
+
+  // Click handler — check NDA first, then apply
+  const handleApply = async (projectId) => {
+    setApplying(projectId);
+    try {
+      const { data } = await api.get(`/projects/${projectId}/nda-status`);
+      const { required, signed, agreement } = data.data;
+
+      if (required && !signed) {
+        // Gate: show NDA modal
+        setNdaModal({ agreement, pendingProjectId: projectId });
+        setApplying(null);
+        return;
+      }
+
+      // NDA already signed or not required — apply directly
+      await submitApplication(projectId);
+    } catch (err) {
+      toast.error(err?.response?.data?.error || "Failed to check NDA status");
+      setApplying(null);
+    }
+  };
+
+  const handleNdaSigned = async () => {
+    const { pendingProjectId } = ndaModal;
+    setNdaModal(null);
+    await submitApplication(pendingProjectId);
   };
 
   const filteredProjects = projects.filter(p =>
@@ -48,6 +204,17 @@ const EngagementBoard = () => {
 
   return (
     <div className="min-h-screen bg-black text-white p-6 md:p-10 space-y-8 font-sans selection:bg-[#00ff88]/30 selection:text-black">
+      {/* NDA Modal */}
+      <AnimatePresence>
+        {ndaModal && (
+          <NdaModal
+            agreement={ndaModal.agreement}
+            onSigned={handleNdaSigned}
+            onCancel={() => setNdaModal(null)}
+          />
+        )}
+      </AnimatePresence>
+
       {/* Header Section */}
       <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
         <div className="space-y-1">
@@ -71,15 +238,24 @@ const EngagementBoard = () => {
         </div>
       </div>
 
+      {/* NDA info banner */}
+      <div className="flex items-start gap-3 bg-amber-500/5 border border-amber-500/15 rounded-2xl px-6 py-4">
+        <FiAlertTriangle className="text-amber-400 mt-0.5 shrink-0" size={14} />
+        <p className="text-xs text-amber-200/60 leading-relaxed">
+          <span className="font-black text-amber-400">NDA Required for Org Programs. </span>
+          To register interest in any organization-hosted project, you will be prompted to sign the platform Non-Disclosure Agreement. This only needs to be done once.
+        </p>
+      </div>
+
       <div className="grid lg:grid-cols-[1fr_320px] gap-10">
         <div className="space-y-8">
-          {/* Search and Filters */}
+          {/* Search */}
           <div className="relative group">
             <FiSearch className="absolute left-4 top-1/2 -translate-y-1/2 text-white/40 group-focus-within:text-[#00ff88] transition-colors" />
             <input
               type="text"
               value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
+              onChange={e => setSearchQuery(e.target.value)}
               placeholder="Search by keywords, technical stack, or entity name..."
               className="w-full bg-black/60 backdrop-blur-sm border border-white/10 rounded-xl pl-12 pr-4 py-4 text-sm text-white focus:outline-none focus:border-[#00ff88]/50 focus:ring-4 focus:ring-[#00ff88]/10 transition-all placeholder:text-white/40 shadow-inner"
             />
@@ -88,9 +264,7 @@ const EngagementBoard = () => {
           <AnimatePresence mode="wait">
             {loading ? (
               <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
+                initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
                 className="py-32 flex flex-col items-center gap-4 text-white/60 font-mono"
               >
                 <div className="w-12 h-12 border-2 border-white/10 border-t-[#00ff88] rounded-full animate-spin shadow-[0_0_15px_rgba(0,255,136,0.15)]" />
@@ -98,8 +272,7 @@ const EngagementBoard = () => {
               </motion.div>
             ) : filteredProjects.length === 0 ? (
               <motion.div
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
+                initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
                 className="py-24 text-center border border-white/10 border-dashed rounded-3xl bg-black/50 text-white/60"
               >
                 <div className="text-4xl mb-4 opacity-20">📡</div>
@@ -128,6 +301,10 @@ const EngagementBoard = () => {
                                     {project.status === 'PUBLISHED' ? 'OPEN TENDER' : project.status}
                                 </span>
                                 <span className="text-xs text-white/50 font-mono truncate">ID: {project.id.split('-')[0].toUpperCase()}</span>
+                                {/* NDA required badge */}
+                                <span className="text-[9px] font-black uppercase tracking-widest text-amber-400 bg-amber-500/10 border border-amber-500/20 px-2 py-0.5 rounded flex items-center gap-1">
+                                  <FiLock size={8} /> NDA Required
+                                </span>
                             </div>
                               <h3 className="text-xl font-bold text-white group-hover:text-[#00ff88] transition-colors tracking-tight">
                                 {project.name}
@@ -157,7 +334,10 @@ const EngagementBoard = () => {
                           className="flex-1 md:w-48 py-3 bg-[#00ff88] hover:bg-white text-black rounded-xl font-bold text-xs uppercase tracking-[0.15em] transition-all disabled:opacity-50 active:scale-95 shadow-lg shadow-black/20 flex items-center justify-center gap-2"
                         >
                           {applying === project.id ? (
-                            "Synchronizing..."
+                            <>
+                              <div className="w-3.5 h-3.5 border-2 border-black/30 border-t-black rounded-full animate-spin" />
+                              Checking…
+                            </>
                           ) : (
                             <>Register Interest <FiExternalLink /></>
                           )}
@@ -174,7 +354,7 @@ const EngagementBoard = () => {
           </AnimatePresence>
         </div>
 
-        {/* Sidebar Info */}
+        {/* Sidebar */}
         <aside className="space-y-6">
             <div className="bg-black border border-white/10 p-8 rounded-4xl shadow-2xl relative overflow-hidden group">
               <div className="absolute -top-10 -right-10 w-40 h-40 bg-[#00ff88]/10 rounded-full blur-[100px] group-hover:bg-[#00ff88]/20 transition-all duration-700" />
@@ -183,7 +363,7 @@ const EngagementBoard = () => {
                 </h4>
                 <div className="space-y-6">
                     {[
-                        { step: "01", title: "Compliance Review", desc: "Thoroughly review program scope and legal guidelines." },
+                        { step: "01", title: "NDA Signing", desc: "Sign the platform NDA once — it covers all org programs." },
                         { step: "02", title: "Resource Alignment", desc: "Ensure your technical arsenal matches target architecture." },
                         { step: "03", title: "Proposal Submission", desc: "Formal notice of interest is logged in the immutable ledger." }
                     ].map((item, i) => (

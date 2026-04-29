@@ -1,6 +1,7 @@
 import express from 'express';
 import * as controller from './agent.controller.js';
 import { protect } from '../../middleware/Auth.middleware.js';
+import { checkLegalSignature } from '../../middleware/legalSignature.middleware.js';
 
 const router = express.Router();
 
@@ -57,7 +58,7 @@ router.use(protect);
  *       401:
  *         description: Unauthorized
  */
-router.post('/', controller.create);
+router.post('/', checkLegalSignature, controller.create);
 router.get('/', controller.list);
 
 /**
@@ -108,9 +109,9 @@ router.get('/', controller.list);
  *         description: Unauthorized
  */
 router.get('/:id', controller.get);
-router.patch('/:id', controller.update);
+router.patch('/:id', checkLegalSignature, controller.update);
 
-router.post('/:id/test', controller.test);
-router.post('/:id/deploy', controller.deploy);
+router.post('/:id/test', checkLegalSignature, controller.test);
+router.post('/:id/deploy', checkLegalSignature, controller.deploy);
 
 export default router;

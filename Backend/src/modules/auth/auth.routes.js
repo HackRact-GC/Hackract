@@ -75,6 +75,28 @@ router.post('/local/login', validate(loginSchema), controller.loginLocal);
 router.post('/local/refresh', validate(refreshTokenSchema), controller.refreshToken);
 
 router.post('/verify-email', validate(verifyEmailSchema), controller.verifyEmail);
+
+/**
+ * @swagger
+ * /api/v1/auth/forgot-password:
+ *   post:
+ *     summary: Send password reset link
+ *     tags: [Authentication]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [email]
+ *             properties:
+ *               email:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Reset email sent (if account exists)
+ */
+
 router.post('/forgot-password', validate(forgotPasswordSchema), controller.forgotPassword);
 router.post('/reset-password', validate(resetPasswordSchema), controller.resetPassword);
 
@@ -109,7 +131,7 @@ router.get('/local/me', validateLocal, controller.getMe);
  *       200:
  *         description: Logged out successfully
  */
-router.post('/logout', controller.logout);
+router.post('/logout', protect, controller.logout);
 
 /**
  * @swagger

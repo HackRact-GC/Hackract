@@ -1,5 +1,5 @@
 import React, { useState, useRef, useCallback, useEffect } from 'react';
-import { FiArrowLeft, FiSave, FiClock, FiMessageSquare } from 'react-icons/fi';
+import { FiArrowLeft, FiHome, FiSave, FiClock, FiMessageSquare } from 'react-icons/fi';
 import {
   ReactFlow,
   ReactFlowProvider,
@@ -13,6 +13,8 @@ import {
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 import { formatDistanceToNow } from 'date-fns';
+import { useNavigate } from 'react-router-dom';
+import { useParams } from 'react-router-dom';
 
 // Custom Nodes
 import StartingPointNode from './nodes/StartingPointNode';
@@ -36,7 +38,12 @@ const nodeTypes = {
   terminal: TerminalNode,
 };
 
-const WorkflowEditor = ({ workflowId = "mock-id-123", pentestId }) => {
+const WorkflowEditor = ({ workflowId: propWorkflowId, pentestId: propPentestId }) => {
+  const params = useParams();
+  const navigate = useNavigate();
+  const workflowId = propWorkflowId || params.workflowId || "mock-id-123";
+  const pentestId = propPentestId || params.pentestId;
+
   const reactFlowWrapper = useRef(null);
   const [reactFlowInstance, setReactFlowInstance] = useState(null);
   const [lastSaved, setLastSaved] = useState(new Date());
@@ -44,6 +51,7 @@ const WorkflowEditor = ({ workflowId = "mock-id-123", pentestId }) => {
   const [isLocked, setIsLocked] = useState(false);
   const [canEdit, setCanEdit] = useState(true);
   const [findings, setFindings] = useState([]);
+  const [projectInfo, setProjectInfo] = useState({ name: 'Untitled Workflow', type: 'Audit' });
 
   const {
     socket,
@@ -103,15 +111,21 @@ const WorkflowEditor = ({ workflowId = "mock-id-123", pentestId }) => {
         }
         if (data && data.edges) setEdges(data.edges);
         if (data && data.pentest?.findings) setFindings(data.pentest.findings);
-        
+        if (data) {
+          setProjectInfo({
+            name: data.name || data.title || data.pentest?.name || data.pentest?.title || 'Untitled Workflow',
+            type: data.pentest?.type || 'Audit'
+          });
+        }
+
         // RBAC Check
         const collaborators = data.pentest?.collaborators || [];
-        const isCollaborator = collaborators.some(c => 
-          c.userId === localUser.id && 
+        const isCollaborator = collaborators.some(c =>
+          c.userId === localUser.id &&
           ["HACKER", "PROJECT_ADMIN", "ORG_ADMIN"].includes(c.role)
         );
         const isSuperAdmin = localUser.roles?.some(r => r.type === "SUPER_ADMIN");
-        
+
         if (!isCollaborator && !isSuperAdmin) {
           setCanEdit(false);
           setIsLocked(true);
@@ -347,11 +361,17 @@ const WorkflowEditor = ({ workflowId = "mock-id-123", pentestId }) => {
       {/* Top Header Bar */}
       <div className="h-14 border-b border-gray-800 flex items-center justify-between px-4 bg-[#0b0f19] z-20">
         <div className="flex items-center gap-4">
-          <button className="text-gray-400 hover:text-white flex items-center justify-center">
+          <button
+            onClick={() => navigate('/dashboard')}
+            className="text-gray-400 hover:text-white flex items-center gap-2 justify-center text-xs font-mono uppercase tracking-widest"
+            title="Back to Dashboard"
+          >
             <FiArrowLeft size={18} />
+            <FiHome size={16} />
+            Dashboard
           </button>
-          <div className="font-bold font-mono text-xs uppercase tracking-widest text-[#00ff41]">Audit Workflow</div>
-          <div className="font-bold font-mono max-w-[200px] truncate">E-Commerce Security Audit...</div>
+          <div className="font-bold font-mono text-xs uppercase tracking-widest text-[#00ff41]">{projectInfo.type} Workflow</div>
+          <div className="font-bold font-mono max-w-[200px] truncate" title={projectInfo.name}>{projectInfo.name}</div>
           <div className="text-gray-500 text-[10px] font-mono flex items-center gap-1 bg-black/30 px-2 py-1 rounded border border-gray-800">
             <FiSave size={12} className="text-[#00ff41]" />
             SYNCED: {formatDistanceToNow(lastSaved, { addSuffix: true })}
@@ -359,16 +379,22 @@ const WorkflowEditor = ({ workflowId = "mock-id-123", pentestId }) => {
         </div>
 
         <div className="flex items-center gap-3">
-            {/* Active Collaborators Bubbles */}
+            {/* Active Collaborators Profiles */}
             <div className="flex -space-x-2 items-center">
                {Object.values(collaborators).map((collab, index) => (
                  <div
                    key={collab.id}
-                   className="w-8 h-8 rounded-full border-2 border-[#0b0f19] flex items-center justify-center text-xs font-bold shadow-lg transition-transform hover:-translate-y-1 hover:z-30 cursor-help"
-                   style={{ backgroundColor: collab.color || '#00ff41', color: '#fff', zIndex: 10 + index }}
-                   title={collab.user}
+                   className="relative group transition-transform hover:-translate-y-1 hover:z-30 cursor-help"
+                   style={{ zIndex: 10 + index }}
+                   title={collab.user || 'Online Hacker'}
                 >
-                   {collab.user?.[0] || 'U'}
+                   <div
+                     className="w-8 h-8 rounded-full border-2 border-[#0b0f19] flex items-center justify-center text-xs font-bold shadow-lg"
+                     style={{ backgroundColor: collab.color || '#00ff41', color: '#fff' }}
+                   >
+                     {collab.user?.[0]?.toUpperCase() || 'H'}
+                   </div>
+                   <span className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-[#00ff41] border-[1.5px] border-[#0b0f19] rounded-full shadow-[0_0_5px_rgba(0,255,65,0.6)]"></span>
                  </div>
                ))}
             </div>
@@ -427,9 +453,9 @@ const WorkflowEditor = ({ workflowId = "mock-id-123", pentestId }) => {
                 className="bg-[#07090e]"
               />
               <Panel position="bottom-left">
-                <WorkflowControls 
-                  isLocked={isLocked} 
-                  onToggleLock={() => canEdit && setIsLocked(!isLocked)} 
+                <WorkflowControls
+                  isLocked={isLocked}
+                  onToggleLock={() => canEdit && setIsLocked(!isLocked)}
                   disabled={!canEdit}
                 />
               </Panel>

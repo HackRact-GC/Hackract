@@ -65,6 +65,7 @@ const slugify = (value) =>
         .replace(/\s+/g, '-')
         .replace(/-+/g, '-')
         .trim();
+
 class AuthService {
     validateOrganizationEmail(email) {
         const { ok, domain } = isCompanyEmail(email);
@@ -231,6 +232,7 @@ class AuthService {
         const frontendBase = process.env.FRONTEND_BASE_URL || 'http://localhost:5173';
         const verifyUrl = `${frontendBase}/verify-email?email=${encodeURIComponent(user.email)}&token=${encodeURIComponent(verification.token)}`;
 
+
         if (process.env.NODE_ENV === 'development') {
             console.log(`\n=========================================`);
             console.log(`[DEV EMAIL SIMULATION]`);
@@ -239,6 +241,7 @@ class AuthService {
             console.log(`Link:  ${verifyUrl}`);
             console.log(`=========================================\n`);
         }
+
         let delivered = true;
         try {
             await sendVerificationEmail({
@@ -262,10 +265,16 @@ class AuthService {
             throw new AppError('Verification code is required', 400, AuthErrorCodes.VERIFICATION_TOKEN_INVALID);
         }
 
-        const record = await prisma.emailVerificationToken.findFirst({
-            where: { token, user: { email: email?.toLowerCase() } },
-            include: { user: { include: USER_PROFILE_INCLUDE } },
-        });
+        const record = email
+            ? await prisma.emailVerificationToken.findFirst({
+                  where: { token, user: { email: email.toLowerCase() } },
+                  include: { user: { include: USER_PROFILE_INCLUDE } },
+              })
+            : await prisma.emailVerificationToken.findUnique({
+                  where: { token },
+                  include: { user: { include: USER_PROFILE_INCLUDE } },
+              });
+
 
         if (!record) {
             throw new AppError('Invalid or expired verification token', 400, AuthErrorCodes.VERIFICATION_TOKEN_INVALID);
@@ -412,6 +421,7 @@ class AuthService {
 
         const passwordHash = await bcrypt.hash(payload.password, SALT_ROUNDS);
 
+
         const { user, organization } = await prisma.$transaction(async (tx) => {
             const selectedRole = await tx.role.upsert({
                 where: { type: requestedRoleType },
@@ -419,8 +429,8 @@ class AuthService {
                 create: {
                     name: requestedRoleType === 'ORG_ADMIN' ? 'Organization Admin' : 'Pentester',
                     type: requestedRoleType,
-                    description: requestedRoleType === 'ORG_ADMIN' 
-                        ? 'Full access within their organization' 
+                    description: requestedRoleType === 'ORG_ADMIN'
+                        ? 'Full access within their organization'
                         : 'Default pentester role for new users',
                     permissions: [],
                 },
@@ -435,7 +445,8 @@ class AuthService {
                     provider: 'local',
                     status: process.env.NODE_ENV === 'development' ? 'ACTIVE' : 'PENDING',
                     isVerified: process.env.NODE_ENV === 'development',
-                    roles: { connect: { id: selectedRole.id } },
+                    roles: selectedRole ? { connect: { id: selectedRole.id } } : undefined,
+
                 },
                 include: USER_PROFILE_INCLUDE,
             });
@@ -487,6 +498,7 @@ class AuthService {
             }
 
             return { user: createdUser, organization: createdOrganization };
+
         });
 
         const verification = await this.sendVerification(user, meta);
@@ -595,11 +607,11 @@ class AuthService {
         return this.issueTokens(user, meta);
     }
 
-    async logout(refreshToken) {
+    async logout(refreshToken, userId) {
         if (!refreshToken) return;
         try {
-            await prisma.refreshToken.update({
-                where: { token: refreshToken },
+            await prisma.refreshToken.updateMany({
+                where: { token: refreshToken, userId },
                 data: { revoked: true, revokedAt: new Date() },
             });
         } catch (error) {
