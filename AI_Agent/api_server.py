@@ -244,6 +244,9 @@ async def stop_agent(session_id: str):
     """Stop the agent if it's currently running"""
     if session_id in active_agents:
         active_agents[session_id].stop()
+        t = _ws_agent_tasks.get(session_id)
+        if t is not None and not t.done():
+            t.cancel()
         return {"status": "stopped", "session_id": session_id}
     return {"status": "not_running", "session_id": session_id}
 
