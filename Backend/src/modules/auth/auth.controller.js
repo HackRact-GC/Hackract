@@ -81,6 +81,15 @@ export const verifyEmail = asyncHandler(async (req, res) => {
     ApiResponse.success(res, result, result.message || 'Email verified successfully');
 });
 
+export const resendVerification = asyncHandler(async (req, res) => {
+    const payload = req.validatedBody || req.body;
+    if (!payload.email) {
+        throw new AppError('Email is required', 400);
+    }
+    const result = await authService.resendVerification(payload.email, metaFromReq(req));
+    ApiResponse.success(res, result, result.message);
+});
+
 export const forgotPassword = asyncHandler(async (req, res) => {
     const payload = req.validatedBody || req.body;
     const result = await authService.forgotPassword(payload.email, metaFromReq(req));
