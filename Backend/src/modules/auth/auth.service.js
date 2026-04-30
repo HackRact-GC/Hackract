@@ -441,8 +441,8 @@ class AuthService {
                     fullName: payload.fullName,
                     handle,
                     provider: 'local',
-                    status: process.env.NODE_ENV === 'development' ? 'ACTIVE' : 'PENDING',
-                    isVerified: process.env.NODE_ENV === 'development',
+                    status: 'PENDING',
+                    isVerified: false,
                     roles: { connect: { id: selectedRole.id } },
 
                 },
@@ -502,19 +502,25 @@ class AuthService {
 
         const verification = await this.sendVerification(user, meta);
 
-        const auth = await this.issueTokens(user, meta);
+        let auth = null;
+        if (user.isVerified) {
+            auth = await this.issueTokens(user, meta);
+        }
 
         return {
-            ...auth,
-            requiresEmailVerification: true,
+            ...(auth || {}),
+            requiresEmailVerification: !user.isVerified,
+            user: this.sanitizeUser(user),
             verification: {
                 delivered: verification.delivered,
                 expiresAt: verification.expiresAt,
             },
             organization,
-            message: verification.delivered
-                ? 'Registration successful. Please check your email for the 6-digit verification code.'
-                : 'Registration successful, but we could not send the verification code. Please request a new one or contact support.',
+            message: user.isVerified
+                ? 'Registration successful.'
+                : (verification.delivered
+                    ? 'Registration successful. Please check your email for the 6-digit verification code.'
+                    : 'Registration successful, but we could not send the verification code. Please request a new one or contact support.'),
         };
     }
 
@@ -542,22 +548,16 @@ class AuthService {
             throw new AppError('Invalid credentials', 401, AuthErrorCodes.INVALID_CREDENTIALS);
         }
 
-        // If email is not verified yet, still issue tokens for onboarding flows,
-        // but tell the client to enforce verification before privileged actions.
+        // Enforce email verification before login
         if (!user.isVerified) {
+            // Re-send verification email
             const verification = await this.sendVerification(user, meta);
-            const auth = await this.issueTokens(user, meta);
-            return {
-                ...auth,
-                requiresEmailVerification: true,
-                verification: {
-                    delivered: verification.delivered,
-                    expiresAt: verification.expiresAt,
-                },
-                message: verification.delivered
-                    ? 'Email not verified. We sent you a new 6-digit verification code.'
-                    : 'Email not verified, and we could not send a new verification code. Please try again later.',
-            };
+            throw new AppError(
+                'Please verify your email before logging in. We have sent a new verification code to your email.',
+                403,
+                AuthErrorCodes.EMAIL_NOT_VERIFIED,
+                { requiresEmailVerification: true, email: user.email }
+            );
         }
 
         await prisma.user.update({
