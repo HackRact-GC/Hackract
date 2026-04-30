@@ -262,6 +262,33 @@ class AuthService {
         return { ...verification, delivered };
     }
 
+    async resendVerification(email, meta) {
+        if (!email) {
+            throw new AppError('Email is required', 400);
+        }
+
+        const user = await prisma.user.findUnique({
+            where: { email: email.toLowerCase() },
+        });
+
+        if (!user) {
+            // Throwing success structure to avoid email enumeration
+            return { message: 'If an account exists, a new verification code has been sent.' };
+        }
+
+        if (user.isVerified) {
+            return { message: 'Account is already verified.' };
+        }
+
+        const verification = await this.sendVerification(user, meta);
+        return {
+            delivered: verification.delivered,
+            message: verification.delivered
+                ? 'A new verification code has been sent.'
+                : 'Could not send verification code. Please try again later.'
+        };
+    }
+
     async verifyEmail(token, email) {
         if (!token) {
             throw new AppError('Verification code is required', 400, AuthErrorCodes.VERIFICATION_TOKEN_INVALID);
