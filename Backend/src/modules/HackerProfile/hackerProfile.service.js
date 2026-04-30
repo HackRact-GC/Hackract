@@ -63,6 +63,14 @@ export const upsertMyProfile = async (userId, payload) => {
     update: data,
   });
 
+  // Also update the User's full name if provided in the payload
+  if (payload.fullName) {
+    await prisma.user.update({
+      where: { id: userId },
+      data: { fullName: payload.fullName },
+    });
+  }
+
   await calculateTrustScore(userId);
 
   return profile;
