@@ -1,8 +1,11 @@
 import { useEffect, useRef, useState } from "react";
-import { FiUser, FiCode, FiAward, FiFileText, FiCamera, FiUploadCloud, FiCpu, FiShield, FiGithub, FiLinkedin, FiTwitter, FiGlobe } from "react-icons/fi";
+
+import { useNavigate } from "react-router-dom";
+import { FiUser, FiCode, FiAward, FiFileText, FiCamera, FiUploadCloud, FiCpu, FiShield, FiGithub, FiLinkedin, FiTwitter, FiGlobe, FiCheckCircle } from "react-icons/fi";
 import api from "../api/axiosConfig";
 import { useAuth } from "../context/authContext.jsx";
 import toast from "react-hot-toast";
+import NationalIDService from "../services/nationalID.service.js";
 
 // ── Components ─────────────────────────────────────────────────────────────
 
@@ -57,11 +60,15 @@ const StatusBadge = ({ status }) => {
 // ── Main Page ──────────────────────────────────────────────────────────────
 
 const HackerProfile = () => {
+
   const { user, refreshUser } = useAuth();
   const fileInputRef = useRef(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [logoPreview, setLogoPreview] = useState(null);
+  const [isNationalIdVerified, setIsNationalIdVerified] = useState(false);
+  const navigate = useNavigate();
+
   const [profileStatus, setProfileStatus] = useState("DRAFT");
   const [hasProfile, setHasProfile] = useState(false);
 
@@ -87,6 +94,15 @@ const HackerProfile = () => {
         setLoading(true);
         const { data } = await api.get("/hacker-profiles/me");
         const profile = data?.data?.profile;
+
+        try {
+          const statusRes = await NationalIDService.getStatus();
+          if (statusRes && statusRes.data && statusRes.data.isVerified) {
+            setIsNationalIdVerified(true);
+          }
+        } catch (e) {
+          console.error("Failed to fetch National ID status", e);
+        }
 
         if (profile) {
           setHasProfile(true);
@@ -208,6 +224,7 @@ const HackerProfile = () => {
                   </div>
                 )}
               </div>
+
               
               <button
                 onClick={() => fileInputRef.current?.click()}
@@ -221,14 +238,30 @@ const HackerProfile = () => {
             <h3 className="text-2xl font-black tracking-tight mb-1">{displayName}</h3>
             <StatusBadge status={profileStatus} />
 
-            <div className="w-full bg-[#111] border border-[#00c477]/20 rounded-2xl p-4 text-left relative overflow-hidden">
+            <div className="w-full mt-2 bg-[#111] border border-[#00c477]/20 rounded-2xl p-4 text-left relative overflow-hidden">
                <div className="absolute top-0 left-0 w-1 h-full bg-[#00c477]/50" />
                <div className="text-[10px] font-mono font-bold text-[#00c477] uppercase tracking-widest mb-1">System_Notice</div>
-               <p className="text-[11px] text-white/50 leading-relaxed font-medium">
+               <p className="text-[11px] text-white/50 leading-relaxed font-medium mb-4">
                  {hasProfile 
                    ? "Profile synchronization active. Keep your dossier updated for mission readiness."
                    : "Identity encryption active. Complete the profile to access the private bounty lab."}
                </p>
+
+               {isNationalIdVerified ? (
+                 <div className="w-full py-3 bg-[#00c477]/10 border border-[#00c477]/30 rounded-xl flex items-center justify-center gap-2 shadow-[0_0_15px_rgba(0,196,119,0.15)]">
+                   <FiCheckCircle className="text-[#00c477] text-lg" />
+                   <span className="text-[11px] font-black text-[#00c477] uppercase tracking-widest font-mono">Fayda ID Verified</span>
+                 </div>
+               ) : (
+                 <button 
+                   type="button"
+                   onClick={() => navigate('/national-id-verification')}
+                   className="w-full py-3 bg-red-500/10 hover:bg-red-500/20 border border-red-500/30 rounded-xl flex items-center justify-center gap-2 transition-all group shadow-[0_0_15px_rgba(239,68,68,0.1)] cursor-pointer"
+                 >
+                   <FiShield className="text-red-500 group-hover:scale-110 transition-transform" />
+                   <span className="text-[11px] font-black text-red-500 uppercase tracking-widest font-mono">Verify National ID</span>
+                 </button>
+               )}
             </div>
           </div>
 
