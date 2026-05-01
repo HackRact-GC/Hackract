@@ -16,6 +16,8 @@ import WorkflowRouter from "./modules/Workflow/workflow.routes.js";
 import WorkflowHistoryRouter from "./modules/WorkflowHistory/workflowHistory.routes.js";
 import HackerProfileRouter from "./modules/HackerProfile/hackerProfile.routes.js";
 import ProjectRouter from "./modules/Project/project.routes.js";
+import NationalIDRouter from "./modules/NationalID_Verification/nationalID.routes.js";
+
 
 const router = express.Router();
 
@@ -36,5 +38,7 @@ router.use("/workflows", WorkflowRouter);
 router.use("/workflows", WorkflowHistoryRouter);
 router.use("/hacker-profiles", HackerProfileRouter);
 router.use("/projects", ProjectRouter);
+router.use("/national-id", NationalIDRouter);
+
 
 export default router;

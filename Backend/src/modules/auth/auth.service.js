@@ -233,18 +233,6 @@ class AuthService {
         const frontendBase = process.env.FRONTEND_BASE_URL || 'http://localhost:5173';
         const verifyUrl = `${frontendBase}/verify-email?email=${encodeURIComponent(user.email)}&token=${encodeURIComponent(verification.token)}`;
 
-
-        if (process.env.NODE_ENV === 'development') {
-            console.log(`\n=========================================`);
-            console.log(`[DEV EMAIL SIMULATION]`);
-            console.log(`To:    ${user.email}`);
-            console.log(`Code:  ${verification.token}`);
-            console.log(`Link:  ${verifyUrl}`);
-            console.log(`=========================================\n`);
-        }
-
-
-        let delivered = true;
         try {
             await sendVerificationEmail({
                 to: user.email,
@@ -257,9 +245,9 @@ class AuthService {
             });
         } catch (error) {
             console.error('Failed to send verification email', error);
-            delivered = false;
+            throw error; // Let the real error propagate to the client
         }
-        return { ...verification, delivered };
+        return { ...verification, delivered: true };
     }
 
     async verifyEmail(token, email) {

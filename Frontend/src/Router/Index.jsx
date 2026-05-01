@@ -16,6 +16,8 @@ import WorkflowEditor from "../pages/WorkflowEditor/WorkflowEditor.jsx";
 import HackerVerification from "../pages/HackerVerification.jsx";
 import OrganizationVerification from "../pages/OrganizationVerification.jsx";
 import ErrorPage from "../pages/ErrorPage.jsx";
+import EthiopiaIDVerification from "../pages/EthiopiaIDVerification.jsx";
+
 
 import Projects from "../pages/Projects.jsx";
 import ProjectWorkspace from "../pages/ProjectWorkspace.jsx";
@@ -78,6 +80,11 @@ const router = createBrowserRouter([
             path: "hacker-verification",
             element: <HackerVerification />,
           },
+          {
+            path: "national-id-verification",
+            element: <EthiopiaIDVerification />,
+          },
+
 
           {
             path: "projects",
