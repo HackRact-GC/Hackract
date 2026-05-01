@@ -51,3 +51,9 @@ export const verifyOtp = asyncHandler(async (req, res) => {
     const result = await nationalIDService.verifyOtp(userId, fan, otp);
     ApiResponse.success(res, result, result.message);
 });
+
+export const getStatus = asyncHandler(async (req, res) => {
+    const userId = req.user.id;
+    const result = await nationalIDService.getStatus(userId);
+    ApiResponse.success(res, result, 'Verification status retrieved');
+});

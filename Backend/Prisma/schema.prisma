@@ -104,6 +104,10 @@ model User {
   reviewsReceived         Review[]                 @relation("ReviewSubject")
   wallet                  Wallet?
 
+  // Reviews
+  reviewsGiven            Review[]                 @relation("ReviewAuthor")
+  reviewsReceived         Review[]                 @relation("ReviewSubject")
+
   // Hacker profile (for PENTESTER users)
   hackerProfile          HackerProfile?
   reviewedHackerProfiles HackerProfile[] @relation("HackerProfileReviewedBy")
@@ -606,44 +610,6 @@ model WorkflowHistory {
 }
 
 
-// =====================================
-// 1️⃣8️⃣ Wallet (Escrow / Balance)
-// =====================================
-model Wallet {
-  id      String @id @default(uuid())
-  balance Float  @default(0)
-
-  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
-  userId String @unique
-
-  transactions Transaction[]
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-}
-
-// =====================================
-// 1️⃣9️⃣ Transaction
-// =====================================
-model Transaction {
-  id          String   @id @default(uuid())
-  type        String   // e.g. "CREDIT", "DEBIT", "PAYOUT", "ESCROW_HOLD", "ESCROW_RELEASE"
-  amount      Float
-  description String?
-  status      String   @default("COMPLETED")
-  reference   String?
-
-  wallet   Wallet @relation(fields: [walletId], references: [id], onDelete: Cascade)
-  walletId String
-
-  user   User   @relation(fields: [userId], references: [id])
-  userId String
-
-  createdAt DateTime @default(now())
-
-  @@index([walletId])
-  @@index([userId])
-}
 
 // =====================================
 // 2️⃣0️⃣ Review

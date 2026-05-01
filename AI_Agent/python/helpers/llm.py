@@ -15,6 +15,7 @@ class LLM:
         api_key: str = "",
         temperature: float = 0.7,
         max_tokens: int = 4096,
+        max_context_tokens: int = 128000,
         provider: str = "openrouter",
         #CHANGE THIS PORT NUMBER TO MY OLLAM PORT NUMBER
         ollama_base_url: str = "http://localhost:11434",
@@ -23,6 +24,7 @@ class LLM:
         self.model = model
         self.temperature = temperature
         self.max_tokens = max_tokens
+        self.max_context_tokens = max_context_tokens
         self.provider = provider
         self.ollama_base_url = ollama_base_url
         self.custom_api_base = custom_api_base
@@ -71,6 +73,13 @@ class LLM:
             # GitHub models are accessed via OpenAI client in litellm
             if not self.model.startswith("openai/"):
                 self.model = f"openai/{self.model}"
+        elif provider == "nvidia_nim":
+            if api_key:
+                os.environ["NVIDIA_API_KEY"] = api_key
+                os.environ["NVIDIA_NIM_API_KEY"] = api_key
+
+            if not self.model.startswith("nvidia_nim/"):
+                self.model = f"nvidia_nim/{self.model}"
         elif provider == "groq":
             if api_key:
                 os.environ["GROQ_API_KEY"] = api_key
@@ -202,6 +211,7 @@ class ModelManager:
             api_key=config.model.api_key,
             temperature=config.model.temperature,
             max_tokens=config.model.max_tokens,
+            max_context_tokens=config.model.max_context_tokens,
             provider=config.model.provider,
             ollama_base_url=config.model.ollama_base_url,
             custom_api_base=config.model.custom_api_base,
@@ -213,6 +223,7 @@ class ModelManager:
             api_key=config.model.api_key,
             temperature=0.3,  # Lower temperature for utility tasks
             max_tokens=2048,
+            max_context_tokens=config.model.max_context_tokens,
             provider=config.model.provider,
             ollama_base_url=config.model.ollama_base_url,
             custom_api_base=config.model.custom_api_base,

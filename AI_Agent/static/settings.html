@@ -286,6 +286,7 @@
                     <option value="anthropic">Anthropic</option>
                     <option value="gemini">Google Gemini</option>
                     <option value="github">GitHub Models (Free)</option>
+                    <option value="nvidia_nim">NVIDIA NIM</option>
                     <option value="ollama">Ollama (Local)</option>
                 </select>
             </div>
@@ -409,6 +410,11 @@
                 apiKeyInput.required = true;
                 chatModelInput.value = 'gpt-4o';
                 utilityModelInput.value = 'gpt-4o-mini';
+            } else if (this.value === 'nvidia_nim') {
+                apiKeyInput.placeholder = 'Enter your NVIDIA API Key';
+                apiKeyInput.required = true;
+                chatModelInput.value = 'meta/llama-3.1-70b-instruct';
+                utilityModelInput.value = 'meta/llama-3.1-8b-instruct';
             } else if (this.value === 'anthropic') {
                 apiKeyInput.placeholder = 'Enter your Anthropic API Key';
                 apiKeyInput.required = true;
@@ -581,6 +587,12 @@
                     utilityModelInput.value = 'gpt-4o-mini';
                     apiKeyInput.placeholder = 'Enter your GitHub Personal Access Token';
                     helpText.innerHTML = 'Get a token here: <a href="https://github.com/settings/tokens" target="_blank">GitHub Settings</a> (No scopes needed)';
+                    break;
+                case 'nvidia_nim':
+                    chatModelInput.value = 'meta/llama-3.1-70b-instruct';
+                    utilityModelInput.value = 'meta/llama-3.1-8b-instruct';
+                    apiKeyInput.placeholder = 'Enter your NVIDIA API Key';
+                    helpText.innerHTML = 'Use a key from the NVIDIA API catalog for NIM-hosted models.';
                     break;
                 case 'gemini':
                     chatModelInput.value = 'gemini/gemini-1.5-pro';

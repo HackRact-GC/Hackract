@@ -33,6 +33,8 @@ const VerifyEmail = () => {
   }, [location?.state?.email, searchParams]);
 
   const [form, setForm] = useState({ email: initialEmail, code: tokenFromUrl || "" });
+  const [countdown, setCountdown] = useState(20);
+  const [isResending, setIsResending] = useState(false);
 
   useEffect(() => {
     setForm((prev) => ({
@@ -42,6 +44,41 @@ const VerifyEmail = () => {
     }));
   }, [initialEmail, tokenFromUrl]);
 
+  useEffect(() => {
+    let timer;
+    if (countdown > 0) {
+      timer = setInterval(() => setCountdown((c) => c - 1), 1000);
+    }
+    return () => clearInterval(timer);
+  }, [countdown]);
+
+  const handleResend = async () => {
+    if (!form.email) {
+      toast.error("Please provide an email to resend the code.");
+      return;
+    }
+    setIsResending(true);
+    setStatus("loading");
+    setMessage("Resending code...");
+    try {
+      const { data } = await api.post("/auth/resend-verification", { email: form.email });
+      setCountdown(20);
+      setStatus("success");
+      const msg = data?.message || "Verification code resent!";
+      setMessage(msg);
+      toast.success(msg);
+    } catch (error) {
+      const errorMsg =
+        error?.response?.data?.error ||
+        error?.response?.data?.message ||
+        "Failed to resend. Please try again.";
+      setStatus("error");
+      setMessage(errorMsg);
+      toast.error(errorMsg);
+    } finally {
+      setIsResending(false);
+    }
+  };
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -123,15 +160,20 @@ const VerifyEmail = () => {
           disabled={status === "loading"}
           className="w-full bg-black text-[#00c477] font-mono font-bold py-3 uppercase tracking-widest hover:bg-[#00c477] hover:text-black transition-all duration-300 mt-2 cursor-pointer shadow-lg disabled:opacity-60"
         >
-          {status === "loading" ? "Validating..." : "Execute Verification"}
+          {status === "loading" && !isResending ? "Validating..." : "Execute Verification"}
+        </button>
+
+        <button
+          type="button"
+          disabled={countdown > 0 || isResending}
+          onClick={handleResend}
+          className="w-full bg-transparent text-gray-900 border border-gray-900 font-mono font-bold py-3 uppercase tracking-widest hover:bg-gray-100 transition-all duration-300 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          {isResending ? "Resending..." : countdown > 0 ? `Resend code in ${countdown}s` : "Resend Code"}
         </button>
       </form>
 
       <div className="flex flex-col gap-3 text-xs font-mono text-gray-600">
-        <p>
-          If this succeeded, you can proceed to log in. If it failed, you can request a new verification link from
-          the login page or register again with the same email.
-        </p>
         <div className="flex gap-3">
           <Link
             to="/login"

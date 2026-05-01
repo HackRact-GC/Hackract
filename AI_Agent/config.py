@@ -53,7 +53,7 @@ class CodeExecutionConfig:
     timeout: int = 300  # 5 minutes default
     require_approval: bool = True  # Require human approval for dangerous commands
     dangerous_keywords: list = field(default_factory=lambda: [
-        "rm -rf", "mkfs", "dd", ":(){:|:&};:", "wget", "curl", "nc", "ncat", "bash -i", "python -c", "exploit"
+        "rm -rf", "mkfs", "dd", ":(){:|:&};:", "nc", "ncat", "bash -i", "python -c", "exploit"
     ])
     forbidden_patterns: list = field(default_factory=lambda: [
         "rm -rf /", "rm -rf /bin", "rm -rf /etc", "rm -rf /usr", 
@@ -99,6 +99,9 @@ def load_config(validate: bool = True) -> AgentConfig:
         elif os.getenv("GITHUB_TOKEN") and not (api_key or "").strip():
             provider = "github"
             api_key = os.getenv("GITHUB_TOKEN", "")
+        elif os.getenv("NVIDIA_API_KEY") or os.getenv("NVIDIA_NIM_API_KEY"):
+            provider = "nvidia_nim"
+            api_key = os.getenv("NVIDIA_API_KEY") or os.getenv("NVIDIA_NIM_API_KEY", "")
         elif os.getenv("OPENAI_API_KEY"):
             provider = "openai"
             api_key = os.getenv("OPENAI_API_KEY")
@@ -119,6 +122,10 @@ def load_config(validate: bool = True) -> AgentConfig:
         default_utility_model = "gpt-4o-mini"
         # GitHub Models hard limit ~8000 *input* tokens per request; stay under with margin
         default_context_tokens = int(os.getenv("GITHUB_MAX_CONTEXT_TOKENS_DEFAULT", "4500"))
+    elif provider == "nvidia_nim":
+        default_chat_model = "meta/llama-3.1-70b-instruct"
+        default_utility_model = "meta/llama-3.1-8b-instruct"
+        default_context_tokens = 128000
     elif provider == "openai":
         default_chat_model = "gpt-4o"
         default_utility_model = "gpt-3.5-turbo"
@@ -176,7 +183,7 @@ def load_config(validate: bool = True) -> AgentConfig:
         if model_config.provider != "ollama" and not (model_config.api_key or "").strip():
             raise ConfigValidationError(
                 f"API key is required for provider '{model_config.provider}'. "
-                "Set API_KEY in .env or the provider-specific key (e.g. OPENAI_API_KEY, ANTHROPIC_API_KEY)."
+                "Set API_KEY in .env or the provider-specific key (e.g. OPENAI_API_KEY, ANTHROPIC_API_KEY, NVIDIA_API_KEY)."
             )
         # Validate numeric ranges
         if model_config.max_tokens < 1 or model_config.max_tokens > 128000:

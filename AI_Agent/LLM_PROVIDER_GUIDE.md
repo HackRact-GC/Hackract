@@ -20,6 +20,7 @@ HackrAct AI Agent supports multiple LLM providers including cloud APIs and local
 | **OpenAI** | Cloud | ✅ Yes | GPT-4, GPT-3.5 models |
 | **Anthropic** | Cloud | ✅ Yes | Claude models directly |
 | **Ollama** | Local | ❌ No | Privacy, offline use, no cost |
+| **NVIDIA NIM** | Cloud | ✅ Yes | NVIDIA-hosted open models |
 | **Custom** | Variable | Depends | Self-hosted or other APIs |
 
 ---
@@ -158,7 +159,25 @@ ollama serve
 
 ---
 
-### 5. Custom API Endpoint
+### 5. NVIDIA NIM
+
+NVIDIA NIM provides hosted inference for a range of open models.
+
+**`.env` Configuration:**
+```bash
+LLM_PROVIDER=nvidia_nim
+API_KEY=nvapi-your-nvidia-api-key
+CHAT_MODEL=meta/llama-3.1-70b-instruct
+UTILITY_MODEL=meta/llama-3.1-8b-instruct
+```
+
+**Notes:**
+- LiteLLM routes these through the `nvidia_nim` provider.
+- You can override the model names with any NVIDIA NIM model your account can access.
+
+---
+
+### 6. Custom API Endpoint
 
 For self-hosted models or alternative providers.
 

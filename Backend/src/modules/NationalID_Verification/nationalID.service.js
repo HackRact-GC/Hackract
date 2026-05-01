@@ -354,6 +354,20 @@ class NationalIDService {
 
         return { message: 'National ID verified successfully' };
     }
+
+    async getStatus(userId) {
+        const verification = await prisma.nationalIDVerification.findUnique({
+            where: { userId },
+            include: { citizen: true }
+        });
+
+        return {
+            verificationStatus: verification?.verificationStatus || 'NOT_STARTED',
+            verifiedAt: verification?.verifiedAt,
+            isVerified: verification?.verificationStatus === 'APPROVED' || verification?.verificationStatus === 'VERIFIED',
+            citizen: verification?.citizen
+        };
+    }
 }
 
 export default new NationalIDService();
