@@ -73,6 +73,12 @@ const startServer = async () => {
       socket.to(data.workflowId).emit("node-focused", { ...data, socketId: socket.id });
     });
 
+    // Handle history relay
+    socket.on("history-event", (data) => {
+      // data: { workflowId, record: { message, action, createdAt, user } }
+      socket.to(data.workflowId).emit("history-event", data.record);
+    });
+
     const handleLeave = (workflowId) => {
       if (workflowUsers[workflowId]) {
         delete workflowUsers[workflowId][socket.id];
