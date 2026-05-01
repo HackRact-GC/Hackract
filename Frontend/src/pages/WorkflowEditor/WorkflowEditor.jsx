@@ -86,7 +86,7 @@ const WorkflowEditor = ({ workflowId: propWorkflowId, pentestId: propPentestId }
   const [isLocked, setIsLocked] = useState(false);
   const [canEdit, setCanEdit] = useState(true);
   const [findings, setFindings] = useState([]);
-  const [projectInfo, setProjectInfo] = useState({ name: 'Untitled Workflow', type: 'Audit' });
+  const [projectInfo, setProjectInfo] = useState({ name: null, type: 'Audit' }); // null = loading
 
   const {
     socket,
@@ -222,11 +222,23 @@ const WorkflowEditor = ({ workflowId: propWorkflowId, pentestId: propPentestId }
             }
           }
 
-          // Final fallback to workflow local name
-          if (!projectName) projectName = data.name || data.title;
+          // Fallback: use workflow's own name only if it's not the generic default
+          if (!projectName) {
+            const storedName = data.name || data.title;
+            if (storedName && storedName !== 'Untitled Workflow') {
+              projectName = storedName;
+            }
+          }
+
+          // If we resolved a real name and the DB still has the generic name, backfill it silently
+          if (projectName && (data.name === 'Untitled Workflow' || !data.name)) {
+            try {
+              await workflowService.updateWorkflow(workflowId, { name: projectName });
+            } catch (_) { /* non-critical, ignore */ }
+          }
 
           setProjectInfo({
-            name: projectName || 'Untitled Workspace',
+            name: projectName || null, // keep null so "Loading..." state persists if truly unknown
             type: projectType
           });
         }
@@ -526,10 +538,14 @@ const WorkflowEditor = ({ workflowId: propWorkflowId, pentestId: propPentestId }
             <span className="text-gray-700 font-medium text-lg leading-none select-none">/</span>
             <div className="flex flex-col md:flex-row md:items-center gap-1 md:gap-3 overflow-hidden">
               <h1
-                className="text-sm md:text-[16px] font-bold text-white tracking-tight truncate max-w-[300px] md:max-w-[600px] lg:max-w-none"
-                title={projectInfo.name}
+                className="text-sm md:text-[16px] font-bold tracking-tight truncate max-w-[300px] md:max-w-[600px] lg:max-w-none"
+                style={{ color: projectInfo.name ? '#fff' : 'rgba(255,255,255,0.3)' }}
+                title={projectInfo.name || 'Loading project...'}
               >
-                {projectInfo.name}
+                {projectInfo.name
+                  ? projectInfo.name
+                  : <span className="animate-pulse">Loading project...</span>
+                }
               </h1>
               <div className="flex items-center gap-2">
                 <span className="hidden md:block w-1.5 h-1.5 rounded-full bg-white/10" />
@@ -549,17 +565,34 @@ const WorkflowEditor = ({ workflowId: propWorkflowId, pentestId: propPentestId }
         </div>
 
         <div className="flex items-center gap-4">
-            {/* Active Collaborators Profiles */}
+            {/* Active Collaborators Profiles — always show self first, then remote peers */}
             <div className="flex -space-x-2 items-center">
-               {Object.values(collaborators).map((collab, index) => (
+               {/* Self — always online */}
+               <div
+                 className="relative group transition-transform hover:-translate-y-1 hover:z-30 cursor-help"
+                 style={{ zIndex: 20 }}
+                 title={`${localUser.name} (You)`}
+               >
+                 <div
+                   className="w-8 h-8 rounded-full border-2 border-[#00ff41]/60 flex items-center justify-center text-xs font-bold shadow-md"
+                   style={{ backgroundColor: localUser.color, color: '#000' }}
+                 >
+                   {localUser.name?.[0]?.toUpperCase() || 'Y'}
+                 </div>
+                 <span className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-[#00ff41] border-[1.5px] border-[#1a1c23] rounded-full shadow-[0_0_6px_rgba(0,255,65,0.7)]"></span>
+               </div>
+               {/* Remote peers */}
+               {Object.values(collaborators)
+                 .filter(c => c.id !== socket?.id) /* exclude self from socket list */
+                 .map((collab, index) => (
                  <div
                    key={collab.id}
                    className="relative group transition-transform hover:-translate-y-1 hover:z-30 cursor-help"
                    style={{ zIndex: 10 + index }}
                    title={collab.user || 'Online Hacker'}
-                >
+                 >
                    <div
-                     className="w-8 h-8 rounded-full border-2 border-[#1a1c23] flex items-center justify-center text-xs font-bold shadow-md bg-[#13151a]"
+                     className="w-8 h-8 rounded-full border-2 border-[#1a1c23] flex items-center justify-center text-xs font-bold shadow-md"
                      style={{ backgroundColor: collab.color || '#00ff41', color: '#000' }}
                    >
                      {collab.user?.[0]?.toUpperCase() || 'H'}
