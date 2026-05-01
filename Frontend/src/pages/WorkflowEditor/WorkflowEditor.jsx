@@ -41,6 +41,35 @@ const nodeTypes = {
   terminal: TerminalNode,
 };
 
+const NODE_TYPE_LABELS = {
+  startingPoint: 'Starting Point',
+  note: 'Note',
+  ai: 'AI',
+  agent: 'AI Agent',
+  terminal: 'Terminal',
+};
+
+const buildMessage = (action, details = {}) => {
+  const nodeLabel = details.label || details.type
+    ? `a ${NODE_TYPE_LABELS[details.type] || details.type} node`
+    : 'a node';
+
+  const messages = {
+    ADD_NODE:       `Added ${nodeLabel}`,
+    DELETE_NODE:    `Deleted ${nodeLabel}`,
+    MOVE_NODE:      `Moved ${nodeLabel}`,
+    UPDATE_TITLE:   `Renamed node to "${details.newTitle || 'Untitled'}"`,
+    CONNECT_NODES:  `Connected two nodes`,
+    DELETE_EDGE:    `Removed a connection`,
+    LINK_FINDING:   `Linked finding to ${nodeLabel}`,
+    GRAPH_CHANGED:  `Updated the canvas`,
+    AGENT_RAN:      `Ran the "${details.agentName || 'AI'}" agent`,
+    TERMINAL_EXEC:  `Executed command in Terminal`,
+  };
+
+  return messages[action] || action.replace(/_/g, ' ').toLowerCase();
+};
+
 const InteractiveBackground = () => {
   const transform = useStore((s) => s.transform);
   const [x, y] = transform;
@@ -94,10 +123,12 @@ const WorkflowEditor = ({ workflowId: propWorkflowId, pentestId: propPentestId }
     cursors,
     activeNodes,
     remotePatch,
+    liveHistoryEvents,
     consumeRemotePatch,
     emitWorkflowChange,
     emitCursorMove,
     emitNodeFocus,
+    emitHistoryEvent,
     user: localUser
   } = useWorkflowSocket(workflowId);
 
@@ -265,15 +296,29 @@ const WorkflowEditor = ({ workflowId: propWorkflowId, pentestId: propPentestId }
   // Helper to save structural changes to DB History
   const saveToDatabase = async (currentNodes, currentEdges, action = "GRAPH_CHANGED", meta = {}) => {
     try {
+      const message = buildMessage(action, meta);
+      const details = {
+        nodesCount: currentNodes.length,
+        edgesCount: currentEdges.length,
+        ...meta
+      };
+
       await workflowService.updateWorkflow(workflowId, { nodes: currentNodes, edges: currentEdges });
-      await workflowService.recordWorkflowHistory(workflowId, {
+      const record = await workflowService.recordWorkflowHistory(workflowId, {
         action,
-        details: {
-          nodesCount: currentNodes.length,
-          edgesCount: currentEdges.length,
-          ...meta
-        }
+        message,
+        details
       });
+
+      if (record) {
+        // Inject local user details for immediate real-time rendering on remote clients
+        const eventRecord = {
+          ...record,
+          user: { fullName: localUser.name, id: localUser.id }
+        };
+        emitHistoryEvent(eventRecord);
+      }
+
       setLastSaved(new Date());
     } catch (err) {
       console.error("Failed to save changes", err);
@@ -700,6 +745,8 @@ const WorkflowEditor = ({ workflowId: propWorkflowId, pentestId: propPentestId }
           isOpen={isHistoryOpen}
           onClose={() => setIsHistoryOpen(false)}
           workflowId={workflowId}
+          liveEvents={liveHistoryEvents}
+          localUser={localUser}
         />
       </div>
     </div>
