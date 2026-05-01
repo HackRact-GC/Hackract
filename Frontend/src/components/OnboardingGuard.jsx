@@ -45,16 +45,18 @@ const OnboardingGuard = ({ children }) => {
         }
     }
 
-    // Is the user already trying to access an onboarding route?
+    // Is the user already trying to access an onboarding route or the profile page?
     const isOnboardingRoute = location.pathname.startsWith('/onboarding');
+    const isProfileRoute = location.pathname === '/hacker-profile';
+    const isVerificationRoute = location.pathname === '/national-id-verification';
 
-    if (isOnboardingRoute) {
-        // If they don't need onboarding anymore, push them to the role-based dashboard
-        if (!needsOnboarding) {
+    if (isOnboardingRoute || isProfileRoute || isVerificationRoute) {
+        // If they don't need onboarding anymore and they are on an onboarding route, push them to the role-based dashboard
+        if (!needsOnboarding && isOnboardingRoute) {
             const destination = isPentester ? '/hacker-dashboard' : '/dashboard';
             return <Navigate to={destination} replace />;
         }
-        // Otherwise let them render the onboarding page
+        // Otherwise let them render the page
         return <>{children}</>;
     }
 

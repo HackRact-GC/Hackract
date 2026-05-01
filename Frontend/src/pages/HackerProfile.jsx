@@ -1,93 +1,47 @@
-import { useEffect, useRef, useState } from "react";
-
+import React, { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { FiUser, FiCode, FiAward, FiFileText, FiCamera, FiUploadCloud, FiCpu, FiShield, FiGithub, FiLinkedin, FiTwitter, FiGlobe, FiCheckCircle } from "react-icons/fi";
+import { FiEdit2, FiPlus, FiCheckCircle, FiShield, FiAward, FiFolder, FiTrash2, FiCamera } from "react-icons/fi";
 import api from "../api/axiosConfig";
 import { useAuth } from "../context/authContext.jsx";
 import toast from "react-hot-toast";
 import NationalIDService from "../services/nationalID.service.js";
 
-// ── Components ─────────────────────────────────────────────────────────────
-
-const SectionHeader = ({ icon: Icon, title }) => (
-  <div className="flex items-center gap-3 mb-6">
-    <div className="w-8 h-8 rounded-lg bg-[#00c477]/10 flex items-center justify-center text-[#00c477]">
-      <Icon size={18} />
-    </div>
-    <h2 className="text-sm font-black uppercase tracking-[0.2em] text-white/90 font-mono">{title}</h2>
-  </div>
-);
-
-const Field = ({ label, children }) => (
-  <div className="space-y-2">
-    <label className="block text-[10px] text-white/40 uppercase tracking-[0.14em] font-mono font-bold">{label}</label>
-    {children}
-  </div>
-);
-
-const Input = (props) => (
-  <input
-    {...props}
-    className="w-full bg-[#0a0a0a] border border-white/5 rounded-xl px-4 py-3 text-sm text-white placeholder:text-white/20 focus:outline-none focus:border-[#00c477]/30 focus:bg-[#0c0c0c] transition-all duration-300 shadow-inner"
-  />
-);
-
-const TextArea = (props) => (
-  <textarea
-    {...props}
-    className="w-full bg-[#0a0a0a] border border-white/5 rounded-xl px-4 py-3 text-sm text-white placeholder:text-white/20 focus:outline-none focus:border-[#00c477]/30 focus:bg-[#0c0c0c] transition-all duration-300 shadow-inner resize-none min-h-[120px]"
-  />
-);
-
-const StatusBadge = ({ status }) => {
-  const styles = {
-    DRAFT: "text-gray-400 bg-gray-400/10 border-gray-400/20",
-    SUBMITTED: "text-blue-400 bg-blue-400/10 border-blue-400/20",
-    UNDER_REVIEW: "text-amber-400 bg-amber-400/10 border-amber-400/20",
-    APPROVED: "text-[#00c477] bg-[#00c477]/10 border-[#00c477]/20",
-    REJECTED: "text-rose-400 bg-rose-400/10 border-rose-400/20",
-  };
-
-  const label = status?.replace("_", " ") || "Awaiting Verification";
-  
-  return (
-    <div className={`text-[10px] font-mono font-bold uppercase tracking-[0.2em] px-3 py-1 rounded-full mb-8 border ${styles[status] || styles.DRAFT}`}>
-      {label}
-    </div>
-  );
-};
-
-// ── Main Page ──────────────────────────────────────────────────────────────
-
 const HackerProfile = () => {
-
   const { user, refreshUser } = useAuth();
   const fileInputRef = useRef(null);
   const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
-  const [logoPreview, setLogoPreview] = useState(null);
   const [isNationalIdVerified, setIsNationalIdVerified] = useState(false);
   const navigate = useNavigate();
 
-  const [profileStatus, setProfileStatus] = useState("DRAFT");
-  const [hasProfile, setHasProfile] = useState(false);
+  // Avatar / Identity
+  const [logoPreview, setLogoPreview] = useState(null);
+  const displayName = user?.fullName || user?.handle || "Digital Ghost";
+  const initials = displayName.split(" ").map(n => n[0]).join("").toUpperCase().slice(0, 2);
 
+  // Form State
   const [form, setForm] = useState({
     bio: "",
-    country: "",
-    yearsOfExperience: "",
-    primarySkills: "",
-    certifications: "",
-    portfolioLinks: "",
-    specialization: "",
-    github: "",
-    linkedin: "",
-    twitter: "",
-    fullName: user?.fullName || "",
-    email: user?.email || "",
-    idDocumentNumber: "",
+    skills: "API Testing, Vulnerability Assessment, Web Application, Ethical Hacking, OWASP",
+    certifications: [],
+    education: [],
+    employment: [],
+    other: [],
   });
 
+  // Edit Modes
+  const [editMode, setEditMode] = useState({
+    bio: false,
+    skills: false,
+    certifications: false,
+    education: false,
+    employment: false,
+    other: false,
+  });
+
+  // New Item State for adding entries
+  const [newItem, setNewItem] = useState({});
+
+  // Data fetching
   useEffect(() => {
     const fetchProfile = async () => {
       try {
@@ -105,350 +59,380 @@ const HackerProfile = () => {
         }
 
         if (profile) {
-          setHasProfile(true);
-          setProfileStatus(profile.status);
           setForm((prev) => ({
             ...prev,
-            bio: profile.bio || "",
-            country: profile.country || "",
-            yearsOfExperience: profile.yearsOfExperience ?? "",
-            primarySkills: (profile.primarySkills || []).join(", "),
-            certifications: (profile.certifications || []).join(", "),
-            portfolioLinks: (profile.portfolioLinks || []).join(", "),
-            specialization: profile.specialization || "",
-            github: profile.githubUsername || "",
-            linkedin: profile.linkedinProfile || "",
-            twitter: profile.twitter || "",
-            idDocumentNumber: profile.idDocumentNumber || "",
+            bio: profile.bio || prev.bio,
+            skills: (profile.primarySkills || []).join(", ") || prev.skills,
+            certifications: profile.certifications?.length > 0
+              ? profile.certifications.map(c => ({ title: c, provider: '', date: '' }))
+              : prev.certifications,
           }));
 
           if (profile.avatar) {
             setLogoPreview(profile.avatar);
           }
         }
-      } catch (fetchErr) {
-        console.error("Failed to fetch profile", fetchErr);
-        // If 404, it means no profile yet, which is fine
+      } catch (err) {
+        console.error("Failed to fetch profile", err);
       } finally {
         setLoading(false);
       }
     };
-
     fetchProfile();
   }, []);
-
-  const handleChange = (event) => {
-    const { name, value } = event.target;
-    setForm((prev) => ({ ...prev, [name]: value }));
-  };
 
   const handleLogoChange = (event) => {
     const file = event.target.files?.[0];
     if (!file) return;
-
     const reader = new FileReader();
     reader.onloadend = () => setLogoPreview(reader.result);
     reader.readAsDataURL(file);
   };
 
-  const handleSubmit = async (event) => {
-    event.preventDefault();
-    setSaving(true);
+  const toggleEdit = (section) => {
+    setEditMode(prev => ({ ...prev, [section]: !prev[section] }));
+    setNewItem({}); // Reset new item state when toggling
+  };
 
+  const saveProfile = async () => {
     try {
-      if (!form.bio || form.bio.length < 10) {
-        toast.error("Bio must be at least 10 characters long.");
-        setSaving(false);
-        return;
-      }
-
       const payload = {
         bio: form.bio,
-        country: form.country,
-        specialization: form.specialization,
-        githubUsername: form.github,
-        linkedinProfile: form.linkedin,
-        twitter: form.twitter,
-        idDocumentNumber: form.idDocumentNumber,
-        fullName: form.fullName,
-        primarySkills: form.primarySkills.split(",").map((s) => s.trim()).filter(Boolean),
-        certifications: form.certifications.split(",").map((s) => s.trim()).filter(Boolean),
-        portfolioLinks: form.portfolioLinks.split(",").map((s) => s.trim()).filter(Boolean),
-        yearsOfExperience: form.yearsOfExperience ? Number(form.yearsOfExperience) : null,
-        // Mark as submitted if this is the initial creation
-        status: hasProfile ? undefined : "SUBMITTED"
+        primarySkills: form.skills.split(",").map(s => s.trim()).filter(Boolean),
+        certifications: form.certifications.map(c => c.title),
       };
-
       await api.put("/hacker-profiles/me", payload);
-      toast.success(hasProfile ? "Profile dossier updated." : "Profile created and submitted.");
+      toast.success("Profile saved successfully.");
       if (refreshUser) await refreshUser();
-      setHasProfile(true);
-    } catch (submitErr) {
-      toast.error(submitErr?.response?.data?.message || "Failed to update profile.");
-    } finally {
-      setSaving(false);
+    } catch (err) {
+      toast.error(err?.response?.data?.message || "Failed to save profile.");
     }
+  };
+
+  const handleSaveSection = async (section) => {
+    toggleEdit(section);
+    await saveProfile();
   };
 
   if (loading) {
     return (
       <div className="w-full h-[60vh] flex flex-col items-center justify-center gap-4">
         <div className="w-12 h-12 border-2 border-[#00c477]/20 border-t-[#00c477] rounded-full animate-spin" />
-        <div className="font-mono text-[10px] uppercase tracking-[0.2em] text-[#00c477] animate-pulse">
-          Decrypting Operative Records...
-        </div>
       </div>
     );
   }
 
-  const displayName = user?.fullName || user?.handle || "Digital Ghost";
-  const initials = displayName.split(" ").map(n => n[0]).join("").toUpperCase().slice(0, 2);
-
   return (
-    <div className="min-h-screen bg-[#050505] text-white p-4 lg:p-8 selection:bg-[#00c477]/30">
-      <div className="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-[320px_1fr] gap-8">
-        
-        {/* ── SIDEBAR ─────────────────────────────────────────────────── */}
-        <aside className="space-y-6">
-          <div className="bg-[#0c0c0c] border border-white/5 rounded-[32px] p-8 flex flex-col items-center text-center shadow-2xl relative overflow-hidden group">
-            <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full h-1/2 bg-[#00c477]/5 blur-[60px] pointer-events-none" />
-            
-            <div className="relative mb-6">
-              <div className="w-32 h-32 rounded-full bg-gradient-to-br from-[#111] to-[#050505] border border-white/10 flex items-center justify-center overflow-hidden shadow-[0_0_40px_rgba(0,0,0,0.5)] ring-4 ring-[#00c477]/10">
+    <div className="min-h-screen bg-[#050505] text-white p-4 lg:p-8 font-sans">
+      <div className="max-w-[1200px] mx-auto space-y-6">
+
+        {/* TOP HEADER */}
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center bg-[#0c0c0c] border border-white/5 rounded-2xl p-6">
+          <div className="flex items-center gap-6">
+            <div className="relative group">
+              <div className="w-24 h-24 rounded-full bg-gradient-to-br from-[#111] to-[#050505] border border-white/10 flex items-center justify-center overflow-hidden cursor-pointer" onClick={() => fileInputRef.current?.click()}>
                 {logoPreview ? (
                   <img src={logoPreview} alt="avatar" className="w-full h-full object-cover" />
                 ) : (
-                  <div className="flex flex-col items-center">
-                    <FiUser size={40} className="text-white/10 mb-1" />
-                    <span className="text-2xl font-black text-[#00c477] tracking-tighter">{initials}</span>
+                  <span className="text-2xl font-black text-[#00c477]">{initials}</span>
+                )}
+                <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
+                  <FiCamera className="text-white" size={24} />
+                </div>
+              </div>
+              <input ref={fileInputRef} type="file" className="hidden" accept="image/*" onChange={handleLogoChange} />
+              <div className="absolute bottom-1 right-1 w-5 h-5 bg-[#00c477] border-2 border-[#0c0c0c] rounded-full flex items-center justify-center">
+                <FiCheckCircle className="text-[#0c0c0c]" size={12} />
+              </div>
+            </div>
+
+            <div>
+              <h1 className="text-2xl font-bold flex items-center gap-2">
+                {displayName}
+              </h1>
+            </div>
+          </div>
+        </div>
+
+        {/* TWO COLUMN LAYOUT */}
+        <div className="grid grid-cols-1 lg:grid-cols-[300px_1fr] gap-6">
+
+          {/* LEFT COLUMN */}
+          <div className="space-y-6">
+
+            {/* Verifications */}
+            <div className="bg-[#0c0c0c] border border-white/5 rounded-2xl p-6">
+              <h2 className="text-lg font-bold mb-4">Verifications</h2>
+              {isNationalIdVerified ? (
+                <div className="flex items-center gap-2 text-sm">
+                  <FiCheckCircle className="text-[#00c477]" />
+                  <span>ID: Verified</span>
+                </div>
+              ) : (
+                <div className="flex items-center justify-between text-sm">
+                  <div className="flex items-center gap-2 text-gray-400">
+                    <FiShield />
+                    <span>ID: Unverified</span>
                   </div>
+                  <button onClick={() => navigate('/national-id-verification')} className="w-8 h-8 rounded-full border border-white/20 flex items-center justify-center hover:bg-white/10 text-[#00c477]"><FiPlus size={16} /></button>
+                </div>
+              )}
+            </div>
+
+            {/* Education */}
+            <div className="bg-[#0c0c0c] border border-white/5 rounded-2xl p-6 relative group">
+              <h2 className="text-lg font-bold mb-4">Education</h2>
+
+              <button onClick={() => toggleEdit('education')} className="absolute top-6 right-6 w-8 h-8 rounded-full border border-[#00c477] flex items-center justify-center hover:bg-[#00c477]/10 text-[#00c477] opacity-0 group-hover:opacity-100 transition-opacity">
+                <FiPlus size={14} />
+              </button>
+
+              {editMode.education ? (
+                <div className="space-y-3 mt-4 border-b border-white/5 pb-4 mb-4">
+                  <input type="text" placeholder="School / University" value={newItem.school || ''} onChange={e => setNewItem({ ...newItem, school: e.target.value })} className="w-full bg-[#111] border border-[#00c477] rounded-lg p-2 text-sm focus:outline-none" />
+                  <input type="text" placeholder="Area of Study (Degree)" value={newItem.degree || ''} onChange={e => setNewItem({ ...newItem, degree: e.target.value })} className="w-full bg-[#111] border border-[#00c477] rounded-lg p-2 text-sm focus:outline-none" />
+                  <div className="flex gap-2">
+                    <input type="text" placeholder="From (e.g. 2018)" value={newItem.from || ''} onChange={e => setNewItem({ ...newItem, from: e.target.value })} className="w-1/2 bg-[#111] border border-[#00c477] rounded-lg p-2 text-sm focus:outline-none" />
+                    <input type="text" placeholder="To (e.g. 2022)" value={newItem.to || ''} onChange={e => setNewItem({ ...newItem, to: e.target.value })} className="w-1/2 bg-[#111] border border-[#00c477] rounded-lg p-2 text-sm focus:outline-none" />
+                  </div>
+                  <div className="flex gap-2 pt-2">
+                    <button onClick={() => {
+                      if (newItem.school || newItem.degree) {
+                        setForm({ ...form, education: [...form.education, { school: newItem.school, degree: newItem.degree, from: newItem.from, to: newItem.to }] });
+                      }
+                      toggleEdit('education');
+                    }} className="px-3 py-1 bg-[#00c477] text-black text-xs rounded-full font-bold">Add & Done</button>
+                    <button onClick={() => toggleEdit('education')} className="px-3 py-1 bg-white/10 text-white text-xs rounded-full font-bold hover:bg-white/20">Cancel</button>
+                  </div>
+                </div>
+              ) : null}
+
+              <div className="space-y-4">
+                {form.education.length > 0 ? form.education.map((edu, idx) => (
+                  <div key={idx} className="group/item relative border-b border-white/5 pb-4 last:border-0 last:pb-0">
+                    <h3 className="font-semibold text-sm">{edu.school}</h3>
+                    <p className="text-gray-300 text-sm">{edu.degree}</p>
+                    {(edu.from || edu.to) && <p className="text-gray-500 text-xs mt-1">{edu.from} - {edu.to}</p>}
+                    <button onClick={() => setForm({ ...form, education: form.education.filter((_, i) => i !== idx) })} className="absolute top-0 right-0 hidden group-hover/item:flex w-6 h-6 rounded-full bg-red-500/10 text-red-500 items-center justify-center hover:bg-red-500 hover:text-white">
+                      <FiTrash2 size={12} />
+                    </button>
+                  </div>
+                )) : (
+                  <p className="text-sm text-gray-500">No items added.</p>
                 )}
               </div>
-
-              
-              <button
-                onClick={() => fileInputRef.current?.click()}
-                className="absolute bottom-0 right-0 w-10 h-10 rounded-full bg-[#00c477] text-black border-4 border-[#0c0c0c] flex items-center justify-center hover:scale-110 transition-transform shadow-lg"
-              >
-                <FiCamera size={16} />
-              </button>
-              <input ref={fileInputRef} type="file" className="hidden" accept="image/*" onChange={handleLogoChange} />
             </div>
 
-            <h3 className="text-2xl font-black tracking-tight mb-1">{displayName}</h3>
-            <StatusBadge status={profileStatus} />
-
-            <div className="w-full mt-2 bg-[#111] border border-[#00c477]/20 rounded-2xl p-4 text-left relative overflow-hidden">
-               <div className="absolute top-0 left-0 w-1 h-full bg-[#00c477]/50" />
-               <div className="text-[10px] font-mono font-bold text-[#00c477] uppercase tracking-widest mb-1">System_Notice</div>
-               <p className="text-[11px] text-white/50 leading-relaxed font-medium mb-4">
-                 {hasProfile 
-                   ? "Profile synchronization active. Keep your dossier updated for mission readiness."
-                   : "Identity encryption active. Complete the profile to access the private bounty lab."}
-               </p>
-
-               {isNationalIdVerified ? (
-                 <div className="w-full py-3 bg-[#00c477]/10 border border-[#00c477]/30 rounded-xl flex items-center justify-center gap-2 shadow-[0_0_15px_rgba(0,196,119,0.15)]">
-                   <FiCheckCircle className="text-[#00c477] text-lg" />
-                   <span className="text-[11px] font-black text-[#00c477] uppercase tracking-widest font-mono">Fayda ID Verified</span>
-                 </div>
-               ) : (
-                 <button 
-                   type="button"
-                   onClick={() => navigate('/national-id-verification')}
-                   className="w-full py-3 bg-red-500/10 hover:bg-red-500/20 border border-red-500/30 rounded-xl flex items-center justify-center gap-2 transition-all group shadow-[0_0_15px_rgba(239,68,68,0.1)] cursor-pointer"
-                 >
-                   <FiShield className="text-red-500 group-hover:scale-110 transition-transform" />
-                   <span className="text-[11px] font-black text-red-500 uppercase tracking-widest font-mono">Verify National ID</span>
-                 </button>
-               )}
-            </div>
           </div>
 
-          <div className="bg-[#0c0c0c] border border-white/5 rounded-[32px] p-6 space-y-4">
-             <div className="flex items-center gap-3">
-               <div className="w-8 h-8 rounded-lg bg-blue-500/10 flex items-center justify-center text-blue-400">
-                 <FiCpu size={16} />
-               </div>
-               <div className="text-[11px] font-mono uppercase tracking-widest text-white/40">Dossier Integrity</div>
-             </div>
-             <div className="h-1.5 w-full bg-white/5 rounded-full overflow-hidden">
-                <div className="h-full bg-blue-500 w-full shadow-[0_0_10px_rgba(59,130,246,0.5)] opacity-50" />
-             </div>
-          </div>
-        </aside>
+          {/* RIGHT COLUMN */}
+          <div className="space-y-6">
 
-        {/* ── MAIN CONTENT ────────────────────────────────────────────── */}
-        <main className="bg-[#0c0c0c] border border-white/5 rounded-[40px] p-8 lg:p-12 shadow-2xl relative">
-          <form onSubmit={handleSubmit} className="space-y-12">
-            
-            {/* Section: Personal Info */}
-            <section>
-              <SectionHeader icon={FiShield} title="Personal Info" />
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <Field label="Full Identity">
-                  <Input 
-                    name="fullName" 
-                    value={form.fullName} 
-                    onChange={handleChange} 
-                    placeholder="Enter your legal identity..." 
-                    readOnly={hasProfile}
-                  />
-                </Field>
-                <Field label="Comms Address">
-                  <Input 
-                    name="email" 
-                    value={form.email} 
-                    onChange={handleChange} 
-                    placeholder="operative@hackract.io" 
-                    readOnly 
-                  />
-                </Field>
-                <Field label="ID / Passport Number">
-                  <Input 
-                    name="idDocumentNumber" 
-                    value={form.idDocumentNumber} 
-                    onChange={handleChange} 
-                    placeholder="e.g. A12345678" 
-                  />
-                </Field>
-                <Field label="Country">
-                  <Input 
-                    name="country" 
-                    value={form.country} 
-                    onChange={handleChange} 
-                    placeholder="e.g. Estonia" 
-                  />
-                </Field>
-                <Field label="Specialization">
-                  <Input 
-                    name="specialization" 
-                    value={form.specialization} 
-                    onChange={handleChange} 
-                    placeholder="e.g. Web App Security" 
-                  />
-                </Field>
-                <Field label="Experience (Years)">
-                  <Input 
-                    name="yearsOfExperience" 
-                    type="number"
-                    value={form.yearsOfExperience} 
-                    onChange={handleChange} 
-                    placeholder="e.g. 5" 
-                  />
-                </Field>
+            {/* Bio Section (Description) */}
+            <div className="bg-[#0c0c0c] border border-white/5 rounded-2xl p-6 lg:p-8 space-y-6">
+              <div className="relative group">
+                <h2 className="text-xl font-bold mb-4">Description</h2>
+                <button onClick={() => toggleEdit('bio')} className="absolute -top-1 right-0 w-8 h-8 rounded-full border border-[#00c477] flex items-center justify-center hover:bg-[#00c477]/10 text-[#00c477] opacity-0 group-hover:opacity-100 transition-opacity">
+                  <FiEdit2 size={14} />
+                </button>
+
+                {editMode.bio ? (
+                  <div className="w-full">
+                    <textarea value={form.bio} onChange={e => setForm({ ...form, bio: e.target.value })} className="w-full bg-[#111] border border-[#00c477] rounded-lg p-4 min-h-[150px] text-sm focus:outline-none resize-none" placeholder="Greetings 👋! I'm..."></textarea>
+                    <div className="mt-2">
+                      <button onClick={() => handleSaveSection('bio')} className="px-4 py-1.5 bg-[#00c477] text-black text-sm rounded-full font-bold">Save</button>
+                    </div>
+                  </div>
+                ) : (
+                  <p className="text-gray-300 text-sm leading-relaxed whitespace-pre-wrap pr-10">
+                    {form.bio || "Write a bit about yourself here..."}
+                  </p>
+                )}
               </div>
-            </section>
+            </div>
 
-            {/* Section: Arsenal & Skills */}
-            <section>
-              <SectionHeader icon={FiCode} title="Arsenal & Skills" />
-              <div className="space-y-4">
-                <Input 
-                  name="primarySkills" 
-                  value={form.primarySkills} 
-                  onChange={handleChange} 
-                  placeholder="e.g. Nmap, Metasploit, Burp Suite, Python (comma separated)" 
-                />
+            {/* Skills */}
+            <div className="bg-[#0c0c0c] border border-white/5 rounded-2xl p-6 lg:p-8 relative group">
+              <h2 className="text-xl font-bold mb-6">Skills</h2>
+              <button onClick={() => toggleEdit('skills')} className="absolute top-6 right-8 w-8 h-8 rounded-full border border-[#00c477] flex items-center justify-center hover:bg-[#00c477]/10 text-[#00c477] opacity-0 group-hover:opacity-100 transition-opacity">
+                <FiEdit2 size={14} />
+              </button>
+
+              {editMode.skills ? (
+                <div>
+                  <textarea value={form.skills} onChange={e => setForm({ ...form, skills: e.target.value })} className="w-full bg-[#111] border border-[#00c477] rounded-lg p-4 text-sm focus:outline-none" placeholder="Comma separated skills..."></textarea>
+                  <div className="mt-2">
+                    <button onClick={() => handleSaveSection('skills')} className="px-4 py-1.5 bg-[#00c477] text-black text-sm rounded-full font-bold">Save</button>
+                  </div>
+                </div>
+              ) : (
                 <div className="flex flex-wrap gap-2">
-                  {form.primarySkills.split(",").map(s => s.trim()).filter(Boolean).map((skill, idx) => (
-                    <span 
-                      key={idx} 
-                      className="px-4 py-1.5 bg-[#1a1a1a] border border-white/5 text-white/60 rounded-full text-[11px] font-mono hover:border-[#00c477]/30 hover:text-[#00c477] transition-all cursor-default"
-                    >
+                  {form.skills.split(",").map(s => s.trim()).filter(Boolean).map((skill, idx) => (
+                    <span key={idx} className="px-4 py-1.5 bg-white/5 border border-white/10 text-gray-300 rounded-full text-sm hover:bg-white/10 transition-colors cursor-default">
                       {skill}
                     </span>
                   ))}
+                  {form.skills.trim() === "" && <span className="text-sm text-gray-500">No items added.</span>}
                 </div>
-              </div>
-            </section>
-
-            {/* Section: Certifications */}
-            <section>
-              <SectionHeader icon={FiAward} title="Certifications" />
-              <div className="space-y-4">
-                <Input 
-                  name="certifications" 
-                  value={form.certifications} 
-                  onChange={handleChange} 
-                  placeholder="e.g. OSCP, CISSP (comma separated)" 
-                />
-                <div 
-                  className="w-full aspect-[5/1] bg-[#0a0a0a] border-2 border-dashed border-white/5 rounded-3xl flex flex-col items-center justify-center gap-3 hover:border-[#00c477]/30 transition-all cursor-pointer group"
-                  onClick={() => toast.info("Document upload coming soon in Phase 2.")}
-                >
-                  <div className="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center group-hover:scale-110 transition-transform">
-                    <FiUploadCloud size={20} className="text-white/20 group-hover:text-[#00c477]" />
-                  </div>
-                  <div className="text-center">
-                    <div className="text-[10px] font-bold text-white/40 uppercase tracking-widest mb-1 group-hover:text-white transition-colors">Drag & Drop Documents</div>
-                  </div>
-                </div>
-              </div>
-            </section>
-
-            {/* Section: Public Network */}
-            <section>
-              <SectionHeader icon={FiGlobe} title="Public Network" />
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <Field label="GitHub">
-                  <div className="relative">
-                    <FiGithub className="absolute left-4 top-1/2 -translate-y-1/2 text-white/20" />
-                    <input 
-                      name="github" 
-                      value={form.github} 
-                      onChange={handleChange} 
-                      className="w-full bg-[#0a0a0a] border border-white/5 rounded-xl pl-12 pr-4 py-3 text-sm text-white placeholder:text-white/20 focus:outline-none focus:border-[#00c477]/30 transition-all"
-                      placeholder="github.com/username" 
-                    />
-                  </div>
-                </Field>
-                <Field label="LinkedIn">
-                  <div className="relative">
-                    <FiLinkedin className="absolute left-4 top-1/2 -translate-y-1/2 text-white/20" />
-                    <input 
-                      name="linkedin" 
-                      value={form.linkedin} 
-                      onChange={handleChange} 
-                      className="w-full bg-[#0a0a0a] border border-white/5 rounded-xl pl-12 pr-4 py-3 text-sm text-white placeholder:text-white/20 focus:outline-none focus:border-[#00c477]/30 transition-all"
-                      placeholder="linkedin.com/in/username" 
-                    />
-                  </div>
-                </Field>
-              </div>
-            </section>
-
-            {/* Section: Operational Bio */}
-            <section>
-              <SectionHeader icon={FiFileText} title="Operational Bio" />
-              <Field label="Background Narrative">
-                <TextArea 
-                  name="bio" 
-                  value={form.bio} 
-                  onChange={handleChange} 
-                  placeholder="Briefly describe your white-hat history and preferred targets..." 
-                />
-              </Field>
-            </section>
-
-            {/* Footer Actions */}
-            <div className="pt-8 border-t border-white/5 flex flex-col sm:flex-row items-center justify-between gap-6">
-               <div className="flex items-center gap-3">
-                  <div className="w-2 h-2 rounded-full bg-[#00c477] animate-pulse shadow-[0_0_8px_#00c477]" />
-                  <span className="text-[10px] font-mono font-bold uppercase tracking-[0.2em] text-white/30">Dossier Synced</span>
-               </div>
-               
-               <button
-                 type="submit"
-                 disabled={saving}
-                 className="w-full sm:w-auto px-10 py-4 bg-[#00c477] text-black font-black uppercase tracking-[0.2em] rounded-2xl hover:bg-[#00ff9d] transition-all hover:shadow-[0_0_30px_rgba(0,255,157,0.3)] active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
-               >
-                 {saving ? "Processing..." : (hasProfile ? "Update Profile" : "Create Profile")}
-               </button>
+              )}
             </div>
 
-          </form>
-        </main>
+            {/* Certifications */}
+            <div className="bg-[#0c0c0c] border border-white/5 rounded-2xl p-6 lg:p-8 relative group">
+              <div className="flex justify-between items-center mb-6">
+                <h2 className="text-xl font-bold">Certifications</h2>
+                <button onClick={() => toggleEdit('certifications')} className="w-8 h-8 rounded-full border border-[#00c477] flex items-center justify-center hover:bg-[#00c477]/10 text-[#00c477] opacity-0 group-hover:opacity-100 transition-opacity">
+                  <FiPlus size={16} />
+                </button>
+              </div>
+
+              {editMode.certifications ? (
+                <div className="space-y-3 border-b border-white/5 pb-4 mb-4">
+                  <input type="text" placeholder="Certification Name" value={newItem.title || ''} onChange={e => setNewItem({ ...newItem, title: e.target.value })} className="w-full bg-[#111] border border-[#00c477] rounded-lg p-2 text-sm focus:outline-none" />
+                  <input type="text" placeholder="Certification Number" value={newItem.certNumber || ''} onChange={e => setNewItem({ ...newItem, certNumber: e.target.value })} className="w-full bg-[#111] border border-[#00c477] rounded-lg p-2 text-sm focus:outline-none" />
+                  <input type="text" placeholder="Provider (e.g. Offensive Security)" value={newItem.provider || ''} onChange={e => setNewItem({ ...newItem, provider: e.target.value })} className="w-full bg-[#111] border border-[#00c477] rounded-lg p-2 text-sm focus:outline-none" />
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm text-gray-400">Upload Photo/File:</span>
+                    <input type="file" accept="image/*,.pdf" onChange={e => {
+                      const file = e.target.files?.[0];
+                      if (file) setNewItem({ ...newItem, file: file.name });
+                    }} className="flex-1 bg-[#111] border border-[#00c477] rounded-lg p-2 text-sm focus:outline-none file:mr-4 file:py-1 file:px-3 file:rounded-full file:border-0 file:text-xs file:bg-[#00c477] file:text-black hover:file:bg-[#00ff9d] cursor-pointer" />
+                  </div>
+                  <div className="flex gap-2 pt-2">
+                    <button onClick={() => {
+                      if (newItem.title) {
+                        setForm({ ...form, certifications: [...form.certifications, { title: newItem.title, provider: newItem.provider, certNumber: newItem.certNumber, file: newItem.file }] });
+                        setNewItem({});
+                        handleSaveSection('certifications'); // also triggers save to backend
+                      } else {
+                        toast.error('Certification Name is required');
+                      }
+                    }} className="px-4 py-1.5 bg-[#00c477] text-black text-sm rounded-full font-bold">Add & Save</button>
+                    <button onClick={() => toggleEdit('certifications')} className="px-4 py-1.5 bg-white/10 text-white text-sm rounded-full font-bold hover:bg-white/20">Cancel</button>
+                  </div>
+                </div>
+              ) : null}
+
+              <div className="space-y-6">
+                {form.certifications.length > 0 ? form.certifications.map((cert, idx) => (
+                  <div key={idx} className="flex gap-4 group/item relative border-b border-white/5 pb-4 last:border-0 last:pb-0">
+                    <div className="w-12 h-12 rounded-lg bg-white/5 flex flex-col items-center justify-center shrink-0 border border-white/10">
+                      <FiAward size={20} className="text-[#00c477]" />
+                    </div>
+                    <div>
+                      <h3 className="font-bold text-lg">{cert.title}</h3>
+                      {cert.provider && <p className="text-sm text-gray-400">Provider: {cert.provider}</p>}
+                      {cert.certNumber && <p className="text-sm text-gray-400">Cert. Number: {cert.certNumber}</p>}
+                      {cert.file && <p className="text-xs text-[#00c477] mt-1 flex items-center gap-1"><FiFolder size={12} /> Attached: {cert.file}</p>}
+                    </div>
+                    <button onClick={() => setForm({ ...form, certifications: form.certifications.filter((_, i) => i !== idx) })} className="absolute top-0 right-0 hidden group-hover/item:flex w-8 h-8 rounded-full bg-red-500/10 text-red-500 items-center justify-center hover:bg-red-500 hover:text-white">
+                      <FiTrash2 size={14} />
+                    </button>
+                  </div>
+                )) : (
+                  <p className="text-sm text-gray-500">No items added.</p>
+                )}
+              </div>
+            </div>
+
+            {/* Employment History */}
+            <div className="bg-[#0c0c0c] border border-white/5 rounded-2xl p-6 lg:p-8 relative group">
+              <div className="flex justify-between items-center mb-6">
+                <h2 className="text-xl font-bold">Employment history</h2>
+                <button onClick={() => toggleEdit('employment')} className="w-8 h-8 rounded-full border border-[#00c477] flex items-center justify-center hover:bg-[#00c477]/10 text-[#00c477] opacity-0 group-hover:opacity-100 transition-opacity">
+                  <FiPlus size={16} />
+                </button>
+              </div>
+
+              {editMode.employment ? (
+                <div className="space-y-3 border-b border-white/5 pb-4 mb-4">
+                  <input type="text" placeholder="Company Name" value={newItem.company || ''} onChange={e => setNewItem({ ...newItem, company: e.target.value })} className="w-full bg-[#111] border border-[#00c477] rounded-lg p-2 text-sm focus:outline-none" />
+                  <input type="text" placeholder="Title" value={newItem.title || ''} onChange={e => setNewItem({ ...newItem, title: e.target.value })} className="w-full bg-[#111] border border-[#00c477] rounded-lg p-2 text-sm focus:outline-none" />
+                  <div className="flex gap-2">
+                    <input type="text" placeholder="From (e.g. Jan 2020)" value={newItem.from || ''} onChange={e => setNewItem({ ...newItem, from: e.target.value })} className="w-1/2 bg-[#111] border border-[#00c477] rounded-lg p-2 text-sm focus:outline-none" />
+                    <input type="text" placeholder="To (e.g. Present)" value={newItem.to || ''} onChange={e => setNewItem({ ...newItem, to: e.target.value })} className="w-1/2 bg-[#111] border border-[#00c477] rounded-lg p-2 text-sm focus:outline-none" />
+                  </div>
+                  <div className="flex gap-2 pt-2">
+                    <button onClick={() => {
+                      if (newItem.company || newItem.title) {
+                        setForm({ ...form, employment: [...form.employment, { company: newItem.company, title: newItem.title, from: newItem.from, to: newItem.to }] });
+                      }
+                      toggleEdit('employment');
+                    }} className="px-4 py-1.5 bg-[#00c477] text-black text-sm rounded-full font-bold">Add & Done</button>
+                    <button onClick={() => toggleEdit('employment')} className="px-4 py-1.5 bg-white/10 text-white text-sm rounded-full font-bold hover:bg-white/20">Cancel</button>
+                  </div>
+                </div>
+              ) : null}
+
+              <div className="space-y-6">
+                {form.employment.length > 0 ? form.employment.map((job, idx) => (
+                  <div key={idx} className="group/item relative border-b border-white/5 pb-4 last:border-0 last:pb-0">
+                    <h3 className="font-bold text-lg">{job.title} {job.company ? `| ${job.company}` : ''}</h3>
+                    {(job.from || job.to) && <p className="text-sm text-gray-400 mb-2">{job.from} - {job.to}</p>}
+                    <button onClick={() => setForm({ ...form, employment: form.employment.filter((_, i) => i !== idx) })} className="absolute top-0 right-0 hidden group-hover/item:flex w-8 h-8 rounded-full bg-red-500/10 text-red-500 items-center justify-center hover:bg-red-500 hover:text-white">
+                      <FiTrash2 size={14} />
+                    </button>
+                  </div>
+                )) : (
+                  <p className="text-sm text-gray-500">No items added.</p>
+                )}
+              </div>
+            </div>
+
+            {/* Other Experiences */}
+            <div className="bg-[#0c0c0c] border border-white/5 rounded-2xl p-6 lg:p-8 relative group">
+              <div className="flex justify-between items-center mb-6">
+                <h2 className="text-xl font-bold">Other experiences</h2>
+                <button onClick={() => toggleEdit('other')} className="w-8 h-8 rounded-full border border-[#00c477] flex items-center justify-center hover:bg-[#00c477]/10 text-[#00c477] opacity-0 group-hover:opacity-100 transition-opacity">
+                  <FiPlus size={16} />
+                </button>
+              </div>
+
+              {editMode.other ? (
+                <div className="space-y-3 border-b border-white/5 pb-4 mb-4">
+                  <input type="text" placeholder="Subject or Name" value={newItem.subject || ''} onChange={e => setNewItem({ ...newItem, subject: e.target.value })} className="w-full bg-[#111] border border-[#00c477] rounded-lg p-2 text-sm focus:outline-none" />
+                  <textarea placeholder="Description" value={newItem.description || ''} onChange={e => setNewItem({ ...newItem, description: e.target.value })} className="w-full bg-[#111] border border-[#00c477] rounded-lg p-2 text-sm focus:outline-none resize-none min-h-[80px]" />
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm text-gray-400">Upload Photo/File:</span>
+                    <input type="file" accept="image/*,.pdf" onChange={e => {
+                      const file = e.target.files?.[0];
+                      if (file) setNewItem({ ...newItem, file: file.name });
+                    }} className="flex-1 bg-[#111] border border-[#00c477] rounded-lg p-2 text-sm focus:outline-none file:mr-4 file:py-1 file:px-3 file:rounded-full file:border-0 file:text-xs file:bg-[#00c477] file:text-black hover:file:bg-[#00ff9d] cursor-pointer" />
+                  </div>
+                  <div className="flex gap-2 pt-2">
+                    <button onClick={() => {
+                      if (newItem.subject || newItem.description) {
+                        setForm({ ...form, other: [...form.other, { subject: newItem.subject, description: newItem.description, file: newItem.file }] });
+                      }
+                      toggleEdit('other');
+                    }} className="px-4 py-1.5 bg-[#00c477] text-black text-sm rounded-full font-bold">Add & Done</button>
+                    <button onClick={() => toggleEdit('other')} className="px-4 py-1.5 bg-white/10 text-white text-sm rounded-full font-bold hover:bg-white/20">Cancel</button>
+                  </div>
+                </div>
+              ) : null}
+
+              <div className="space-y-4">
+                {form.other.length > 0 ? form.other.map((exp, idx) => (
+                  <div key={idx} className="group/item relative border-b border-white/5 pb-4 last:border-0 last:pb-0">
+                    <h3 className="font-bold text-lg text-white mb-1">{exp.subject}</h3>
+                    <p className="text-sm text-gray-300 pr-10">{exp.description}</p>
+                    {exp.file && <p className="text-xs text-[#00c477] mt-2 flex items-center gap-1"><FiFolder size={12} /> Attached: {exp.file}</p>}
+                    <button onClick={() => setForm({ ...form, other: form.other.filter((_, i) => i !== idx) })} className="absolute top-0 right-0 hidden group-hover/item:flex w-8 h-8 rounded-full bg-red-500/10 text-red-500 items-center justify-center hover:bg-red-500 hover:text-white">
+                      <FiTrash2 size={14} />
+                    </button>
+                  </div>
+                )) : (
+                  <div className="flex flex-col items-center justify-center text-center py-6 text-gray-500">
+                    <FiFolder size={40} className="text-[#00c477] mb-4" />
+                    <p className="text-sm font-semibold text-white mb-1">Add any other experiences that help you stand out</p>
+                    <button onClick={() => toggleEdit('other')} className="text-sm text-[#00c477] hover:underline">Add an experience</button>
+                  </div>
+                )}
+              </div>
+            </div>
+
+          </div>
+        </div>
       </div>
     </div>
   );
