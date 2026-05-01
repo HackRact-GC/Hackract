@@ -44,6 +44,9 @@ export const useWorkflowSocket = (workflowId) => {
   // WorkflowEditor reads and clears this each render frame.
   const [remotePatch, setRemotePatch] = useState(null);
 
+  // Live history events for the HistorySidebar
+  const [liveHistoryEvents, setLiveHistoryEvents] = useState([]);
+
   // ── Connect ────────────────────────────────────────────────────────────────
   useEffect(() => {
     if (!workflowId) return;
@@ -150,6 +153,11 @@ export const useWorkflowSocket = (workflowId) => {
       });
     });
 
+    // ── History events ───────────────────────────────────────────────────────
+    newSocket.on('history-event', (record) => {
+      setLiveHistoryEvents(prev => [record, ...prev]);
+    });
+
     return () => {
       newSocket.emit('leave-workflow', workflowId);
       newSocket.disconnect();
@@ -205,16 +213,26 @@ export const useWorkflowSocket = (workflowId) => {
     return patch;
   }, [remotePatch]);
 
+  /**
+   * Broadcast a history log event to peers.
+   */
+  const emitHistoryEvent = useCallback((record) => {
+    if (!socket?.connected) return;
+    socket.emit('history-event', { workflowId, record });
+  }, [socket, workflowId]);
+
   return {
     socket,
     collaborators,
     cursors,
     activeNodes,
     remotePatch,
+    liveHistoryEvents,
     consumeRemotePatch,
     emitWorkflowChange,
     emitCursorMove,
     emitNodeFocus,
+    emitHistoryEvent,
     user: localUserRef.current,
   };
 };
