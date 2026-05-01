@@ -49,7 +49,7 @@ export const AuthProvider = ({ children }) => {
       setUser(data?.data?.user || null);
     } catch (error) {
       console.error("Failed to load profile", error);
-      persistTokens(null, refreshToken);
+      persistTokens(null, null);
       setUser(null);
     } finally {
       setIsBootstrapping(false);
