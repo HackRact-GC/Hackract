@@ -49,7 +49,7 @@ export const getMe = asyncHandler(async (req, res) => {
  */
 export const logout = asyncHandler(async (req, res) => {
     const { refreshToken } = req.body || {};
-    await authService.logout(refreshToken);
+    await authService.logout(refreshToken, req.user?.id);
     ApiResponse.success(res, null, 'Logged out from local session');
 });
 
@@ -79,6 +79,15 @@ export const verifyEmail = asyncHandler(async (req, res) => {
     const payload = req.validatedBody || req.body;
     const result = await authService.verifyEmail(payload.token, payload.email);
     ApiResponse.success(res, result, result.message || 'Email verified successfully');
+});
+
+export const resendVerification = asyncHandler(async (req, res) => {
+    const payload = req.validatedBody || req.body;
+    if (!payload.email) {
+        throw new AppError('Email is required', 400);
+    }
+    const result = await authService.resendVerification(payload.email, metaFromReq(req));
+    ApiResponse.success(res, result, result.message);
 });
 
 export const forgotPassword = asyncHandler(async (req, res) => {

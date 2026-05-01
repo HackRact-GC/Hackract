@@ -202,6 +202,7 @@ const router = express.Router();
 // Route mappings
 router.post('/initiate-verification', protect, controller.initiateVerification);
 router.post('/verify-otp', protect, controller.verifyOtp);
+router.get('/status', protect, controller.getStatus);
 
 router.post('/', protect, validate(createSchema), controller.create);
 router.get('/', protect, controller.getAll);

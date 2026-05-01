@@ -44,6 +44,15 @@ const EthiopiaIDVerification = () => {
     fetchStatus();
   }, []);
 
+  useEffect(() => {
+    if (statusData?.verificationStatus === 'APPROVED' || statusData?.verificationStatus === 'VERIFIED') {
+      const timer = setTimeout(() => {
+        navigate('/hacker-profile');
+      }, 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [statusData, navigate]);
+
   const fetchStatus = async () => {
     try {
       setLoading(true);
