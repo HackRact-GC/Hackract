@@ -590,6 +590,7 @@ model WorkflowHistory {
 
   // Versioning Details
   action  String // e.g., "NODE_ADDED", "NODE_MOVED", "TEXT_CHANGED"
+  message String? // Human-readable log: "Added a Terminal node"
   details Json? // The delta/diff (what specifically changed)
 
   // Snapshot (Optional: save the full state every 10-20 changes for easy rollback)
