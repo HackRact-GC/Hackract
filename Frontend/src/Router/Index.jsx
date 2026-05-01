@@ -46,6 +46,7 @@ import OrgOnboarding from "../pages/Onboarding/OrgOnboarding.jsx";
 import ApprovalsDashboard from "../pages/Admin/ApprovalsDashboard.jsx";
 import OperatorReview from "../pages/Admin/OperatorReview.jsx";
 import OrgReview from "../pages/Admin/OrgReview.jsx";
+import SystemAdminDashboard from "../pages/Admin/SystemAdminDashboard.jsx";
 
 // Optional (only if you really have this file)
 import DashboardPreview from "../pages/DashboardPreview.jsx";
@@ -105,6 +106,10 @@ const router = createBrowserRouter([
           {
             path: "my-applications",
             element: <MyApplications />,
+          },
+          {
+            path: "admin-dashboard",
+            element: <SystemAdminDashboard />,
           },
         ],
       },
