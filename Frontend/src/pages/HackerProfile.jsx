@@ -1,7 +1,9 @@
 import { useEffect, useRef, useState } from "react";
-import { FiUser, FiCode, FiAward, FiGlobe, FiChevronRight, FiCamera, FiSave } from "react-icons/fi";
+import { useNavigate } from "react-router-dom";
+import { FiUser, FiCode, FiAward, FiGlobe, FiChevronRight, FiCamera, FiSave, FiShield, FiCheckCircle } from "react-icons/fi";
 import api from "../api/axiosConfig";
 import { useAuth } from "../context/authContext.jsx";
+import NationalIDService from "../services/nationalID.service.js";
 
 const NAV_ITEMS = [
   { key: "identity", label: "Identity", icon: FiUser },
@@ -43,6 +45,7 @@ const SectionCard = ({ title, subtitle, children }) => (
 
 const HackerProfile = () => {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const fileInputRef = useRef(null);
   const [activeNav, setActiveNav] = useState("identity");
   const [loading, setLoading] = useState(true);
@@ -51,6 +54,7 @@ const HackerProfile = () => {
   const [success, setSuccess] = useState("");
   const [logoPreview, setLogoPreview] = useState(null);
   const [isOnline, setIsOnline] = useState(() => (typeof navigator === "undefined" ? true : navigator.onLine));
+  const [isNationalIdVerified, setIsNationalIdVerified] = useState(false);
 
   const [form, setForm] = useState({
     bio: "",
@@ -71,6 +75,15 @@ const HackerProfile = () => {
         setLoading(true);
         const { data } = await api.get("/hacker-profiles/me");
         const profile = data?.data?.profile;
+
+        try {
+          const statusRes = await NationalIDService.getStatus();
+          if (statusRes && statusRes.data && statusRes.data.isVerified) {
+            setIsNationalIdVerified(true);
+          }
+        } catch (e) {
+          console.error("Failed to fetch National ID status", e);
+        }
 
         if (profile) {
           setForm({
@@ -347,6 +360,12 @@ const HackerProfile = () => {
                 <span className={`h-2.5 w-2.5 rounded-full ${isOnline ? "bg-[#00c477] shadow-[0_0_10px_rgba(0,255,136,0.8)]" : "bg-white/20"}`} />
                 <span className={isOnline ? "text-[#00c477]" : "text-white/30"}>{isOnline ? "Online" : "Offline"}</span>
               </div>
+              {isNationalIdVerified && (
+                <div className="mt-4 flex items-center justify-center gap-2 py-2 px-3 bg-[#00c477]/10 border border-[#00c477]/20 rounded-lg shadow-[0_0_15px_rgba(0,196,119,0.15)]">
+                  <FiCheckCircle className="text-[#00c477] text-sm" />
+                  <span className="text-[10px] font-black text-[#00c477] tracking-widest uppercase font-mono">National ID Verified</span>
+                </div>
+              )}
             </div>
 
             <nav className="space-y-2">
@@ -367,6 +386,16 @@ const HackerProfile = () => {
                   </button>
                 );
               })}
+
+              <div className="pt-4 mt-4 border-t border-white/10">
+                <button
+                  onClick={() => navigate('/national-id-verification')}
+                  className="w-full text-left px-4 py-3.5 rounded-xl border transition-all flex items-center gap-3 text-sm font-semibold bg-[#00c477]/10 border-[#00c477]/30 text-[#00c477] hover:bg-[#00c477]/20 shadow-[0_0_15px_rgba(0,196,119,0.1)]"
+                >
+                  <FiShield />
+                  National ID Verification
+                </button>
+              </div>
             </nav>
           </aside>
 

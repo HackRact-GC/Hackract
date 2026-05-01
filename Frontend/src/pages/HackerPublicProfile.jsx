@@ -428,6 +428,11 @@ const HackerPublicProfile = () => {
                   <FiShield className="text-xs" />
                   {hacker.rank}
                 </div>
+                {/* National ID Badge */}
+                <div className="flex items-center gap-1.5 px-3 py-1 rounded-full border border-[#00c477]/30 bg-[#00c477]/10 text-[#00c477] text-[10px] font-black font-mono uppercase tracking-widest shadow-[0_0_10px_rgba(0,196,119,0.2)]">
+                  <FiCheckCircle className="text-xs" />
+                  National ID Verified
+                </div>
               </div>
             </div>
           </div>
