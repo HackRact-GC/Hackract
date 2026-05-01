@@ -4,6 +4,7 @@ import { connectDatabase } from "./src/database/sqlConnection.js";
 import { Server } from "socket.io";
 
 const PORT = process.env.PORT || 3000;
+const HOST = process.env.HOST || "127.0.0.1";
 
 const startServer = async () => {
   await connectDatabase();
@@ -102,9 +103,9 @@ const startServer = async () => {
     });
   });
 
-  server.listen(PORT, () => {
-    console.log(`🚀 HackRact Server running on http://localhost:${PORT}`);
-    console.log(`📘 Swagger Docs at http://localhost:${PORT}/api-docs`);
+  server.listen(PORT, HOST, () => {
+    console.log(`🚀 HackRact Server running on http://${HOST}:${PORT}`);
+    console.log(`📘 Swagger Docs at http://${HOST}:${PORT}/api-docs`);
   });
 };
 
