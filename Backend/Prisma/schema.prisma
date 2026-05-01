@@ -99,12 +99,6 @@ model User {
   refreshTokens           RefreshToken[]
   workflowHistories       WorkflowHistory[]
   findingComments         FindingComment[]
-  transactions            Transaction[]
-  reviewsCreated          Review[]                 @relation("ReviewAuthor")
-  reviewsReceived         Review[]                 @relation("ReviewSubject")
-  wallet                  Wallet?
-
-  // Reviews
   reviewsGiven            Review[]                 @relation("ReviewAuthor")
   reviewsReceived         Review[]                 @relation("ReviewSubject")
 
