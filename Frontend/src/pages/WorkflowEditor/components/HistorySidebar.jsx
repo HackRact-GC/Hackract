@@ -16,12 +16,55 @@ const BADGE_COLORS = {
   GRAPH_CHANGED: '#ffffff',
 };
 
+const MOCK_HISTORY = [
+  {
+    id: 'mock-1',
+    action: 'ADD_NODE',
+    message: 'Added a Terminal node',
+    createdAt: new Date(Date.now() - 2 * 60000).toISOString(),
+    user: { fullName: 'ZerodayX', id: 'user-1' },
+    details: { nodesCount: 1, edgesCount: 0 }
+  },
+  {
+    id: 'mock-2',
+    action: 'CONNECT_NODES',
+    message: 'Connected two nodes',
+    createdAt: new Date(Date.now() - 5 * 60000).toISOString(),
+    user: { fullName: 'ZerodayX', id: 'user-1' },
+    details: { nodesCount: 2, edgesCount: 1 }
+  },
+  {
+    id: 'mock-3',
+    action: 'DELETE_NODE',
+    message: 'Deleted a Note node',
+    createdAt: new Date(Date.now() - 12 * 60000).toISOString(),
+    user: { fullName: 'Alice', id: 'user-2' },
+    details: { nodesCount: 1, edgesCount: 0 }
+  },
+  {
+    id: 'mock-4',
+    action: 'AGENT_RAN',
+    message: 'Ran the "Recon Scan" agent',
+    createdAt: new Date(Date.now() - 60 * 60000).toISOString(),
+    user: { fullName: 'ZerodayX', id: 'user-1' },
+    details: { nodesCount: 2, edgesCount: 1 }
+  },
+  {
+    id: 'mock-5',
+    action: 'LINK_FINDING',
+    message: 'Linked CVE-2024-1234 to Exploit',
+    createdAt: new Date(Date.now() - 24 * 60 * 60000).toISOString(),
+    user: { fullName: 'Alice', id: 'user-2' },
+    details: { nodesCount: 2, edgesCount: 1 }
+  }
+];
+
 const HistorySidebar = ({ workflowId, isOpen, onClose, liveEvents = [], localUser }) => {
   const [dbHistory, setDbHistory] = useState([]);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    if (isOpen && workflowId) {
+    if (isOpen) {
       loadHistory();
     }
   }, [isOpen, workflowId]);
@@ -29,11 +72,17 @@ const HistorySidebar = ({ workflowId, isOpen, onClose, liveEvents = [], localUse
   const loadHistory = async () => {
     setLoading(true);
     try {
-      const data = await workflowService.getWorkflowHistory(workflowId);
-      setDbHistory(data || []);
+      // Mock data bypass:
+      // const data = await workflowService.getWorkflowHistory(workflowId);
+      // setDbHistory(data || []);
+      
+      // Simulating network delay
+      setTimeout(() => {
+        setDbHistory(MOCK_HISTORY);
+        setLoading(false);
+      }, 500);
     } catch (err) {
       console.error("Failed to load history", err);
-    } finally {
       setLoading(false);
     }
   };
