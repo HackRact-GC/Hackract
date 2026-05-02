@@ -42,3 +42,9 @@ export const avatarBg = (id = '') =>
 export const isImageMime = (m) => m?.startsWith('image/');
 export const isVideoMime = (m) => m?.startsWith('video/');
 export const isAudioMime = (m) => m?.startsWith('audio/');
+
+// Detect org vs hacker from the user object returned by /auth/local/me
+// accountType is NOT in the response; roles array is (ORG_ADMIN = org, PENTESTER = hacker)
+export const isOrgUser = (u) =>
+  u?.roles?.some((r) => r.name === 'ORG_ADMIN') ||
+  (Array.isArray(u?.organizations) && u.organizations.length > 0);

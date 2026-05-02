@@ -3,8 +3,10 @@ import { motion, AnimatePresence } from 'framer-motion';
 import Avatar from './Avatar';
 import ConversationItem from './ConversationItem';
 import * as chatApi from '../../api/chatApi';
+import { isOrgUser } from './ChatHelpers';
 
 export default function ChatSidebar({ user, conversations, active, presenceMap, connected, onSelect, loadingConvs, onInvitationSent }) {
+  const isOrg = isOrgUser(user);
   const [sideSearch, setSideSearch] = useState('');
   const [showFind, setShowFind] = useState(false);
   const [findQuery, setFindQuery] = useState('');
@@ -13,23 +15,28 @@ export default function ChatSidebar({ user, conversations, active, presenceMap, 
   const [inviteTarget, setInviteTarget] = useState(null);
   const [inviteText, setInviteText] = useState('');
 
+  /* Load ALL users when panel opens; filter on type */
   useEffect(() => {
-    if (!findQuery.trim()) { setFindResults([]); return; }
+    if (!showFind) return;
+    const delay = findQuery.trim() ? 300 : 0;
     const t = setTimeout(async () => {
       setFindLoading(true);
       try { setFindResults(await chatApi.searchUsers(findQuery)); }
       catch { setFindResults([]); }
       finally { setFindLoading(false); }
-    }, 300);
+    }, delay);
     return () => clearTimeout(t);
-  }, [findQuery]);
+  }, [findQuery, showFind]);
 
+  /* Start a direct conversation and send the first message as invitation text */
   const sendInvitation = async () => {
     if (!inviteTarget || !inviteText.trim()) return;
     try {
-      const result = await chatApi.sendInvitation(inviteTarget.id, inviteText.trim());
+      const conv = await chatApi.startDirectConversation(inviteTarget.id);
+      await chatApi.sendMessage(conv.id, { content: inviteText.trim(), type: 'TEXT' });
+      const all = await chatApi.getConversations();
       setInviteTarget(null); setInviteText(''); setShowFind(false); setFindQuery('');
-      onInvitationSent?.(result);
+      onInvitationSent?.({ conversation: conv, conversations: all });
     } catch (e) { console.error(e); }
   };
 
@@ -54,10 +61,11 @@ export default function ChatSidebar({ user, conversations, active, presenceMap, 
                 <span className="text-[10px] font-mono text-gray-600">{connected ? 'Connected' : 'Reconnecting...'}</span>
               </div>
             </div>
+            {/* Any user can search; button label changes by role */}
             <button onClick={() => setShowFind(true)}
               className="flex items-center gap-1.5 bg-[#00c477] hover:bg-[#00d485] text-[#041a0f] font-black text-[11px] px-3 py-2 rounded-xl transition-all shadow-[0_0_12px_rgba(0,196,119,0.25)] active:scale-95">
               <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" /></svg>
-              Contact
+              {isOrg ? 'Contact' : 'New Chat'}
             </button>
           </div>
           <div className="relative">
