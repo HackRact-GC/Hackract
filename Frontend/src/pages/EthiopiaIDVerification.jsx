@@ -303,35 +303,7 @@ const EthiopiaIDVerification = () => {
             )}
           </div>
 
-          <aside className="space-y-6">
-             <div className="bg-white/5 border border-white/10 rounded-3xl p-6 space-y-6">
-                <h3 className="text-xs font-mono text-gray-400 uppercase tracking-widest">Protocol Stats</h3>
-                <div className="space-y-4">
-                   <div className="flex justify-between items-center">
-                      <span className="text-xs text-gray-500">Security</span>
-                      <span className="text-[10px] bg-green-500/20 text-green-500 px-2 py-0.5 rounded font-mono">ENCRYPTED</span>
-                   </div>
-                   <div className="flex justify-between items-center">
-                      <span className="text-xs text-gray-500">OTP Expiry</span>
-                      <span className="text-xs font-mono">10:00m</span>
-                   </div>
-                   <div className="flex justify-between items-center">
-                      <span className="text-xs text-gray-500">Registry</span>
-                      <span className="text-[10px] bg-blue-500/20 text-blue-500 px-2 py-0.5 rounded font-mono">LIVE_SYNC</span>
-                   </div>
-                </div>
-             </div>
-
-             <div className="bg-gradient-to-br from-red-500/10 to-transparent border border-red-500/10 rounded-3xl p-6 space-y-4">
-                <p className="text-[10px] text-red-500/80 font-mono">INTERNAL_DEVELOPER_PANEL</p>
-                <button 
-                  onClick={handleSeedRegistry}
-                  className="w-full py-2 bg-red-500/10 hover:bg-red-500/20 border border-red-500/20 rounded-xl text-[10px] font-bold transition-all"
-                >
-                  SEED_TEST_REGISTRY
-                </button>
-             </div>
-          </aside>
+          
         </div>
       </div>
       

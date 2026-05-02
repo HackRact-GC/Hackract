@@ -14,6 +14,7 @@ import {
   FiMenu,
   FiX,
   FiLogOut,
+  FiShield,
 } from 'react-icons/fi';
 
 const HackerLayout = () => {
@@ -38,6 +39,10 @@ const HackerLayout = () => {
     { icon: FiFileText,      label: 'Reports',     route: '/my-applications' },
     { icon: FiSettings,      label: 'Settings',    route: '/hacker-profile' },
   ];
+
+  if (user?.role === 'PROJECT_ADMIN') {
+    navItems.push({ icon: FiShield, label: 'Manage', route: '/admin-dashboard' });
+  }
 
   const isActive = (route) => {
     if (route === '/hacker-dashboard') return location.pathname === '/hacker-dashboard';

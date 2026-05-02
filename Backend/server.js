@@ -7,6 +7,7 @@ import prisma from "./src/database/prismaClient.js";
 import { upsertUserPresence } from "./src/modules/Chat/chat.repository.js";
 
 const PORT = process.env.PORT || 3000;
+const HOST = process.env.HOST || "127.0.0.1";
 
 // Decode socket token and return user id, or null
 const decodeSocketUser = (socket) => {
@@ -99,6 +100,7 @@ const startServer = async () => {
       socket.to(data.workflowId).emit("node-focused", { ...data, socketId: socket.id });
     });
 
+
     const handleWorkflowLeave = (workflowId) => {
       if (workflowUsers[workflowId]) {
         delete workflowUsers[workflowId][socket.id];
@@ -112,6 +114,11 @@ const startServer = async () => {
 
     socket.on("leave-workflow", (workflowId) => {
       handleWorkflowLeave(workflowId);
+    });
+
+    // Handle history relay
+    socket.on("history-event", (data) => {
+      socket.to(data.workflowId).emit("history-event", data.record);
     });
 
     // ── CHAT EVENTS ─────────────────────────────────────────────────────────
@@ -190,6 +197,7 @@ const startServer = async () => {
       }
     });
   });
+
 
   // ── Helper: broadcast a new message to all participants in a conversation ──
   // Called from chat REST API (via the io instance attached to app)
