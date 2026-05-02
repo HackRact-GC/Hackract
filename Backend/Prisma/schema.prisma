@@ -99,6 +99,10 @@ model User {
   refreshTokens           RefreshToken[]
   workflowHistories       WorkflowHistory[]
   findingComments         FindingComment[]
+  transactions            Transaction[]
+  reviewsCreated          Review[]                 @relation("ReviewAuthor")
+  reviewsReceived         Review[]                 @relation("ReviewSubject")
+  wallet                  Wallet?
   reviewsGiven            Review[]                 @relation("ReviewAuthor")
   reviewsReceived         Review[]                 @relation("ReviewSubject")
 
@@ -107,6 +111,12 @@ model User {
   reviewedHackerProfiles HackerProfile[] @relation("HackerProfileReviewedBy")
   nationalIDVerification NationalIDVerification?
 
+  // Chat
+  conversations      ConversationParticipant[]
+  sentMessages       Message[]                @relation("MessageSender")
+  presence           UserPresence?
+  sentInvitations    ChatInvitation[]         @relation("InvitationSender")
+  receivedInvitations ChatInvitation[]        @relation("InvitationReceiver")
 
   // Timestamps
   createdAt DateTime @default(now())
@@ -672,4 +682,192 @@ model NationalIDVerification {
   updatedAt        DateTime           @updatedAt
 
   @@index([verificationStatus])
+}
+
+// =====================================
+// Wallet & Transaction (stub models)
+// =====================================
+model Wallet {
+  id        String   @id @default(uuid())
+  balance   Float    @default(0)
+  currency  String   @default("USD")
+
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId String @unique
+
+  transactions Transaction[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Transaction {
+  id          String  @id @default(uuid())
+  amount      Float
+  type        String
+  description String?
+  status      String  @default("pending")
+
+  user   User   @relation(fields: [userId], references: [id])
+  userId String
+
+  wallet   Wallet? @relation(fields: [walletId], references: [id])
+  walletId String?
+
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@index([walletId])
+}
+
+// =====================================
+// CHAT SYSTEM
+// =====================================
+
+enum ConversationType {
+  DIRECT
+  GROUP
+}
+
+enum MessageType {
+  TEXT
+  IMAGE
+  FILE
+  VOICE
+  VIDEO
+  SYSTEM
+}
+
+enum InvitationStatus {
+  PENDING
+  ACCEPTED
+  DECLINED
+}
+
+model Conversation {
+  id          String           @id @default(uuid())
+  type        ConversationType @default(DIRECT)
+  name        String?
+  avatar      String?
+  createdById String?
+
+  participants ConversationParticipant[]
+  messages     Message[]
+  invitations  ChatInvitation[]
+
+  lastMessageAt      DateTime?
+  lastMessagePreview String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([type])
+  @@index([lastMessageAt])
+}
+
+model ConversationParticipant {
+  id String @id @default(uuid())
+
+  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  conversationId String
+
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId String
+
+  role        String   @default("member")
+  lastReadAt  DateTime?
+  unreadCount Int      @default(0)
+  isMuted     Boolean  @default(false)
+
+  joinedAt DateTime @default(now())
+
+  @@unique([conversationId, userId])
+  @@index([conversationId])
+  @@index([userId])
+}
+
+model Message {
+  id             String      @id @default(uuid())
+  content        String
+  type           MessageType @default(TEXT)
+
+  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  conversationId String
+
+  sender   User   @relation("MessageSender", fields: [senderId], references: [id])
+  senderId String
+
+  replyTo   Message?  @relation("MessageReplies", fields: [replyToId], references: [id])
+  replyToId String?
+  replies   Message[] @relation("MessageReplies")
+
+  fileUrl       String?
+  fileName      String?
+  fileSize      Int?
+  fileMime      String?
+  audioDuration Int?      // Duration in seconds (for voice messages)
+
+  isEdited  Boolean   @default(false)
+  deletedAt DateTime?
+
+  readBy MessageReadReceipt[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([conversationId])
+  @@index([senderId])
+  @@index([createdAt])
+}
+
+model MessageReadReceipt {
+  id String @id @default(uuid())
+
+  message   Message @relation(fields: [messageId], references: [id], onDelete: Cascade)
+  messageId String
+
+  userId String
+  readAt DateTime @default(now())
+
+  @@unique([messageId, userId])
+  @@index([messageId])
+  @@index([userId])
+}
+
+model ChatInvitation {
+  id String @id @default(uuid())
+
+  sender   User   @relation("InvitationSender", fields: [senderId], references: [id])
+  senderId String
+
+  receiver   User   @relation("InvitationReceiver", fields: [receiverId], references: [id])
+  receiverId String
+
+  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  conversationId String
+
+  message String
+  status  InvitationStatus @default(PENDING)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([senderId])
+  @@index([receiverId])
+  @@index([status])
+}
+
+model UserPresence {
+  id     String @id @default(uuid())
+
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId String @unique
+
+  isOnline   Boolean  @default(false)
+  lastSeenAt DateTime @default(now())
+  socketId   String?
+
+  updatedAt DateTime @updatedAt
+
+  @@index([isOnline])
 }
