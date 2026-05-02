@@ -42,6 +42,9 @@ import OnboardingLayout from "../layouts/OnboardingLayout.jsx";
 import HackerOnboarding from "../pages/Onboarding/HackerOnboarding.jsx";
 import OrgOnboarding from "../pages/Onboarding/OrgOnboarding.jsx";
 
+// Chat
+import Chat from "../pages/Chat.jsx";
+
 // Phase 18 Admin Imports
 import ApprovalsDashboard from "../pages/Admin/ApprovalsDashboard.jsx";
 import OperatorReview from "../pages/Admin/OperatorReview.jsx";
@@ -106,6 +109,10 @@ const router = createBrowserRouter([
             path: "my-applications",
             element: <MyApplications />,
           },
+          {
+            path: "chat",
+            element: <Chat />,
+          },
         ],
       },
       // ── Org-admin routes (no hacker sidebar) ────────────────────────
@@ -148,6 +155,10 @@ const router = createBrowserRouter([
           {
             path: "legal",
             element: <OrganizationLegal />,
+          },
+          {
+            path: "chat",
+            element: <Chat />,
           },
         ],
       },
