@@ -8,7 +8,7 @@ import {
   FiTerminal, FiArrowRight, FiZap,
   FiCheck, FiX, FiLock, FiActivity,
   FiTarget, FiClock, FiBell, FiCode, FiCpu,
-  FiChevronRight, FiFolder, FiCheckCircle
+  FiChevronRight, FiFolder, FiCheckCircle, FiTrash2
 } from "react-icons/fi";
 
 // ─── MOCK ASSIGNED PROJECTS (org-side) ───────────────────────────────────────
@@ -97,7 +97,7 @@ const RoleBadge = ({ role }) => (
 );
 
 // Personal Project Card (Hacker styling)
-const PersonalProjectCard = ({ project, onOpen, index }) => (
+const PersonalProjectCard = ({ project, onOpen, onDelete, index }) => (
   <motion.div
     initial={{ opacity: 0, scale: 0.98 }}
     animate={{ opacity: 1, scale: 1 }}
@@ -112,8 +112,22 @@ const PersonalProjectCard = ({ project, onOpen, index }) => (
           Local Lab
         </span>
       </div>
-      <div className="w-8 h-8 rounded-full bg-white/5 group-hover:bg-[#00c477]/10 flex items-center justify-center transition-colors">
-         <FiCode className="text-gray-400 group-hover:text-[#00c477]" />
+      <div className="flex items-center gap-2">
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            if (window.confirm("Are you sure you want to delete this lab? This action cannot be undone.")) {
+              onDelete(project.id);
+            }
+          }}
+          className="w-8 h-8 rounded-full bg-white/5 hover:bg-red-500/20 flex items-center justify-center transition-colors text-gray-500 hover:text-red-500"
+          title="Delete Workspace"
+        >
+          <FiTrash2 size={14} />
+        </button>
+        <div className="w-8 h-8 rounded-full bg-white/5 group-hover:bg-[#00c477]/10 flex items-center justify-center transition-colors">
+          <FiCode className="text-gray-400 group-hover:text-[#00c477]" />
+        </div>
       </div>
     </div>
 
@@ -366,6 +380,16 @@ const Projects = () => {
     navigate(`/projects/${p.id}`);
   };
 
+  const handleDeleteProject = async (projectId) => {
+    try {
+      await api.delete(`/projects/${projectId}`);
+      toast.success("Project deleted successfully");
+      setPersonalProjects(prev => prev.filter(p => p.id !== projectId));
+    } catch (err) {
+      toast.error(err?.response?.data?.error || "Deletion failed");
+    }
+  };
+
   return (
     <div className="flex flex-col h-full bg-[#050505] p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto w-full text-gray-300 font-sans space-y-6 lg:space-y-8 min-h-[calc(100vh-80px)]">
 
@@ -463,7 +487,7 @@ const Projects = () => {
             ) : personalProjects.length > 0 ? (
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5 mt-6">
                 {personalProjects.map((p, i) => (
-                  <PersonalProjectCard key={p.id} project={p} index={i} onOpen={id => navigate(`/projects/${id}`)} />
+                  <PersonalProjectCard key={p.id} project={p} index={i} onOpen={id => navigate(`/projects/${id}`)} onDelete={handleDeleteProject} />
                 ))}
               </div>
             ) : (

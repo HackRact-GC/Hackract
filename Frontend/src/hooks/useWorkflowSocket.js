@@ -163,7 +163,7 @@ export const useWorkflowSocket = (workflowId) => {
       newSocket.disconnect();
       setSocket(null);
     };
-  }, [workflowId]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [workflowId]);
 
   // ── Emit helpers ──────────────────────────────────────────────────────────
 
@@ -216,7 +216,20 @@ export const useWorkflowSocket = (workflowId) => {
   /**
    * Broadcast a history log event to peers.
    */
-  const emitHistoryEvent = useCallback((record) => {
+  const emitHistoryEvent = useCallback((record, replacesId = null) => {
+    console.log(`[HISTORY][STATE] ${replacesId ? 'Replacing' : 'Adding'} event:`, record.id);
+    setLiveHistoryEvents(prev => {
+      console.log('[HISTORY][STATE] Prev length:', prev.length);
+      if (replacesId) {
+        return prev.map(e => e.id === replacesId ? record : e);
+      }
+      // Deduplicate
+      if (prev.some(e => e.id === record.id)) return prev;
+      const next = [record, ...prev];
+      console.log('[HISTORY][STATE] New length:', next.length);
+      return next;
+    });
+
     if (!socket?.connected) return;
     socket.emit('history-event', { workflowId, record });
   }, [socket, workflowId]);
