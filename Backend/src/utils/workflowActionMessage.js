@@ -7,13 +7,15 @@ const NODE_TYPE_LABELS = {
 };
 
 export function buildActionMessage(action, details = {}) {
-  const nodeLabel = details.label || details.type
-    ? `a ${NODE_TYPE_LABELS[details.type] || details.type} node`
-    : 'a node';
+  const hasLabel = typeof details.label === 'string' && details.label.trim().length > 0;
+  const hasType = typeof details.type === 'string' && details.type.length > 0;
+
+  const nodeLabelByType = hasType ? `a ${NODE_TYPE_LABELS[details.type] || details.type} node` : 'a node';
+  const nodeLabel = hasLabel ? `"${details.label.trim()}"` : nodeLabelByType;
 
   const messages = {
-    ADD_NODE:       `Added ${nodeLabel}`,
-    DELETE_NODE:    `Deleted ${nodeLabel}`,
+    ADD_NODE:       hasLabel ? `Added node ${nodeLabel}` : `Added ${nodeLabel}`,
+    DELETE_NODE:    hasLabel ? `Deleted node ${nodeLabel}` : `Deleted ${nodeLabel}`,
     MOVE_NODE:      `Moved ${nodeLabel}`,
     UPDATE_TITLE:   `Renamed node to "${details.newTitle || 'Untitled'}"`,
     CONNECT_NODES:  `Connected two nodes`,
