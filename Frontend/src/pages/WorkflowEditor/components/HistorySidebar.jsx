@@ -16,52 +16,12 @@ const BADGE_COLORS = {
   GRAPH_CHANGED: '#ffffff',
 };
 
-const MOCK_HISTORY = [
-  {
-    id: 'mock-1',
-    action: 'ADD_NODE',
-    message: 'Added a Terminal node',
-    createdAt: new Date(Date.now() - 2 * 60000).toISOString(),
-    user: { fullName: 'ZerodayX', id: 'user-1' },
-    details: { nodesCount: 1, edgesCount: 0 }
-  },
-  {
-    id: 'mock-2',
-    action: 'CONNECT_NODES',
-    message: 'Connected two nodes',
-    createdAt: new Date(Date.now() - 5 * 60000).toISOString(),
-    user: { fullName: 'ZerodayX', id: 'user-1' },
-    details: { nodesCount: 2, edgesCount: 1 }
-  },
-  {
-    id: 'mock-3',
-    action: 'DELETE_NODE',
-    message: 'Deleted a Note node',
-    createdAt: new Date(Date.now() - 12 * 60000).toISOString(),
-    user: { fullName: 'Alice', id: 'user-2' },
-    details: { nodesCount: 1, edgesCount: 0 }
-  },
-  {
-    id: 'mock-4',
-    action: 'AGENT_RAN',
-    message: 'Ran the "Recon Scan" agent',
-    createdAt: new Date(Date.now() - 60 * 60000).toISOString(),
-    user: { fullName: 'ZerodayX', id: 'user-1' },
-    details: { nodesCount: 2, edgesCount: 1 }
-  },
-  {
-    id: 'mock-5',
-    action: 'LINK_FINDING',
-    message: 'Linked CVE-2024-1234 to Exploit',
-    createdAt: new Date(Date.now() - 24 * 60 * 60000).toISOString(),
-    user: { fullName: 'Alice', id: 'user-2' },
-    details: { nodesCount: 2, edgesCount: 1 }
-  }
-];
+
 
 const HistorySidebar = ({ workflowId, isOpen, onClose, liveEvents = [], localUser }) => {
   const [dbHistory, setDbHistory] = useState([]);
   const [loading, setLoading] = useState(false);
+  const localUserId = localUser?.id || localUser?._id;
 
   useEffect(() => {
     if (isOpen) {
@@ -72,15 +32,9 @@ const HistorySidebar = ({ workflowId, isOpen, onClose, liveEvents = [], localUse
   const loadHistory = async () => {
     setLoading(true);
     try {
-      // Mock data bypass:
-      // const data = await workflowService.getWorkflowHistory(workflowId);
-      // setDbHistory(data || []);
-      
-      // Simulating network delay
-      setTimeout(() => {
-        setDbHistory(MOCK_HISTORY);
-        setLoading(false);
-      }, 500);
+      const data = await workflowService.getWorkflowHistory(workflowId);
+      setDbHistory(data || []);
+      setLoading(false);
     } catch (err) {
       console.error("Failed to load history", err);
       setLoading(false);
@@ -154,7 +108,8 @@ const HistorySidebar = ({ workflowId, isOpen, onClose, liveEvents = [], localUse
                
                <div className="px-4 space-y-4">
                  {records.map((record, index) => {
-                   const isYou = localUser && (record.userId === localUser.id || record.user?.id === localUser.id);
+                   const recordUserId = record.userId || record.user?.id || record.user?._id;
+                   const isYou = localUserId && String(recordUserId) === String(localUserId);
                    const userName = record.user?.fullName || record.user?.name || 'Agent X';
                    const userInitials = userName.substring(0, 2).toUpperCase();
                    const badgeColor = BADGE_COLORS[record.action] || '#00ff41';
@@ -186,7 +141,7 @@ const HistorySidebar = ({ workflowId, isOpen, onClose, liveEvents = [], localUse
                              <span className="text-xs font-bold text-gray-300">
                                {isYou ? 'You' : userName}
                              </span>
-                             {isLive && <span className="text-[8px] bg-[#00ff41]/20 text-[#00ff41] px-1 rounded uppercase font-bold">New</span>}
+                             {isLive && !isYou && <span className="text-[8px] bg-[#00ff41]/20 text-[#00ff41] px-1 rounded uppercase font-bold animate-pulse">New</span>}
                            </div>
                            <div 
                              className="text-[9px] text-gray-500 font-mono cursor-help"
