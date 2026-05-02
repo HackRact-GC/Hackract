@@ -7,6 +7,7 @@ import {
   FiShoppingBag,
   FiFileText,
   FiSettings,
+  FiMessageSquare,
   FiPlus,
   FiBell,
   FiSearch,
@@ -31,11 +32,12 @@ const HackerLayout = () => {
   const userInitial = displayName[0]?.toUpperCase() || 'H';
 
   const navItems = [
-    { icon: FiGrid,       label: 'Dashboard',   route: '/hacker-dashboard' },
-    { icon: FiFolder,     label: 'Projects',    route: '/projects' },
-    { icon: FiShoppingBag,label: 'Engagements', route: '/engagements' },
-    { icon: FiFileText,   label: 'Reports',     route: '/my-applications' },
-    { icon: FiSettings,   label: 'Settings',    route: '/hacker-profile' },
+    { icon: FiGrid,          label: 'Dashboard',   route: '/hacker-dashboard' },
+    { icon: FiFolder,        label: 'Projects',    route: '/projects' },
+    { icon: FiShoppingBag,   label: 'Engagements', route: '/engagements' },
+    { icon: FiMessageSquare, label: 'Messages',    route: '/chat' },
+    { icon: FiFileText,      label: 'Reports',     route: '/my-applications' },
+    { icon: FiSettings,      label: 'Settings',    route: '/hacker-profile' },
   ];
 
   if (user?.role === 'PROJECT_ADMIN') {

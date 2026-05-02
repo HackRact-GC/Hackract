@@ -37,7 +37,26 @@ class UserRepository {
           }
         },
         userSignatures: true,
-        hackerProfile: true,
+        hackerProfile: {
+          select: {
+            id: true,
+            bio: true,
+            country: true,
+            yearsOfExperience: true,
+            primarySkills: true,
+            certifications: true,
+            portfolioLinks: true,
+            idDocumentNumber: true,
+            githubUsername: true,
+            linkedinProfile: true,
+            twitter: true,
+            status: true,
+            reviewNotes: true,
+            reviewedById: true,
+            createdAt: true,
+            updatedAt: true,
+          }
+        },
         findingsReported: true
       }
     });

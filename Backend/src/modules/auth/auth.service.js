@@ -24,7 +24,27 @@ const REFRESH_EXPIRY_MS = durationToMs(TOKEN_EXPIRY.REFRESH_TOKEN) || 7 * 24 * 6
 
 const USER_PROFILE_INCLUDE = {
     roles: true,
-    hackerProfile: true,
+    hackerProfile: {
+        select: {
+            id: true,
+            bio: true,
+            country: true,
+            yearsOfExperience: true,
+            primarySkills: true,
+            certifications: true,
+            portfolioLinks: true,
+            // Exclude `specialization` until DB is migrated to include it
+            idDocumentNumber: true,
+            githubUsername: true,
+            linkedinProfile: true,
+            twitter: true,
+            status: true,
+            reviewNotes: true,
+            reviewedById: true,
+            createdAt: true,
+            updatedAt: true,
+        },
+    },
     organizations: {
         include: { organization: true },
     },
