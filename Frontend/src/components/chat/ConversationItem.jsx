@@ -1,20 +1,22 @@
 import Avatar from './Avatar';
-import { fmtDate, getInitials } from './ChatHelpers';
+import { fmtDate, getInitials, isOrgUser } from './ChatHelpers';
 
 export default function ConversationItem({ conv, isActive, myId, presenceMap, onClick }) {
   const other = conv.participants?.find((p) => p.userId !== myId)?.user;
   const isGroup = conv.type === 'GROUP';
   const name = isGroup ? conv.name : (other?.fullName || other?.handle || 'Unknown');
-  const online = !isGroup && presenceMap[other?.id]?.isOnline;
+  // presenceMap is real-time; fall back to the presence stored on the user object from DB
+  const online = !isGroup && (presenceMap[other?.id]?.isOnline ?? other?.presence?.isOnline ?? false);
   const unread = conv.participants?.find((p) => p.userId === myId)?.unreadCount || 0;
+  const otherIsOrg = !isGroup && isOrgUser(other);
 
   return (
     <button
       onClick={() => onClick(conv)}
-      className={`w-full flex items-center gap-3 px-4 py-3.5 transition-all duration-150 text-left border-b border-white/[0.04] relative
+      className={`w-full flex items-center gap-3 px-4 py-3.5 transition-all duration-150 text-left border-b border-white/4 relative
         ${isActive
           ? 'bg-[#00c477]/[0.07] border-l-2 border-l-[#00c477]'
-          : 'hover:bg-white/[0.03] border-l-2 border-l-transparent'}`}
+          : 'hover:bg-white/3 border-l-2 border-l-transparent'}`}
     >
       {isGroup ? (
         <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#00c477]/20 to-purple-500/20 border border-white/10 flex items-center justify-center text-white font-bold text-sm shrink-0">
@@ -33,8 +35,12 @@ export default function ConversationItem({ conv, isActive, myId, presenceMap, on
         </div>
         <div className="flex items-center justify-between gap-1">
           <span className={`text-[9px] font-mono font-black uppercase tracking-wider px-1.5 py-px rounded shrink-0
-            ${isGroup ? 'bg-purple-500/10 text-purple-400' : 'bg-[#00c477]/10 text-[#00c477]'}`}>
-            {isGroup ? 'group' : 'direct'}
+            ${isGroup
+              ? 'bg-purple-500/10 text-purple-400'
+              : otherIsOrg
+                ? 'bg-blue-500/10 text-blue-400'
+                : 'bg-[#00c477]/10 text-[#00c477]'}`}>
+            {isGroup ? 'group' : otherIsOrg ? 'organization' : 'researcher'}
           </span>
           <p className="text-[11px] text-gray-600 truncate flex-1 ml-1">
             {conv.lastMessagePreview || 'No messages yet'}
