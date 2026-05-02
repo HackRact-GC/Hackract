@@ -1,5 +1,6 @@
 import React, { useEffect, useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
+import { motion, useMotionValue, useSpring, useMotionTemplate } from "framer-motion";
 
 /* ─── Google Fonts injected once ─────────────────────────────────────────── */
 if (!document.getElementById("hk-fonts")) {
@@ -223,13 +224,38 @@ const Landing = () => {
   const navigate = useNavigate();
   const [mounted, setMounted] = useState(false);
   const [scrollY, setScrollY] = useState(0);
+  const mouseX = useMotionValue(0);
+  const mouseY = useMotionValue(0);
+
+  const springConfig = { damping: 25, stiffness: 700 };
+  const mouseXSpring = useSpring(mouseX, springConfig);
+  const mouseYSpring = useSpring(mouseY, springConfig);
 
   useEffect(() => {
     setMounted(true);
     const onScroll = () => setScrollY(window.scrollY);
+
+    const handleMouseMove = (e) => {
+      mouseX.set(e.clientX);
+      mouseY.set(e.clientY);
+    };
+
     window.addEventListener("scroll", onScroll, { passive: true });
-    return () => window.removeEventListener("scroll", onScroll);
+    window.addEventListener("mousemove", handleMouseMove);
+
+    return () => {
+      window.removeEventListener("scroll", onScroll);
+      window.removeEventListener("mousemove", handleMouseMove);
+    };
   }, []);
+
+  const spotlightBg = useMotionTemplate`
+    radial-gradient(
+     450px circle at ${mouseXSpring}px ${mouseYSpring}px,
+      rgba(0, 255, 157, 0.15),
+      transparent 80%
+    )
+  `;
 
   /* shared transition */
   const fadeUp = (delay = 0) => ({
@@ -297,6 +323,17 @@ const Landing = () => {
         backgroundImage: "linear-gradient(rgba(0,255,157,0.025) 1px, transparent 1px), linear-gradient(90deg, rgba(0,255,157,0.025) 1px, transparent 1px)",
         backgroundSize: "24px 24px",
       }} />
+
+      {/* ── Mouse Spotlight ───────────────────────────────────────── */}
+      <motion.div
+        style={{
+          position: "fixed",
+          inset: 0,
+          zIndex: 0,
+          pointerEvents: "none",
+          background: spotlightBg,
+        }}
+      />
 
       {/* ── Ambient orbs ─────────────────────────────────────────── */}
       <div style={{ position: "fixed", top: "10%", left: "15%", width: 500, height: 500, borderRadius: "50%", background: "radial-gradient(circle, rgba(0,255,157,0.055) 0%, transparent 70%)", pointerEvents: "none", zIndex: 0, filter: "blur(40px)" }} />
