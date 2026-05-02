@@ -153,11 +153,14 @@ export default function Chat() {
 
   const startEdit = (msg) => { setEditing({ ...msg, _syncText: true }); };
 
-  const handleInvitationSent = async (result) => {
-    const all = await chatApi.getConversations();
-    setConversations(all);
+  const handleInvitationSent = useCallback(async (result) => {
+    if (result?.conversations) {
+      setConversations(result.conversations);
+    } else {
+      try { setConversations(await chatApi.getConversations()); } catch { /* ignore */ }
+    }
     if (result?.conversation) openConversation(result.conversation);
-  };
+  }, [openConversation]);
 
   const activeOther = active?.type === 'DIRECT' ? active.participants?.find((p) => p.userId !== user?.id)?.user : null;
   const isOtherOnline = activeOther ? (presenceMap[activeOther.id]?.isOnline ?? false) : false;
