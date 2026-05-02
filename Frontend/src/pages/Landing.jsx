@@ -33,37 +33,37 @@ const PROTOCOLS = [
   {
     icon: ["M9 17V7m0 10a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2h2a2 2 0 012 2m0 10a2 2 0 002 2h2a2 2 0 002-2M9 7a2 2 0 012-2h2a2 2 0 012 2m0 10V7"],
     label: "Visual Mind-Map",
-    desc: "Map out your entire attack path with a drag-and-drop interface. Visualize relationships, perform a High-fidelity configuration.",
+    desc: "Drag-and-drop workflow creation. Connect attack steps visually. Customize and organize testing process.",
     accent: "#00ff9d",
   },
   {
     icon: ["M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m18-6h-2m2 6h-2M7 19h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v10a2 2 0 002 2z","M9 9h6v6H9V9z"],
     label: "AI Specialist",
-    desc: "A dedicated LLM trained on the latest CVEs and zero-days to help you find hidden attack vectors and exploits on-the-fly.",
+    desc: "Gives smart recommendations. Suggests attack paths and tools. Explains vulnerabilities and next steps.",
     accent: "#00ff9d",
   },
   {
     icon: ["M13 10V3L4 14h7v7l9-11h-7z"],
     label: "Autonomous Agents",
-    desc: "Autonomous AI agents that continuously monitor, pivot, and enumerate vulnerabilities while you focus on High-level strategy.",
+    desc: "Automatically performs testing tasks. Scans and finds vulnerabilities continuously. Adapts actions based on results.",
     accent: "#00ff9d",
   },
   {
     icon: ["M8 9l3 3-3 3m5 0h3M5 20h14a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"],
     label: "Integrated Terminal",
-    desc: "A fully integrated terminal allows your security team to run exploit code, scripts, and AI-powered toolkits with precision.",
+    desc: "Run security tools directly in the platform. Execute commands and scripts. View and save outputs in real time.",
     accent: "#00ff9d",
   },
   {
     icon: ["M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"],
-    label: "Grid Collaboration",
-    desc: "Bring your red team together. Share sessions, annotate nodes, and communicate findings with no high-value interaction broken.",
+    label: "Collaboration",
+    desc: "Work with team members in real time. Share workflows, notes, and findings. Communicate inside the platform.",
     accent: "#00ff9d",
   },
   {
     icon: ["M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"],
-    label: "Black Market",
-    desc: "Source premium zero-day exploits, specialized toolkits, and elite researcher profiles in a secure, decentralized environment.",
+    label: "Hacker Marketplace",
+    desc: "Find and hire skilled hackers. Showcase hacker profiles and skills. Connect organizations with security experts.",
     accent: "#00ff9d",
   },
 ];
@@ -90,13 +90,17 @@ const FLOW_STEPS = [
 ];
 
 const HACKER_FEATURES = [
-  { label: "Bug Bounty P.", desc: "Hunt critical bugs and earn significant bounties in a competitive environment." },
-  { label: "AI_PoC", desc: "Automatically construct and validate exploit proof-of-concepts rapidly." },
+  { label: "Visual Workflow", desc: "Visual workflow for planning and executing tests" },
+  { label: "AI Guidance", desc: "AI guidance and automation for faster results" },
+  { label: "Integrated Tools", desc: "Integrated tools and terminal in one place" },
+  { label: "Collaboration", desc: "Real-time collaboration and shareable profiles" },
 ];
 
 const ORG_FEATURES = [
-  { label: "Asset Manager", desc: "Gain complete real-time visibility over your entire attack surface effortlessly." },
-  { label: "Hunter Pro Bots", desc: "Get real-time alerts on new critical vulnerabilities matching your assets." },
+  { label: "Visual Tracking", desc: "Visual tracking of testing progress" },
+  { label: "AI Insights", desc: "AI-powered insights and vulnerability explanations" },
+  { label: "Automated Testing", desc: "Automated security testing and monitoring" },
+  { label: "Hacker Management", desc: "Hire and manage skilled hackers easily" },
 ];
 
 /* ─── Terminal cursor blink component ─────────────────────────────────────── */
@@ -262,6 +266,7 @@ const Landing = () => {
         @keyframes orbitSlow { from{transform:rotate(0deg)} to{transform:rotate(360deg)} }
         @keyframes floatY { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-10px)} }
         @keyframes shimmer { 100%{transform:translateX(100%)} }
+        @keyframes hkMarquee { 0%{transform:translateX(0)} 100%{transform:translateX(-50%)} }
         .hk-nav-link { font-family:'Space Grotesk',sans-serif; font-size:12px; font-weight:500;
           letter-spacing:0.12em; text-transform:uppercase; color:rgba(200,215,200,0.7);
           text-decoration:none; transition:color 0.2s; cursor:pointer; }
@@ -270,6 +275,9 @@ const Landing = () => {
         .hk-proto-card:hover { transform:translateY(-6px);
           box-shadow:0 0 50px rgba(0,255,157,0.1), inset 0 1px 0 rgba(255,255,255,0.06), 0 30px 80px rgba(0,0,0,0.6);
           border-color:rgba(0,255,157,0.2) !important; }
+        .hk-core-marquee { overflow:hidden; mask-image:linear-gradient(90deg, transparent 0, #000 8%, #000 92%, transparent 100%); }
+        .hk-core-track { display:flex; gap:20px; width:max-content; animation:hkMarquee 26s linear infinite; }
+        .hk-core-marquee:hover .hk-core-track { animation-play-state:paused; }
         .hk-btn-primary { position:relative; overflow:hidden; cursor:pointer; transition:all 0.3s ease; }
         .hk-btn-primary:hover { transform:translateY(-2px); box-shadow:0 0 40px rgba(0,255,157,0.45) !important; }
         .hk-btn-primary::after { content:''; position:absolute; inset:0; background:linear-gradient(90deg,transparent,rgba(255,255,255,0.3),transparent);
@@ -360,18 +368,6 @@ const Landing = () => {
           HERO
       ════════════════════════════════════════════════════════════════ */}
       <section style={{ paddingTop: 160, paddingBottom: 80, textAlign: "center", position: "relative", zIndex: 1 }}>
-
-        {/* Status pill */}
-        <div style={{ ...fadeUp(0), display: "inline-flex", alignItems: "center", gap: 8, marginBottom: 36,
-          padding: "6px 16px", borderRadius: 100,
-          background: "rgba(0,255,157,0.05)",
-          border: "1px solid rgba(0,255,157,0.18)",
-          backdropFilter: "blur(12px)",
-        }}>
-          <span style={{ width: 7, height: 7, borderRadius: "50%", background: "#00ff9d", boxShadow: "0 0 8px #00ff9d", display: "inline-block", animation: "pulseGlow 2s ease-in-out infinite" }} />
-          <span style={{ fontFamily: "'Space Grotesk',sans-serif", fontSize: 10, fontWeight: 600, letterSpacing: "0.3em", textTransform: "uppercase", color: "#00ff9d" }}>Sentinel Protocols Online</span>
-        </div>
-
         {/* Main title */}
         <div style={fadeUp(80)}>
           <h1 style={{
@@ -398,8 +394,7 @@ const Landing = () => {
             lineHeight: 1.65,
             letterSpacing: "0.01em",
           }}>
-            AI-Driven Penetration Testing Made Visual,<br />
-            Intelligent, and Collaborative.
+            A <span style={{ color: '#00a2ff', fontWeight: 600 }}>unifies</span> visual workflow mapping, <span style={{ color: '#00a2ff', fontWeight: 600 }}>intelligent</span> automation, and real-time <span style={{ color: '#00a2ff', fontWeight: 600 }}>collaboration</span> into a single environment.
           </p>
 
           {/* CTAs */}
@@ -423,36 +418,28 @@ const Landing = () => {
                 <path d="M13 7l5 5-5 5M6 12h12" />
               </svg>
             </button>
-            <button
-              className="hk-btn-ghost"
-              onClick={() => document.getElementById("protocols")?.scrollIntoView({ behavior: "smooth" })}
-              style={{
-                fontFamily: "'Space Grotesk',sans-serif", fontWeight: 600,
-                fontSize: 12, letterSpacing: "0.18em", textTransform: "uppercase",
-                color: "rgba(180,200,180,0.7)",
-                background: "rgba(255,255,255,0.03)",
-                border: "1px solid rgba(255,255,255,0.1)",
-                borderRadius: 10, padding: "14px 32px",
-                backdropFilter: "blur(12px)",
-                display: "flex", alignItems: "center", gap: 8,
-              }}
-            >
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-                <rect x="2" y="3" width="20" height="14" rx="2" /><path d="M8 21h8M12 17v4" />
-              </svg>
-              View Terminal
-            </button>
           </div>
         </div>
 
         {/* Video mockup */}
-        <div style={{ ...fadeUp(200), maxWidth: 900, margin: "72px auto 0", padding: "0 24px" }}>
-          <VideoMockup />
-        </div>
+        <div
+  style={{
+    ...fadeUp(200),
+    maxWidth: 900,
+    margin: "72px auto 0",
+    padding: "0 24px",
+  }}
+>
+  <img
+    src="../../canva.png"
+    alt="Canva preview"
+    style={{ width: "100%", height: "auto", display: "block" }}
+  />
+</div>
       </section>
 
       {/* ═══════════════════════════════════════════════════════════════
-          CORE PROTOCOLS
+          Core Features
       ════════════════════════════════════════════════════════════════ */}
       <section id="protocols" style={{ position: "relative", zIndex: 1, padding: "100px 40px" }}>
         <div style={{ maxWidth: 1100, margin: "0 auto" }}>
@@ -470,43 +457,46 @@ const Landing = () => {
               color: "#eef4ee",
               lineHeight: 1.1,
             }}>
-              CORE PROTOCOLS
+              Core Features
             </h2>
           </div>
 
-          {/* 2×3 grid */}
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 18 }}>
-            {PROTOCOLS.map((p, i) => (
-              <div key={i} className="hk-proto-card" style={{
-                ...glassCard({ padding: 32, borderRadius: 18, cursor: "default" }),
-                position: "relative", overflow: "hidden",
-              }}>
-                {/* Icon */}
-                <div style={{
-                  width: 44, height: 44, borderRadius: 12, marginBottom: 22,
-                  background: "rgba(0,255,157,0.08)",
-                  border: "1px solid rgba(0,255,157,0.18)",
-                  display: "flex", alignItems: "center", justifyContent: "center",
-                  color: "#00ff9d",
-                  boxShadow: "0 0 16px rgba(0,255,157,0.1)",
+          {/* Sliding core features */}
+          <div className="hk-core-marquee">
+            <div className="hk-core-track">
+              {[...PROTOCOLS, ...PROTOCOLS].map((p, i) => (
+                <div key={`${p.label}-${i}`} className="hk-proto-card" style={{
+                  ...glassCard({ padding: 38, borderRadius: 20, cursor: "default" }),
+                  position: "relative", overflow: "hidden",
+                  minWidth: 320,
                 }}>
-                  <Icon d={p.icon} size={20} />
+                  {/* Icon */}
+                  <div style={{
+                    width: 48, height: 48, borderRadius: 12, marginBottom: 22,
+                    background: "rgba(0,255,157,0.08)",
+                    border: "1px solid rgba(0,255,157,0.18)",
+                    display: "flex", alignItems: "center", justifyContent: "center",
+                    color: "#00ff9d",
+                    boxShadow: "0 0 16px rgba(0,255,157,0.1)",
+                  }}>
+                    <Icon d={p.icon} size={22} />
+                  </div>
+                  <h3 style={{
+                    fontFamily: "'Space Grotesk',sans-serif",
+                    fontSize: 15, fontWeight: 700,
+                    letterSpacing: "0.06em", textTransform: "uppercase",
+                    color: "#d0e8d0", marginBottom: 12,
+                  }}>{p.label}</h3>
+                  <p style={{
+                    fontFamily: "'Inter',sans-serif",
+                    fontSize: 14, fontWeight: 300,
+                    color: "rgba(160,185,160,0.75)", lineHeight: 1.7,
+                  }}>{p.desc}</p>
+                  {/* Corner glow */}
+                  <div style={{ position: "absolute", bottom: -20, right: -20, width: 80, height: 80, borderRadius: "50%", background: "rgba(0,255,157,0.04)", filter: "blur(20px)", pointerEvents: "none" }} />
                 </div>
-                <h3 style={{
-                  fontFamily: "'Space Grotesk',sans-serif",
-                  fontSize: 14, fontWeight: 700,
-                  letterSpacing: "0.06em", textTransform: "uppercase",
-                  color: "#d0e8d0", marginBottom: 12,
-                }}>{p.label}</h3>
-                <p style={{
-                  fontFamily: "'Inter',sans-serif",
-                  fontSize: 12.5, fontWeight: 300,
-                  color: "rgba(160,185,160,0.75)", lineHeight: 1.7,
-                }}>{p.desc}</p>
-                {/* Corner glow */}
-                <div style={{ position: "absolute", bottom: -20, right: -20, width: 80, height: 80, borderRadius: "50%", background: "rgba(0,255,157,0.04)", filter: "blur(20px)", pointerEvents: "none" }} />
-              </div>
-            ))}
+              ))}
+            </div>
           </div>
         </div>
       </section>
@@ -537,7 +527,7 @@ const Landing = () => {
           </div>
 
           {/* 3 circles + connectors */}
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 0, flexWrap: "wrap" }}>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 0, flexWrap: "nowrap" }}>
             {FLOW_STEPS.map((step, i) => (
               <React.Fragment key={i}>
                 <div style={{ display: "flex", flexDirection: "column", alignItems: "center", maxWidth: 260, padding: "0 10px" }}>
@@ -579,7 +569,7 @@ const Landing = () => {
                   }}>{step.label}</h4>
                   <p style={{
                     fontFamily: "'Inter',sans-serif",
-                    fontSize: 12, fontWeight: 300,
+                    fontSize: 13.5, fontWeight: 300,
                     color: "rgba(150,175,150,0.7)", lineHeight: 1.7, textAlign: "center",
                   }}>{step.desc}</p>
                 </div>
@@ -638,7 +628,7 @@ const Landing = () => {
                   </div>
                   <div>
                     <p style={{ fontFamily: "'Space Grotesk',sans-serif", fontSize: 12, fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", color: "#b8d4b8", marginBottom: 4 }}>{f.label}</p>
-                    <p style={{ fontFamily: "'Inter',sans-serif", fontSize: 12.5, fontWeight: 300, color: "rgba(140,165,140,0.7)", lineHeight: 1.6 }}>{f.desc}</p>
+                    <p style={{ fontFamily: "'Inter',sans-serif", fontSize: 14, fontWeight: 300, color: "rgba(140,165,140,0.7)", lineHeight: 1.6 }}>{f.desc}</p>
                   </div>
                 </div>
               ))}
@@ -691,7 +681,7 @@ const Landing = () => {
                   </div>
                   <div>
                     <p style={{ fontFamily: "'Space Grotesk',sans-serif", fontSize: 12, fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", color: "#b8d4b8", marginBottom: 4 }}>{f.label}</p>
-                    <p style={{ fontFamily: "'Inter',sans-serif", fontSize: 12.5, fontWeight: 300, color: "rgba(140,165,140,0.7)", lineHeight: 1.6 }}>{f.desc}</p>
+                    <p style={{ fontFamily: "'Inter',sans-serif", fontSize: 14, fontWeight: 300, color: "rgba(140,165,140,0.7)", lineHeight: 1.6 }}>{f.desc}</p>
                   </div>
                 </div>
               ))}
