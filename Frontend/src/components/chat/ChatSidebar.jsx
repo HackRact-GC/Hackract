@@ -122,27 +122,54 @@ export default function ChatSidebar({ user, conversations, active, presenceMap, 
                   className="w-full bg-white/[0.04] border border-white/[0.05] rounded-xl pl-9 pr-4 py-2.5 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-[#00c477]/30 transition-all" />
               </div>
             </div>
-            <div className="flex-1 overflow-y-auto py-2">
+            <div className="flex-1 overflow-y-auto py-1">
               {findLoading ? (
-                <div className="flex justify-center py-8"><div className="w-5 h-5 border-2 border-[#00c477]/30 border-t-[#00c477] rounded-full animate-spin" /></div>
-              ) : findResults.length === 0 && findQuery.trim() ? (
-                <p className="text-center text-gray-600 text-sm py-8 font-mono">No users found</p>
-              ) : findResults.length === 0 ? (
-                <div className="flex flex-col items-center justify-center py-12 gap-3 px-6 text-center">
-                  <svg className="w-10 h-10 text-gray-700" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" /></svg>
-                  <p className="text-sm text-gray-600 font-mono">Type to search users</p>
+                <div className="flex flex-col items-center justify-center py-12 gap-2">
+                  <div className="w-5 h-5 border-2 border-[#00c477]/30 border-t-[#00c477] rounded-full animate-spin" />
+                  <p className="text-[10px] text-gray-600 font-mono">Loading users...</p>
                 </div>
-              ) : findResults.map((u) => (
-                <button key={u.id} onClick={() => setInviteTarget(u)}
-                  className={`w-full flex items-center gap-3 px-4 py-3.5 border-b border-white/[0.04] transition-all text-left
-                    ${inviteTarget?.id === u.id ? 'bg-[#00c477]/[0.07] border-l-2 border-l-[#00c477]' : 'hover:bg-white/[0.03] border-l-2 border-l-transparent'}`}>
-                  <Avatar user={u} size={42} showStatus isOnline={u.presence?.isOnline} />
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-semibold text-white truncate">{u.fullName}</p>
-                    <p className="text-[11px] text-gray-500 font-mono">@{u.handle}</p>
-                  </div>
-                </button>
-              ))}
+              ) : findResults.length === 0 ? (
+                <p className="text-center text-gray-600 text-sm py-10 font-mono">
+                  {findQuery.trim() ? 'No users found' : 'No registered users yet'}
+                </p>
+              ) : (
+                <>
+                  {findResults.some((u) => u.presence?.isOnline) && (
+                    <p className="text-[9px] font-mono font-black uppercase tracking-widest text-[#00c477]/60 px-4 pt-3 pb-1.5">
+                      ● Online — {findResults.filter((u) => u.presence?.isOnline).length} of {findResults.length}
+                    </p>
+                  )}
+                  {findResults.map((u) => {
+                    const uIsOrg = isOrgUser(u);
+                    const online = u.presence?.isOnline;
+                    return (
+                      <button key={u.id} onClick={() => setInviteTarget(u)}
+                        className={`w-full flex items-center gap-3 px-4 py-3 border-b border-white/[0.04] transition-all text-left
+                          ${inviteTarget?.id === u.id
+                            ? 'bg-[#00c477]/[0.07] border-l-2 border-l-[#00c477]'
+                            : 'hover:bg-white/[0.03] border-l-2 border-l-transparent'}`}>
+                        <Avatar user={u} size={40} showStatus isOnline={online} />
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-1.5 mb-0.5">
+                            <p className="text-sm font-semibold text-white truncate">{u.fullName || u.handle}</p>
+                            {online && <span className="w-1.5 h-1.5 rounded-full bg-[#00c477] shrink-0" />}
+                          </div>
+                          <div className="flex items-center gap-1.5">
+                            <span className={`text-[9px] font-mono font-black uppercase tracking-wider px-1.5 py-px rounded
+                              ${uIsOrg ? 'bg-blue-500/10 text-blue-400' : 'bg-[#00c477]/10 text-[#00c477]'}`}>
+                              {uIsOrg ? 'organization' : 'researcher'}
+                            </span>
+                            {u.handle && <p className="text-[11px] text-gray-600 font-mono truncate">@{u.handle}</p>}
+                          </div>
+                        </div>
+                        <span className={`text-[11px] font-semibold shrink-0 ${online ? 'text-[#00c477]' : 'text-gray-700'}`}>
+                          {online ? 'Online' : 'Offline'}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </>
+              )}
             </div>
             <AnimatePresence>
               {inviteTarget && (
