@@ -103,8 +103,6 @@ model User {
   reviewsCreated          Review[]                 @relation("ReviewAuthor")
   reviewsReceived         Review[]                 @relation("ReviewSubject")
   wallet                  Wallet?
-  reviewsGiven            Review[]                 @relation("ReviewAuthor")
-  reviewsReceived         Review[]                 @relation("ReviewSubject")
 
   // Hacker profile (for PENTESTER users)
   hackerProfile          HackerProfile?
@@ -262,10 +260,11 @@ model Pentest {
   name        String
   description String?
   status      PentestStatus @default(PLANNING)
+  isPersonal  Boolean       @default(false)
 
   // Relations
-  organization   Organization @relation(fields: [organizationId], references: [id])
-  organizationId String
+  organization   Organization? @relation(fields: [organizationId], references: [id])
+  organizationId String?
 
   leadPentester   User?   @relation("LeadPentester", fields: [leadPentesterId], references: [id])
   leadPentesterId String?
