@@ -1,5 +1,6 @@
 import React, { useEffect, useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
+import { motion, useMotionValue, useSpring, useMotionTemplate } from "framer-motion";
 
 /* ─── Google Fonts injected once ─────────────────────────────────────────── */
 if (!document.getElementById("hk-fonts")) {
@@ -223,13 +224,38 @@ const Landing = () => {
   const navigate = useNavigate();
   const [mounted, setMounted] = useState(false);
   const [scrollY, setScrollY] = useState(0);
+  const mouseX = useMotionValue(0);
+  const mouseY = useMotionValue(0);
+
+  const springConfig = { damping: 25, stiffness: 700 };
+  const mouseXSpring = useSpring(mouseX, springConfig);
+  const mouseYSpring = useSpring(mouseY, springConfig);
 
   useEffect(() => {
     setMounted(true);
     const onScroll = () => setScrollY(window.scrollY);
+
+    const handleMouseMove = (e) => {
+      mouseX.set(e.clientX);
+      mouseY.set(e.clientY);
+    };
+
     window.addEventListener("scroll", onScroll, { passive: true });
-    return () => window.removeEventListener("scroll", onScroll);
+    window.addEventListener("mousemove", handleMouseMove);
+
+    return () => {
+      window.removeEventListener("scroll", onScroll);
+      window.removeEventListener("mousemove", handleMouseMove);
+    };
   }, []);
+
+  const spotlightBg = useMotionTemplate`
+    radial-gradient(
+     450px circle at ${mouseXSpring}px ${mouseYSpring}px,
+      rgba(0, 255, 157, 0.15),
+      transparent 80%
+    )
+  `;
 
   /* shared transition */
   const fadeUp = (delay = 0) => ({
@@ -272,11 +298,11 @@ const Landing = () => {
           text-decoration:none; transition:color 0.2s; cursor:pointer; }
         .hk-nav-link:hover { color:#00ff9d; }
         .hk-proto-card { transition:transform 0.35s ease, box-shadow 0.35s ease, border-color 0.35s ease; }
-        .hk-proto-card:hover { transform:translateY(-6px);
+        .hk-proto-card:hover { transform:translateY(0px);
           box-shadow:0 0 50px rgba(0,255,157,0.1), inset 0 1px 0 rgba(255,255,255,0.06), 0 30px 80px rgba(0,0,0,0.6);
           border-color:rgba(0,255,157,0.2) !important; }
         .hk-core-marquee { overflow:hidden; mask-image:linear-gradient(90deg, transparent 0, #000 8%, #000 92%, transparent 100%); }
-        .hk-core-track { display:flex; gap:20px; width:max-content; animation:hkMarquee 26s linear infinite; }
+        .hk-core-track { display:flex; gap:20px; width:max-content; animation:hkMarquee 40s linear infinite; }
         .hk-core-marquee:hover .hk-core-track { animation-play-state:paused; }
         .hk-btn-primary { position:relative; overflow:hidden; cursor:pointer; transition:all 0.3s ease; }
         .hk-btn-primary:hover { transform:translateY(-2px); box-shadow:0 0 40px rgba(0,255,157,0.45) !important; }
@@ -297,6 +323,17 @@ const Landing = () => {
         backgroundImage: "linear-gradient(rgba(0,255,157,0.025) 1px, transparent 1px), linear-gradient(90deg, rgba(0,255,157,0.025) 1px, transparent 1px)",
         backgroundSize: "24px 24px",
       }} />
+
+      {/* ── Mouse Spotlight ───────────────────────────────────────── */}
+      <motion.div
+        style={{
+          position: "fixed",
+          inset: 0,
+          zIndex: 0,
+          pointerEvents: "none",
+          background: spotlightBg,
+        }}
+      />
 
       {/* ── Ambient orbs ─────────────────────────────────────────── */}
       <div style={{ position: "fixed", top: "10%", left: "15%", width: 500, height: 500, borderRadius: "50%", background: "radial-gradient(circle, rgba(0,255,157,0.055) 0%, transparent 70%)", pointerEvents: "none", zIndex: 0, filter: "blur(40px)" }} />
@@ -394,7 +431,7 @@ const Landing = () => {
             lineHeight: 1.65,
             letterSpacing: "0.01em",
           }}>
-            A <span style={{ color: '#00a2ff', fontWeight: 600 }}>unifies</span> visual workflow mapping, <span style={{ color: '#00a2ff', fontWeight: 600 }}>intelligent</span> automation, and real-time <span style={{ color: '#00a2ff', fontWeight: 600 }}>collaboration</span> into a single environment.
+            A <span style={{ color: '#00ff9d', fontWeight: 600 }}>unifies</span> visual workflow mapping, <span style={{ color: '#00ff9d', fontWeight: 600 }}>intelligent</span> automation, and real-time <span style={{ color: '#00ff9d', fontWeight: 600 }}>collaboration</span> into a single environment.
           </p>
 
           {/* CTAs */}
