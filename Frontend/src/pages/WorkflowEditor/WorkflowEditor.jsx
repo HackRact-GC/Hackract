@@ -1,5 +1,5 @@
 import React, { useState, useRef, useCallback, useEffect } from 'react';
-import { FiArrowLeft, FiHome, FiSave, FiClock, FiMessageSquare } from 'react-icons/fi';
+import { FiArrowLeft, FiHome, FiSave, FiClock, FiMessageSquare, FiExternalLink } from 'react-icons/fi';
 import {
   ReactFlow,
   ReactFlowProvider,
@@ -50,16 +50,21 @@ const NODE_TYPE_LABELS = {
 };
 
 const buildMessage = (action, details = {}) => {
-  const nodeLabel = details.label || details.type
-    ? `a ${NODE_TYPE_LABELS[details.type] || details.type} node`
-    : 'a node';
+  const hasLabel = typeof details.label === 'string' && details.label.trim().length > 0;
+  const hasType = typeof details.type === 'string' && details.type.length > 0;
+  const hasConnectionLabels = details.sourceLabel || details.targetLabel;
+
+  const nodeLabelByType = hasType ? `a ${NODE_TYPE_LABELS[details.type] || details.type} node` : 'a node';
+  const nodeLabel = hasLabel ? `"${details.label.trim()}"` : nodeLabelByType;
+  const sourceLabel = details.sourceLabel || details.source || 'source';
+  const targetLabel = details.targetLabel || details.target || 'target';
 
   const messages = {
-    ADD_NODE:       `Added ${nodeLabel}`,
-    DELETE_NODE:    `Deleted ${nodeLabel}`,
+    ADD_NODE:       hasLabel ? `Added node ${nodeLabel}` : `Added ${nodeLabel}`,
+    DELETE_NODE:    hasLabel ? `Deleted node ${nodeLabel}` : `Deleted ${nodeLabel}`,
     MOVE_NODE:      `Moved ${nodeLabel}`,
     UPDATE_TITLE:   `Renamed node to "${details.newTitle || 'Untitled'}"`,
-    CONNECT_NODES:  `Connected two nodes`,
+    CONNECT_NODES:  details.source && details.target ? `Connected ${hasConnectionLabels ? `"${sourceLabel}" to "${targetLabel}"` : 'two nodes'}` : `Connected two nodes`,
     DELETE_EDGE:    `Removed a connection`,
     LINK_FINDING:   `Linked finding to ${nodeLabel}`,
     GRAPH_CHANGED:  `Updated the canvas`,
@@ -102,11 +107,10 @@ const InteractiveBackground = () => {
   );
 };
 
-const WorkflowEditor = ({ workflowId: propWorkflowId, pentestId: propPentestId }) => {
+const WorkflowEditor = ({ workflowId: propWorkflowId }) => {
   const params = useParams();
   const navigate = useNavigate();
   const workflowId = propWorkflowId || params.workflowId || "mock-id-123";
-  const pentestId = propPentestId || params.pentestId;
 
   const reactFlowWrapper = useRef(null);
   const [reactFlowInstance, setReactFlowInstance] = useState(null);
@@ -265,11 +269,11 @@ const WorkflowEditor = ({ workflowId: propWorkflowId, pentestId: propPentestId }
           if (projectName && (data.name === 'Untitled Workflow' || !data.name)) {
             try {
               await workflowService.updateWorkflow(workflowId, { name: projectName });
-            } catch (_) { /* non-critical, ignore */ }
+            } catch { /* non-critical, ignore */ }
           }
 
           setProjectInfo({
-            name: projectName || null, // keep null so "Loading..." state persists if truly unknown
+            name: projectName || 'Mission Operational Workspace', 
             type: projectType
           });
         }
@@ -295,14 +299,31 @@ const WorkflowEditor = ({ workflowId: propWorkflowId, pentestId: propPentestId }
 
   // Helper to save structural changes to DB History
   const saveToDatabase = async (currentNodes, currentEdges, action = "GRAPH_CHANGED", meta = {}) => {
-    try {
-      const message = buildMessage(action, meta);
-      const details = {
-        nodesCount: currentNodes.length,
-        edgesCount: currentEdges.length,
-        ...meta
-      };
+    const tempId = `temp-${Date.now()}`;
+    const message = buildMessage(action, meta);
+    const details = {
+      nodesCount: currentNodes.length,
+      edgesCount: currentEdges.length,
+      ...meta
+    };
 
+    // 1. Optimistic Update: Emit temporary record immediately
+    const optimisticRecord = {
+      id: tempId,
+      action,
+      message,
+      details,
+      createdAt: new Date().toISOString(),
+      userId: localUser.id,
+      user: { fullName: localUser.name, id: localUser.id },
+      isOptimistic: true // marker for debug/styles
+    };
+    
+    console.log('[HISTORY][OPTIMISTIC]', optimisticRecord);
+    emitHistoryEvent(optimisticRecord);
+
+    try {
+      // 2. Persist to DB
       await workflowService.updateWorkflow(workflowId, { nodes: currentNodes, edges: currentEdges });
       const record = await workflowService.recordWorkflowHistory(workflowId, {
         action,
@@ -311,31 +332,41 @@ const WorkflowEditor = ({ workflowId: propWorkflowId, pentestId: propPentestId }
       });
 
       if (record) {
-        // Inject local user details for immediate real-time rendering on remote clients
+        console.log('[HISTORY][SERVER_SYNC]', record.id);
+        // We don't necessarily need to replace the optimistic record if the socket handles deduplication by ID,
+        // but since the server generated a REAL ID, we emit the real one to peers.
         const eventRecord = {
           ...record,
+          userId: record.userId || localUser.id,
           user: { fullName: localUser.name, id: localUser.id }
         };
-        emitHistoryEvent(eventRecord);
+        emitHistoryEvent(eventRecord, tempId); // Replace optimistic entry with real one
       }
 
       setLastSaved(new Date());
     } catch (err) {
-      console.error("Failed to save changes", err);
+      console.error("[HISTORY][ERROR] Failed to save changes", err);
+      toast.error("Cloud sync failed. History may be delayed.");
     }
   };
 
   // Delete Node Handler
   const deleteNode = useCallback((id) => {
     setNodes((nds) => {
+      const deletedNode = nds.find(n => n.id === id);
       const newNodes = nds.filter((node) => node.id !== id);
+      
       setEdges((eds) => {
         const newEdges = eds.filter((edge) => edge.source !== id && edge.target !== id);
 
         // Broadcast change
         setTimeout(() => {
           emitWorkflowChange(newNodes, newEdges);
-          saveToDatabase(newNodes, newEdges, "DELETE_NODE", { nodeId: id });
+          saveToDatabase(newNodes, newEdges, "DELETE_NODE", { 
+            nodeId: id, 
+            type: deletedNode?.type, 
+            label: deletedNode?.data?.label 
+          });
         }, 50);
 
         return newEdges;
@@ -363,12 +394,12 @@ const WorkflowEditor = ({ workflowId: propWorkflowId, pentestId: propPentestId }
       const newNodes = [...nds, newNode];
       setEdges((eds) => {
         emitWorkflowChange(newNodes, eds);
-        saveToDatabase(newNodes, eds, "ADD_NODE", { type });
+        saveToDatabase(newNodes, eds, "ADD_NODE", { type, label: '' });
         return eds;
       });
       return newNodes;
     });
-  }, [emitWorkflowChange, deleteNode]);
+  }, [emitWorkflowChange, deleteNode, setNodes, setEdges]);
 
   const addNodeByClick = (type) => {
     // Add to center of view
@@ -431,9 +462,19 @@ const WorkflowEditor = ({ workflowId: propWorkflowId, pentestId: propPentestId }
   const onConnect = useCallback(
     (params) => {
       const newEdges = addEdge({ ...params, animated: true, style: { stroke: '#00ff41', strokeWidth: 1.5 } }, edges);
+      const sourceNode = nodes.find(node => node.id === params.source);
+      const targetNode = nodes.find(node => node.id === params.target);
+      const sourceLabel = sourceNode?.data?.label?.trim() || NODE_TYPE_LABELS[sourceNode?.type] || params.source;
+      const targetLabel = targetNode?.data?.label?.trim() || NODE_TYPE_LABELS[targetNode?.type] || params.target;
+
       setEdges(newEdges);
       emitWorkflowChange(nodes, newEdges);
-      saveToDatabase(nodes, newEdges, "CONNECT_NODES");
+      saveToDatabase(nodes, newEdges, "CONNECT_NODES", {
+        source: params.source,
+        target: params.target,
+        sourceLabel,
+        targetLabel
+      });
     },
     [edges, nodes, setEdges, emitWorkflowChange]
   );
@@ -475,6 +516,21 @@ const WorkflowEditor = ({ workflowId: propWorkflowId, pentestId: propPentestId }
     if (dragEnded || hasRemoval) isDraggingRef.current = false;
 
     if (hasPositionChange || hasRemoval) {
+      // For removals, capture metadata BEFORE state update
+      let removalMeta = null;
+      if (hasRemoval) {
+        const removedChange = changes.find(c => c.type === 'remove');
+        const node = nodes.find(n => n.id === removedChange.id);
+        if (node) {
+          removalMeta = { 
+            nodeId: node.id, 
+            type: node.type, 
+            label: node.data?.label || node.id 
+          };
+          console.log('[HISTORY][TRACE] Capturing removal metadata:', removalMeta);
+        }
+      }
+
       // Use a micro-delay so React Flow finishes applying the change to state first
       setTimeout(() => {
         setNodes(nds => {
@@ -483,7 +539,14 @@ const WorkflowEditor = ({ workflowId: propWorkflowId, pentestId: propPentestId }
             emitWorkflowChange(nds, eds);
 
             // Only persist to DB on drag-end or deletion
-            if (dragEnded) saveToDatabase(nds, eds, 'MOVE_NODE');
+            if (dragEnded) {
+              console.log('[HISTORY][TRACE] Persisting MOVE_NODE');
+              saveToDatabase(nds, eds, 'MOVE_NODE');
+            }
+            if (hasRemoval) {
+              console.log('[HISTORY][TRACE] Persisting DELETE_NODE with meta:', removalMeta);
+              saveToDatabase(nds, eds, 'DELETE_NODE', removalMeta);
+            }
 
             return eds;
           });
@@ -491,7 +554,7 @@ const WorkflowEditor = ({ workflowId: propWorkflowId, pentestId: propPentestId }
         });
       }, 8);
     }
-  }, [onNodesChange, emitWorkflowChange, setNodes, setEdges]);
+  }, [onNodesChange, emitWorkflowChange, setNodes, setEdges, reactFlowInstance]);
 
   // Handle Edge Deletions dynamically so all peers see the disconnect
   const handleEdgesChange = useCallback((changes) => {

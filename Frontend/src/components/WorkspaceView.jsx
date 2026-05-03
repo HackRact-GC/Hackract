@@ -187,16 +187,37 @@ const WorkspaceView = ({ projectId, onBack }) => {
                   This workspace is synchronized with a real-time graph editor. Launch the board to manage nodes, assets, and collaborative logic.
                 </p>
               </div>
-              <button
-                onClick={() => {
-                  const workflowId = project.workflows?.[0]?.id;
-                  if (!workflowId) return toast.error("No workflow found for this project");
-                  window.open(`/workflows/${workflowId}`, '_blank');
-                }}
-                className="px-8 py-4 bg-[#00ff88] text-black rounded-2xl text-[10px] font-black uppercase tracking-[0.2em] shadow-lg shadow-[#00ff88]/20 active:scale-95 transition-all"
-              >
-                Open Workflow Board <FiExternalLink className="inline ml-2" />
-              </button>
+              {project.workflows?.[0] ? (
+                <button
+                  onClick={() => {
+                    const workflowId = project.workflows[0].id;
+                    window.open(`/workflows/${workflowId}`, '_blank');
+                  }}
+                  className="px-8 py-4 bg-[#00ff88] text-black rounded-2xl text-[10px] font-black uppercase tracking-[0.2em] shadow-lg shadow-[#00ff88]/20 active:scale-95 transition-all"
+                >
+                  Open Workflow Board <FiExternalLink className="inline ml-2" />
+                </button>
+              ) : (
+                <button
+                  onClick={async () => {
+                    try {
+                      const res = await api.post('/workflows', { 
+                        pentestId: projectId,
+                        name: `${project.name} — Operational Workflow`
+                      });
+                      if (res.data?.success || res.data?.id) {
+                        toast.success("Workflow board initialized!");
+                        loadProject(); // Refresh to get the new workflow ID
+                      }
+                    } catch (err) {
+                      toast.error("Failed to initialize board.");
+                    }
+                  }}
+                  className="px-8 py-4 bg-[#00ff88] text-black rounded-2xl text-[10px] font-black uppercase tracking-[0.2em] shadow-lg shadow-[#00ff88]/20 active:scale-95 transition-all"
+                >
+                  Initialize Board <FiExternalLink className="inline ml-2" />
+                </button>
+              )}
             </div>
           )}
 
