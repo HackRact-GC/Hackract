@@ -101,7 +101,13 @@ const startServer = async () => {
     });
 
 
-    const handleWorkflowLeave = (workflowId) => {
+    // Handle history relay
+    socket.on("history-event", (data) => {
+      // data: { workflowId, record: { message, action, createdAt, user } }
+      socket.to(data.workflowId).emit("history-event", data.record);
+    });
+
+    const handleLeave = (workflowId) => {
       if (workflowUsers[workflowId]) {
         delete workflowUsers[workflowId][socket.id];
         if (Object.keys(workflowUsers[workflowId]).length === 0) {
@@ -113,12 +119,7 @@ const startServer = async () => {
     };
 
     socket.on("leave-workflow", (workflowId) => {
-      handleWorkflowLeave(workflowId);
-    });
-
-    // Handle history relay
-    socket.on("history-event", (data) => {
-      socket.to(data.workflowId).emit("history-event", data.record);
+      handleLeave(workflowId);
     });
 
     // ── CHAT EVENTS ─────────────────────────────────────────────────────────
@@ -167,7 +168,7 @@ const startServer = async () => {
     socket.on("disconnecting", () => {
       for (const room of socket.rooms) {
         if (room !== socket.id && !room.startsWith("user:") && !room.startsWith("conv:")) {
-          handleWorkflowLeave(room);
+          handleLeave(room);
         }
         if (room.startsWith("conv:")) {
           const convId = room.replace("conv:", "");
