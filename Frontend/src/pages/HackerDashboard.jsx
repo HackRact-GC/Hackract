@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import api from "../api/axiosConfig";
 import { motion, AnimatePresence } from "framer-motion";
+import toast from "react-hot-toast";
 
 // ── Icons ───────────────────────────────────────────────────────────────────
 const Icons = {
@@ -21,11 +22,12 @@ const Icons = {
 };
 
 const NAV = [
-  { key: "overview", label: "Global Intel", Icon: Icons.Grid },
-  { key: "engagements", label: "Live Missions", Icon: Icons.Shield },
-  { key: "earnings", label: "Rewards & Bounty", Icon: Icons.Dollar },
-  { key: "marketplace", label: "Mission Board", Icon: Icons.ShoppingBag },
-  { key: "rankings", label: "Hall of Fame", Icon: Icons.Trophy },
+  { key: "overview",     label: "Global Intel",     Icon: Icons.Grid },
+  { key: "engagements", label: "Live Missions",     Icon: Icons.Shield },
+  { key: "earnings",    label: "Rewards & Bounty",  Icon: Icons.Dollar },
+  { key: "marketplace", label: "Mission Board",     Icon: Icons.ShoppingBag },
+  { key: "rankings",    label: "Hall of Fame",      Icon: Icons.Trophy },
+  { key: "invitations", label: "Invitations",       Icon: Icons.Bell },
 ];
 
 const StatCard = ({ label, value, trend, icon: Icon, color }) => {
@@ -79,6 +81,7 @@ const HackerDashboard = () => {
   const [activeTab, setActiveTab] = useState("overview");
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [pendingCount, setPendingCount] = useState(0);
 
   useEffect(() => {
     (async () => {
@@ -89,6 +92,17 @@ const HackerDashboard = () => {
         console.error("Profile fetch error", err);
       } finally {
         setLoading(false);
+      }
+    })();
+  }, []);
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const { data } = await api.get("/invitations/mine/count");
+        setPendingCount(data?.data?.pendingCount || 0);
+      } catch (err) {
+        // Non-critical
       }
     })();
   }, []);
@@ -228,7 +242,167 @@ const HackerDashboard = () => {
      </div>
   );
 
-  const TABS = { overview: OverviewTab, engagements: OverviewTab, earnings: OverviewTab, marketplace: MarketplaceTab, rankings: OverviewTab };
+  // ── Invitations Tab ──────────────────────────────────────────────────────────
+  const InvitationsTab = () => {
+    const [invitations, setInvitations] = useState([]);
+    const [fetchingInvites, setFetchingInvites] = useState(true);
+    const [respondingId, setRespondingId] = useState(null);
+
+    useEffect(() => {
+      (async () => {
+        try {
+          const { data } = await api.get("/invitations/mine");
+          setInvitations(data?.data || []);
+        } catch (err) {
+          console.error("Invitations fetch error", err);
+        } finally {
+          setFetchingInvites(false);
+        }
+      })();
+    }, []);
+
+    const handleRespond = async (id, status) => {
+      setRespondingId(id);
+      try {
+        await api.patch(`/invitations/${id}/respond`, { status });
+        setInvitations(prev =>
+          prev.map(inv => inv.id === id ? { ...inv, status } : inv)
+        );
+        if (status === "ACCEPTED") {
+          setPendingCount(c => Math.max(0, c - 1));
+          toast.success("Invitation accepted! You now have project access.");
+        } else {
+          setPendingCount(c => Math.max(0, c - 1));
+          toast("Invitation declined.");
+        }
+      } catch (err) {
+        const msg = err?.response?.data?.message || "Failed to respond";
+        toast.error(msg);
+      } finally {
+        setRespondingId(null);
+      }
+    };
+
+    const STATUS_STYLES = {
+      PENDING:  "text-amber-400 bg-amber-400/10 border-amber-400/30",
+      ACCEPTED: "text-[#00c477] bg-[#00c477]/10 border-[#00c477]/30",
+      REJECTED: "text-gray-500 bg-gray-500/10 border-gray-500/30",
+      REVOKED:  "text-rose-400 bg-rose-400/10 border-rose-400/30",
+      EXPIRED:  "text-gray-600 bg-gray-600/10 border-gray-600/30",
+    };
+
+    if (fetchingInvites) {
+      return (
+        <div className="space-y-4">
+          {Array.from({ length: 3 }).map((_, i) => (
+            <div key={i} className="bg-white/[0.02] rounded-[28px] border border-white/5 p-8 animate-pulse h-36" />
+          ))}
+        </div>
+      );
+    }
+
+    if (invitations.length === 0) {
+      return (
+        <div className="flex flex-col items-center justify-center py-32 gap-6 text-center">
+          <div className="w-20 h-20 rounded-full bg-white/5 border border-white/10 flex items-center justify-center text-4xl">📬</div>
+          <div>
+            <h3 className="text-white font-black text-xl mb-2 uppercase tracking-tight">No Invitations Yet</h3>
+            <p className="text-gray-500 text-sm max-w-sm font-mono">
+              When organizations invite you to their security programs, they'll appear here.
+            </p>
+          </div>
+        </div>
+      );
+    }
+
+    return (
+      <div className="space-y-5">
+        <div className="flex items-center justify-between mb-8">
+          <h2 className="text-3xl font-black text-white uppercase tracking-tight">Invitations</h2>
+          <div className="text-[10px] font-mono font-bold text-gray-500 uppercase tracking-widest">
+            {invitations.filter(i => i.status === "PENDING").length} Pending
+          </div>
+        </div>
+
+        {invitations.map((inv, i) => {
+          const org       = inv.pentest?.organization;
+          const isPending = inv.status === "PENDING";
+          const isResponding = respondingId === inv.id;
+
+          return (
+            <motion.div
+              key={inv.id}
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: i * 0.05 }}
+              className={`bg-white/[0.02] backdrop-blur-xl rounded-[28px] border p-8 transition-all ${
+                isPending ? "border-[#00c477]/20 hover:border-[#00c477]/40" : "border-white/5"
+              }`}
+            >
+              {/* Header */}
+              <div className="flex items-start justify-between gap-4 mb-4">
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 mb-1.5 flex-wrap">
+                    <span className={`text-[9px] font-black font-mono uppercase tracking-widest px-2 py-0.5 rounded border ${STATUS_STYLES[inv.status] || STATUS_STYLES.PENDING}`}>
+                      {inv.status}
+                    </span>
+                    {org && (
+                      <span className="text-[10px] text-gray-500 font-mono">{org.name}</span>
+                    )}
+                  </div>
+                  <h3 className="text-lg font-black text-white tracking-tight truncate">
+                    {inv.pentest?.name || "Unknown Project"}
+                  </h3>
+                  {inv.pentest?.status && (
+                    <p className="text-[10px] text-gray-600 font-mono mt-0.5 uppercase tracking-widest">
+                      Phase: {inv.pentest.status}
+                    </p>
+                  )}
+                </div>
+              </div>
+
+              {/* Message */}
+              {inv.message && (
+                <div className="bg-black/30 border border-white/5 rounded-xl px-4 py-3 mb-5">
+                  <p className="text-sm text-gray-400 italic leading-relaxed">"{inv.message}"</p>
+                </div>
+              )}
+
+              {/* Footer */}
+              <div className="flex items-center justify-between gap-4 flex-wrap">
+                <span className="text-[10px] text-gray-600 font-mono">
+                  Received: {new Date(inv.createdAt).toLocaleDateString()}
+                  {inv.expiresAt && ` · Expires: ${new Date(inv.expiresAt).toLocaleDateString()}`}
+                </span>
+
+                {isPending && (
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => handleRespond(inv.id, "REJECTED")}
+                      disabled={isResponding}
+                      className="px-5 py-2 rounded-xl border border-white/10 text-gray-400 text-sm font-bold hover:bg-rose-500/10 hover:text-rose-400 hover:border-rose-400/30 transition-all disabled:opacity-40"
+                    >
+                      Decline
+                    </button>
+                    <button
+                      onClick={() => handleRespond(inv.id, "ACCEPTED")}
+                      disabled={isResponding}
+                      className="px-5 py-2 rounded-xl bg-[#00c477] text-black text-sm font-extrabold hover:bg-[#009a5e] transition-all shadow-[0_0_15px_rgba(0,255,136,0.2)] disabled:opacity-40 flex items-center gap-1.5"
+                    >
+                      {isResponding ? "..." : "Accept"}
+                    </button>
+                  </div>
+                )}
+              </div>
+            </motion.div>
+          );
+        })}
+      </div>
+    );
+  };
+
+  const TABS = { overview: OverviewTab, engagements: OverviewTab, earnings: OverviewTab, marketplace: MarketplaceTab, rankings: OverviewTab, invitations: InvitationsTab };
+
   const ActiveContent = TABS[activeTab] || OverviewTab;
 
   return (
@@ -284,6 +458,11 @@ const HackerDashboard = () => {
              >
                <span className={activeTab === item.key ? "text-[#00c477] drop-shadow-[0_0_8px_rgba(0,255,136,0.6)]" : "text-gray-600 group-hover:text-gray-400"}><item.Icon /></span>
                {item.label}
+               {item.key === 'invitations' && pendingCount > 0 && activeTab !== 'invitations' && (
+                 <span className="ml-auto flex items-center justify-center w-5 h-5 rounded-full bg-rose-500 text-white text-[9px] font-black shadow-[0_0_8px_rgba(239,68,68,0.6)]">
+                   {pendingCount > 9 ? '9+' : pendingCount}
+                 </span>
+               )}
                {activeTab === item.key && (
                  <>
                    <div className="ml-auto flex h-1.5 w-1.5 rounded-full bg-[#00c477] shadow-[0_0_10px_#00c477] animate-pulse" />
