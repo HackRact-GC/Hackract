@@ -18,6 +18,7 @@ import HackerProfileRouter from "./modules/HackerProfile/hackerProfile.routes.js
 import ProjectRouter from "./modules/Project/project.routes.js";
 import NationalIDRouter from "./modules/NationalID_Verification/nationalID.routes.js";
 import ChatRouter from "./modules/Chat/chat.routes.js";
+import InvitationRouter from "./modules/ProjectInvitation/invitation.routes.js";
 
 
 const router = express.Router();
@@ -41,6 +42,7 @@ router.use("/hacker-profiles", HackerProfileRouter);
 router.use("/projects", ProjectRouter);
 router.use("/national-id", NationalIDRouter);
 router.use("/chat", ChatRouter);
+router.use("/invitations", InvitationRouter);
 
 
 export default router;

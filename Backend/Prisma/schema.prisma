@@ -116,6 +116,10 @@ model User {
   sentInvitations    ChatInvitation[]         @relation("InvitationSender")
   receivedInvitations ChatInvitation[]        @relation("InvitationReceiver")
 
+  // Project Invitations
+  sentProjectInvitations     ProjectInvitation[] @relation("ProjectInvitationSender")
+  receivedProjectInvitations ProjectInvitation[] @relation("ProjectInvitationReceiver")
+
   // Timestamps
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -269,11 +273,12 @@ model Pentest {
   leadPentester   User?   @relation("LeadPentester", fields: [leadPentesterId], references: [id])
   leadPentesterId String?
 
-  collaborators PentestCollaborator[]
-  findings      Finding[]
-  aiAgents      AiAgent[]             @relation("PentestAiAgent")
-  auditLogs     AuditLog[] // Added opposite relation
-  workflows     Workflow[]
+  collaborators       PentestCollaborator[]
+  findings            Finding[]
+  aiAgents            AiAgent[]             @relation("PentestAiAgent")
+  auditLogs           AuditLog[] // Added opposite relation
+  workflows           Workflow[]
+  projectInvitations  ProjectInvitation[]
 
   // Timestamps
   createdAt DateTime @default(now())
@@ -743,6 +748,14 @@ enum InvitationStatus {
   DECLINED
 }
 
+enum ProjectInvitationStatus {
+  PENDING
+  ACCEPTED
+  REJECTED
+  REVOKED
+  EXPIRED
+}
+
 model Conversation {
   id          String           @id @default(uuid())
   type        ConversationType @default(DIRECT)
@@ -870,3 +883,36 @@ model UserPresence {
 
   @@index([isOnline])
 }
+
+// =====================================
+// PROJECT INVITATION
+// =====================================
+model ProjectInvitation {
+  id      String                  @id @default(uuid())
+  status  ProjectInvitationStatus @default(PENDING)
+  message String?
+
+  // Relations
+  pentest   Pentest @relation(fields: [pentestId], references: [id], onDelete: Cascade)
+  pentestId String
+
+  hacker   User   @relation("ProjectInvitationReceiver", fields: [hackerId], references: [id])
+  hackerId String
+
+  invitedBy   User   @relation("ProjectInvitationSender", fields: [invitedById], references: [id])
+  invitedById String
+
+  // Lifecycle
+  expiresAt   DateTime?
+  respondedAt DateTime?
+
+  // Timestamps
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([pentestId])
+  @@index([hackerId])
+  @@index([invitedById])
+  @@index([status])
+}
+
