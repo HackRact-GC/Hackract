@@ -19,6 +19,7 @@ import ErrorPage from "../pages/ErrorPage.jsx";
 import Projects from "../pages/Projects.jsx";
 import ProjectWorkspace from "../pages/ProjectWorkspace.jsx";
 import FindingDetails from "../pages/FindingDetails.jsx";
+import VulnerabilityFindings from "../pages/vulnerabilityFinding.jsx";
 import HackerLayout from "../layouts/HackerLayout.jsx";
 import OrganizationLayout from "../layouts/OrganizationLayout.jsx";
 import OrganizationDashboard from "../pages/OrganizationDashboard.jsx";
@@ -91,6 +92,10 @@ const router = createBrowserRouter([
             element: <FindingDetails />,
           },
           {
+            path: "findings",
+            element: <VulnerabilityFindings />,
+          },
+          {
             path: "engagements",
             element: <EngagementBoard />,
           },
@@ -112,6 +117,10 @@ const router = createBrowserRouter([
           {
             path: "dashboard",
             element: <OrganizationDashboard />,
+          },
+          {
+            path: "findings",
+            element: <VulnerabilityFindings />,
           },
           {
             path: "org-projects",
