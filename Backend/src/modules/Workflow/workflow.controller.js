@@ -7,9 +7,21 @@ const prisma = new PrismaClient();
 export const create = asyncHandler(async (req, res) => {
   const { name, pentestId, nodes, edges } = req.body;
 
+  // Use the provided name, or auto-derive from the parent project/pentest name
+  let workflowName = name;
+  if (!workflowName && pentestId) {
+    try {
+      const pentest = await prisma.pentest.findUnique({
+        where: { id: pentestId },
+        select: { name: true }
+      });
+      workflowName = pentest?.name ? `${pentest.name} — Workflow` : undefined;
+    } catch (_) { /* ignore, fall through to default */ }
+  }
+
   const workflow = await prisma.workflow.create({
     data: {
-      name: name || "Untitled Workflow",
+      name: workflowName || 'Untitled Workflow',
       pentestId,
       nodes: nodes || [],
       edges: edges || []
@@ -43,7 +55,10 @@ export const get = asyncHandler(async (req, res) => {
     where: { id },
     include: {
       pentest: {
-        include: {
+        select: {
+          id: true,
+          name: true,
+          status: true,
           findings: {
             select: { id: true, title: true, severity: true, status: true }
           },

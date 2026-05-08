@@ -195,6 +195,24 @@ const buildPasswordResetContent = ({ friendlyName, resetUrl, expiresLabel, metaD
         });
 };
 
+const buildNationalIdOtpContent = ({ friendlyName, code, verifyUrl, expiresLabel, metaDetails }) => {
+        return buildEmailTemplate({
+                preheader: 'Your National ID (Fayda) verification code is inside.',
+                title: 'Verify your National ID',
+                greeting: friendlyName,
+                intro: 'You recently added or linked your National ID to your Hackract profile. Use the 6-digit code below to confirm this action and verify your identity.',
+                codeLabel: 'Fayda Verification Code',
+                code,
+                ctaLabel: 'Verify National ID',
+                ctaUrl: verifyUrl,
+                fallbackLabel: 'If the button does not work, copy and paste this link:',
+                fallbackUrl: verifyUrl,
+                expiresLabel: expiresLabel || null,
+                metaDetails,
+                securityNote: 'This code is meant strictly to verify your National ID. Never share this code with anyone.',
+        });
+};
+
 const getSmtpTransport = () => {
     const requiredVars = ['SMTP_HOST', 'SMTP_PORT', 'SMTP_USER', 'SMTP_PASS'];
     const missing = requiredVars.filter((key) => !process.env[key]);
@@ -264,11 +282,11 @@ export const sendVerificationEmail = async ({ to, name, verifyUrl, code, expires
         return;
     } catch (error) {
         console.error('SMTP error', error);
+        const reason = error?.message || 'Unknown SMTP error';
         throw new AppError(
-            'We could not send the verification email. Please try again later.',
+            `Email delivery failed: ${reason}. Please check your SMTP configuration.`,
             500,
-            AuthErrorCodes.EMAIL_DELIVERY_FAILED,
-            error?.message ? { reason: error.message } : null
+            AuthErrorCodes.EMAIL_DELIVERY_FAILED
         );
     }
 };
@@ -296,11 +314,67 @@ export const sendPasswordResetEmail = async ({ to, name, resetUrl, expiresAt, ip
         return;
     } catch (error) {
         console.error('SMTP error', error);
+        const reason = error?.message || 'Unknown SMTP error';
         throw new AppError(
-            'We could not send the reset email. Please try again later.',
+            `Email delivery failed: ${reason}. Please check your SMTP configuration.`,
             500,
-            AuthErrorCodes.EMAIL_DELIVERY_FAILED,
-            error?.message ? { reason: error.message } : null
+            AuthErrorCodes.EMAIL_DELIVERY_FAILED
+        );
+    }
+};
+
+export const sendNationalIdOtpEmail = async ({ to, name, code, verifyUrl, expiresAt, ipAddress, userAgent }) => {
+    const { transporter, from } = getSmtpTransport();
+
+    const friendlyName = name || 'Citizen';
+    const expiresLabel = expiresAt ? dayjs(expiresAt).format('MMM D, YYYY h:mm A Z') : null;
+    const metaDetails = [ipAddress && `IP: ${ipAddress}`, userAgent && `Client: ${userAgent}`]
+        .filter(Boolean)
+        .join(' | ');
+
+    const { text, html } = buildNationalIdOtpContent({ friendlyName, code, verifyUrl, expiresLabel, metaDetails });
+
+    try {
+        const resolvedTo = Array.isArray(to) ? to.join(',') : to;
+        await transporter.sendMail({
+            from,
+            to: resolvedTo,
+            subject: 'Verify your National ID (Fayda)',
+            text,
+            html,
+        });
+        return;
+    } catch (error) {
+        console.error('SMTP error', error);
+        const reason = error?.message || 'Unknown SMTP error';
+        throw new AppError(
+            `Email delivery failed: ${reason}. Please check your SMTP configuration.`,
+            500,
+            AuthErrorCodes.EMAIL_DELIVERY_FAILED
+        );
+    }
+};
+
+export const sendEmail = async ({ to, subject, html, text }) => {
+    const { transporter, from } = getSmtpTransport();
+
+    try {
+        const resolvedTo = Array.isArray(to) ? to.join(',') : to;
+        await transporter.sendMail({
+            from,
+            to: resolvedTo,
+            subject,
+            text,
+            html,
+        });
+        return;
+    } catch (error) {
+        console.error('SMTP error', error);
+        const reason = error?.message || 'Unknown SMTP error';
+        throw new AppError(
+            `Email delivery failed: ${reason}. Please check your SMTP configuration.`,
+            500,
+            AuthErrorCodes.EMAIL_DELIVERY_FAILED
         );
     }
 };

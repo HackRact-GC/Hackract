@@ -75,6 +75,7 @@ router.post('/local/login', validate(loginSchema), controller.loginLocal);
 router.post('/local/refresh', validate(refreshTokenSchema), controller.refreshToken);
 
 router.post('/verify-email', validate(verifyEmailSchema), controller.verifyEmail);
+router.post('/resend-verification', controller.resendVerification);
 /**
  * @swagger
  * /api/v1/auth/forgot-password:

@@ -99,14 +99,26 @@ model User {
   refreshTokens           RefreshToken[]
   workflowHistories       WorkflowHistory[]
   findingComments         FindingComment[]
-
-  // Reviews
+  transactions            Transaction[]
+  wallet                  Wallet?
   reviewsGiven            Review[]                 @relation("ReviewAuthor")
   reviewsReceived         Review[]                 @relation("ReviewSubject")
 
   // Hacker profile (for PENTESTER users)
   hackerProfile          HackerProfile?
   reviewedHackerProfiles HackerProfile[] @relation("HackerProfileReviewedBy")
+  nationalIDVerification NationalIDVerification?
+
+  // Chat
+  conversations      ConversationParticipant[]
+  sentMessages       Message[]                @relation("MessageSender")
+  presence           UserPresence?
+  sentInvitations    ChatInvitation[]         @relation("InvitationSender")
+  receivedInvitations ChatInvitation[]        @relation("InvitationReceiver")
+
+  // Project Invitations
+  sentProjectInvitations     ProjectInvitation[] @relation("ProjectInvitationSender")
+  receivedProjectInvitations ProjectInvitation[] @relation("ProjectInvitationReceiver")
 
   // Timestamps
   createdAt DateTime @default(now())
@@ -251,20 +263,22 @@ model Pentest {
   id          String        @id @default(uuid())
   name        String
   description String?
+  isPersonal  Boolean       @default(false)
   status      PentestStatus @default(PLANNING)
 
   // Relations
-  organization   Organization @relation(fields: [organizationId], references: [id])
-  organizationId String
+  organization   Organization? @relation(fields: [organizationId], references: [id])
+  organizationId String?
 
   leadPentester   User?   @relation("LeadPentester", fields: [leadPentesterId], references: [id])
   leadPentesterId String?
 
-  collaborators PentestCollaborator[]
-  findings      Finding[]
-  aiAgents      AiAgent[]             @relation("PentestAiAgent")
-  auditLogs     AuditLog[] // Added opposite relation
-  workflows     Workflow[]
+  collaborators       PentestCollaborator[]
+  findings            Finding[]
+  aiAgents            AiAgent[]             @relation("PentestAiAgent")
+  auditLogs           AuditLog[] // Added opposite relation
+  workflows           Workflow[]
+  projectInvitations  ProjectInvitation[]
 
   // Timestamps
   createdAt DateTime @default(now())
@@ -282,7 +296,7 @@ model PentestCollaborator {
   id String @id @default(uuid())
 
   // Relations
-  pentest   Pentest @relation(fields: [pentestId], references: [id])
+  pentest   Pentest @relation(fields: [pentestId], references: [id], onDelete: Cascade)
   pentestId String
 
   user   User   @relation(fields: [userId], references: [id])
@@ -315,7 +329,7 @@ model Finding {
   proof       String?
 
   // Relations
-  pentest   Pentest @relation(fields: [pentestId], references: [id])
+  pentest   Pentest @relation(fields: [pentestId], references: [id], onDelete: Cascade)
   pentestId String
 
   reporter   User?   @relation("FindingReporter", fields: [reporterId], references: [id])
@@ -437,7 +451,7 @@ model AiAgent {
   user   User   @relation("AiAgentUser", fields: [userId], references: [id])
   userId String
 
-  pentest   Pentest? @relation("PentestAiAgent", fields: [pentestId], references: [id])
+  pentest   Pentest? @relation("PentestAiAgent", fields: [pentestId], references: [id], onDelete: Cascade)
   pentestId String?
 
   // Agent data
@@ -590,6 +604,7 @@ model WorkflowHistory {
 
   // Versioning Details
   action  String // e.g., "NODE_ADDED", "NODE_MOVED", "TEXT_CHANGED"
+  message String? // Human-readable log
   details Json? // The delta/diff (what specifically changed)
 
   // Snapshot (Optional: save the full state every 10-20 changes for easy rollback)
@@ -624,5 +639,280 @@ model Review {
 
   @@index([authorId])
   @@index([subjectId])
+}
+
+
+// =====================================
+// 21️⃣ Citizen Registry (Mock Government Data)
+// =====================================
+model Citizen {
+  id          String   @id @default(uuid())
+  firstName   String?
+  middleName  String?
+  lastName    String?
+  fan         String   @unique
+  email       String   @unique
+  createdAt   DateTime @default(now())
+
+  otpVerifications       OtpVerification[]
+  nationalIDVerification NationalIDVerification?
+}
+
+// =====================================
+// 22️⃣ OTP Verification
+// =====================================
+model OtpVerification {
+  id        String   @id @default(uuid())
+  citizen   Citizen  @relation(fields: [citizenId], references: [id], onDelete: Cascade)
+  citizenId String
+  otpHash   String
+  expiresAt DateTime
+  verified  Boolean  @default(false)
+  createdAt DateTime @default(now())
+}
+
+// =====================================
+// 23️⃣ NationalIDVerification (User Status)
+// =====================================
+model NationalIDVerification {
+  id               String             @id @default(uuid())
+  user             User               @relation(fields: [userId], references: [id])
+  userId           String             @unique
+  citizen          Citizen?           @relation(fields: [citizenId], references: [id])
+  citizenId        String?            @unique
+  verificationStatus VerificationStatus @default(DRAFT)
+  verifiedAt       DateTime?
+  createdAt        DateTime           @default(now())
+  updatedAt        DateTime           @updatedAt
+
+  @@index([verificationStatus])
+}
+
+// =====================================
+// Wallet & Transaction (stub models)
+// =====================================
+model Wallet {
+  id        String   @id @default(uuid())
+  balance   Float    @default(0)
+  currency  String   @default("USD")
+
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId String @unique
+
+  transactions Transaction[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Transaction {
+  id          String  @id @default(uuid())
+  amount      Float
+  type        String
+  description String?
+  status      String  @default("pending")
+
+  user   User   @relation(fields: [userId], references: [id])
+  userId String
+
+  wallet   Wallet? @relation(fields: [walletId], references: [id])
+  walletId String?
+
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@index([walletId])
+}
+
+// =====================================
+// CHAT SYSTEM
+// =====================================
+
+enum ConversationType {
+  DIRECT
+  GROUP
+}
+
+enum MessageType {
+  TEXT
+  IMAGE
+  FILE
+  VOICE
+  VIDEO
+  SYSTEM
+}
+
+enum InvitationStatus {
+  PENDING
+  ACCEPTED
+  DECLINED
+}
+
+enum ProjectInvitationStatus {
+  PENDING
+  ACCEPTED
+  REJECTED
+  REVOKED
+  EXPIRED
+}
+
+model Conversation {
+  id          String           @id @default(uuid())
+  type        ConversationType @default(DIRECT)
+  name        String?
+  avatar      String?
+  createdById String?
+
+  participants ConversationParticipant[]
+  messages     Message[]
+  invitations  ChatInvitation[]
+
+  lastMessageAt      DateTime?
+  lastMessagePreview String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([type])
+  @@index([lastMessageAt])
+}
+
+model ConversationParticipant {
+  id String @id @default(uuid())
+
+  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  conversationId String
+
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId String
+
+  role        String   @default("member")
+  lastReadAt  DateTime?
+  unreadCount Int      @default(0)
+  isMuted     Boolean  @default(false)
+
+  joinedAt DateTime @default(now())
+
+  @@unique([conversationId, userId])
+  @@index([conversationId])
+  @@index([userId])
+}
+
+model Message {
+  id             String      @id @default(uuid())
+  content        String
+  type           MessageType @default(TEXT)
+
+  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  conversationId String
+
+  sender   User   @relation("MessageSender", fields: [senderId], references: [id])
+  senderId String
+
+  replyTo   Message?  @relation("MessageReplies", fields: [replyToId], references: [id])
+  replyToId String?
+  replies   Message[] @relation("MessageReplies")
+
+  fileUrl       String?
+  fileName      String?
+  fileSize      Int?
+  fileMime      String?
+  audioDuration Int?      // Duration in seconds (for voice messages)
+
+  isEdited  Boolean   @default(false)
+  deletedAt DateTime?
+
+  readBy MessageReadReceipt[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([conversationId])
+  @@index([senderId])
+  @@index([createdAt])
+}
+
+model MessageReadReceipt {
+  id String @id @default(uuid())
+
+  message   Message @relation(fields: [messageId], references: [id], onDelete: Cascade)
+  messageId String
+
+  userId String
+  readAt DateTime @default(now())
+
+  @@unique([messageId, userId])
+  @@index([messageId])
+  @@index([userId])
+}
+
+model ChatInvitation {
+  id String @id @default(uuid())
+
+  sender   User   @relation("InvitationSender", fields: [senderId], references: [id])
+  senderId String
+
+  receiver   User   @relation("InvitationReceiver", fields: [receiverId], references: [id])
+  receiverId String
+
+  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  conversationId String
+
+  message String
+  status  InvitationStatus @default(PENDING)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([senderId])
+  @@index([receiverId])
+  @@index([status])
+}
+
+model UserPresence {
+  id     String @id @default(uuid())
+
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId String @unique
+
+  isOnline   Boolean  @default(false)
+  lastSeenAt DateTime @default(now())
+  socketId   String?
+
+  updatedAt DateTime @updatedAt
+
+  @@index([isOnline])
+}
+
+// =====================================
+// PROJECT INVITATION
+// =====================================
+model ProjectInvitation {
+  id      String                  @id @default(uuid())
+  status  ProjectInvitationStatus @default(PENDING)
+  message String?
+
+  // Relations
+  pentest   Pentest @relation(fields: [pentestId], references: [id], onDelete: Cascade)
+  pentestId String
+
+  hacker   User   @relation("ProjectInvitationReceiver", fields: [hackerId], references: [id])
+  hackerId String
+
+  invitedBy   User   @relation("ProjectInvitationSender", fields: [invitedById], references: [id])
+  invitedById String
+
+  // Lifecycle
+  expiresAt   DateTime?
+  respondedAt DateTime?
+
+  // Timestamps
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([pentestId])
+  @@index([hackerId])
+  @@index([invitedById])
+  @@index([status])
 }
 

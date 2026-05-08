@@ -139,6 +139,15 @@ const HackerVerification = () => {
                       placeholder="e.g. A12345678"
                       required
                     />
+                    <div className="mt-2">
+                      <button 
+                        type="button"
+                        onClick={() => navigate('/national-id-verification')}
+                        className="text-[10px] text-[#00c477] hover:underline flex items-center gap-1 font-mono uppercase"
+                      >
+                        <FiShield /> Verify with Ethiopia National ID (Fayda)
+                      </button>
+                    </div>
                   </div>
                   <div className="space-y-1">
                     <label className="text-xs text-gray-400 uppercase font-mono tracking-tighter">Country of Residence</label>
@@ -244,4 +253,3 @@ const HackerVerification = () => {
 };
 
 export default HackerVerification;
-
