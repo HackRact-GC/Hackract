@@ -36,6 +36,7 @@ export const upsertHackerProfileSchema = Joi.object({
   linkedinProfile: Joi.string().max(300).optional().allow('', null),
   twitter: Joi.string().max(100).optional().allow('', null),
   idDocumentNumber: Joi.string().max(50).optional().allow('', null),
+  fullName: Joi.string().max(100).optional().allow('', null),
 
   status: Joi.string()
     .valid(VerificationStatus.DRAFT, VerificationStatus.SUBMITTED)

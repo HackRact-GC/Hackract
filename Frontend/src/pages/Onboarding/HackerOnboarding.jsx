@@ -1,319 +1,474 @@
-import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { useAuth } from '../../context/authContext.jsx';
-import api from '../../api/axiosConfig';
-import toast from 'react-hot-toast';
-import { FiCheckCircle, FiChevronRight, FiChevronLeft, FiAlertTriangle, FiUser, FiCode, FiFileText } from 'react-icons/fi';
+import React, { useEffect, useRef, useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { FiEdit2, FiPlus, FiCheckCircle, FiShield, FiAward, FiFolder, FiTrash2, FiCamera } from "react-icons/fi";
+import api from "../../api/axiosConfig";
+import { useAuth } from "../../context/authContext.jsx";
+import toast from "react-hot-toast";
+import NationalIDService from "../../services/nationalID.service.js";
 
 const HackerOnboarding = () => {
-  const navigate = useNavigate();
+  const { user, refreshUser } = useAuth();
+  const fileInputRef = useRef(null);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
-  const [missingAgreements, setMissingAgreements] = useState([]);
-  const [signing, setSigning] = useState(false);
-  
-  const [step, setStep] = useState(1);
-  const totalSteps = 3;
+  const [isNationalIdVerified, setIsNationalIdVerified] = useState(false);
+  const navigate = useNavigate();
 
-  const [formData, setFormData] = useState({
-    idDocumentNumber: '',
-    bio: '',
-    country: '',
-    yearsOfExperience: '',
-    primarySkills: '',
-    certifications: '',
-    githubUsername: '',
-    linkedinProfile: ''
+  // Avatar / Identity
+  const [logoPreview, setLogoPreview] = useState(null);
+  const displayName = user?.fullName || user?.handle || "Digital Ghost";
+  const initials = displayName.split(" ").map(n => n[0]).join("").toUpperCase().slice(0, 2);
+
+  // Form State
+  const [form, setForm] = useState({
+    bio: "",
+    skills: "API Testing, Vulnerability Assessment, Web Application, Ethical Hacking, OWASP",
+    certifications: [],
+    education: [],
+    employment: [],
+    other: [],
   });
 
-  const fetchStatus = async () => {
-    try {
-      const { data } = await api.get('/hacker-profiles/me/status');
-      setMissingAgreements(data.data.missingAgreements || []);
-      if (data.data.profile) {
-        setFormData(prev => ({
-          ...prev,
-          idDocumentNumber: data.data.profile.idDocumentNumber || '',
-          bio: data.data.profile.bio || '',
-          country: data.data.profile.country || '',
-          yearsOfExperience: data.data.profile.yearsOfExperience || '',
-          primarySkills: data.data.profile.primarySkills?.join(', ') || '',
-          certifications: data.data.profile.certifications?.join(', ') || '',
-          githubUsername: data.data.profile.githubUsername || '',
-          linkedinProfile: data.data.profile.linkedinProfile || ''
-        }));
-      }
-    } catch (error) {
-      toast.error('Failed to load profile status');
-    } finally {
-      setLoading(false);
-    }
-  };
+  // Edit Modes
+  const [editMode, setEditMode] = useState({
+    bio: false,
+    skills: false,
+    certifications: false,
+    education: false,
+    employment: false,
+    other: false,
+  });
 
+  // New Item State for forms
+  const [newItem, setNewItem] = useState({});
+
+  // Data fetching
   useEffect(() => {
-    fetchStatus();
+    const fetchProfile = async () => {
+      try {
+        setLoading(true);
+        const { data } = await api.get("/hacker-profiles/me");
+        const profile = data?.data?.profile;
+
+        try {
+          const statusRes = await NationalIDService.getStatus();
+          if (statusRes && statusRes.data && statusRes.data.isVerified) {
+            setIsNationalIdVerified(true);
+          }
+        } catch (e) {
+          console.error("Failed to fetch National ID status", e);
+        }
+
+        if (profile) {
+          setForm((prev) => ({
+            ...prev,
+            bio: profile.bio || prev.bio,
+            skills: (profile.primarySkills || []).join(", ") || prev.skills,
+            certifications: profile.certifications?.length > 0 
+              ? profile.certifications.map(c => ({ title: c, provider: '', date: '' })) 
+              : prev.certifications,
+          }));
+
+          if (profile.avatar) {
+            setLogoPreview(profile.avatar);
+          }
+        }
+      } catch (err) {
+        console.error("Failed to fetch profile", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchProfile();
   }, []);
 
-  const handleChange = (e) => {
-    const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
+  const handleLogoChange = (event) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onloadend = () => setLogoPreview(reader.result);
+    reader.readAsDataURL(file);
   };
 
-  const handleSign = async (title) => {
-    setSigning(true);
-    try {
-      await api.post('/hacker-profiles/me/sign-agreement', { agreementTitle: title });
-      toast.success(`Successfully signed: ${title}`);
-      fetchStatus();
-    } catch (error) {
-      toast.error('Failed to sign agreement');
-    } finally {
-      setSigning(false);
-    }
+  const toggleEdit = (section) => {
+    setEditMode(prev => ({ ...prev, [section]: !prev[section] }));
+    setNewItem({});
   };
 
-  const handleSubmit = async () => {
-    // NDA is no longer required at onboarding — only when joining an org project
-    setSubmitting(true);
+  const saveProfile = async (finalStatus) => {
     try {
       const payload = {
-        ...formData,
-        primarySkills: formData.primarySkills.split(',').map(s => s.trim()).filter(Boolean),
-        certifications: formData.certifications.split(',').map(s => s.trim()).filter(Boolean),
-        status: 'SUBMITTED'
+        bio: form.bio,
+        primarySkills: form.skills.split(",").map(s => s.trim()).filter(Boolean),
+        certifications: form.certifications.map(c => c.title),
+        status: finalStatus || undefined,
       };
-
-      await api.put('/hacker-profiles/me', payload);
-      toast.success('Profile completed successfully!');
-      setTimeout(() => {
-        // Reload auth context and redirect hacker to their own dashboard
-        window.location.href = '/hacker-dashboard';
-      }, 1500);
-    } catch (error) {
-      toast.error('Submission failed. Please try again.');
-      setSubmitting(false);
+      await api.put("/hacker-profiles/me", payload);
+      if (finalStatus === 'SUBMITTED') {
+        toast.success("Profile submitted for review!");
+        if (refreshUser) await refreshUser();
+        setTimeout(() => {
+          navigate('/hacker-dashboard');
+        }, 1500);
+      } else {
+        toast.success("Progress saved.");
+      }
+    } catch (err) {
+      toast.error(err?.response?.data?.message || "Failed to save profile.");
     }
   };
 
-  const nextStep = () => {
-    if (step === 1) {
-      if (!formData.country || !formData.idDocumentNumber || !formData.bio) {
-        toast.error('Please complete all required fields in this step.');
-        return;
-      }
-    } else if (step === 2) {
-      if (!formData.yearsOfExperience) {
-        toast.error('Please input your years of experience.');
-        return;
-      }
-    }
-    setStep(prev => Math.min(prev + 1, totalSteps));
+  const handleSaveSection = async (section) => {
+    toggleEdit(section);
+    await saveProfile();
   };
 
-  const prevStep = () => setStep(prev => Math.max(prev - 1, 1));
+  const handleCompleteOnboarding = async () => {
+    if (!form.bio || form.bio.length < 10) {
+      toast.error("Please provide a description (min 10 characters).");
+      return;
+    }
+    setSubmitting(true);
+    await saveProfile('SUBMITTED');
+    setSubmitting(false);
+  };
 
   if (loading) {
     return (
-      <div className="w-full h-64 flex items-center justify-center font-mono text-[#00c477] animate-pulse">
-        [SYSTEM]: Fetching profile records...
+      <div className="w-full h-[60vh] flex flex-col items-center justify-center gap-4">
+        <div className="w-12 h-12 border-2 border-[#00c477]/20 border-t-[#00c477] rounded-full animate-spin" />
+        <div className="text-[#00c477] font-mono text-xs uppercase animate-pulse tracking-widest">Loading Dossier...</div>
       </div>
     );
   }
 
   return (
-    <div className="w-full bg-white/5 border border-white/10 rounded-2xl p-8 shadow-2xl backdrop-blur-md">
-      
-      {/* Progress Indicator */}
-      <div className="mb-8">
-        <h1 className="text-3xl font-mono font-bold mb-2">Operator Registration</h1>
-        <div className="flex items-center gap-4 text-xs font-mono uppercase tracking-widest text-gray-500 mb-6">
-            <span className={step >= 1 ? "text-[#00c477]" : ""}>1. Identity</span>
-            <FiChevronRight />
-            <span className={step >= 2 ? "text-[#00c477]" : ""}>2. Experience</span>
-            <FiChevronRight />
-            <span className={step >= 3 ? "text-[#00c477]" : ""}>3. Compliance</span>
-        </div>
+    <div className="min-h-screen bg-[#050505] text-white p-4 lg:p-8 font-sans">
+      <div className="max-w-[1200px] mx-auto space-y-6">
         
-        {/* Progress bar */}
-        <div className="h-1 w-full bg-gray-800 rounded-full overflow-hidden">
-            <div 
-                className="h-full bg-[#00c477] transition-all duration-500 ease-out" 
-                style={{ width: `${(step / totalSteps) * 100}%` }}
-            ></div>
+        {/* ONBOARDING HEADER */}
+        <div className="bg-[#0c0c0c] border border-[#00c477]/30 rounded-2xl p-6 flex flex-col md:flex-row justify-between items-center gap-4">
+          <div>
+            <h1 className="text-2xl font-bold text-[#00c477]">Complete Your Operator Profile</h1>
+            <p className="text-gray-400 text-sm">Provide your details to unlock the mission dashboard.</p>
+          </div>
+          <button 
+            onClick={handleCompleteOnboarding}
+            disabled={submitting}
+            className="px-8 py-3 bg-[#00c477] text-black font-black uppercase tracking-widest rounded-xl hover:bg-[#00ff9d] transition-all disabled:opacity-50"
+          >
+            {submitting ? "Submitting..." : "Complete Profile"}
+          </button>
         </div>
-      </div>
 
-      <div className="min-h-[400px]">
-        {/* STEP 1: IDENTITY */}
-        {step === 1 && (
-          <div className="space-y-6 animate-fadeIn">
-            <h2 className="text-xl font-semibold flex items-center gap-2 mb-6 text-gray-200">
-              <FiUser className="text-[#00c477]" /> Primary Identity
-            </h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="space-y-2">
-                    <label className="text-xs text-gray-400 uppercase font-mono tracking-tighter">ID / Passport Number *</label>
-                    <input 
-                        name="idDocumentNumber"
-                        value={formData.idDocumentNumber}
-                        onChange={handleChange}
-                        className="w-full bg-black/40 border border-white/10 rounded-lg px-4 py-2.5 focus:outline-none focus:border-[#00c477] transition-colors"
-                        placeholder="e.g. A12345678"
-                    />
+        {/* TOP PROFILE CARD */}
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center bg-[#0c0c0c] border border-white/5 rounded-2xl p-6">
+          <div className="flex items-center gap-6">
+            <div className="relative group">
+              <div className="w-24 h-24 rounded-full bg-gradient-to-br from-[#111] to-[#050505] border border-white/10 flex items-center justify-center overflow-hidden cursor-pointer" onClick={() => fileInputRef.current?.click()}>
+                {logoPreview ? (
+                  <img src={logoPreview} alt="avatar" className="w-full h-full object-cover" />
+                ) : (
+                  <span className="text-2xl font-black text-[#00c477]">{initials}</span>
+                )}
+                <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
+                  <FiCamera className="text-white" size={24} />
                 </div>
-                <div className="space-y-2">
-                    <label className="text-xs text-gray-400 uppercase font-mono tracking-tighter">Country of Residence *</label>
-                    <input 
-                        name="country"
-                        value={formData.country}
-                        onChange={handleChange}
-                        className="w-full bg-black/40 border border-white/10 rounded-lg px-4 py-2.5 focus:outline-none focus:border-[#00c477] transition-colors"
-                        placeholder="e.g. Estonia"
-                    />
-                </div>
+              </div>
+              <input ref={fileInputRef} type="file" className="hidden" accept="image/*" onChange={handleLogoChange} />
+              <div className="absolute bottom-1 right-1 w-5 h-5 bg-[#00c477] border-2 border-[#0c0c0c] rounded-full flex items-center justify-center">
+                <FiCheckCircle className="text-[#0c0c0c]" size={12} />
+              </div>
             </div>
-            <div className="space-y-2">
-                <label className="text-xs text-gray-400 uppercase font-mono tracking-tighter">Mission Profile (Bio) *</label>
-                <textarea 
-                    name="bio"
-                    value={formData.bio}
-                    onChange={handleChange}
-                    rows={4}
-                    className="w-full bg-black/40 border border-white/10 rounded-lg px-4 py-2.5 focus:outline-none focus:border-[#00c477] transition-colors resize-none"
-                    placeholder="Describe your technical expertise and background..."
-                />
-            </div>
-          </div>
-        )}
-
-        {/* STEP 2: EXPERIENCE */}
-        {step === 2 && (
-          <div className="space-y-6 animate-fadeIn">
-            <h2 className="text-xl font-semibold flex items-center gap-2 mb-6 text-gray-200">
-              <FiCode className="text-[#00c477]" /> Technical Background
-            </h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="space-y-2">
-                    <label className="text-xs text-gray-400 uppercase font-mono tracking-tighter">Years of Experience *</label>
-                    <input 
-                        name="yearsOfExperience"
-                        type="number"
-                        value={formData.yearsOfExperience}
-                        onChange={handleChange}
-                        className="w-full bg-black/40 border border-white/10 rounded-lg px-4 py-2.5 focus:outline-none focus:border-[#00c477] transition-colors"
-                        placeholder="e.g. 3"
-                    />
-                </div>
-                <div className="space-y-2">
-                    <label className="text-xs text-gray-400 uppercase font-mono tracking-tighter">GitHub Username</label>
-                    <input 
-                        name="githubUsername"
-                        value={formData.githubUsername}
-                        onChange={handleChange}
-                        className="w-full bg-black/40 border border-white/10 rounded-lg px-4 py-2.5 focus:outline-none focus:border-[#00c477] transition-colors"
-                        placeholder="e.g. defsec0"
-                    />
-                </div>
-            </div>
-            <div className="space-y-2">
-                <label className="text-xs text-gray-400 uppercase font-mono tracking-tighter">Primary Skills (Comma Separated)</label>
-                <input 
-                    name="primarySkills"
-                    value={formData.primarySkills}
-                    onChange={handleChange}
-                    className="w-full bg-black/40 border border-white/10 rounded-lg px-4 py-2.5 focus:outline-none focus:border-[#00c477] transition-colors"
-                    placeholder="Web App Sec, Reverse Engineering, Exploit Dev..."
-                />
-            </div>
-            <div className="space-y-2">
-                <label className="text-xs text-gray-400 uppercase font-mono tracking-tighter">Certifications (Comma Separated)</label>
-                <input 
-                    name="certifications"
-                    value={formData.certifications}
-                    onChange={handleChange}
-                    className="w-full bg-black/40 border border-white/10 rounded-lg px-4 py-2.5 focus:outline-none focus:border-[#00c477] transition-colors"
-                    placeholder="OSCP, CEH, CISSP..."
-                />
-            </div>
-          </div>
-        )}
-
-        {/* STEP 3: COMPLIANCE */}
-        {step === 3 && (
-          <div className="space-y-6 animate-fadeIn">
-            <h2 className="text-xl font-semibold flex items-center gap-2 mb-6 text-gray-200">
-              <FiFileText className="text-[#00c477]" /> Legal Compliance
-            </h2>
             
-            <div className="bg-sky-500/5 border border-sky-500/20 rounded-xl p-4 mb-6">
-                <div className="flex items-center gap-2 text-sky-400 text-sm font-bold mb-2">
-                  <FiFileText /> Legal Compliance Info
-                </div>
-                <p className="text-xs text-gray-400 leading-relaxed">
-                  Signing agreements is <span className="text-white font-bold">optional</span> for personal labs and practice. However, when you apply to an organization-hosted security program, the platform will require you to sign the NDA before your application is submitted.
-                </p>
+            <div>
+              <h1 className="text-2xl font-bold flex items-center gap-2">
+                {displayName} <span className="text-gray-500 text-sm font-mono">(Awaiting Verification)</span>
+              </h1>
+            </div>
+          </div>
+        </div>
+
+        {/* TWO COLUMN LAYOUT */}
+        <div className="grid grid-cols-1 lg:grid-cols-[300px_1fr] gap-6">
+          
+          {/* LEFT COLUMN */}
+          <div className="space-y-6">
+
+            {/* Verifications */}
+            <div className="bg-[#0c0c0c] border border-white/5 rounded-2xl p-6">
+              <h2 className="text-lg font-bold mb-4">Verifications</h2>
+              {isNationalIdVerified ? (
+                 <div className="flex items-center gap-2 text-sm">
+                   <FiCheckCircle className="text-[#00c477]" />
+                   <span>ID: Verified</span>
+                 </div>
+               ) : (
+                 <div className="flex items-center justify-between text-sm">
+                   <div className="flex items-center gap-2 text-gray-400">
+                     <FiShield />
+                     <span>ID: Unverified</span>
+                   </div>
+                   <button onClick={() => navigate('/national-id-verification')} className="w-8 h-8 rounded-full border border-white/20 flex items-center justify-center hover:bg-white/10 text-[#00c477]"><FiPlus size={16} /></button>
+                 </div>
+               )}
             </div>
 
-            <div className="space-y-3">
-              {['Mutual Non-Disclosure Agreement (MNDA)', 'Ethical Hacking Code of Conduct'].map(title => {
-                const isSigned = !missingAgreements.includes(title);
-                return (
-                  <div key={title} className={`p-4 rounded-xl border transition-all flex items-center justify-between ${isSigned ? 'bg-[#00c477]/5 border-[#00c477]/20' : 'bg-white/5 border-white/10'}`}>
-                    <div>
-                        <div className="text-sm font-bold leading-tight mb-1">{title}</div>
-                        <span className={`text-[10px] font-mono tracking-tighter uppercase px-2 py-0.5 rounded ${isSigned ? 'bg-[#00c477]/20 text-[#00c477]' : 'bg-gray-800 text-gray-400'}`}>
-                          {isSigned ? 'COMPLETED' : 'SIGNATURE REQUIRED'}
-                        </span>
-                    </div>
-                    <div>
-                        {isSigned ? (
-                            <FiCheckCircle className="text-[#00c477] text-2xl" />
-                        ) : (
-                            <button 
-                                onClick={() => handleSign(title)}
-                                disabled={signing}
-                                className="px-4 py-2 bg-[#00c477] hover:bg-[#00cc6e] text-black rounded-md text-[10px] font-mono font-bold uppercase tracking-widest transition-colors disabled:opacity-50"
-                            >
-                                {signing ? 'SIGNING...' : 'REVIEW & SIGN'}
-                            </button>
-                        )}
+            {/* Education */}
+            <div className="bg-[#0c0c0c] border border-white/5 rounded-2xl p-6 relative group">
+              <h2 className="text-lg font-bold mb-4">Education</h2>
+              
+              <button onClick={() => toggleEdit('education')} className="absolute top-6 right-6 w-8 h-8 rounded-full border border-[#00c477] flex items-center justify-center hover:bg-[#00c477]/10 text-[#00c477] opacity-0 group-hover:opacity-100 transition-opacity">
+                <FiPlus size={14} />
+              </button>
+
+              {editMode.education ? (
+                <div className="space-y-3 mt-4 border-b border-white/5 pb-4 mb-4">
+                  <input type="text" placeholder="School / University" value={newItem.school || ''} onChange={e => setNewItem({...newItem, school: e.target.value})} className="w-full bg-[#111] border border-[#00c477] rounded-lg p-2 text-sm focus:outline-none" />
+                  <input type="text" placeholder="Area of Study (Degree)" value={newItem.degree || ''} onChange={e => setNewItem({...newItem, degree: e.target.value})} className="w-full bg-[#111] border border-[#00c477] rounded-lg p-2 text-sm focus:outline-none" />
+                  <div className="flex gap-2">
+                    <input type="text" placeholder="From (e.g. 2018)" value={newItem.from || ''} onChange={e => setNewItem({...newItem, from: e.target.value})} className="w-1/2 bg-[#111] border border-[#00c477] rounded-lg p-2 text-sm focus:outline-none" />
+                    <input type="text" placeholder="To (e.g. 2022)" value={newItem.to || ''} onChange={e => setNewItem({...newItem, to: e.target.value})} className="w-1/2 bg-[#111] border border-[#00c477] rounded-lg p-2 text-sm focus:outline-none" />
+                  </div>
+                  <div className="flex gap-2 pt-2">
+                    <button onClick={() => {
+                      if(newItem.school || newItem.degree) {
+                        setForm({...form, education: [...form.education, { school: newItem.school, degree: newItem.degree, from: newItem.from, to: newItem.to }]});
+                      }
+                      toggleEdit('education');
+                    }} className="px-3 py-1 bg-[#00c477] text-black text-xs rounded-full font-bold">Add & Done</button>
+                    <button onClick={() => toggleEdit('education')} className="px-3 py-1 bg-white/10 text-white text-xs rounded-full font-bold hover:bg-white/20">Cancel</button>
+                  </div>
+                </div>
+              ) : null}
+
+              <div className="space-y-4">
+                {form.education.length > 0 ? form.education.map((edu, idx) => (
+                  <div key={idx} className="group/item relative border-b border-white/5 pb-4 last:border-0 last:pb-0">
+                    <h3 className="font-semibold text-sm">{edu.school}</h3>
+                    <p className="text-gray-300 text-sm">{edu.degree}</p>
+                    {(edu.from || edu.to) && <p className="text-gray-500 text-xs mt-1">{edu.from} - {edu.to}</p>}
+                    <button onClick={() => setForm({...form, education: form.education.filter((_, i) => i !== idx)})} className="absolute top-0 right-0 hidden group-hover/item:flex w-6 h-6 rounded-full bg-red-500/10 text-red-500 items-center justify-center hover:bg-red-500 hover:text-white">
+                      <FiTrash2 size={12} />
+                    </button>
+                  </div>
+                )) : (
+                  <p className="text-sm text-gray-500">No items added.</p>
+                )}
+              </div>
+            </div>
+
+          </div>
+
+          {/* RIGHT COLUMN */}
+          <div className="space-y-6">
+            
+            {/* Bio Section (Description) */}
+            <div className="bg-[#0c0c0c] border border-white/5 rounded-2xl p-6 lg:p-8 space-y-6">
+              <div className="relative group">
+                <h2 className="text-xl font-bold mb-4">Description</h2>
+                <button onClick={() => toggleEdit('bio')} className="absolute -top-1 right-0 w-8 h-8 rounded-full border border-[#00c477] flex items-center justify-center hover:bg-[#00c477]/10 text-[#00c477] opacity-0 group-hover:opacity-100 transition-opacity">
+                  <FiEdit2 size={14} />
+                </button>
+                
+                {editMode.bio ? (
+                  <div className="w-full">
+                    <textarea value={form.bio} onChange={e => setForm({...form, bio: e.target.value})} className="w-full bg-[#111] border border-[#00c477] rounded-lg p-4 min-h-[150px] text-sm focus:outline-none resize-none" placeholder="Greetings 👋! I'm..."></textarea>
+                    <div className="mt-2">
+                      <button onClick={() => handleSaveSection('bio')} className="px-4 py-1.5 bg-[#00c477] text-black text-sm rounded-full font-bold">Save</button>
                     </div>
                   </div>
-                );
-              })}
+                ) : (
+                  <p className="text-gray-300 text-sm leading-relaxed whitespace-pre-wrap pr-10">
+                    {form.bio || "Write a bit about yourself here..."}
+                  </p>
+                )}
+              </div>
             </div>
+
+            {/* Skills */}
+            <div className="bg-[#0c0c0c] border border-white/5 rounded-2xl p-6 lg:p-8 relative group">
+              <h2 className="text-xl font-bold mb-6">Skills</h2>
+              <button onClick={() => toggleEdit('skills')} className="absolute top-6 right-8 w-8 h-8 rounded-full border border-[#00c477] flex items-center justify-center hover:bg-[#00c477]/10 text-[#00c477] opacity-0 group-hover:opacity-100 transition-opacity">
+                <FiEdit2 size={14} />
+              </button>
+
+              {editMode.skills ? (
+                <div>
+                  <textarea value={form.skills} onChange={e => setForm({...form, skills: e.target.value})} className="w-full bg-[#111] border border-[#00c477] rounded-lg p-4 text-sm focus:outline-none" placeholder="Comma separated skills..."></textarea>
+                  <div className="mt-2">
+                    <button onClick={() => handleSaveSection('skills')} className="px-4 py-1.5 bg-[#00c477] text-black text-sm rounded-full font-bold">Save</button>
+                  </div>
+                </div>
+              ) : (
+                <div className="flex flex-wrap gap-2">
+                  {form.skills.split(",").map(s => s.trim()).filter(Boolean).map((skill, idx) => (
+                    <span key={idx} className="px-4 py-1.5 bg-white/5 border border-white/10 text-gray-300 rounded-full text-sm hover:bg-white/10 transition-colors cursor-default">
+                      {skill}
+                    </span>
+                  ))}
+                  {form.skills.trim() === "" && <span className="text-sm text-gray-500">No items added.</span>}
+                </div>
+              )}
+            </div>
+
+            {/* Certifications */}
+            <div className="bg-[#0c0c0c] border border-white/5 rounded-2xl p-6 lg:p-8 relative group">
+              <div className="flex justify-between items-center mb-6">
+                <h2 className="text-xl font-bold">Certifications</h2>
+                <button onClick={() => toggleEdit('certifications')} className="w-8 h-8 rounded-full border border-[#00c477] flex items-center justify-center hover:bg-[#00c477]/10 text-[#00c477] opacity-0 group-hover:opacity-100 transition-opacity">
+                  <FiPlus size={16} />
+                </button>
+              </div>
+
+              {editMode.certifications ? (
+                <div className="space-y-3 border-b border-white/5 pb-4 mb-4">
+                  <input type="text" placeholder="Certification Name" value={newItem.title || ''} onChange={e => setNewItem({...newItem, title: e.target.value})} className="w-full bg-[#111] border border-[#00c477] rounded-lg p-2 text-sm focus:outline-none" />
+                  <input type="text" placeholder="Certification Number" value={newItem.certNumber || ''} onChange={e => setNewItem({...newItem, certNumber: e.target.value})} className="w-full bg-[#111] border border-[#00c477] rounded-lg p-2 text-sm focus:outline-none" />
+                  <input type="text" placeholder="Provider (e.g. Offensive Security)" value={newItem.provider || ''} onChange={e => setNewItem({...newItem, provider: e.target.value})} className="w-full bg-[#111] border border-[#00c477] rounded-lg p-2 text-sm focus:outline-none" />
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm text-gray-400">Upload Photo/File:</span>
+                    <input type="file" accept="image/*,.pdf" onChange={e => {
+                      const file = e.target.files?.[0];
+                      if(file) setNewItem({...newItem, file: file.name});
+                    }} className="flex-1 bg-[#111] border border-[#00c477] rounded-lg p-2 text-sm focus:outline-none file:mr-4 file:py-1 file:px-3 file:rounded-full file:border-0 file:text-xs file:bg-[#00c477] file:text-black hover:file:bg-[#00ff9d] cursor-pointer" />
+                  </div>
+                  <div className="flex gap-2 pt-2">
+                    <button onClick={() => {
+                      if(newItem.title) {
+                        setForm({...form, certifications: [...form.certifications, { title: newItem.title, provider: newItem.provider, certNumber: newItem.certNumber, file: newItem.file }]});
+                        setNewItem({});
+                        handleSaveSection('certifications'); // also triggers save to backend
+                      } else {
+                        toast.error('Certification Name is required');
+                      }
+                    }} className="px-4 py-1.5 bg-[#00c477] text-black text-sm rounded-full font-bold">Add & Save</button>
+                    <button onClick={() => toggleEdit('certifications')} className="px-4 py-1.5 bg-white/10 text-white text-sm rounded-full font-bold hover:bg-white/20">Cancel</button>
+                  </div>
+                </div>
+              ) : null}
+
+              <div className="space-y-6">
+                {form.certifications.length > 0 ? form.certifications.map((cert, idx) => (
+                  <div key={idx} className="flex gap-4 group/item relative border-b border-white/5 pb-4 last:border-0 last:pb-0">
+                    <div className="w-12 h-12 rounded-lg bg-white/5 flex flex-col items-center justify-center shrink-0 border border-white/10">
+                      <FiAward size={20} className="text-[#00c477]" />
+                    </div>
+                    <div>
+                      <h3 className="font-bold text-lg">{cert.title}</h3>
+                      {cert.provider && <p className="text-sm text-gray-400">Provider: {cert.provider}</p>}
+                      {cert.certNumber && <p className="text-sm text-gray-400">Cert. Number: {cert.certNumber}</p>}
+                      {cert.file && <p className="text-xs text-[#00c477] mt-1 flex items-center gap-1"><FiFolder size={12}/> Attached: {cert.file}</p>}
+                    </div>
+                    <button onClick={() => setForm({...form, certifications: form.certifications.filter((_, i) => i !== idx)})} className="absolute top-0 right-0 hidden group-hover/item:flex w-8 h-8 rounded-full bg-red-500/10 text-red-500 items-center justify-center hover:bg-red-500 hover:text-white">
+                      <FiTrash2 size={14} />
+                    </button>
+                  </div>
+                )) : (
+                  <p className="text-sm text-gray-500">No items added.</p>
+                )}
+              </div>
+            </div>
+
+            {/* Employment History */}
+            <div className="bg-[#0c0c0c] border border-white/5 rounded-2xl p-6 lg:p-8 relative group">
+              <div className="flex justify-between items-center mb-6">
+                <h2 className="text-xl font-bold">Employment history</h2>
+                <button onClick={() => toggleEdit('employment')} className="w-8 h-8 rounded-full border border-[#00c477] flex items-center justify-center hover:bg-[#00c477]/10 text-[#00c477] opacity-0 group-hover:opacity-100 transition-opacity">
+                  <FiPlus size={16} />
+                </button>
+              </div>
+
+              {editMode.employment ? (
+                <div className="space-y-3 border-b border-white/5 pb-4 mb-4">
+                  <input type="text" placeholder="Company Name" value={newItem.company || ''} onChange={e => setNewItem({...newItem, company: e.target.value})} className="w-full bg-[#111] border border-[#00c477] rounded-lg p-2 text-sm focus:outline-none" />
+                  <input type="text" placeholder="Title" value={newItem.title || ''} onChange={e => setNewItem({...newItem, title: e.target.value})} className="w-full bg-[#111] border border-[#00c477] rounded-lg p-2 text-sm focus:outline-none" />
+                  <div className="flex gap-2">
+                    <input type="text" placeholder="From (e.g. Jan 2020)" value={newItem.from || ''} onChange={e => setNewItem({...newItem, from: e.target.value})} className="w-1/2 bg-[#111] border border-[#00c477] rounded-lg p-2 text-sm focus:outline-none" />
+                    <input type="text" placeholder="To (e.g. Present)" value={newItem.to || ''} onChange={e => setNewItem({...newItem, to: e.target.value})} className="w-1/2 bg-[#111] border border-[#00c477] rounded-lg p-2 text-sm focus:outline-none" />
+                  </div>
+                  <div className="flex gap-2 pt-2">
+                    <button onClick={() => {
+                      if(newItem.company || newItem.title) {
+                        setForm({...form, employment: [...form.employment, { company: newItem.company, title: newItem.title, from: newItem.from, to: newItem.to }]});
+                      }
+                      toggleEdit('employment');
+                    }} className="px-4 py-1.5 bg-[#00c477] text-black text-sm rounded-full font-bold">Add & Done</button>
+                    <button onClick={() => toggleEdit('employment')} className="px-4 py-1.5 bg-white/10 text-white text-sm rounded-full font-bold hover:bg-white/20">Cancel</button>
+                  </div>
+                </div>
+              ) : null}
+
+              <div className="space-y-6">
+                {form.employment.length > 0 ? form.employment.map((job, idx) => (
+                  <div key={idx} className="group/item relative border-b border-white/5 pb-4 last:border-0 last:pb-0">
+                    <h3 className="font-bold text-lg">{job.title} {job.company ? `| ${job.company}` : ''}</h3>
+                    {(job.from || job.to) && <p className="text-sm text-gray-400 mb-2">{job.from} - {job.to}</p>}
+                    <button onClick={() => setForm({...form, employment: form.employment.filter((_, i) => i !== idx)})} className="absolute top-0 right-0 hidden group-hover/item:flex w-8 h-8 rounded-full bg-red-500/10 text-red-500 items-center justify-center hover:bg-red-500 hover:text-white">
+                      <FiTrash2 size={14} />
+                    </button>
+                  </div>
+                )) : (
+                  <p className="text-sm text-gray-500">No items added.</p>
+                )}
+              </div>
+            </div>
+
+            {/* Other Experiences */}
+            <div className="bg-[#0c0c0c] border border-white/5 rounded-2xl p-6 lg:p-8 relative group">
+              <div className="flex justify-between items-center mb-6">
+                <h2 className="text-xl font-bold">Other experiences</h2>
+                <button onClick={() => toggleEdit('other')} className="w-8 h-8 rounded-full border border-[#00c477] flex items-center justify-center hover:bg-[#00c477]/10 text-[#00c477] opacity-0 group-hover:opacity-100 transition-opacity">
+                  <FiPlus size={16} />
+                </button>
+              </div>
+
+              {editMode.other ? (
+                <div className="space-y-3 border-b border-white/5 pb-4 mb-4">
+                  <input type="text" placeholder="Subject or Name" value={newItem.subject || ''} onChange={e => setNewItem({...newItem, subject: e.target.value})} className="w-full bg-[#111] border border-[#00c477] rounded-lg p-2 text-sm focus:outline-none" />
+                  <textarea placeholder="Description" value={newItem.description || ''} onChange={e => setNewItem({...newItem, description: e.target.value})} className="w-full bg-[#111] border border-[#00c477] rounded-lg p-2 text-sm focus:outline-none resize-none min-h-[80px]" />
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm text-gray-400">Upload Photo/File:</span>
+                    <input type="file" accept="image/*,.pdf" onChange={e => {
+                      const file = e.target.files?.[0];
+                      if(file) setNewItem({...newItem, file: file.name});
+                    }} className="flex-1 bg-[#111] border border-[#00c477] rounded-lg p-2 text-sm focus:outline-none file:mr-4 file:py-1 file:px-3 file:rounded-full file:border-0 file:text-xs file:bg-[#00c477] file:text-black hover:file:bg-[#00ff9d] cursor-pointer" />
+                  </div>
+                  <div className="flex gap-2 pt-2">
+                    <button onClick={() => {
+                      if(newItem.subject || newItem.description) {
+                        setForm({...form, other: [...form.other, { subject: newItem.subject, description: newItem.description, file: newItem.file }]});
+                      }
+                      toggleEdit('other');
+                    }} className="px-4 py-1.5 bg-[#00c477] text-black text-sm rounded-full font-bold">Add & Done</button>
+                    <button onClick={() => toggleEdit('other')} className="px-4 py-1.5 bg-white/10 text-white text-sm rounded-full font-bold hover:bg-white/20">Cancel</button>
+                  </div>
+                </div>
+              ) : null}
+
+              <div className="space-y-4">
+                {form.other.length > 0 ? form.other.map((exp, idx) => (
+                  <div key={idx} className="group/item relative border-b border-white/5 pb-4 last:border-0 last:pb-0">
+                    <h3 className="font-bold text-lg text-white mb-1">{exp.subject}</h3>
+                    <p className="text-sm text-gray-300 pr-10">{exp.description}</p>
+                    {exp.file && <p className="text-xs text-[#00c477] mt-2 flex items-center gap-1"><FiFolder size={12}/> Attached: {exp.file}</p>}
+                    <button onClick={() => setForm({...form, other: form.other.filter((_, i) => i !== idx)})} className="absolute top-0 right-0 hidden group-hover/item:flex w-8 h-8 rounded-full bg-red-500/10 text-red-500 items-center justify-center hover:bg-red-500 hover:text-white">
+                      <FiTrash2 size={14} />
+                    </button>
+                  </div>
+                )) : (
+                  <div className="flex flex-col items-center justify-center text-center py-6 text-gray-500">
+                    <FiFolder size={40} className="text-[#00c477] mb-4" />
+                    <p className="text-sm font-semibold text-white mb-1">Add any other experiences that help you stand out</p>
+                    <button onClick={() => toggleEdit('other')} className="text-sm text-[#00c477] hover:underline">Add an experience</button>
+                  </div>
+                )}
+              </div>
+            </div>
+
           </div>
-        )}
+        </div>
       </div>
-
-      {/* Footer Controls */}
-      <div className="mt-8 pt-6 border-t border-white/10 flex items-center justify-between">
-        <button 
-            onClick={prevStep}
-            disabled={step === 1 || submitting}
-            className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-mono uppercase tracking-widest text-gray-400 hover:text-white transition-colors disabled:opacity-30"
-        >
-            <FiChevronLeft /> Back
-        </button>
-        
-        {step < totalSteps ? (
-            <button 
-                onClick={nextStep}
-                className="flex items-center gap-2 px-6 py-2.5 bg-white text-black rounded-lg text-sm font-mono font-bold uppercase tracking-widest hover:bg-gray-200 transition-all active:scale-95 shadow-lg shadow-white/10"
-            >
-                Continue <FiChevronRight />
-            </button>
-        ) : (
-            <button 
-                onClick={handleSubmit}
-                disabled={submitting}
-                className="flex items-center gap-2 px-6 py-2.5 bg-[#00c477] text-black rounded-lg text-sm font-mono font-bold uppercase tracking-widest hover:bg-[#00cc6e] transition-all active:scale-95 shadow-lg shadow-[#00c477]/20 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-                {submitting ? 'PROCESSING...' : 'COMPLETE ONBOARDING'} <FiCheckCircle />
-            </button>
-        )}
-      </div>
-
     </div>
   );
 };

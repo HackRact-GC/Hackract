@@ -1,5 +1,5 @@
 import React, { useState, useRef, useCallback, useEffect } from 'react';
-import { FiArrowLeft, FiHome, FiSave, FiClock, FiMessageSquare } from 'react-icons/fi';
+import { FiArrowLeft, FiHome, FiSave, FiClock, FiMessageSquare, FiExternalLink } from 'react-icons/fi';
 import {
   ReactFlow,
   ReactFlowProvider,
@@ -41,6 +41,40 @@ const nodeTypes = {
   terminal: TerminalNode,
 };
 
+const NODE_TYPE_LABELS = {
+  startingPoint: 'Starting Point',
+  note: 'Note',
+  ai: 'AI',
+  agent: 'AI Agent',
+  terminal: 'Terminal',
+};
+
+const buildMessage = (action, details = {}) => {
+  const hasLabel = typeof details.label === 'string' && details.label.trim().length > 0;
+  const hasType = typeof details.type === 'string' && details.type.length > 0;
+  const hasConnectionLabels = details.sourceLabel || details.targetLabel;
+
+  const nodeLabelByType = hasType ? `a ${NODE_TYPE_LABELS[details.type] || details.type} node` : 'a node';
+  const nodeLabel = hasLabel ? `"${details.label.trim()}"` : nodeLabelByType;
+  const sourceLabel = details.sourceLabel || details.source || 'source';
+  const targetLabel = details.targetLabel || details.target || 'target';
+
+  const messages = {
+    ADD_NODE:       hasLabel ? `Added node ${nodeLabel}` : `Added ${nodeLabel}`,
+    DELETE_NODE:    hasLabel ? `Deleted node ${nodeLabel}` : `Deleted ${nodeLabel}`,
+    MOVE_NODE:      `Moved ${nodeLabel}`,
+    UPDATE_TITLE:   `Renamed node to "${details.newTitle || 'Untitled'}"`,
+    CONNECT_NODES:  details.source && details.target ? `Connected ${hasConnectionLabels ? `"${sourceLabel}" to "${targetLabel}"` : 'two nodes'}` : `Connected two nodes`,
+    DELETE_EDGE:    `Removed a connection`,
+    LINK_FINDING:   `Linked finding to ${nodeLabel}`,
+    GRAPH_CHANGED:  `Updated the canvas`,
+    AGENT_RAN:      `Ran the "${details.agentName || 'AI'}" agent`,
+    TERMINAL_EXEC:  `Executed command in Terminal`,
+  };
+
+  return messages[action] || action.replace(/_/g, ' ').toLowerCase();
+};
+
 const InteractiveBackground = () => {
   const transform = useStore((s) => s.transform);
   const [x, y] = transform;
@@ -73,11 +107,10 @@ const InteractiveBackground = () => {
   );
 };
 
-const WorkflowEditor = ({ workflowId: propWorkflowId, pentestId: propPentestId }) => {
+const WorkflowEditor = ({ workflowId: propWorkflowId }) => {
   const params = useParams();
   const navigate = useNavigate();
   const workflowId = propWorkflowId || params.workflowId || "mock-id-123";
-  const pentestId = propPentestId || params.pentestId;
 
   const reactFlowWrapper = useRef(null);
   const [reactFlowInstance, setReactFlowInstance] = useState(null);
@@ -86,7 +119,7 @@ const WorkflowEditor = ({ workflowId: propWorkflowId, pentestId: propPentestId }
   const [isLocked, setIsLocked] = useState(false);
   const [canEdit, setCanEdit] = useState(true);
   const [findings, setFindings] = useState([]);
-  const [projectInfo, setProjectInfo] = useState({ name: 'Untitled Workflow', type: 'Audit' });
+  const [projectInfo, setProjectInfo] = useState({ name: null, type: 'Audit' }); // null = loading
 
   const {
     socket,
@@ -94,10 +127,12 @@ const WorkflowEditor = ({ workflowId: propWorkflowId, pentestId: propPentestId }
     cursors,
     activeNodes,
     remotePatch,
+    liveHistoryEvents,
     consumeRemotePatch,
     emitWorkflowChange,
     emitCursorMove,
     emitNodeFocus,
+    emitHistoryEvent,
     user: localUser
   } = useWorkflowSocket(workflowId);
 
@@ -222,11 +257,23 @@ const WorkflowEditor = ({ workflowId: propWorkflowId, pentestId: propPentestId }
             }
           }
 
-          // Final fallback to workflow local name
-          if (!projectName) projectName = data.name || data.title;
+          // Fallback: use workflow's own name only if it's not the generic default
+          if (!projectName) {
+            const storedName = data.name || data.title;
+            if (storedName && storedName !== 'Untitled Workflow') {
+              projectName = storedName;
+            }
+          }
+
+          // If we resolved a real name and the DB still has the generic name, backfill it silently
+          if (projectName && (data.name === 'Untitled Workflow' || !data.name)) {
+            try {
+              await workflowService.updateWorkflow(workflowId, { name: projectName });
+            } catch { /* non-critical, ignore */ }
+          }
 
           setProjectInfo({
-            name: projectName || 'Untitled Workspace',
+            name: projectName || 'Mission Operational Workspace', 
             type: projectType
           });
         }
@@ -252,33 +299,74 @@ const WorkflowEditor = ({ workflowId: propWorkflowId, pentestId: propPentestId }
 
   // Helper to save structural changes to DB History
   const saveToDatabase = async (currentNodes, currentEdges, action = "GRAPH_CHANGED", meta = {}) => {
+    const tempId = `temp-${Date.now()}`;
+    const message = buildMessage(action, meta);
+    const details = {
+      nodesCount: currentNodes.length,
+      edgesCount: currentEdges.length,
+      ...meta
+    };
+
+    // 1. Optimistic Update: Emit temporary record immediately
+    const optimisticRecord = {
+      id: tempId,
+      action,
+      message,
+      details,
+      createdAt: new Date().toISOString(),
+      userId: localUser.id,
+      user: { fullName: localUser.name, id: localUser.id },
+      isOptimistic: true // marker for debug/styles
+    };
+    
+    console.log('[HISTORY][OPTIMISTIC]', optimisticRecord);
+    emitHistoryEvent(optimisticRecord);
+
     try {
+      // 2. Persist to DB
       await workflowService.updateWorkflow(workflowId, { nodes: currentNodes, edges: currentEdges });
-      await workflowService.recordWorkflowHistory(workflowId, {
+      const record = await workflowService.recordWorkflowHistory(workflowId, {
         action,
-        details: {
-          nodesCount: currentNodes.length,
-          edgesCount: currentEdges.length,
-          ...meta
-        }
+        message,
+        details
       });
+
+      if (record) {
+        console.log('[HISTORY][SERVER_SYNC]', record.id);
+        // We don't necessarily need to replace the optimistic record if the socket handles deduplication by ID,
+        // but since the server generated a REAL ID, we emit the real one to peers.
+        const eventRecord = {
+          ...record,
+          userId: record.userId || localUser.id,
+          user: { fullName: localUser.name, id: localUser.id }
+        };
+        emitHistoryEvent(eventRecord, tempId); // Replace optimistic entry with real one
+      }
+
       setLastSaved(new Date());
     } catch (err) {
-      console.error("Failed to save changes", err);
+      console.error("[HISTORY][ERROR] Failed to save changes", err);
+      toast.error("Cloud sync failed. History may be delayed.");
     }
   };
 
   // Delete Node Handler
   const deleteNode = useCallback((id) => {
     setNodes((nds) => {
+      const deletedNode = nds.find(n => n.id === id);
       const newNodes = nds.filter((node) => node.id !== id);
+      
       setEdges((eds) => {
         const newEdges = eds.filter((edge) => edge.source !== id && edge.target !== id);
 
         // Broadcast change
         setTimeout(() => {
           emitWorkflowChange(newNodes, newEdges);
-          saveToDatabase(newNodes, newEdges, "DELETE_NODE", { nodeId: id });
+          saveToDatabase(newNodes, newEdges, "DELETE_NODE", { 
+            nodeId: id, 
+            type: deletedNode?.type, 
+            label: deletedNode?.data?.label 
+          });
         }, 50);
 
         return newEdges;
@@ -306,12 +394,12 @@ const WorkflowEditor = ({ workflowId: propWorkflowId, pentestId: propPentestId }
       const newNodes = [...nds, newNode];
       setEdges((eds) => {
         emitWorkflowChange(newNodes, eds);
-        saveToDatabase(newNodes, eds, "ADD_NODE", { type });
+        saveToDatabase(newNodes, eds, "ADD_NODE", { type, label: '' });
         return eds;
       });
       return newNodes;
     });
-  }, [emitWorkflowChange, deleteNode]);
+  }, [emitWorkflowChange, deleteNode, setNodes, setEdges]);
 
   const addNodeByClick = (type) => {
     // Add to center of view
@@ -374,9 +462,19 @@ const WorkflowEditor = ({ workflowId: propWorkflowId, pentestId: propPentestId }
   const onConnect = useCallback(
     (params) => {
       const newEdges = addEdge({ ...params, animated: true, style: { stroke: '#00ff41', strokeWidth: 1.5 } }, edges);
+      const sourceNode = nodes.find(node => node.id === params.source);
+      const targetNode = nodes.find(node => node.id === params.target);
+      const sourceLabel = sourceNode?.data?.label?.trim() || NODE_TYPE_LABELS[sourceNode?.type] || params.source;
+      const targetLabel = targetNode?.data?.label?.trim() || NODE_TYPE_LABELS[targetNode?.type] || params.target;
+
       setEdges(newEdges);
       emitWorkflowChange(nodes, newEdges);
-      saveToDatabase(nodes, newEdges, "CONNECT_NODES");
+      saveToDatabase(nodes, newEdges, "CONNECT_NODES", {
+        source: params.source,
+        target: params.target,
+        sourceLabel,
+        targetLabel
+      });
     },
     [edges, nodes, setEdges, emitWorkflowChange]
   );
@@ -418,6 +516,21 @@ const WorkflowEditor = ({ workflowId: propWorkflowId, pentestId: propPentestId }
     if (dragEnded || hasRemoval) isDraggingRef.current = false;
 
     if (hasPositionChange || hasRemoval) {
+      // For removals, capture metadata BEFORE state update
+      let removalMeta = null;
+      if (hasRemoval) {
+        const removedChange = changes.find(c => c.type === 'remove');
+        const node = nodes.find(n => n.id === removedChange.id);
+        if (node) {
+          removalMeta = { 
+            nodeId: node.id, 
+            type: node.type, 
+            label: node.data?.label || node.id 
+          };
+          console.log('[HISTORY][TRACE] Capturing removal metadata:', removalMeta);
+        }
+      }
+
       // Use a micro-delay so React Flow finishes applying the change to state first
       setTimeout(() => {
         setNodes(nds => {
@@ -426,7 +539,14 @@ const WorkflowEditor = ({ workflowId: propWorkflowId, pentestId: propPentestId }
             emitWorkflowChange(nds, eds);
 
             // Only persist to DB on drag-end or deletion
-            if (dragEnded) saveToDatabase(nds, eds, 'MOVE_NODE');
+            if (dragEnded) {
+              console.log('[HISTORY][TRACE] Persisting MOVE_NODE');
+              saveToDatabase(nds, eds, 'MOVE_NODE');
+            }
+            if (hasRemoval) {
+              console.log('[HISTORY][TRACE] Persisting DELETE_NODE with meta:', removalMeta);
+              saveToDatabase(nds, eds, 'DELETE_NODE', removalMeta);
+            }
 
             return eds;
           });
@@ -434,7 +554,7 @@ const WorkflowEditor = ({ workflowId: propWorkflowId, pentestId: propPentestId }
         });
       }, 8);
     }
-  }, [onNodesChange, emitWorkflowChange, setNodes, setEdges]);
+  }, [onNodesChange, emitWorkflowChange, setNodes, setEdges, reactFlowInstance]);
 
   // Handle Edge Deletions dynamically so all peers see the disconnect
   const handleEdgesChange = useCallback((changes) => {
@@ -526,10 +646,14 @@ const WorkflowEditor = ({ workflowId: propWorkflowId, pentestId: propPentestId }
             <span className="text-gray-700 font-medium text-lg leading-none select-none">/</span>
             <div className="flex flex-col md:flex-row md:items-center gap-1 md:gap-3 overflow-hidden">
               <h1
-                className="text-sm md:text-[16px] font-bold text-white tracking-tight truncate max-w-[300px] md:max-w-[600px] lg:max-w-none"
-                title={projectInfo.name}
+                className="text-sm md:text-[16px] font-bold tracking-tight truncate max-w-[300px] md:max-w-[600px] lg:max-w-none"
+                style={{ color: projectInfo.name ? '#fff' : 'rgba(255,255,255,0.3)' }}
+                title={projectInfo.name || 'Loading project...'}
               >
-                {projectInfo.name}
+                {projectInfo.name
+                  ? projectInfo.name
+                  : <span className="animate-pulse">Loading project...</span>
+                }
               </h1>
               <div className="flex items-center gap-2">
                 <span className="hidden md:block w-1.5 h-1.5 rounded-full bg-white/10" />
@@ -549,17 +673,34 @@ const WorkflowEditor = ({ workflowId: propWorkflowId, pentestId: propPentestId }
         </div>
 
         <div className="flex items-center gap-4">
-            {/* Active Collaborators Profiles */}
+            {/* Active Collaborators Profiles — always show self first, then remote peers */}
             <div className="flex -space-x-2 items-center">
-               {Object.values(collaborators).map((collab, index) => (
+               {/* Self — always online */}
+               <div
+                 className="relative group transition-transform hover:-translate-y-1 hover:z-30 cursor-help"
+                 style={{ zIndex: 20 }}
+                 title={`${localUser.name} (You)`}
+               >
+                 <div
+                   className="w-8 h-8 rounded-full border-2 border-[#00ff41]/60 flex items-center justify-center text-xs font-bold shadow-md"
+                   style={{ backgroundColor: localUser.color, color: '#000' }}
+                 >
+                   {localUser.name?.[0]?.toUpperCase() || 'Y'}
+                 </div>
+                 <span className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-[#00ff41] border-[1.5px] border-[#1a1c23] rounded-full shadow-[0_0_6px_rgba(0,255,65,0.7)]"></span>
+               </div>
+               {/* Remote peers */}
+               {Object.values(collaborators)
+                 .filter(c => c.id !== socket?.id) /* exclude self from socket list */
+                 .map((collab, index) => (
                  <div
                    key={collab.id}
                    className="relative group transition-transform hover:-translate-y-1 hover:z-30 cursor-help"
                    style={{ zIndex: 10 + index }}
                    title={collab.user || 'Online Hacker'}
-                >
+                 >
                    <div
-                     className="w-8 h-8 rounded-full border-2 border-[#1a1c23] flex items-center justify-center text-xs font-bold shadow-md bg-[#13151a]"
+                     className="w-8 h-8 rounded-full border-2 border-[#1a1c23] flex items-center justify-center text-xs font-bold shadow-md"
                      style={{ backgroundColor: collab.color || '#00ff41', color: '#000' }}
                    >
                      {collab.user?.[0]?.toUpperCase() || 'H'}
@@ -667,6 +808,8 @@ const WorkflowEditor = ({ workflowId: propWorkflowId, pentestId: propPentestId }
           isOpen={isHistoryOpen}
           onClose={() => setIsHistoryOpen(false)}
           workflowId={workflowId}
+          liveEvents={liveHistoryEvents}
+          localUser={localUser}
         />
       </div>
     </div>

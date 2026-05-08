@@ -545,5 +545,46 @@ router.post("/:projectId/sign-nda", async (req, res, next) => {
   }
 });
 
+router.delete("/:projectId", async (req, res, next) => {
+  try {
+    const { projectId } = req.params;
+    const project = await prisma.pentest.findUnique({
+      where: { id: projectId },
+      select: { id: true, leadPentesterId: true, organizationId: true, name: true }
+    });
+
+    if (!project) throw new AppError("Project not found", 404);
+
+    // RBAC: Only lead pentester or organization admin can delete
+    const isLead = project.leadPentesterId === req.user.id;
+    let isOrgAdmin = false;
+    
+    if (project.organizationId) {
+      isOrgAdmin = await isOrgAdminMember(project.organizationId, req.user.id);
+    }
+
+    if (!isLead && !isOrgAdmin) {
+      throw new AppError("Unauthorized: Only project leads or organization admins can delete projects", 403);
+    }
+
+    // Manually delete related records to bypass constraint issues
+    await prisma.pentestCollaborator.deleteMany({ where: { pentestId: projectId } });
+    await prisma.workflow.deleteMany({ where: { pentestId: projectId } });
+    await prisma.finding.deleteMany({ where: { pentestId: projectId } });
+    await prisma.aiAgent.deleteMany({ where: { pentestId: projectId } });
+
+    await prisma.pentest.delete({ where: { id: projectId } });
+
+    await logAction("PROJECT_DELETED", req.user.id, { 
+      pentestId: projectId, 
+      name: project.name 
+    }, req);
+
+    res.json({ success: true, message: "Project deleted successfully" });
+  } catch (error) {
+    next(error);
+  }
+});
+
 export default router;
 

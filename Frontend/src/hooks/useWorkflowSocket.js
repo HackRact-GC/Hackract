@@ -44,6 +44,9 @@ export const useWorkflowSocket = (workflowId) => {
   // WorkflowEditor reads and clears this each render frame.
   const [remotePatch, setRemotePatch] = useState(null);
 
+  // Live history events for the HistorySidebar
+  const [liveHistoryEvents, setLiveHistoryEvents] = useState([]);
+
   // ── Connect ────────────────────────────────────────────────────────────────
   useEffect(() => {
     if (!workflowId) return;
@@ -150,12 +153,17 @@ export const useWorkflowSocket = (workflowId) => {
       });
     });
 
+    // ── History events ───────────────────────────────────────────────────────
+    newSocket.on('history-event', (record) => {
+      setLiveHistoryEvents(prev => [record, ...prev]);
+    });
+
     return () => {
       newSocket.emit('leave-workflow', workflowId);
       newSocket.disconnect();
       setSocket(null);
     };
-  }, [workflowId]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [workflowId]);
 
   // ── Emit helpers ──────────────────────────────────────────────────────────
 
@@ -205,16 +213,39 @@ export const useWorkflowSocket = (workflowId) => {
     return patch;
   }, [remotePatch]);
 
+  /**
+   * Broadcast a history log event to peers.
+   */
+  const emitHistoryEvent = useCallback((record, replacesId = null) => {
+    console.log(`[HISTORY][STATE] ${replacesId ? 'Replacing' : 'Adding'} event:`, record.id);
+    setLiveHistoryEvents(prev => {
+      console.log('[HISTORY][STATE] Prev length:', prev.length);
+      if (replacesId) {
+        return prev.map(e => e.id === replacesId ? record : e);
+      }
+      // Deduplicate
+      if (prev.some(e => e.id === record.id)) return prev;
+      const next = [record, ...prev];
+      console.log('[HISTORY][STATE] New length:', next.length);
+      return next;
+    });
+
+    if (!socket?.connected) return;
+    socket.emit('history-event', { workflowId, record });
+  }, [socket, workflowId]);
+
   return {
     socket,
     collaborators,
     cursors,
     activeNodes,
     remotePatch,
+    liveHistoryEvents,
     consumeRemotePatch,
     emitWorkflowChange,
     emitCursorMove,
     emitNodeFocus,
+    emitHistoryEvent,
     user: localUserRef.current,
   };
 };

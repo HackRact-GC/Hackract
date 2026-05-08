@@ -1,10 +1,10 @@
 import React, { useState } from 'react';
 import { Outlet, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/authContext.jsx';
-import { 
-  FiGrid, FiBriefcase, FiGlobe, FiShield, FiSettings, 
-  FiFileText, FiBell, FiChevronDown, FiPlus, FiCpu, 
-  FiActivity, FiTarget, FiZap, FiLogOut
+import {
+  FiGrid, FiBriefcase, FiGlobe, FiShield, FiSettings,
+  FiFileText, FiBell, FiChevronDown, FiPlus, FiCpu,
+  FiActivity, FiTarget, FiZap, FiLogOut, FiMessageSquare
 } from 'react-icons/fi';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -18,12 +18,13 @@ const OrganizationLayout = () => {
   const userInitial = user?.fullName?.[0]?.toUpperCase() || user?.email?.[0]?.toUpperCase() || "O";
 
   const navItems = [
-    { icon: FiGrid, label: 'DASHBOARD', route: '/dashboard' },
-    { icon: FiBriefcase, label: 'PROJECTS', route: '/org-projects' },
-    { icon: FiGlobe, label: 'DISCOVER', route: '/discover' },
-    { icon: FiShield, label: 'LEGAL', route: '/legal' },
-    { icon: FiSettings, label: 'SETTINGS', route: '/organization-profile' },
-    { icon: FiFileText, label: 'REPORTS', route: '/reports' },
+    { icon: FiGrid,           label: 'DASHBOARD', route: '/dashboard' },
+    { icon: FiBriefcase,      label: 'PROJECTS',  route: '/org-projects' },
+    { icon: FiGlobe,          label: 'DISCOVER',  route: '/discover' },
+    { icon: FiMessageSquare,  label: 'MESSAGES',  route: '/chat' },
+    { icon: FiShield,         label: 'LEGAL',     route: '/legal' },
+    { icon: FiSettings,       label: 'SETTINGS',  route: '/organization-profile' },
+    { icon: FiFileText,       label: 'REPORTS',   route: '/reports' },
   ];
 
   const isActive = (route) => location.pathname === route;

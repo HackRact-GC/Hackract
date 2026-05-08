@@ -1,14 +1,30 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import { FiX, FiClock, FiUser, FiActivity } from 'react-icons/fi';
-import { formatDistanceToNow } from 'date-fns';
+import { formatDistanceToNow, format, isToday, isYesterday } from 'date-fns';
 import workflowService from '../../../services/workflow.service';
 
-const HistorySidebar = ({ workflowId, isOpen, onClose }) => {
-  const [history, setHistory] = useState([]);
+const BADGE_COLORS = {
+  ADD_NODE: '#00ff41',
+  DELETE_NODE: '#ff4444',
+  MOVE_NODE: '#00a3ff',
+  UPDATE_TITLE: '#a78bfa',
+  CONNECT_NODES: '#22d3ee',
+  DELETE_EDGE: '#f97316',
+  LINK_FINDING: '#facc15',
+  TERMINAL_EXEC: '#f59e0b',
+  AGENT_RAN: '#d000ff',
+  GRAPH_CHANGED: '#ffffff',
+};
+
+
+
+const HistorySidebar = ({ workflowId, isOpen, onClose, liveEvents = [], localUser }) => {
+  const [dbHistory, setDbHistory] = useState([]);
   const [loading, setLoading] = useState(false);
+  const localUserId = localUser?.id || localUser?._id;
 
   useEffect(() => {
-    if (isOpen && workflowId) {
+    if (isOpen) {
       loadHistory();
     }
   }, [isOpen, workflowId]);
@@ -17,13 +33,42 @@ const HistorySidebar = ({ workflowId, isOpen, onClose }) => {
     setLoading(true);
     try {
       const data = await workflowService.getWorkflowHistory(workflowId);
-      setHistory(data || []);
+      setDbHistory(data || []);
+      setLoading(false);
     } catch (err) {
       console.error("Failed to load history", err);
-    } finally {
       setLoading(false);
     }
   };
+
+  const combinedHistory = useMemo(() => {
+    // Merge liveEvents and dbHistory, filter duplicates by id
+    const all = [...liveEvents, ...dbHistory];
+    const unique = [];
+    const seen = new Set();
+    for (const record of all) {
+      if (!seen.has(record.id)) {
+        seen.add(record.id);
+        unique.push(record);
+      }
+    }
+    // Sort descending
+    return unique.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+  }, [dbHistory, liveEvents]);
+
+  const groupedHistory = useMemo(() => {
+    const groups = {};
+    combinedHistory.forEach(record => {
+      const date = new Date(record.createdAt);
+      let groupKey = format(date, 'MMM d, yyyy');
+      if (isToday(date)) groupKey = 'TODAY';
+      else if (isYesterday(date)) groupKey = 'YESTERDAY';
+
+      if (!groups[groupKey]) groups[groupKey] = [];
+      groups[groupKey].push(record);
+    });
+    return groups;
+  }, [combinedHistory]);
 
   if (!isOpen) return null;
 
@@ -33,7 +78,7 @@ const HistorySidebar = ({ workflowId, isOpen, onClose }) => {
       <div className="p-4 border-b border-gray-800 flex justify-between items-center bg-[#161a23]">
         <div className="flex items-center gap-2 text-[#00a3ff]">
           <FiClock size={18} />
-          <h2 className="font-bold font-mono text-sm uppercase tracking-wider">Version History</h2>
+          <h2 className="font-bold font-mono text-sm uppercase tracking-wider">Activity Log</h2>
         </div>
         <button 
           onClick={onClose}
@@ -44,58 +89,76 @@ const HistorySidebar = ({ workflowId, isOpen, onClose }) => {
       </div>
 
       {/* History List */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-4">
-        {loading ? (
+      <div className="flex-1 overflow-y-auto space-y-6 pb-4">
+        {loading && combinedHistory.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-40 gap-3 text-gray-500 font-mono text-xs">
             <div className="w-6 h-6 border-2 border-t-[#00a3ff] border-gray-800 rounded-full animate-spin"></div>
             <span>Scanning archives...</span>
           </div>
-        ) : history.length === 0 ? (
+        ) : combinedHistory.length === 0 ? (
           <div className="text-center text-gray-500 font-mono text-xs py-10 italic">
             No modifications recorded yet.
           </div>
         ) : (
-          history.map((record, index) => (
-            <div 
-              key={record.id} 
-              className="group bg-[#161a23] border border-gray-800 rounded-lg p-3 hover:border-[#00ff41]/50 transition-all cursor-pointer relative"
-            >
-              {/* Timeline Connector */}
-              {index !== history.length - 1 && (
-                <div className="absolute left-[19px] top-10 bottom-[-20px] w-px bg-gray-800 group-hover:bg-[#00ff41]/30"></div>
-              )}
+          Object.entries(groupedHistory).map(([dateLabel, records]) => (
+            <div key={dateLabel} className="space-y-3">
+               <div className="sticky top-0 bg-[#0b0f19]/95 backdrop-blur-sm z-10 px-4 py-2 border-b border-gray-800/50">
+                 <h3 className="text-xs font-bold font-mono text-gray-400 uppercase tracking-widest">{dateLabel}</h3>
+               </div>
+               
+               <div className="px-4 space-y-4">
+                 {records.map((record, index) => {
+                   const recordUserId = record.userId || record.user?.id || record.user?._id;
+                   const isYou = localUserId && String(recordUserId) === String(localUserId);
+                   const userName = record.user?.fullName || record.user?.name || 'Agent X';
+                   const userInitials = userName.substring(0, 2).toUpperCase();
+                   const badgeColor = BADGE_COLORS[record.action] || '#00ff41';
+                   const isLive = liveEvents.some(e => e.id === record.id);
+                   
+                   return (
+                     <div 
+                       key={record.id} 
+                       className={`group relative pl-6 ${isLive ? 'animate-pulse' : ''}`}
+                     >
+                       {/* Timeline Line */}
+                       {index !== records.length - 1 && (
+                         <div className="absolute left-[11px] top-6 bottom-[-24px] w-px bg-gray-800 group-hover:bg-gray-600 transition-colors z-0"></div>
+                       )}
 
-              <div className="flex gap-3 relative">
-                <div className="mt-1">
-                  <div className="w-4 h-4 rounded-full bg-[#00ff41]/20 border border-[#00ff41]/50 flex items-center justify-center">
-                    <div className="w-1.5 h-1.5 rounded-full bg-[#00ff41]"></div>
-                  </div>
-                </div>
+                       {/* Avatar Circle */}
+                       <div 
+                         className="absolute left-0 top-0 w-6 h-6 rounded-full bg-[#161a23] border border-gray-700 flex items-center justify-center text-[9px] font-bold z-10"
+                         title={userName}
+                         style={{ color: badgeColor, borderColor: `${badgeColor}40` }}
+                       >
+                         {userInitials}
+                       </div>
 
-                <div className="flex-1 space-y-1">
-                  <div className="flex justify-between items-start">
-                    <span className="text-[10px] text-gray-500 font-mono">
-                      {formatDistanceToNow(new Date(record.createdAt), { addSuffix: true })}
-                    </span>
-                  </div>
-                  
-                  <div className="text-[#00ff41] font-mono text-xs font-bold">
-                    {record.action.replace(/_/g, ' ')}
-                  </div>
-
-                  <div className="flex items-center gap-1.5 text-gray-400 text-[11px]">
-                    <FiUser size={10} />
-                    <span>{record.user?.fullName || 'Agent X'}</span>
-                  </div>
-
-                  {record.details && record.details.nodesCount !== undefined && (
-                    <div className="text-[10px] text-gray-600 font-mono flex items-center gap-1">
-                      <FiActivity size={10} />
-                      {record.details.nodesCount} nodes, {record.details.edgesCount} edges
-                    </div>
-                  )}
-                </div>
-              </div>
+                       {/* Content */}
+                       <div className="bg-[#161a23] border border-gray-800/60 rounded-md p-2.5 hover:border-gray-700 transition-colors ml-2 relative">
+                         <div className="flex justify-between items-start mb-1">
+                           <div className="flex items-center gap-1.5">
+                             <span className="text-xs font-bold text-gray-300">
+                               {isYou ? 'You' : userName}
+                             </span>
+                             {isLive && !isYou && <span className="text-[8px] bg-[#00ff41]/20 text-[#00ff41] px-1 rounded uppercase font-bold animate-pulse">New</span>}
+                           </div>
+                           <div 
+                             className="text-[9px] text-gray-500 font-mono cursor-help"
+                             title={format(new Date(record.createdAt), 'MMM d, yyyy h:mm a')}
+                           >
+                             {formatDistanceToNow(new Date(record.createdAt))} ago
+                           </div>
+                         </div>
+                         
+                         <div className="text-[11px] text-gray-400 font-medium">
+                           {record.message || record.action.replace(/_/g, ' ')}
+                         </div>
+                       </div>
+                     </div>
+                   );
+                 })}
+               </div>
             </div>
           ))
         )}
@@ -103,7 +166,7 @@ const HistorySidebar = ({ workflowId, isOpen, onClose }) => {
 
       {/* Footer / Snapshot Action */}
       <div className="p-4 border-t border-gray-800 bg-[#07090e]">
-        <button className="w-full py-2 bg-[#161a23] border border-[#00ff41]/30 text-[#00ff41] font-mono text-[11px] font-bold rounded hover:bg-[#00ff41]/10 transition-all flex items-center justify-center gap-2">
+        <button className="w-full py-2 bg-[#161a23] border border-[#00ff41]/30 text-[#00ff41] font-mono text-[11px] font-bold rounded hover:bg-[#00ff41]/10 transition-all flex items-center justify-center gap-2 shadow-[0_0_15px_rgba(0,255,65,0.1)]">
           <span>💾</span>
           CREATE CHECKPOINT
         </button>

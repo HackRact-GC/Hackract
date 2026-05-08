@@ -16,6 +16,9 @@ import WorkflowEditor from "../pages/WorkflowEditor/WorkflowEditor.jsx";
 import HackerVerification from "../pages/HackerVerification.jsx";
 import OrganizationVerification from "../pages/OrganizationVerification.jsx";
 import ErrorPage from "../pages/ErrorPage.jsx";
+import EthiopiaIDVerification from "../pages/EthiopiaIDVerification.jsx";
+
+
 import Projects from "../pages/Projects.jsx";
 import ProjectWorkspace from "../pages/ProjectWorkspace.jsx";
 import FindingDetails from "../pages/FindingDetails.jsx";
@@ -40,10 +43,14 @@ import OnboardingLayout from "../layouts/OnboardingLayout.jsx";
 import HackerOnboarding from "../pages/Onboarding/HackerOnboarding.jsx";
 import OrgOnboarding from "../pages/Onboarding/OrgOnboarding.jsx";
 
+// Chat
+import Chat from "../pages/Chat.jsx";
+
 // Phase 18 Admin Imports
 import ApprovalsDashboard from "../pages/Admin/ApprovalsDashboard.jsx";
 import OperatorReview from "../pages/Admin/OperatorReview.jsx";
 import OrgReview from "../pages/Admin/OrgReview.jsx";
+import SystemAdminDashboard from "../pages/Admin/SystemAdminDashboard.jsx";
 
 // Optional (only if you really have this file)
 import DashboardPreview from "../pages/DashboardPreview.jsx";
@@ -78,6 +85,11 @@ const router = createBrowserRouter([
             path: "hacker-verification",
             element: <HackerVerification />,
           },
+          {
+            path: "national-id-verification",
+            element: <EthiopiaIDVerification />,
+          },
+
 
           {
             path: "projects",
@@ -102,6 +114,14 @@ const router = createBrowserRouter([
           {
             path: "my-applications",
             element: <MyApplications />,
+          },
+          {
+            path: "chat",
+            element: <Chat />,
+          },
+          {
+            path: "admin-dashboard",
+            element: <SystemAdminDashboard />,
           },
         ],
       },
@@ -149,6 +169,10 @@ const router = createBrowserRouter([
           {
             path: "legal",
             element: <OrganizationLegal />,
+          },
+          {
+            path: "chat",
+            element: <Chat />,
           },
         ],
       },
