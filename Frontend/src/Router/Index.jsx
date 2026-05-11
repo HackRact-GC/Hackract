@@ -43,7 +43,8 @@ import HackerOnboarding from "../pages/Onboarding/HackerOnboarding.jsx";
 import OrgOnboarding from "../pages/Onboarding/OrgOnboarding.jsx";
 
 // Chat
-import Chat from "../pages/Chat.jsx";
+import HackerChat from "../pages/HackerChat.jsx";
+import OrganizationChat from "../pages/OrganizationChat.jsx";
 
 // Agreement Execute
 import AgreementExecute from "../pages/AgreementExecute.jsx";
@@ -118,8 +119,8 @@ const router = createBrowserRouter([
             element: <MyApplications />,
           },
           {
-            path: "chat",
-            element: <Chat />,
+            path: "messages",
+            element: <HackerChat />,
           },
           {
             path: "admin-dashboard",
@@ -169,8 +170,12 @@ const router = createBrowserRouter([
             element: <OrganizationProfile />,
           },
           {
-            path: "chat",
-            element: <Chat />,
+            path: "legal",
+            element: <OrganizationLegal />,
+          },
+          {
+            path: "org-messages",
+            element: <OrganizationChat />,
           },
         ],
       },
