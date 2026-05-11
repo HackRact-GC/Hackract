@@ -145,6 +145,14 @@ const WorkflowEditor = ({ workflowId: propWorkflowId }) => {
   const [nodes, setNodes, onNodesChange] = useNodesState([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState([]);
 
+  // Refs to access latest state in async callbacks without triggering state-updater side-effect bugs
+  const nodesRef = useRef(nodes);
+  const edgesRef = useRef(edges);
+  useEffect(() => {
+    nodesRef.current = nodes;
+    edgesRef.current = edges;
+  }, [nodes, edges]);
+
   // ── Merge remote patches without disrupting local drag state ──────────────
   useEffect(() => {
     if (!remotePatch) return;
@@ -352,54 +360,97 @@ const WorkflowEditor = ({ workflowId: propWorkflowId }) => {
 
   // Delete Node Handler
   const deleteNode = useCallback((id) => {
-    setNodes((nds) => {
-      const deletedNode = nds.find(n => n.id === id);
-      const newNodes = nds.filter((node) => node.id !== id);
-      
-      setEdges((eds) => {
-        const newEdges = eds.filter((edge) => edge.source !== id && edge.target !== id);
+    const currentNodes = nodesRef.current;
+    const currentEdges = edgesRef.current;
+    const deletedNode = currentNodes.find(n => n.id === id);
+    const newNodes = currentNodes.filter((node) => node.id !== id);
+    const newEdges = currentEdges.filter((edge) => edge.source !== id && edge.target !== id);
 
-        // Broadcast change
-        setTimeout(() => {
-          emitWorkflowChange(newNodes, newEdges);
-          saveToDatabase(newNodes, newEdges, "DELETE_NODE", { 
-            nodeId: id, 
-            type: deletedNode?.type, 
-            label: deletedNode?.data?.label 
-          });
-        }, 50);
+    setNodes(newNodes);
+    setEdges(newEdges);
 
-        return newEdges;
+    // Call side effects once outside state setter
+    setTimeout(() => {
+      emitWorkflowChange(newNodes, newEdges);
+      saveToDatabase(newNodes, newEdges, "DELETE_NODE", { 
+        nodeId: id, 
+        type: deletedNode?.type, 
+        label: deletedNode?.data?.label 
       });
-      return newNodes;
-    });
+    }, 10);
   }, [emitWorkflowChange, setNodes, setEdges]);
+
+
+  // Update Node Title Handler
+  const updateNodeTitle = useCallback((id, newTitle) => {
+    const currentNodes = nodesRef.current;
+    const currentEdges = edgesRef.current;
+    const newNodes = currentNodes.map((node) => {
+      if (node.id === id) {
+        return {
+          ...node,
+          data: {
+            ...node.data,
+            label: newTitle,
+          },
+        };
+      }
+      return node;
+    });
+
+    setNodes(newNodes);
+    
+    emitWorkflowChange(newNodes, currentEdges);
+    saveToDatabase(newNodes, currentEdges, "UPDATE_TITLE", { nodeId: id, newTitle });
+  }, [emitWorkflowChange, setNodes]);
+
+  const linkFinding = useCallback((id, findingId) => {
+    const currentNodes = nodesRef.current;
+    const currentEdges = edgesRef.current;
+    const newNodes = currentNodes.map((node) => {
+      if (node.id === id) {
+        return {
+          ...node,
+          data: {
+            ...node.data,
+            findingId,
+          },
+        };
+      }
+      return node;
+    });
+
+    setNodes(newNodes);
+    
+    emitWorkflowChange(newNodes, currentEdges);
+    saveToDatabase(newNodes, currentEdges, "LINK_FINDING", { nodeId: id, findingId });
+  }, [emitWorkflowChange, setNodes]);
 
   // Core Add Node Function
   const addNode = useCallback((type, position) => {
     const id = `${type}-${Date.now()}`;
+    const defaultLabel = NODE_TYPE_LABELS[type] || type;
+
     const newNode = {
       id,
       type,
       position,
       data: {
-        label: '',
+        label: defaultLabel,
         onDelete: () => deleteNode(id),
         onTitleChange: (newTitle) => updateNodeTitle(id, newTitle),
         activeUsers: {}
       },
     };
 
-    setNodes((nds) => {
-      const newNodes = [...nds, newNode];
-      setEdges((eds) => {
-        emitWorkflowChange(newNodes, eds);
-        saveToDatabase(newNodes, eds, "ADD_NODE", { type, label: '' });
-        return eds;
-      });
-      return newNodes;
-    });
-  }, [emitWorkflowChange, deleteNode, setNodes, setEdges]);
+    const currentNodes = nodesRef.current;
+    const currentEdges = edgesRef.current;
+    const newNodes = [...currentNodes, newNode];
+    setNodes(newNodes);
+    
+    emitWorkflowChange(newNodes, currentEdges);
+    saveToDatabase(newNodes, currentEdges, "ADD_NODE", { type, label: defaultLabel });
+  }, [emitWorkflowChange, deleteNode, updateNodeTitle, setNodes]);
 
   const addNodeByClick = (type) => {
     // Add to center of view
@@ -407,76 +458,27 @@ const WorkflowEditor = ({ workflowId: propWorkflowId }) => {
     addNode(type, position);
   };
 
-  // Update Node Title Handler
-  const updateNodeTitle = useCallback((id, newTitle) => {
-    setNodes((nds) => {
-      const newNodes = nds.map((node) => {
-        if (node.id === id) {
-          return {
-            ...node,
-            data: {
-              ...node.data,
-              label: newTitle,
-            },
-          };
-        }
-        return node;
-      });
-
-      setEdges((eds) => {
-        emitWorkflowChange(newNodes, eds);
-        saveToDatabase(newNodes, eds, "UPDATE_TITLE", { nodeId: id, newTitle });
-        return eds;
-      });
-
-      return newNodes;
-    });
-  }, [emitWorkflowChange, setNodes, setEdges]);
-
-  const linkFinding = useCallback((id, findingId) => {
-    setNodes((nds) => {
-      const newNodes = nds.map((node) => {
-        if (node.id === id) {
-          return {
-            ...node,
-            data: {
-              ...node.data,
-              findingId,
-            },
-          };
-        }
-        return node;
-      });
-
-      setEdges((eds) => {
-        emitWorkflowChange(newNodes, eds);
-        saveToDatabase(newNodes, eds, "LINK_FINDING", { nodeId: id, findingId });
-        return eds;
-      });
-
-      return newNodes;
-    });
-  }, [emitWorkflowChange, setNodes, setEdges]);
-
   // Handle Connecting Nodes
   const onConnect = useCallback(
     (params) => {
-      const newEdges = addEdge({ ...params, animated: true, style: { stroke: '#00ff41', strokeWidth: 1.5 } }, edges);
-      const sourceNode = nodes.find(node => node.id === params.source);
-      const targetNode = nodes.find(node => node.id === params.target);
+      const currentNodes = nodesRef.current;
+      const currentEdges = edgesRef.current;
+      const newEdges = addEdge({ ...params, animated: true, style: { stroke: '#00ff41', strokeWidth: 1.5 } }, currentEdges);
+      const sourceNode = currentNodes.find(node => node.id === params.source);
+      const targetNode = currentNodes.find(node => node.id === params.target);
       const sourceLabel = sourceNode?.data?.label?.trim() || NODE_TYPE_LABELS[sourceNode?.type] || params.source;
       const targetLabel = targetNode?.data?.label?.trim() || NODE_TYPE_LABELS[targetNode?.type] || params.target;
 
       setEdges(newEdges);
-      emitWorkflowChange(nodes, newEdges);
-      saveToDatabase(nodes, newEdges, "CONNECT_NODES", {
+      emitWorkflowChange(currentNodes, newEdges);
+      saveToDatabase(currentNodes, newEdges, "CONNECT_NODES", {
         source: params.source,
         target: params.target,
         sourceLabel,
         targetLabel
       });
     },
-    [edges, nodes, setEdges, emitWorkflowChange]
+    [setEdges, emitWorkflowChange]
   );
 
   // Handle Drag & Drop Node Creation
@@ -533,28 +535,24 @@ const WorkflowEditor = ({ workflowId: propWorkflowId }) => {
 
       // Use a micro-delay so React Flow finishes applying the change to state first
       setTimeout(() => {
-        setNodes(nds => {
-          setEdges(eds => {
-            // Broadcast live position to peers (throttling is handled by socket.io itself)
-            emitWorkflowChange(nds, eds);
+        const nds = nodesRef.current;
+        const eds = edgesRef.current;
 
-            // Only persist to DB on drag-end or deletion
-            if (dragEnded) {
-              console.log('[HISTORY][TRACE] Persisting MOVE_NODE');
-              saveToDatabase(nds, eds, 'MOVE_NODE');
-            }
-            if (hasRemoval) {
-              console.log('[HISTORY][TRACE] Persisting DELETE_NODE with meta:', removalMeta);
-              saveToDatabase(nds, eds, 'DELETE_NODE', removalMeta);
-            }
+        // Broadcast live position to peers
+        emitWorkflowChange(nds, eds);
 
-            return eds;
-          });
-          return nds;
-        });
-      }, 8);
+        // Only persist to DB on deletion (movement is currently ignored per user request)
+        if (dragEnded) {
+          console.log('[HISTORY][TRACE] Skipped persisting MOVE_NODE (disabled)');
+          // saveToDatabase(nds, eds, 'MOVE_NODE');
+        }
+        if (hasRemoval) {
+          console.log('[HISTORY][TRACE] Persisting DELETE_NODE with meta:', removalMeta);
+          saveToDatabase(nds, eds, 'DELETE_NODE', removalMeta);
+        }
+      }, 10);
     }
-  }, [onNodesChange, emitWorkflowChange, setNodes, setEdges, reactFlowInstance]);
+  }, [onNodesChange, emitWorkflowChange, reactFlowInstance]);
 
   // Handle Edge Deletions dynamically so all peers see the disconnect
   const handleEdgesChange = useCallback((changes) => {
@@ -563,17 +561,13 @@ const WorkflowEditor = ({ workflowId: propWorkflowId }) => {
     const isDelete = changes.some(c => c.type === "remove");
     if (isDelete) {
        setTimeout(() => {
-         setNodes((nds) => {
-           setEdges((eds) => {
-             emitWorkflowChange(nds, eds);
-             saveToDatabase(nds, eds, "DELETE_EDGE");
-             return eds;
-           });
-           return nds;
-         });
-       }, 50);
+         const nds = nodesRef.current;
+         const eds = edgesRef.current;
+         emitWorkflowChange(nds, eds);
+         saveToDatabase(nds, eds, "DELETE_EDGE");
+       }, 20);
     }
-  }, [onEdgesChange, emitWorkflowChange, setNodes, setEdges]);
+  }, [onEdgesChange, emitWorkflowChange]);
 
   // Sync activeNodes to node data
   useEffect(() => {
