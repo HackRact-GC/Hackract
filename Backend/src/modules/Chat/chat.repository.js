@@ -244,12 +244,13 @@ export const getUserPresences = async (userIds) => {
 
 // ─── User Search ─────────────────────────────────────────────────────────────
 
-export const searchUsers = async (query, currentUserId) => {
+export const searchUsers = async (query, currentUserId, role) => {
   const hasQuery = query && query.trim().length > 0;
   return prisma.user.findMany({
     where: {
       id: { not: currentUserId },
       status: 'ACTIVE',
+      ...(role ? { roles: { some: { OR: [{ name: role }, { type: role }] } } } : {}),
       ...(hasQuery ? {
         OR: [
           { fullName: { contains: query, mode: 'insensitive' } },
