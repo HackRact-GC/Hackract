@@ -105,7 +105,7 @@ class AuthService {
 
     async assignInitialRole(userId, roleType) {
         // Validate role type
-        if (!['PENTESTER'].includes(roleType)) {
+        if (!['PENTESTER', 'PROJECT_ADMIN'].includes(roleType)) {
             throw new AppError('Invalid role selection', 400);
         }
 
@@ -123,13 +123,20 @@ class AuthService {
             throw new AppError('Role already assigned to this account', 409);
         }
 
+        const roleMeta = {
+            PENTESTER: { name: 'Pentester', description: 'Ethical hacking and security research' },
+            PROJECT_ADMIN: { name: 'Project Admin', description: 'Project/pentest lead with management permissions' },
+        };
+
+        const meta = roleMeta[roleType];
+
         const role = await prisma.role.upsert({
             where: { type: roleType },
             update: {},
             create: {
-                name: 'Pentester',
+                name: meta.name,
                 type: roleType,
-                description: 'Ethical hacking and security research',
+                description: meta.description,
                 permissions: [],
             },
         });

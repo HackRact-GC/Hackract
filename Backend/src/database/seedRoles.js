@@ -8,21 +8,18 @@ async function seedRoles() {
 
     const roles = [
         {
-            name: 'Super Admin',
-            type: 'SUPER_ADMIN',
-            description: 'Full system access with all permissions',
-            permissions: ['*'],
-        },
-        {
             name: 'Organization Admin',
             type: 'ORG_ADMIN',
             description: 'Full access within their organization',
             permissions: [
-                'org:read', 'org:write', 'org:manage', 'org:invite',
+                'org:read', 'org:write', 'org:delete', 'org:manage', 'org:invite',
                 'pentest:read', 'pentest:write', 'pentest:delete', 'pentest:manage',
                 'finding:read', 'finding:write', 'finding:delete', 'finding:verify',
-                'user:read', 'ai:read', 'ai:write', 'ai:manage',
-                'audit:read', 'role:read',
+                'report:read',
+                'user:read', 'user:write', 'user:manage',
+                'ai:read', 'ai:write', 'ai:manage',
+                'audit:read',
+                'role:read', 'role:write', 'role:assign',
             ],
         },
         {
@@ -32,6 +29,7 @@ async function seedRoles() {
             permissions: [
                 'pentest:read', 'pentest:write', 'pentest:manage',
                 'finding:read', 'finding:write', 'finding:delete', 'finding:verify',
+                'report:read', 'report:generate',
                 'ai:read', 'ai:write',
                 'org:read',
                 'user:read',
