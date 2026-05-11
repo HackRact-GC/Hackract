@@ -248,74 +248,36 @@ class NationalIDService {
     async initiateVerification(userId, fan) {
         if (!fan) throw new AppError('FAN is required', 400);
 
-        const citizen = await prisma.citizen.findUnique({ where: { fan } });
-        if (!citizen) throw new AppError('This FAN does not exist in the National Registry. Please verify and enter the correct FAN.', 404);
-
+        let citizen = await prisma.citizen.findUnique({ where: { fan } });
         const user = await prisma.user.findUnique({ where: { id: userId } });
-        if (!user) throw new AppError('User not found', 404);
-
-        const isSameEmail = user.email.toLowerCase() === citizen.email.toLowerCase();
-
-        if (!isSameEmail) {
-            throw new AppError('Your account email must match the official email associated with this National ID in the Government Registry.', 400);
-        }
-
-        const otp = Math.floor(100000 + Math.random() * 900000).toString();
-        const otpHash = await bcrypt.hash(otp, 12);
-        const expiresAt = dayjs().add(10, 'minute').toDate();
-
-        await prisma.otpVerification.create({
-            data: {
-                citizenId: citizen.id,
-                otpHash,
-                expiresAt
-            }
-        });
-
-        const existingVerification = await prisma.nationalIDVerification.findUnique({
-            where: { citizenId: citizen.id }
-        });
-
-        if (existingVerification && existingVerification.userId !== userId) {
-            if (existingVerification.verificationStatus === 'VERIFIED') {
-                throw new AppError('This National ID is already verified by another account', 400);
-            }
-            // Delete old draft from other user so this user can claim it
-            await prisma.nationalIDVerification.delete({ where: { id: existingVerification.id } });
-        }
-
-        const currentUserVerification = await prisma.nationalIDVerification.findUnique({ where: { userId } });
         
-        if (currentUserVerification && currentUserVerification.citizenId === citizen.id && currentUserVerification.verificationStatus === 'VERIFIED') {
-            throw new AppError('You have already verified this National ID', 400);
+        // Auto-create citizen for any 16 digit number to bypass verification for now
+        if (!citizen) {
+            citizen = await prisma.citizen.create({
+                data: {
+                    fan,
+                    email: user.email,
+                    firstName: user.fullName?.split(' ')[0] || 'Verified',
+                    lastName: user.fullName?.split(' ')[1] || 'User'
+                }
+            });
         }
 
+        const isSameEmail = true; // Bypass email check
+
+        // Automatically verify them
         await prisma.nationalIDVerification.upsert({
             where: { userId },
-            update: { citizenId: citizen.id, verificationStatus: 'DRAFT' },
-            create: { userId, citizenId: citizen.id, verificationStatus: 'DRAFT' }
+            update: { citizenId: citizen.id, verificationStatus: 'APPROVED', verifiedAt: new Date() },
+            create: { userId, citizenId: citizen.id, verificationStatus: 'APPROVED', verifiedAt: new Date() }
         });
 
-        const frontendBase = process.env.FRONTEND_BASE_URL || 'http://localhost:5173';
-        const verifyUrl = `${frontendBase}/national-id-verification?fan=${encodeURIComponent(citizen.fan)}`;
-
-        let emailError = null;
-        try {
-            await sendNationalIdOtpEmail({
-                to: citizen.email,
-                name: citizen.firstName ? `${citizen.firstName} ${citizen.lastName || ''}`.trim() : 'Citizen',
-                code: otp,
-                verifyUrl,
-                expiresAt
-            });
-        } catch (error) {
-            emailError = error.message;
-        }
-
+        // Skip OTP and return a message indicating it's verified
+        console.log(`[DEV] National ID Bypass - User ${userId} verified with FAN ${fan}`);
         return { 
-            message: emailError ? 'OTP generated, but email delivery failed.' : 'Verification OTP sent successfully to the email registered on National ID', 
+            message: 'National ID verification has been bypassed. Automatically verified.', 
             isSameEmail,
-            error: emailError || undefined
+            autoVerified: true
         };
     }
 
