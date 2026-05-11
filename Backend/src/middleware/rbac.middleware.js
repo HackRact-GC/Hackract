@@ -13,25 +13,19 @@ export const RoleErrorCodes = {
 };
 
 /**
- * Canonical role model (as per your description)
- * - SUPER_ADMIN: system-wide admin
+ * Canonical role model
  * - ORG_ADMIN: admin of a specific organization (scoped via OrganizationMember role)
  * - PROJECT_ADMIN: admin/lead of a specific pentest project (scoped via Pentest.leadPentesterId)
  * - PENTESTER: normal hacker/user
  */
 export const Roles = Object.freeze({
-    SUPER_ADMIN: 'SUPER_ADMIN',
     ORG_ADMIN: 'ORG_ADMIN',
     PROJECT_ADMIN: 'PROJECT_ADMIN',
     PENTESTER: 'PENTESTER',
 });
 
-const DB_SUPER_ADMIN = 'SUPER_ADMIN';
-
 const normalizeGlobalRoleType = (roleType) => {
-    if (!roleType) return roleType;
-    if (roleType === DB_SUPER_ADMIN) return Roles.SUPER_ADMIN;
-    return roleType;
+    return roleType || null;
 };
 
 const getUserRoleTypes = (user) => {
@@ -68,7 +62,7 @@ export const requireRole = (...allowedRoles) => {
     };
 };
 
-export const requireSystemAdmin = () => requireRole(Roles.SUPER_ADMIN);
+export const requireSystemAdmin = () => requireRole(Roles.ORG_ADMIN);
 
 const getOrganizationIdFromRequest = (req, organizationIdField = 'organizationId') => {
     return (
@@ -81,7 +75,7 @@ const getOrganizationIdFromRequest = (req, organizationIdField = 'organizationId
 /**
  * Require ORG_ADMIN for a specific organization.
  * Implementation: user must be an OrganizationMember with role 'owner' or 'admin'.
- * SUPER_ADMIN always passes.
+ * ORG_ADMIN always passes.
  */
 export const requireOrganizationAdmin = (options = {}) => {
     const { organizationIdField = 'organizationId' } = options;
@@ -92,10 +86,7 @@ export const requireOrganizationAdmin = (options = {}) => {
                 return next(new AppError('Unauthorized', 401, RoleErrorCodes.UNAUTHORIZED));
             }
 
-            // SUPER_ADMIN always passes
-            if (userHasAnyGlobalRole(req.user, Roles.SUPER_ADMIN)) {
-                return next();
-            }
+
 
             const organizationId = getOrganizationIdFromRequest(req, organizationIdField);
             if (!organizationId) {
@@ -139,8 +130,7 @@ const getPentestIdFromRequest = (req, pentestIdField = 'pentestId') => {
 
 /**
  * Require PROJECT_ADMIN for a specific pentest project.
- * Definition (based on your request):
- * - SUPER_ADMIN passes
+ * Definition:
  * - ORG_ADMIN of the pentest's organization passes
  * - The pentest lead (Pentest.leadPentesterId) passes (this is the Project Admin)
  */
@@ -162,10 +152,8 @@ export const requireProjectAdmin = (options = {}) => {
                 );
             }
 
-            // SUPER_ADMIN always passes
-            if (userHasAnyGlobalRole(req.user, Roles.SUPER_ADMIN)) {
-                return next();
-            }
+
+
 
             const pentest = await prisma.pentest.findUnique({
                 where: { id: pentestId },
