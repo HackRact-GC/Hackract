@@ -131,9 +131,8 @@ export const uploadFile = async (req, res, next) => {
     if (!req.file) throw new AppError('No file uploaded', 400);
 
     const file = req.file;
-    // Build a URL for the uploaded file
-    const baseUrl = `${req.protocol}://${req.get('host')}`;
-    const fileUrl = `${baseUrl}/uploads/chat/${file.filename}`;
+    // For S3 uploads, the location is in req.file.location
+    const fileUrl = file.location || '';
 
     ok(res, {
       fileUrl,
