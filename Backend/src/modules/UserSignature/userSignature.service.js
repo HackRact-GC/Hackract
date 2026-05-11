@@ -2,7 +2,7 @@ import userSignatureRepository from './userSignature.repository.js';
 import AppError from '../../utils/AppError.js';
 import { UserSignatureErrorCodes } from './userSignature.constants.js';
 
-export const signAgreement = async (userId, agreementId, ipAddress, userAgent) => {
+export const signAgreement = async (userId, agreementId, ipAddress, userAgent, signatureData) => {
     // Check if already signed
     const alreadySigned = await userSignatureRepository.checkUserSigned(userId, agreementId);
     if (alreadySigned) {
@@ -13,7 +13,8 @@ export const signAgreement = async (userId, agreementId, ipAddress, userAgent) =
         userId,
         agreementId,
         ipAddress,
-        userAgent
+        userAgent,
+        signatureData
     });
 };
 

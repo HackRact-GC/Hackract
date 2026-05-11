@@ -44,7 +44,8 @@ export const createOrganizationSchema = Joi.object({
   timezone: Joi.string().max(100).optional(),
   currency: Joi.string().max(10).optional(),
   registrationNumber: Joi.string().max(100).optional(),
-  taxId: Joi.string().max(100).optional()
+  taxId: Joi.string().max(100).optional(),
+  signatureData: Joi.string().allow('', null).optional()
 });
 
 export const updateOrganizationSchema = Joi.object({
@@ -89,7 +90,8 @@ export const updateOrganizationSchema = Joi.object({
   timezone: Joi.string().max(100).optional(),
   currency: Joi.string().max(10).optional(),
   registrationNumber: Joi.string().max(100).optional(),
-  taxId: Joi.string().max(100).optional()
+  taxId: Joi.string().max(100).optional(),
+  signatureData: Joi.string().allow('', null).optional()
 
 }).min(1).messages({
   'object.min': 'At least one field must be provided for update'

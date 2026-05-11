@@ -81,7 +81,7 @@ export const markRead = async (req, res, next) => {
 
 export const searchUsers = async (req, res, next) => {
   try {
-    const users = await service.searchUsers(req.validated.q, req.user.id);
+    const users = await service.searchUsers(req.validated.q, req.user.id, req.validated.role);
     ok(res, { users });
   } catch (e) { next(e); }
 };

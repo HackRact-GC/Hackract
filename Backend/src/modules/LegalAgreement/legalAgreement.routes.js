@@ -217,7 +217,7 @@ router.get('/', controller.list);
  *         description: Forbidden - Super Admin only
  */
 router.get('/:id', controller.get);
-router.patch('/:id', restrictTo('SUPER_ADMIN'), upload.single('file'), controller.update);
+router.patch('/:id', restrictTo('SUPER_ADMIN', 'ORG_ADMIN'), upload.single('file'), controller.update);
 router.delete('/:id', restrictTo('SUPER_ADMIN'), controller.remove);
 router.post('/:id/notify', restrictTo('SUPER_ADMIN'), controller.notify);
 

@@ -5,7 +5,7 @@ import ConversationItem from './ConversationItem';
 import * as chatApi from '../../api/chatApi';
 import { isOrgUser } from './ChatHelpers';
 
-export default function ChatSidebar({ user, conversations, active, presenceMap, connected, onSelect, loadingConvs, onInvitationSent }) {
+export default function ChatSidebar({ user, conversations, active, presenceMap, connected, onSelect, loadingConvs, onInvitationSent, targetRole }) {
   const isOrg = isOrgUser(user);
   const [sideSearch, setSideSearch] = useState('');
   const [showFind, setShowFind] = useState(false);
@@ -21,7 +21,7 @@ export default function ChatSidebar({ user, conversations, active, presenceMap, 
     const delay = findQuery.trim() ? 300 : 0;
     const t = setTimeout(async () => {
       setFindLoading(true);
-      try { setFindResults(await chatApi.searchUsers(findQuery)); }
+      try { setFindResults(await chatApi.searchUsers(findQuery, targetRole)); }
       catch { setFindResults([]); }
       finally { setFindLoading(false); }
     }, delay);
