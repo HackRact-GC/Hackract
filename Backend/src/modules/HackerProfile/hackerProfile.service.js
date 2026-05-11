@@ -62,11 +62,14 @@ export const upsertMyProfile = async (userId, payload) => {
     update: data,
   });
 
-  // Also update the User's full name if provided in the payload
-  if (payload.fullName) {
+  // Also update the User's full name and avatar if provided in the payload
+  if (payload.fullName || payload.avatar) {
     await prisma.user.update({
       where: { id: userId },
-      data: { fullName: payload.fullName },
+      data: { 
+        ...(payload.fullName && { fullName: payload.fullName }),
+        ...(payload.avatar && { avatar: payload.avatar }),
+      },
     });
   }
 
