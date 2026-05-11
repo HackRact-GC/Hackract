@@ -71,16 +71,19 @@ const EthiopiaIDVerification = () => {
       const rawFan = data.fan.replace(/\s/g, '');
       const result = await NationalIDService.initiateVerification({ fan: rawFan });
       
-      if (result.error) {
-        toast.error(result.error);
+      if (result.autoVerified) {
+        toast.success('Identity Auto-Verified!');
+        fetchStatus();
       } else {
-        toast.success(result.message || 'OTP Sent Successfully!');
+        if (result.error) {
+          toast.error(result.error);
+        } else {
+          toast.success(result.message || 'OTP Sent Successfully!');
+        }
+        
+        setEmailPreview('your official government-registered email');
+        setStep(2);
       }
-      
-      // If we don't know the exact email from the response, just show a generic prompt,
-      // or if backend returns a masked email, use that.
-      setEmailPreview('your official government-registered email');
-      setStep(2);
     } catch (error) {
       toast.error(error.response?.data?.message || 'Initiation failed');
     } finally {
