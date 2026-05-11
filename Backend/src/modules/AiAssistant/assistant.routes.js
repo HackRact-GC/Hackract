@@ -12,7 +12,7 @@ const router = express.Router();
  */
 
 router.use(protect);
-router.use(restrictTo('SUPER_ADMIN')); // Managing assistants is admin only
+router.use(restrictTo('ORG_ADMIN')); // Managing assistants is admin only
 
 /**
  * @swagger

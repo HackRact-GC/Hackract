@@ -17,9 +17,9 @@ router.post('/me/submit', restrictTo('PENTESTER', 'PROJECT_ADMIN'), controller.s
 router.post('/me/sign-agreement', restrictTo('PENTESTER', 'PROJECT_ADMIN'), controller.signAgreement);
 
 // Admin review routes
-router.get('/', restrictTo('SUPER_ADMIN', 'ORG_ADMIN'), controller.listForReview);
-router.post('/:id/approve', restrictTo('SUPER_ADMIN', 'ORG_ADMIN'), controller.approve);
-router.post('/:id/reject', restrictTo('SUPER_ADMIN', 'ORG_ADMIN'), controller.reject);
+router.get('/', restrictTo('ORG_ADMIN'), controller.listForReview);
+router.post('/:id/approve', restrictTo('ORG_ADMIN'), controller.approve);
+router.post('/:id/reject', restrictTo('ORG_ADMIN'), controller.reject);
 
 export default router;
 
