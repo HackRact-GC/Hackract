@@ -7,7 +7,7 @@ import ProjectActivity from "./ProjectActivity.jsx";
 import KickoffChecklist from "./KickoffChecklist.jsx";
 import NdaGate from "./NdaGate.jsx";
 import { useAuth } from "../context/authContext.jsx";
-import { FiDownload, FiExternalLink, FiFileText, FiArrowLeft } from "react-icons/fi";
+import { FiDownload, FiExternalLink, FiFileText, FiArrowLeft, FiCode, FiPrinter } from "react-icons/fi";
 
 const WorkspaceView = ({ projectId, onBack }) => {
   const navigate = useNavigate();
@@ -229,20 +229,71 @@ const WorkspaceView = ({ projectId, onBack }) => {
                     <FiFileText className="text-[#00ff88]" /> Operative Discoveries
                   </h3>
                   {canManage && project.findings?.length > 0 && (
-                    <button
-                      onClick={async () => {
-                        try {
-                          const { data } = await api.get(`/findings/project/${projectId}/report`);
-                          const blob = new Blob([data.data], { type: 'text/markdown' });
-                          const url = window.URL.createObjectURL(blob);
-                          const a = document.createElement('a'); a.href = url; a.download = `Report_${project.id.split('-')[0]}.md`; a.click();
-                          toast.success("Intelligence report exported.");
-                        } catch (e) { toast.error("Export failed."); }
-                      }}
-                      className="px-4 py-2 bg-white/10 hover:bg-[#00ff88] text-white/60 hover:text-black border border-white/10 hover:border-[#00ff88] rounded-xl text-[9px] font-black uppercase tracking-widest transition-all flex items-center gap-2"
-                    >
-                      <FiDownload /> Export MD Report
-                    </button>
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={async () => {
+                          try {
+                            const { data } = await api.get(`/findings/project/${projectId}/report`);
+                            const blob = new Blob([data.data], { type: 'text/markdown' });
+                            const url = window.URL.createObjectURL(blob);
+                            const a = document.createElement('a'); a.href = url; a.download = `Report_${project.id.split('-')[0]}.md`; a.click();
+                            toast.success("MD report exported.");
+                          } catch (e) { toast.error("Export failed."); }
+                        }}
+                        className="px-4 py-2 bg-white/10 hover:bg-[#00ff88] text-white/60 hover:text-black border border-white/10 hover:border-[#00ff88] rounded-xl text-[9px] font-black uppercase tracking-widest transition-all flex items-center gap-2"
+                      >
+                        <FiDownload /> MD
+                      </button>
+                      <button
+                        onClick={async () => {
+                          try {
+                            const { data } = await api.get(`/findings/project/${projectId}/report?format=json`);
+                            const blob = new Blob([JSON.stringify(data.data, null, 2)], { type: 'application/json' });
+                            const url = window.URL.createObjectURL(blob);
+                            const a = document.createElement('a'); a.href = url; a.download = `Report_${project.id.split('-')[0]}.json`; a.click();
+                            toast.success("JSON report exported.");
+                          } catch (e) { toast.error("Export failed."); }
+                        }}
+                        className="px-4 py-2 bg-white/10 hover:bg-[#00ff88] text-white/60 hover:text-black border border-white/10 hover:border-[#00ff88] rounded-xl text-[9px] font-black uppercase tracking-widest transition-all flex items-center gap-2"
+                      >
+                        <FiCode /> JSON
+                      </button>
+                      <button
+                        onClick={async () => {
+                          try {
+                            const { data } = await api.get(`/findings/project/${projectId}/report`);
+                            const newWindow = window.open('', '_blank');
+                            newWindow.document.write(`
+                              <html>
+                                <head>
+                                  <title>Security Assessment Report</title>
+                                  <style>
+                                    body { font-family: sans-serif; line-height: 1.6; color: #333; padding: 2rem; max-width: 800px; margin: 0 auto; }
+                                    pre { background: #f4f4f4; padding: 1rem; border-radius: 4px; white-space: pre-wrap; font-family: monospace; }
+                                    h1, h2, h3 { color: #111; }
+                                    table { width: 100%; border-collapse: collapse; margin-bottom: 1rem; }
+                                    th, td { padding: 8px; border: 1px solid #ddd; text-align: left; }
+                                    th { background: #f4f4f4; }
+                                  </style>
+                                </head>
+                                <body>
+                                  <pre>${data.data}</pre>
+                                </body>
+                              </html>
+                            `);
+                            newWindow.document.close();
+                            newWindow.focus();
+                            setTimeout(() => {
+                                newWindow.print();
+                                newWindow.close();
+                            }, 500);
+                          } catch (e) { toast.error("Export failed."); }
+                        }}
+                        className="px-4 py-2 bg-white/10 hover:bg-[#00ff88] text-white/60 hover:text-black border border-white/10 hover:border-[#00ff88] rounded-xl text-[9px] font-black uppercase tracking-widest transition-all flex items-center gap-2"
+                      >
+                        <FiPrinter /> PDF
+                      </button>
+                    </div>
                   )}
                 </div>
 
