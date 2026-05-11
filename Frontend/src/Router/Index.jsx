@@ -44,7 +44,8 @@ import HackerOnboarding from "../pages/Onboarding/HackerOnboarding.jsx";
 import OrgOnboarding from "../pages/Onboarding/OrgOnboarding.jsx";
 
 // Chat
-import Chat from "../pages/Chat.jsx";
+import HackerChat from "../pages/HackerChat.jsx";
+import OrganizationChat from "../pages/OrganizationChat.jsx";
 
 // Phase 18 Admin Imports
 import ApprovalsDashboard from "../pages/Admin/ApprovalsDashboard.jsx";
@@ -116,8 +117,8 @@ const router = createBrowserRouter([
             element: <MyApplications />,
           },
           {
-            path: "chat",
-            element: <Chat />,
+            path: "messages",
+            element: <HackerChat />,
           },
           {
             path: "admin-dashboard",
@@ -171,8 +172,8 @@ const router = createBrowserRouter([
             element: <OrganizationLegal />,
           },
           {
-            path: "chat",
-            element: <Chat />,
+            path: "org-messages",
+            element: <OrganizationChat />,
           },
         ],
       },
