@@ -45,12 +45,9 @@ import OrgOnboarding from "../pages/Onboarding/OrgOnboarding.jsx";
 // Chat
 import HackerChat from "../pages/HackerChat.jsx";
 import OrganizationChat from "../pages/OrganizationChat.jsx";
-<<<<<<< HEAD
-
 // Agreement Execute
 import AgreementExecute from "../pages/AgreementExecute.jsx";
-=======
->>>>>>> bc120f13ee85627f500284fd3c6e8c231a80e1b8
+import LegalAgreementCreate from "../pages/LegalAgreementCreate.jsx";
 
 // Phase 18 Admin Imports
 import ApprovalsDashboard from "../pages/Admin/ApprovalsDashboard.jsx";
@@ -174,7 +171,7 @@ const router = createBrowserRouter([
           },
           {
             path: "legal",
-            element: <OrganizationLegal />,
+            element: <LegalAgreementCreate />,
           },
           {
             path: "org-messages",

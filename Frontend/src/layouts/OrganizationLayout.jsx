@@ -22,10 +22,7 @@ const OrganizationLayout = () => {
     { icon: FiBriefcase,      label: 'PROJECTS',  route: '/org-projects' },
     { icon: FiGlobe,          label: 'DISCOVER',  route: '/discover' },
     { icon: FiMessageSquare,  label: 'MESSAGES',  route: '/org-messages' },
-<<<<<<< HEAD
     { icon: FiPenTool,        label: 'AGREEMENTS',route: '/execute-agreement' },
-=======
->>>>>>> bc120f13ee85627f500284fd3c6e8c231a80e1b8
     { icon: FiShield,         label: 'LEGAL',     route: '/legal' },
     { icon: FiSettings,       label: 'SETTINGS',  route: '/organization-profile' },
     { icon: FiFileText,       label: 'REPORTS',   route: '/reports' },
