@@ -471,6 +471,7 @@ const Landing = () => {
     src="../../canva.png"
     alt="Canva preview"
     style={{ width: "100%", height: "auto", display: "block" }}
+    className="rounded-[30px] border-[0.5px] border-[#00ff90]"
   />
 </div>
       </section>
