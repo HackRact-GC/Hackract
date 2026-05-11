@@ -4,7 +4,7 @@ import { useAuth } from '../context/authContext.jsx';
 import {
   FiGrid, FiBriefcase, FiGlobe, FiShield, FiSettings,
   FiFileText, FiBell, FiChevronDown, FiPlus, FiCpu,
-  FiActivity, FiTarget, FiZap, FiLogOut, FiMessageSquare
+  FiActivity, FiTarget, FiZap, FiLogOut, FiMessageSquare, FiPenTool
 } from 'react-icons/fi';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -22,7 +22,7 @@ const OrganizationLayout = () => {
     { icon: FiBriefcase,      label: 'PROJECTS',  route: '/org-projects' },
     { icon: FiGlobe,          label: 'DISCOVER',  route: '/discover' },
     { icon: FiMessageSquare,  label: 'MESSAGES',  route: '/chat' },
-    { icon: FiShield,         label: 'LEGAL',     route: '/legal' },
+    { icon: FiPenTool,        label: 'AGREEMENTS',route: '/execute-agreement' },
     { icon: FiSettings,       label: 'SETTINGS',  route: '/organization-profile' },
     { icon: FiFileText,       label: 'REPORTS',   route: '/reports' },
   ];

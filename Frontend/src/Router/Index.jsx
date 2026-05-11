@@ -30,7 +30,6 @@ import Reports from "../pages/Reports.jsx";
 import OrganizationDiscover from "../pages/OrganizationDiscover.jsx";
 import HackerPublicProfile from "../pages/HackerPublicProfile.jsx";
 import OrganizationProjects from "../pages/OrganizationProjects.jsx";
-import OrganizationLegal from "../pages/OrganizationLegal.jsx";
 import OrganizationProjectWorkspace from "../pages/OrganizationProjectWorkspace.jsx";
 
 // Phase 2 Marketplace Imports
@@ -45,6 +44,9 @@ import OrgOnboarding from "../pages/Onboarding/OrgOnboarding.jsx";
 
 // Chat
 import Chat from "../pages/Chat.jsx";
+
+// Agreement Execute
+import AgreementExecute from "../pages/AgreementExecute.jsx";
 
 // Phase 18 Admin Imports
 import ApprovalsDashboard from "../pages/Admin/ApprovalsDashboard.jsx";
@@ -167,10 +169,6 @@ const router = createBrowserRouter([
             element: <OrganizationProfile />,
           },
           {
-            path: "legal",
-            element: <OrganizationLegal />,
-          },
-          {
             path: "chat",
             element: <Chat />,
           },
@@ -209,6 +207,14 @@ const router = createBrowserRouter([
       {
         path: "workflows/:workflowId",
         element: <OnboardingGuard><WorkflowEditor /></OnboardingGuard>,
+      },
+      {
+        path: "execute-agreement",
+        element: <OnboardingGuard><AgreementExecute /></OnboardingGuard>,
+      },
+      {
+        path: "execute-agreement/:id",
+        element: <OnboardingGuard><AgreementExecute /></OnboardingGuard>,
       },
       {
         element: <AuthLayout />,

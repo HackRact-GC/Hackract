@@ -99,10 +99,11 @@ model User {
   refreshTokens           RefreshToken[]
   workflowHistories       WorkflowHistory[]
   findingComments         FindingComment[]
-  transactions            Transaction[]
-  wallet                  Wallet?
-  reviewsGiven            Review[]                 @relation("ReviewAuthor")
+   transactions            Transaction[]
+  reviewsCreated          Review[]                 @relation("ReviewAuthor")
   reviewsReceived         Review[]                 @relation("ReviewSubject")
+
+  wallet                  Wallet?
 
   // Hacker profile (for PENTESTER users)
   hackerProfile          HackerProfile?
@@ -217,6 +218,7 @@ model Organization {
   // Legal / Tax Info
   registrationNumber String?
   taxId              String?
+  signatureData      String? @db.Text
 
   // Relations
   members   OrganizationMember[]
@@ -409,9 +411,10 @@ model UserSignature {
   agreementId String
 
   // Metadata
-  ipAddress String?
-  userAgent String?
-  signedAt  DateTime @default(now())
+  ipAddress     String?
+  userAgent     String?
+  signatureData String?
+  signedAt      DateTime @default(now())
 
   @@unique([userId, agreementId])
   @@index([userId])
