@@ -3,6 +3,8 @@ import { useNavigate } from "react-router-dom";
 import api from "../api/axiosConfig";
 import { motion, AnimatePresence } from "framer-motion";
 import SignaturePad from "../components/SignaturePad";
+import { uploadFile } from "../api/uploadService.js";
+import toast from "react-hot-toast";
 
 // ─── Icons ───────────────────────────────────────────────────────────────────
 const Icons = {
@@ -243,12 +245,33 @@ const OrganizationProfile = () => {
     setForm((p) => ({ ...p, [name]: value }));
   };
 
-  const handleLogoChange = (e) => {
+  const handleLogoChange = async (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
+
+    // 1. Show immediate preview
     const reader = new FileReader();
     reader.onload = (ev) => setLogoPreview(ev.target.result);
     reader.readAsDataURL(file);
+
+    // 2. Upload to S3
+    try {
+      if (!organizationId) {
+        toast.error("Please save the organization profile first before uploading a logo.");
+        return;
+      }
+
+      const uploadToast = toast.loading("Uploading entity manifest logo...");
+      const s3Url = await uploadFile(file, 'org-logos');
+
+      // 3. Update organization with the new URL
+      await api.patch(`/organizations/${organizationId}`, { logoUrl: s3Url });
+
+      toast.success("Logo synchronized successfully", { id: uploadToast });
+    } catch (err) {
+      toast.error("Logo transmission failed.");
+      console.error("Logo upload error:", err);
+    }
   };
 
   const handleSubmit = async (e) => {

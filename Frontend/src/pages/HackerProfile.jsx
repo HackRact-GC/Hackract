@@ -5,6 +5,7 @@ import api from "../api/axiosConfig";
 import { useAuth } from "../context/authContext.jsx";
 import toast from "react-hot-toast";
 import NationalIDService from "../services/nationalID.service.js";
+import { uploadFile } from "../api/uploadService.js";
 
 const HackerProfile = () => {
   const { user, refreshUser } = useAuth();
@@ -81,12 +82,30 @@ const HackerProfile = () => {
     fetchProfile();
   }, []);
 
-  const handleLogoChange = (event) => {
+  const handleLogoChange = async (event) => {
     const file = event.target.files?.[0];
     if (!file) return;
+
+    // 1. Show immediate local preview
     const reader = new FileReader();
     reader.onloadend = () => setLogoPreview(reader.result);
     reader.readAsDataURL(file);
+
+    // 2. Upload to S3
+    try {
+      const uploadToast = toast.loading("Syncing avatar to secure storage...");
+      const s3Url = await uploadFile(file, 'avatars');
+      
+      // 3. Update profile with the new URL
+      // We pass the avatar URL to the upsert endpoint which we just updated to handle it
+      await api.put("/hacker-profiles/me", { avatar: s3Url });
+      
+      toast.success("Avatar secured successfully", { id: uploadToast });
+      if (refreshUser) await refreshUser();
+    } catch (error) {
+      toast.error("File transmission failed. Ensure S3 is configured.");
+      console.error("Avatar upload error:", error);
+    }
   };
 
   const toggleEdit = (section) => {
