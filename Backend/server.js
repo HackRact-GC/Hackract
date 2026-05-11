@@ -58,7 +58,7 @@ const startServer = async () => {
       socketToUser.set(socket.id, userId);
 
       // Persist to DB
-      upsertUserPresence(userId, true, socket.id).catch(() => {});
+      upsertUserPresence(userId, true, socket.id).catch(() => { });
 
       // Join personal room so we can DM this socket
       socket.join(`user:${userId}`);
@@ -99,7 +99,6 @@ const startServer = async () => {
     socket.on("node-focus", (data) => {
       socket.to(data.workflowId).emit("node-focused", { ...data, socketId: socket.id });
     });
-
 
     // Handle history relay
     socket.on("history-event", (data) => {
@@ -191,7 +190,7 @@ const startServer = async () => {
         setTimeout(async () => {
           // Only mark offline if no new socket for same user registered
           if (!onlineUsers.has(userId)) {
-            await upsertUserPresence(userId, false).catch(() => {});
+            await upsertUserPresence(userId, false).catch(() => { });
             io.emit("chat:presence-update", { userId, isOnline: false, lastSeenAt: new Date().toISOString() });
           }
         }, 5000);
