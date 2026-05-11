@@ -45,8 +45,8 @@ export const markRead = (conversationId) =>
 
 // ─── User Search ────────────────────────────────────────────────────────────
 
-export const searchUsers = (q) =>
-  api.get(`${BASE}/users/search`, { params: { q } }).then((r) => r.data.data.users);
+export const searchUsers = (q, role) =>
+  api.get(`${BASE}/users/search`, { params: { q, role } }).then((r) => r.data.data.users);
 
 // ─── Participants ────────────────────────────────────────────────────────────
 

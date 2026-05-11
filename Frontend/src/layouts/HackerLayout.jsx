@@ -15,6 +15,7 @@ import {
   FiX,
   FiLogOut,
   FiShield,
+  FiPenTool,
 } from 'react-icons/fi';
 
 const HackerLayout = () => {
@@ -35,9 +36,10 @@ const HackerLayout = () => {
     { icon: FiGrid,          label: 'Dashboard',   route: '/hacker-dashboard' },
     { icon: FiFolder,        label: 'Projects',    route: '/projects' },
     { icon: FiShoppingBag,   label: 'Engagements', route: '/engagements' },
-    { icon: FiMessageSquare, label: 'Messages',    route: '/chat' },
+    { icon: FiMessageSquare, label: 'Messages',    route: '/messages' },
     { icon: FiFileText,      label: 'Reports',     route: '/my-applications' },
     { icon: FiSettings,      label: 'Settings',    route: '/hacker-profile' },
+    { icon: FiPenTool,       label: 'Legal Agreement', route: '/execute-agreement' },
   ];
 
   if (user?.role === 'PROJECT_ADMIN') {
@@ -102,11 +104,10 @@ const HackerLayout = () => {
               <button
                 key={item.route}
                 onClick={() => { navigate(item.route); setIsMobileMenuOpen(false); }}
-                className={`w-full flex items-center space-x-3 px-3 py-3 rounded-lg transition-colors text-left ${
-                  isActive(item.route)
+                className={`w-full flex items-center space-x-3 px-3 py-3 rounded-lg transition-colors text-left ${isActive(item.route)
                     ? 'bg-[#00c477]/10 text-[#00c477] border-l-2 border-[#00c477]'
                     : 'text-gray-400 hover:bg-white/5 hover:text-white'
-                }`}
+                  }`}
               >
                 <item.icon className={isActive(item.route) ? 'text-[#00c477]' : ''} />
                 <span className="font-medium">{item.label}</span>

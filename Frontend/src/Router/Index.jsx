@@ -22,6 +22,7 @@ import EthiopiaIDVerification from "../pages/EthiopiaIDVerification.jsx";
 import Projects from "../pages/Projects.jsx";
 import ProjectWorkspace from "../pages/ProjectWorkspace.jsx";
 import FindingDetails from "../pages/FindingDetails.jsx";
+import VulnerabilityFindings from "../pages/vulnerabilityFinding.jsx";
 import HackerLayout from "../layouts/HackerLayout.jsx";
 import OrganizationLayout from "../layouts/OrganizationLayout.jsx";
 import OrganizationDashboard from "../pages/OrganizationDashboard.jsx";
@@ -29,7 +30,6 @@ import Reports from "../pages/Reports.jsx";
 import OrganizationDiscover from "../pages/OrganizationDiscover.jsx";
 import HackerPublicProfile from "../pages/HackerPublicProfile.jsx";
 import OrganizationProjects from "../pages/OrganizationProjects.jsx";
-import OrganizationLegal from "../pages/OrganizationLegal.jsx";
 import OrganizationProjectWorkspace from "../pages/OrganizationProjectWorkspace.jsx";
 
 // Phase 2 Marketplace Imports
@@ -43,7 +43,11 @@ import HackerOnboarding from "../pages/Onboarding/HackerOnboarding.jsx";
 import OrgOnboarding from "../pages/Onboarding/OrgOnboarding.jsx";
 
 // Chat
-import Chat from "../pages/Chat.jsx";
+import HackerChat from "../pages/HackerChat.jsx";
+import OrganizationChat from "../pages/OrganizationChat.jsx";
+// Agreement Execute
+import AgreementExecute from "../pages/AgreementExecute.jsx";
+import LegalAgreementCreate from "../pages/LegalAgreementCreate.jsx";
 
 // Phase 18 Admin Imports
 import ApprovalsDashboard from "../pages/Admin/ApprovalsDashboard.jsx";
@@ -103,6 +107,10 @@ const router = createBrowserRouter([
             element: <FindingDetails />,
           },
           {
+            path: "findings",
+            element: <VulnerabilityFindings />,
+          },
+          {
             path: "engagements",
             element: <EngagementBoard />,
           },
@@ -111,8 +119,8 @@ const router = createBrowserRouter([
             element: <MyApplications />,
           },
           {
-            path: "chat",
-            element: <Chat />,
+            path: "messages",
+            element: <HackerChat />,
           },
           {
             path: "admin-dashboard",
@@ -132,6 +140,10 @@ const router = createBrowserRouter([
           {
             path: "dashboard",
             element: <OrganizationDashboard />,
+          },
+          {
+            path: "findings",
+            element: <VulnerabilityFindings />,
           },
           {
             path: "org-projects",
@@ -159,11 +171,11 @@ const router = createBrowserRouter([
           },
           {
             path: "legal",
-            element: <OrganizationLegal />,
+            element: <LegalAgreementCreate />,
           },
           {
-            path: "chat",
-            element: <Chat />,
+            path: "org-messages",
+            element: <OrganizationChat />,
           },
         ],
       },
@@ -200,6 +212,14 @@ const router = createBrowserRouter([
       {
         path: "workflows/:workflowId",
         element: <OnboardingGuard><WorkflowEditor /></OnboardingGuard>,
+      },
+      {
+        path: "execute-agreement",
+        element: <OnboardingGuard><AgreementExecute /></OnboardingGuard>,
+      },
+      {
+        path: "execute-agreement/:id",
+        element: <OnboardingGuard><AgreementExecute /></OnboardingGuard>,
       },
       {
         element: <AuthLayout />,

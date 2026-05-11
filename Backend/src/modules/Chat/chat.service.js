@@ -67,8 +67,8 @@ export const markRead = async (conversationId, userId) => {
 
 // ─── User Search ────────────────────────────────────────────────────────────
 
-export const searchUsers = async (query, currentUserId) => {
-  return repo.searchUsers(query, currentUserId);
+export const searchUsers = async (query, currentUserId, role) => {
+  return repo.searchUsers(query, currentUserId, role);
 };
 
 // ─── Participant Management ──────────────────────────────────────────────────

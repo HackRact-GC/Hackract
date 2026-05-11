@@ -58,7 +58,7 @@ const startServer = async () => {
       socketToUser.set(socket.id, userId);
 
       // Persist to DB
-      upsertUserPresence(userId, true, socket.id).catch(() => {});
+      upsertUserPresence(userId, true, socket.id).catch(() => { });
 
       // Join personal room so we can DM this socket
       socket.join(`user:${userId}`);
@@ -100,8 +100,13 @@ const startServer = async () => {
       socket.to(data.workflowId).emit("node-focused", { ...data, socketId: socket.id });
     });
 
+    // Handle history relay
+    socket.on("history-event", (data) => {
+      // data: { workflowId, record: { message, action, createdAt, user } }
+      socket.to(data.workflowId).emit("history-event", data.record);
+    });
 
-    const handleWorkflowLeave = (workflowId) => {
+    const handleLeave = (workflowId) => {
       if (workflowUsers[workflowId]) {
         delete workflowUsers[workflowId][socket.id];
         if (Object.keys(workflowUsers[workflowId]).length === 0) {
@@ -113,12 +118,7 @@ const startServer = async () => {
     };
 
     socket.on("leave-workflow", (workflowId) => {
-      handleWorkflowLeave(workflowId);
-    });
-
-    // Handle history relay
-    socket.on("history-event", (data) => {
-      socket.to(data.workflowId).emit("history-event", data.record);
+      handleLeave(workflowId);
     });
 
     // ── CHAT EVENTS ─────────────────────────────────────────────────────────
@@ -167,7 +167,7 @@ const startServer = async () => {
     socket.on("disconnecting", () => {
       for (const room of socket.rooms) {
         if (room !== socket.id && !room.startsWith("user:") && !room.startsWith("conv:")) {
-          handleWorkflowLeave(room);
+          handleLeave(room);
         }
         if (room.startsWith("conv:")) {
           const convId = room.replace("conv:", "");
@@ -190,7 +190,7 @@ const startServer = async () => {
         setTimeout(async () => {
           // Only mark offline if no new socket for same user registered
           if (!onlineUsers.has(userId)) {
-            await upsertUserPresence(userId, false).catch(() => {});
+            await upsertUserPresence(userId, false).catch(() => { });
             io.emit("chat:presence-update", { userId, isOnline: false, lastSeenAt: new Date().toISOString() });
           }
         }, 5000);
