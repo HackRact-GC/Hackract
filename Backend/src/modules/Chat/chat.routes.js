@@ -19,39 +19,7 @@ import {
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// Configure multer for chat file uploads
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    const uploadDir = path.join(__dirname, '../../../uploads/chat');
-    cb(null, uploadDir);
-  },
-  filename: (req, file, cb) => {
-    const uniqueSuffix = `${Date.now()}-${Math.round(Math.random() * 1e9)}`;
-    const ext = path.extname(file.originalname);
-    cb(null, `${uniqueSuffix}${ext}`);
-  },
-});
-
-const upload = multer({
-  storage,
-  limits: { fileSize: 50 * 1024 * 1024 }, // 50MB max
-  fileFilter: (req, file, cb) => {
-    // Allow images, videos, audio, documents
-    const allowed = [
-      'image/', 'video/', 'audio/',
-      'application/pdf',
-      'application/msword',
-      'application/vnd.openxmlformats-officedocument',
-      'application/vnd.ms-excel',
-      'application/zip',
-      'application/x-rar-compressed',
-      'text/plain',
-      'text/csv',
-    ];
-    const isAllowed = allowed.some((t) => file.mimetype.startsWith(t));
-    cb(null, isAllowed);
-  },
-});
+import { s3Upload, isS3Configured } from '../../utils/s3Upload.js';
 
 const router = express.Router();
 
@@ -88,7 +56,7 @@ router.use(validateLocal);
  *       200:
  *         description: File uploaded successfully
  */
-router.post('/upload', upload.single('file'), controller.uploadFile);
+router.post('/upload', s3Upload.single('file'), controller.uploadFile);
 
 // ─── Conversations ──────────────────────────────────────────────────────────
 
