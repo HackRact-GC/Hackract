@@ -137,7 +137,6 @@ const HackerVerification = () => {
                       onChange={(e) => setFormData({...formData, idDocumentNumber: e.target.value})}
                       className="w-full bg-black/40 border border-white/10 rounded-lg px-4 py-2.5 focus:outline-none focus:border-[#00c477] transition-colors"
                       placeholder="e.g. A12345678"
-                      required
                     />
                     <div className="mt-2">
                       <button 

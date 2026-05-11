@@ -117,6 +117,14 @@ model User {
   sentInvitations    ChatInvitation[]         @relation("InvitationSender")
   receivedInvitations ChatInvitation[]        @relation("InvitationReceiver")
 
+  // Project Invitations
+  sentProjectInvitations     ProjectInvitation[] @relation("ProjectInvitationSender")
+  receivedProjectInvitations ProjectInvitation[] @relation("ProjectInvitationReceiver")
+
+  // Project Agreements
+  projectAgreementAcceptances ProjectAgreementAcceptance[] @relation("ProjectAgreementSignatures")
+  createdProjectAgreements    ProjectAgreement[]
+
   // Timestamps
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -271,11 +279,14 @@ model Pentest {
   leadPentester   User?   @relation("LeadPentester", fields: [leadPentesterId], references: [id])
   leadPentesterId String?
 
-  collaborators PentestCollaborator[]
-  findings      Finding[]
-  aiAgents      AiAgent[]             @relation("PentestAiAgent")
-  auditLogs     AuditLog[] // Added opposite relation
-  workflows     Workflow[]
+  collaborators       PentestCollaborator[]
+  findings            Finding[]
+  aiAgents            AiAgent[]             @relation("PentestAiAgent")
+  auditLogs           AuditLog[] // Added opposite relation
+  workflows           Workflow[]
+  projectInvitations  ProjectInvitation[]
+  projectAgreements   ProjectAgreement[]
+  projectAgreementAcceptances ProjectAgreementAcceptance[]
 
   // Timestamps
   createdAt DateTime @default(now())
@@ -746,6 +757,14 @@ enum InvitationStatus {
   DECLINED
 }
 
+enum ProjectInvitationStatus {
+  PENDING
+  ACCEPTED
+  REJECTED
+  REVOKED
+  EXPIRED
+}
+
 model Conversation {
   id          String           @id @default(uuid())
   type        ConversationType @default(DIRECT)
@@ -872,4 +891,88 @@ model UserPresence {
   updatedAt DateTime @updatedAt
 
   @@index([isOnline])
+}
+
+// =====================================
+// PROJECT INVITATION
+// =====================================
+model ProjectInvitation {
+  id      String                  @id @default(uuid())
+  status  ProjectInvitationStatus @default(PENDING)
+  message String?
+
+  // Relations
+  pentest   Pentest @relation(fields: [pentestId], references: [id], onDelete: Cascade)
+  pentestId String
+
+  hacker   User   @relation("ProjectInvitationReceiver", fields: [hackerId], references: [id])
+  hackerId String
+
+  invitedBy   User   @relation("ProjectInvitationSender", fields: [invitedById], references: [id])
+  invitedById String
+
+  // Lifecycle
+  expiresAt   DateTime?
+  respondedAt DateTime?
+
+  // Timestamps
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([pentestId])
+  @@index([hackerId])
+  @@index([invitedById])
+  @@index([status])
+}
+
+// =====================================
+// ProjectAgreement (Phase 2)
+// =====================================
+model ProjectAgreement {
+  id              String   @id @default(uuid())
+  pentestId       String
+  version         Int
+  title           String
+  body            String
+  scopeSummary    String?
+  allowedActions  String?
+  confidentiality String?
+  legalLiability  String?
+  isActive        Boolean  @default(true)
+  createdById     String
+  
+  // Relations
+  pentest         Pentest  @relation(fields: [pentestId], references: [id], onDelete: Cascade)
+  createdBy       User     @relation(fields: [createdById], references: [id])
+  acceptances     ProjectAgreementAcceptance[]
+
+  createdAt       DateTime @default(now())
+
+  @@unique([pentestId, version])
+}
+
+// =====================================
+// ProjectAgreementAcceptance (Phase 2)
+// =====================================
+model ProjectAgreementAcceptance {
+  id              String   @id @default(uuid())
+  agreementId     String
+  hackerId        String
+  pentestId       String
+  version         Int
+  status          String   @default("PENDING") // PENDING, SIGNED, REJECTED
+  
+  ipAddress       String?
+  userAgent       String?
+  signedAt        DateTime?
+  signatureData   String?  // Canvas Base64 data for the digital signature
+  createdAt       DateTime @default(now())
+
+  // Relations
+  agreement       ProjectAgreement @relation(fields: [agreementId], references: [id])
+  hacker          User             @relation("ProjectAgreementSignatures", fields: [hackerId], references: [id])
+  pentest         Pentest          @relation(fields: [pentestId], references: [id])
+
+  @@unique([agreementId, hackerId])
+  @@index([pentestId, hackerId])
 }
