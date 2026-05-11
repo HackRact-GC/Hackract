@@ -70,6 +70,8 @@ const buildMessage = (action, details = {}) => {
     GRAPH_CHANGED:  `Updated the canvas`,
     AGENT_RAN:      `Ran the "${details.agentName || 'AI'}" agent`,
     TERMINAL_EXEC:  `Executed command in Terminal`,
+    CREATE_CHECKPOINT: `Saved a version checkpoint`,
+    RESTORE_CHECKPOINT: `Restored to a previous version`,
   };
 
   return messages[action] || action.replace(/_/g, ' ').toLowerCase();
@@ -306,7 +308,7 @@ const WorkflowEditor = ({ workflowId: propWorkflowId }) => {
   }, [workflowId, setNodes, setEdges]);
 
   // Helper to save structural changes to DB History
-  const saveToDatabase = async (currentNodes, currentEdges, action = "GRAPH_CHANGED", meta = {}) => {
+  const saveToDatabase = async (currentNodes, currentEdges, action = "GRAPH_CHANGED", meta = {}, isSnapshot = false) => {
     const tempId = `temp-${Date.now()}`;
     const message = buildMessage(action, meta);
     const details = {
@@ -321,6 +323,8 @@ const WorkflowEditor = ({ workflowId: propWorkflowId }) => {
       action,
       message,
       details,
+      isSnapshot,
+      snapshot: isSnapshot ? { nodes: currentNodes, edges: currentEdges } : undefined,
       createdAt: new Date().toISOString(),
       userId: localUser.id,
       user: { fullName: localUser.name, id: localUser.id },
@@ -336,7 +340,9 @@ const WorkflowEditor = ({ workflowId: propWorkflowId }) => {
       const record = await workflowService.recordWorkflowHistory(workflowId, {
         action,
         message,
-        details
+        details,
+        isSnapshot,
+        snapshot: isSnapshot ? { nodes: currentNodes, edges: currentEdges } : undefined
       });
 
       if (record) {
@@ -354,9 +360,15 @@ const WorkflowEditor = ({ workflowId: propWorkflowId }) => {
       setLastSaved(new Date());
     } catch (err) {
       console.error("[HISTORY][ERROR] Failed to save changes", err);
-      toast.error("Cloud sync failed. History may be delayed.");
     }
   };
+
+  const createCheckpoint = useCallback(() => {
+    const currentNodes = nodesRef.current;
+    const currentEdges = edgesRef.current;
+    saveToDatabase(currentNodes, currentEdges, "CREATE_CHECKPOINT", { label: "User created a manual checkpoint" }, true);
+  }, []);
+
 
   // Delete Node Handler
   const deleteNode = useCallback((id) => {
@@ -425,6 +437,29 @@ const WorkflowEditor = ({ workflowId: propWorkflowId }) => {
     emitWorkflowChange(newNodes, currentEdges);
     saveToDatabase(newNodes, currentEdges, "LINK_FINDING", { nodeId: id, findingId });
   }, [emitWorkflowChange, setNodes]);
+
+  const restoreCheckpoint = useCallback((snapshot) => {
+    if (!snapshot || !snapshot.nodes || !snapshot.edges) return;
+    
+    // Restore node behavior functions
+    const restoredNodes = snapshot.nodes.map(node => ({
+      ...node,
+      data: {
+        ...node.data,
+        onDelete: () => deleteNode(node.id),
+        onTitleChange: (newTitle) => updateNodeTitle(node.id, newTitle),
+        onLinkFinding: (findingId) => linkFinding(node.id, findingId),
+        findings,
+        activeUsers: activeNodes[node.id] || {}
+      }
+    }));
+    
+    setNodes(restoredNodes);
+    setEdges(snapshot.edges);
+    
+    emitWorkflowChange(restoredNodes, snapshot.edges);
+    saveToDatabase(restoredNodes, snapshot.edges, "RESTORE_CHECKPOINT", { label: "Reverted to a previous version" });
+  }, [deleteNode, updateNodeTitle, linkFinding, findings, activeNodes, setNodes, setEdges, emitWorkflowChange]);
 
   // Core Add Node Function
   const addNode = useCallback((type, position) => {
@@ -796,19 +831,21 @@ const WorkflowEditor = ({ workflowId: propWorkflowId }) => {
               />
             </ReactFlow>
           </ReactFlowProvider>
+          <HistorySidebar 
+            workflowId={workflowId} 
+            isOpen={isHistoryOpen} 
+            onClose={() => setIsHistoryOpen(false)}
+            liveEvents={liveHistoryEvents}
+            localUser={localUser}
+            onCreateCheckpoint={createCheckpoint}
+            onRestore={restoreCheckpoint}
+          />
         </div>
-
-        <HistorySidebar
-          isOpen={isHistoryOpen}
-          onClose={() => setIsHistoryOpen(false)}
-          workflowId={workflowId}
-          liveEvents={liveHistoryEvents}
-          localUser={localUser}
-        />
       </div>
     </div>
   );
 };
 
-
 export default WorkflowEditor;
+
+
