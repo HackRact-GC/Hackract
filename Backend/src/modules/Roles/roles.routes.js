@@ -12,7 +12,7 @@ const router = express.Router();
  */
 
 router.use(protect);
-router.use(restrictTo('SUPER_ADMIN')); // Only super admins can manage roles
+router.use(restrictTo('ORG_ADMIN')); // Only org admins can manage roles
 
 /**
  * @swagger

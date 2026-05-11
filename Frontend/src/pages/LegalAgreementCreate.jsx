@@ -17,7 +17,7 @@ const LegalAgreementCreate = () => {
   const { user } = useAuth();
 
   const roleType = user?.roles?.[0]?.type;
-  const isSuperAdmin = roleType === "SUPER_ADMIN";
+  const isOrgAdmin = roleType === "ORG_ADMIN";
 
   const [submitting, setSubmitting] = useState(false);
 
@@ -30,8 +30,8 @@ const LegalAgreementCreate = () => {
   const [preview, setPreview] = useState("");
 
   const canSubmit = useMemo(() => {
-    return Boolean(isSuperAdmin && title.trim() && version.trim() && type && file);
-  }, [isSuperAdmin, title, version, type, file]);
+    return Boolean(isOrgAdmin && title.trim() && version.trim() && type && file);
+  }, [isOrgAdmin, title, version, type, file]);
 
   const onPickFile = async (nextFile) => {
     setFile(nextFile || null);
@@ -84,13 +84,13 @@ const LegalAgreementCreate = () => {
     }
   };
 
-  if (!isSuperAdmin) {
+  if (!isOrgAdmin) {
     return (
       <div className="min-h-[70vh] flex items-center justify-center px-4">
         <div className="w-full max-w-lg bg-white border border-gray-100 rounded-2xl p-6 shadow-sm">
           <h1 className="text-lg font-semibold text-gray-900">Forbidden</h1>
           <p className="text-sm text-gray-600 mt-2">
-            Only SUPER_ADMIN can create legal agreements.
+            Only ORG_ADMIN can create legal agreements.
           </p>
         </div>
       </div>

@@ -4,7 +4,6 @@ import { useAuth } from '../context/authContext.jsx';
 import {
   FiGrid,
   FiFolder,
-  FiShoppingBag,
   FiFileText,
   FiSettings,
   FiMessageSquare,
@@ -14,11 +13,11 @@ import {
   FiMenu,
   FiX,
   FiLogOut,
-  FiShield,
   FiPenTool,
+  FiClipboard,
 } from 'react-icons/fi';
 
-const HackerLayout = () => {
+const ProjectAdminLayout = () => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
@@ -29,21 +28,20 @@ const HackerLayout = () => {
     navigate('/login');
   };
 
-  const displayName = user?.fullName || user?.handle || 'Operative';
-  const userInitial = displayName[0]?.toUpperCase() || 'H';
+  const displayName = user?.fullName || user?.handle || 'Project Admin';
+  const userInitial = displayName[0]?.toUpperCase() || 'P';
 
   const navItems = [
-    { icon: FiGrid,          label: 'Dashboard',   route: '/hacker-dashboard' },
-    { icon: FiFolder,        label: 'Projects',    route: '/projects' },
-    { icon: FiShoppingBag,   label: 'Engagements', route: '/engagements' },
-    { icon: FiMessageSquare, label: 'Messages',    route: '/messages' },
-    { icon: FiFileText,      label: 'Reports',     route: '/my-applications' },
-    { icon: FiSettings,      label: 'Settings',    route: '/hacker-profile' },
-    { icon: FiPenTool,       label: 'Legal Agreement', route: '/execute-agreement' },
+    { icon: FiGrid,          label: 'Dashboard',    route: '/admin-dashboard' },
+    { icon: FiFolder,        label: 'Projects',     route: '/pa-projects' },
+    { icon: FiMessageSquare, label: 'Messages',     route: '/pa-messages' },
+    { icon: FiClipboard,     label: 'Reports',      route: '/pa-reports' },
+    { icon: FiPenTool,       label: 'Agreements',   route: '/pa-agreement' },
+    { icon: FiSettings,      label: 'Settings',     route: '/pa-profile' },
   ];
 
   const isActive = (route) => {
-    if (route === '/hacker-dashboard') return location.pathname === '/hacker-dashboard';
+    if (route === '/admin-dashboard') return location.pathname === '/admin-dashboard';
     return location.pathname.startsWith(route);
   };
 
@@ -51,7 +49,7 @@ const HackerLayout = () => {
   const currentPage = navItems.find(n => isActive(n.route))?.label ?? 'Hackract';
 
   return (
-    <div className="flex h-screen bg-[#050505] text-gray-300 font-sans selection:bg-[#00c477]/30 overflow-hidden">
+    <div className="flex h-screen bg-[#050505] text-gray-300 font-sans selection:bg-[#38bdf8]/30 overflow-hidden">
 
       {/* MOBILE OVERLAY */}
       {isMobileMenuOpen && (
@@ -67,8 +65,8 @@ const HackerLayout = () => {
           {/* Logo & mobile close */}
           <div className="p-6 flex justify-between items-center">
             <h1
-              className="text-2xl font-bold tracking-wider text-[#00c477] cursor-pointer"
-              onClick={() => navigate('/hacker-dashboard')}
+              className="text-2xl font-bold tracking-wider text-[#38bdf8] cursor-pointer"
+              onClick={() => navigate('/admin-dashboard')}
             >
               Hackract
             </h1>
@@ -83,14 +81,14 @@ const HackerLayout = () => {
           {/* User card */}
           <div
             className="mx-4 mb-6 p-4 bg-white/5 rounded-xl border border-white/10 flex items-center space-x-3 cursor-pointer hover:bg-white/8 transition-colors"
-            onClick={() => navigate('/hacker-profile')}
+            onClick={() => navigate('/pa-profile')}
           >
-            <div className="w-10 h-10 rounded-full bg-[#00c477]/20 flex items-center justify-center text-[#00c477] font-bold text-sm shrink-0">
+            <div className="w-10 h-10 rounded-full bg-[#38bdf8]/20 flex items-center justify-center text-[#38bdf8] font-bold text-sm shrink-0">
               {userInitial}
             </div>
             <div className="min-w-0">
               <div className="text-white font-semibold text-sm truncate">{displayName}</div>
-              <div className="text-xs text-gray-500 uppercase tracking-wider">Operative</div>
+              <div className="text-xs text-[#38bdf8]/70 uppercase tracking-wider">Project Admin</div>
             </div>
           </div>
 
@@ -101,11 +99,11 @@ const HackerLayout = () => {
                 key={item.route}
                 onClick={() => { navigate(item.route); setIsMobileMenuOpen(false); }}
                 className={`w-full flex items-center space-x-3 px-3 py-3 rounded-lg transition-colors text-left ${isActive(item.route)
-                    ? 'bg-[#00c477]/10 text-[#00c477] border-l-2 border-[#00c477]'
+                    ? 'bg-[#38bdf8]/10 text-[#38bdf8] border-l-2 border-[#38bdf8]'
                     : 'text-gray-400 hover:bg-white/5 hover:text-white'
                   }`}
               >
-                <item.icon className={isActive(item.route) ? 'text-[#00c477]' : ''} />
+                <item.icon className={isActive(item.route) ? 'text-[#38bdf8]' : ''} />
                 <span className="font-medium">{item.label}</span>
               </button>
             ))}
@@ -115,8 +113,8 @@ const HackerLayout = () => {
         {/* Bottom actions */}
         <div className="p-4 space-y-2">
           <button
-            onClick={() => navigate('/projects')}
-            className="w-full bg-[#00c477] text-black font-bold py-3 rounded-xl hover:bg-[#00c477]/90 transition-all shadow-[0_0_15px_rgba(0,255,136,0.3)] flex items-center justify-center gap-2"
+            onClick={() => navigate('/pa-projects')}
+            className="w-full bg-[#38bdf8] text-black font-bold py-3 rounded-xl hover:bg-[#38bdf8]/90 transition-all shadow-[0_0_15px_rgba(56,189,248,0.3)] flex items-center justify-center gap-2"
           >
             <FiPlus size={16} /> New Project
           </button>
@@ -149,8 +147,8 @@ const HackerLayout = () => {
               <FiSearch className="absolute left-4 text-gray-500" />
               <input
                 type="text"
-                placeholder="Search resources, vulnerabilities..."
-                className="w-full bg-[#161616] border border-white/10 rounded-xl py-2.5 pl-11 pr-4 text-sm text-white focus:outline-none focus:border-[#00c477] transition-colors"
+                placeholder="Search projects, findings, reports..."
+                className="w-full bg-[#161616] border border-white/10 rounded-xl py-2.5 pl-11 pr-4 text-sm text-white focus:outline-none focus:border-[#38bdf8] transition-colors"
               />
             </div>
           </div>
@@ -158,17 +156,17 @@ const HackerLayout = () => {
           <div className="flex items-center space-x-4">
             <button className="relative text-gray-400 hover:text-white transition-colors hidden sm:block">
               <FiBell size={20} />
-              <span className="absolute -top-1 -right-1 w-2 h-2 bg-[#00c477] rounded-full" />
+              <span className="absolute -top-1 -right-1 w-2 h-2 bg-[#38bdf8] rounded-full" />
             </button>
             <div
               className="flex items-center space-x-2 border-l border-white/10 pl-4 cursor-pointer"
-              onClick={() => navigate('/hacker-profile')}
+              onClick={() => navigate('/pa-profile')}
             >
               <div className="text-right hidden sm:block">
                 <div className="text-sm font-bold text-white">{displayName}</div>
-                <div className="text-xs text-gray-500">Operative</div>
+                <div className="text-xs text-gray-500">Project Admin</div>
               </div>
-              <div className="w-8 h-8 lg:w-9 lg:h-9 rounded-xl bg-[#00c477]/20 border border-[#00c477]/30 flex items-center justify-center text-[#00c477] font-bold text-sm">
+              <div className="w-8 h-8 lg:w-9 lg:h-9 rounded-xl bg-[#38bdf8]/20 border border-[#38bdf8]/30 flex items-center justify-center text-[#38bdf8] font-bold text-sm">
                 {userInitial}
               </div>
             </div>
@@ -184,4 +182,4 @@ const HackerLayout = () => {
   );
 };
 
-export default HackerLayout;
+export default ProjectAdminLayout;

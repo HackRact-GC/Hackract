@@ -6,7 +6,7 @@ import prisma from '../../database/prismaClient.js';
 
 const isSuperAdmin = (user) => {
   const roles = user?.roles?.map((r) => r.type) || [];
-  return roles.includes('SUPER_ADMIN');
+  return roles.includes('ORG_ADMIN');
 };
 
 const toPagination = ({ page = 1, limit = 20 } = {}) => {
@@ -33,7 +33,7 @@ class OrganizationService {
   async getOrganizationById(id, user) {
     const organization = await organizationRepository.getOrganizationById(id, true);
 
-    if (isSuperAdmin(user)) {
+    if (isOrgAdmin(user)) {
       return organization;
     }
 
@@ -46,7 +46,7 @@ class OrganizationService {
   }
 
   async updateOrganization(id, data, user) {
-    if (isSuperAdmin(user)) {
+    if (isOrgAdmin(user)) {
       return organizationRepository.updateOrganization(id, data);
     }
 
@@ -97,7 +97,7 @@ class OrganizationService {
   }
 
   async deleteOrganization(id, user) {
-    if (isSuperAdmin(user)) {
+    if (isOrgAdmin(user)) {
       return organizationRepository.deleteOrganization(id);
     }
 
@@ -121,7 +121,7 @@ class OrganizationService {
     const name = query?.name;
     const ownerName = query?.ownerName;
 
-    const organizations = isSuperAdmin(user)
+    const organizations = isOrgAdmin(user)
       ? await organizationRepository.listOrganizations({ name, ownerName, skip, take })
       : await organizationRepository.listOrganizationsForUser(user.id, { name, skip, take });
 
@@ -133,14 +133,14 @@ class OrganizationService {
   }
 
   async getOrganizationsByOwnerName(ownerName, user, query = {}) {
-    if (!isSuperAdmin(user)) {
+    if (!isOrgAdmin(user)) {
       throw new AppError('Only system admins can search organizations by owner', 403, OrganizationErrorCodes.UNAUTHORIZED);
     }
     return this.listOrganizations({ ...query, ownerName }, user);
   }
 
   async deleteAllOrganizations(user) {
-    if (!isSuperAdmin(user)) {
+    if (!isOrgAdmin(user)) {
       throw new AppError('Only system admins can delete all organizations', 403, OrganizationErrorCodes.UNAUTHORIZED);
     }
 
