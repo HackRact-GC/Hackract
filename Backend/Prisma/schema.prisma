@@ -120,6 +120,10 @@ model User {
   sentProjectInvitations     ProjectInvitation[] @relation("ProjectInvitationSender")
   receivedProjectInvitations ProjectInvitation[] @relation("ProjectInvitationReceiver")
 
+  // Project Agreements
+  projectAgreementAcceptances ProjectAgreementAcceptance[] @relation("ProjectAgreementSignatures")
+  createdProjectAgreements    ProjectAgreement[]
+
   // Timestamps
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -279,6 +283,8 @@ model Pentest {
   auditLogs           AuditLog[] // Added opposite relation
   workflows           Workflow[]
   projectInvitations  ProjectInvitation[]
+  projectAgreements   ProjectAgreement[]
+  projectAgreementAcceptances ProjectAgreementAcceptance[]
 
   // Timestamps
   createdAt DateTime @default(now())
@@ -916,3 +922,54 @@ model ProjectInvitation {
   @@index([status])
 }
 
+// =====================================
+// ProjectAgreement (Phase 2)
+// =====================================
+model ProjectAgreement {
+  id              String   @id @default(uuid())
+  pentestId       String
+  version         Int
+  title           String
+  body            String
+  scopeSummary    String?
+  allowedActions  String?
+  confidentiality String?
+  legalLiability  String?
+  isActive        Boolean  @default(true)
+  createdById     String
+  
+  // Relations
+  pentest         Pentest  @relation(fields: [pentestId], references: [id], onDelete: Cascade)
+  createdBy       User     @relation(fields: [createdById], references: [id])
+  acceptances     ProjectAgreementAcceptance[]
+
+  createdAt       DateTime @default(now())
+
+  @@unique([pentestId, version])
+}
+
+// =====================================
+// ProjectAgreementAcceptance (Phase 2)
+// =====================================
+model ProjectAgreementAcceptance {
+  id              String   @id @default(uuid())
+  agreementId     String
+  hackerId        String
+  pentestId       String
+  version         Int
+  status          String   @default("PENDING") // PENDING, SIGNED, REJECTED
+  
+  ipAddress       String?
+  userAgent       String?
+  signedAt        DateTime?
+  signatureData   String?  // Canvas Base64 data for the digital signature
+  createdAt       DateTime @default(now())
+
+  // Relations
+  agreement       ProjectAgreement @relation(fields: [agreementId], references: [id])
+  hacker          User             @relation("ProjectAgreementSignatures", fields: [hackerId], references: [id])
+  pentest         Pentest          @relation(fields: [pentestId], references: [id])
+
+  @@unique([agreementId, hackerId])
+  @@index([pentestId, hackerId])
+}
