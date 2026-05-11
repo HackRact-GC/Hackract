@@ -271,6 +271,7 @@ model Pentest {
   description String?
   isPersonal  Boolean       @default(false)
   status      PentestStatus @default(PLANNING)
+  isPersonal  Boolean       @default(false)
 
   // Relations
   organization   Organization? @relation(fields: [organizationId], references: [id])

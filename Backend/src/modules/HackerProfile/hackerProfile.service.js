@@ -34,10 +34,9 @@ export const upsertMyProfile = async (userId, payload) => {
     );
   }
 
-  const nextStatus =
-    payload.status && payload.status === VerificationStatus.SUBMITTED
-      ? VerificationStatus.SUBMITTED
-      : VerificationStatus.DRAFT;
+  const nextStatus = payload.status === VerificationStatus.SUBMITTED
+    ? VerificationStatus.SUBMITTED
+    : (existing?.status || VerificationStatus.DRAFT);
 
   const data = {
     bio: payload.bio,
