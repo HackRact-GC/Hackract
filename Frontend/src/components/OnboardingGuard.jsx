@@ -1,6 +1,7 @@
 import React from "react";
 import { Navigate, useLocation } from "react-router-dom";
 import { useAuth } from "../context/authContext.jsx";
+import { hasRole, getDashboardPath, ROLES } from "../utils/roles.js";
 
 const HACKER_READY_STATUSES = new Set(["SUBMITTED", "UNDER_REVIEW", "APPROVED"]);
 
@@ -21,15 +22,15 @@ const OnboardingGuard = ({ children }) => {
         return <Navigate to="/login" replace state={{ from: location }} />;
     }
 
-    const roles = user.roles?.map(r => r.type) || [];
-    const isPentester = roles.includes('PENTESTER');
-    const isOrgAdmin = roles.includes('ORG_ADMIN');
+    const isPentester = hasRole(user, ROLES.PENTESTER);
+    const isProjectAdmin = hasRole(user, ROLES.PROJECT_ADMIN);
+    const isOrgAdmin = hasRole(user, ROLES.ORG_ADMIN);
 
     let needsOnboarding = false;
     let targetOnboardingRoute = '/onboarding';
 
-    if (isPentester) {
-        // Evaluate HackerProfile status
+    if (isPentester || isProjectAdmin) {
+        // Both PENTESTER and PROJECT_ADMIN need hacker profiles
         const profile = user.hackerProfile;
         const status = profile?.status;
         if (!profile || !HACKER_READY_STATUSES.has(status)) {
@@ -53,7 +54,7 @@ const OnboardingGuard = ({ children }) => {
     if (isOnboardingRoute || isProfileRoute || isVerificationRoute) {
         // If they don't need onboarding anymore and they are on an onboarding route, push them to the role-based dashboard
         if (!needsOnboarding && isOnboardingRoute) {
-            const destination = isPentester ? '/hacker-dashboard' : '/dashboard';
+            const destination = getDashboardPath(user);
             return <Navigate to={destination} replace />;
         }
         // Otherwise let them render the page

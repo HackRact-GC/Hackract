@@ -179,7 +179,7 @@ router.delete('/delete-account', controller.remove);
  *       403:
  *         description: Forbidden - Admin only
  */
-router.get('/', restrictTo('SUPER_ADMIN', 'ORG_ADMIN'), controller.listUsers);
+router.get('/', restrictTo('ORG_ADMIN'), controller.listUsers);
 
 /**
  * @swagger
@@ -203,7 +203,7 @@ router.get('/', restrictTo('SUPER_ADMIN', 'ORG_ADMIN'), controller.listUsers);
  *       403:
  *         description: Forbidden - Admin only
  */
-router.get('/:id', restrictTo('SUPER_ADMIN', 'ORG_ADMIN'), controller.getUserById);
+router.get('/:id', restrictTo('ORG_ADMIN'), controller.getUserById);
 
 /**
  * @swagger
@@ -239,6 +239,6 @@ router.get('/:id', restrictTo('SUPER_ADMIN', 'ORG_ADMIN'), controller.getUserByI
  *       403:
  *         description: Forbidden - Admin only
  */
-router.patch('/:id/status', restrictTo('SUPER_ADMIN', 'ORG_ADMIN'), controller.updateStatus);
+router.patch('/:id/status', restrictTo('ORG_ADMIN'), controller.updateStatus);
 
 export default router;

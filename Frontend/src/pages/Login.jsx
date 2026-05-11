@@ -63,11 +63,14 @@ const Login = () => {
                 navigate(`/verify-email?email=${encodeURIComponent(form.email)}`);
                 return;
             }
-            if (primaryRole === "ORG_ADMIN") {
-                navigate("/dashboard", { replace: true });
-                return;
-            }
-            navigate("/hacker-dashboard", { replace: true });
+            // Role-based dashboard redirect
+            const dashboardMap = {
+                ORG_ADMIN: '/dashboard',
+                PROJECT_ADMIN: '/admin-dashboard',
+                PENTESTER: '/hacker-dashboard',
+            };
+            const destination = dashboardMap[primaryRole] || '/hacker-dashboard';
+            navigate(destination, { replace: true });
         } catch (error) {
             const errorCode = error?.response?.data?.code;
             const status = error?.response?.status;

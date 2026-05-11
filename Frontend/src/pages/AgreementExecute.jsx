@@ -13,7 +13,7 @@ export default function AgreementExecute() {
   
   const roleTypes = user?.roles?.map(r => r.type) || [];
   if (typeof user?.role === 'string') roleTypes.push(user.role);
-  const isOrg = roleTypes.some(r => ['SUPER_ADMIN', 'ORG_ADMIN', 'ORGANIZATION'].includes(r));
+  const isOrg = roleTypes.some(r => ['ORG_ADMIN', 'ORGANIZATION'].includes(r));
 
   const [agreement, setAgreement] = useState(null);
   const [loading, setLoading] = useState(true);

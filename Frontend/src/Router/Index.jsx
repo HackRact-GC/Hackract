@@ -25,6 +25,7 @@ import FindingDetails from "../pages/FindingDetails.jsx";
 import VulnerabilityFindings from "../pages/vulnerabilityFinding.jsx";
 import HackerLayout from "../layouts/HackerLayout.jsx";
 import OrganizationLayout from "../layouts/OrganizationLayout.jsx";
+import ProjectAdminLayout from "../layouts/ProjectAdminLayout.jsx";
 import OrganizationDashboard from "../pages/OrganizationDashboard.jsx";
 import Reports from "../pages/Reports.jsx";
 import OrganizationDiscover from "../pages/OrganizationDiscover.jsx";
@@ -38,6 +39,7 @@ import MyApplications from "../pages/MyApplications.jsx";
 
 // Phase 17 Onboarding Imports
 import OnboardingGuard from "../components/OnboardingGuard.jsx";
+import RoleGuard from "../components/RoleGuard.jsx";
 import OnboardingLayout from "../layouts/OnboardingLayout.jsx";
 import HackerOnboarding from "../pages/Onboarding/HackerOnboarding.jsx";
 import OrgOnboarding from "../pages/Onboarding/OrgOnboarding.jsx";
@@ -72,9 +74,18 @@ const router = createBrowserRouter([
         index: true,
         element: <Landing />,
       },
-      // ── Hacker routes (sidebar layout) ──────────────────────────────
+
+      // ══════════════════════════════════════════════════════════════
+      // PENTESTER routes  (green sidebar layout)
+      // ══════════════════════════════════════════════════════════════
       {
-        element: <OnboardingGuard><HackerLayout /></OnboardingGuard>,
+        element: (
+          <OnboardingGuard>
+            <RoleGuard allowed={['PENTESTER']}>
+              <HackerLayout />
+            </RoleGuard>
+          </OnboardingGuard>
+        ),
         children: [
           {
             path: "hacker-dashboard",
@@ -92,8 +103,6 @@ const router = createBrowserRouter([
             path: "national-id-verification",
             element: <EthiopiaIDVerification />,
           },
-
-
           {
             path: "projects",
             element: <Projects />,
@@ -122,28 +131,75 @@ const router = createBrowserRouter([
             path: "messages",
             element: <HackerChat />,
           },
+        ],
+      },
+
+      // ══════════════════════════════════════════════════════════════
+      // PROJECT_ADMIN routes  (blue sidebar layout)
+      // ══════════════════════════════════════════════════════════════
+      {
+        element: (
+          <OnboardingGuard>
+            <RoleGuard allowed={['PROJECT_ADMIN']}>
+              <ProjectAdminLayout />
+            </RoleGuard>
+          </OnboardingGuard>
+        ),
+        children: [
           {
             path: "admin-dashboard",
             element: <SystemAdminDashboard />,
           },
+          {
+            path: "pa-projects",
+            element: <Projects />,
+          },
+          {
+            path: "pa-projects/:projectId",
+            element: <ProjectWorkspace />,
+          },
+          {
+            path: "pa-findings/:findingId",
+            element: <FindingDetails />,
+          },
+          {
+            path: "pa-findings",
+            element: <VulnerabilityFindings />,
+          },
+          {
+            path: "pa-messages",
+            element: <HackerChat />,
+          },
+          {
+            path: "pa-reports",
+            element: <Reports />,
+          },
+          {
+            path: "pa-profile",
+            element: <HackerProfile />,
+          },
+          {
+            path: "pa-agreement",
+            element: <AgreementExecute />,
+          },
         ],
       },
-      // ── Org-admin routes (no hacker sidebar) ────────────────────────
+
+      // ══════════════════════════════════════════════════════════════
+      // ORG_ADMIN routes  (org sidebar layout)
+      // ══════════════════════════════════════════════════════════════
       {
-        element: <OnboardingGuard><Home /></OnboardingGuard>,
-        children: [],
-      },
-      // ── Organization routes (Side dashboard layout) ───────────────
-      {
-        element: <OnboardingGuard><OrganizationLayout /></OnboardingGuard>,
+        element: (
+          <OnboardingGuard>
+            <RoleGuard allowed={['ORG_ADMIN']}>
+              <OrganizationLayout />
+            </RoleGuard>
+          </OnboardingGuard>
+        ),
         children: [
           {
             path: "dashboard",
             element: <OrganizationDashboard />,
-          },
-          {
-            path: "findings",
-            element: <VulnerabilityFindings />,
           },
           {
             path: "org-projects",
@@ -151,7 +207,7 @@ const router = createBrowserRouter([
           },
           {
             path: "org-projects/:projectId",
-            element: <OrganizationProjectWorkspace />
+            element: <OrganizationProjectWorkspace />,
           },
           {
             path: "discover",
@@ -177,8 +233,16 @@ const router = createBrowserRouter([
             path: "org-messages",
             element: <OrganizationChat />,
           },
+          {
+            path: "org-agreement",
+            element: <AgreementExecute />,
+          },
         ],
       },
+
+      // ══════════════════════════════════════════════════════════════
+      // Shared / non-role-specific protected routes
+      // ══════════════════════════════════════════════════════════════
       {
         path: "organization-verification/:organizationId",
         element: <OnboardingGuard><OrganizationVerification /></OnboardingGuard>,
@@ -211,7 +275,13 @@ const router = createBrowserRouter([
       },
       {
         path: "workflows/:workflowId",
-        element: <OnboardingGuard><WorkflowEditor /></OnboardingGuard>,
+        element: (
+          <OnboardingGuard>
+            <RoleGuard allowed={['PENTESTER', 'PROJECT_ADMIN']}>
+              <WorkflowEditor />
+            </RoleGuard>
+          </OnboardingGuard>
+        ),
       },
       {
         path: "execute-agreement",

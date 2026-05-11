@@ -3,6 +3,7 @@ import React, { createContext, useContext, useState, useEffect, useCallback, use
 import { useAuth0 } from "@auth0/auth0-react";
 import toast from "react-hot-toast";
 import api from "../api/axiosConfig";
+import { hasRole as checkRole, hasAnyRole as checkAnyRole, getPrimaryRole, getDashboardPath, getRoleTypes } from "../utils/roles.js";
 
 const AuthContext = createContext(null);
 
@@ -169,6 +170,12 @@ export const AuthProvider = ({ children }) => {
       refreshTokens,
       setUser,
       refreshUser: fetchProfile,
+      // Role helpers — bound to the current user
+      hasRole: (role) => checkRole(user, role),
+      hasAnyRole: (...roles) => checkAnyRole(user, ...roles),
+      primaryRole: getPrimaryRole(user),
+      dashboardPath: getDashboardPath(user),
+      roleTypes: getRoleTypes(user),
     }),
     [user, accessToken, refreshToken, loading, isBootstrapping, login, register, logout, refreshTokens, fetchProfile]
 
