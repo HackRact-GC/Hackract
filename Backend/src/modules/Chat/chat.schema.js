@@ -31,7 +31,8 @@ export const getMessagesSchema = z.object({
 });
 
 export const searchUsersSchema = z.object({
-  q: z.string().min(1).max(100),
+  q: z.string().max(100).optional().default(''),
+  role: z.string().optional(),
 });
 
 export const addParticipantsSchema = z.object({

@@ -21,7 +21,7 @@ const OrganizationLayout = () => {
     { icon: FiGrid,           label: 'DASHBOARD', route: '/dashboard' },
     { icon: FiBriefcase,      label: 'PROJECTS',  route: '/org-projects' },
     { icon: FiGlobe,          label: 'DISCOVER',  route: '/discover' },
-    { icon: FiMessageSquare,  label: 'MESSAGES',  route: '/chat' },
+    { icon: FiMessageSquare,  label: 'MESSAGES',  route: '/org-messages' },
     { icon: FiShield,         label: 'LEGAL',     route: '/legal' },
     { icon: FiSettings,       label: 'SETTINGS',  route: '/organization-profile' },
     { icon: FiFileText,       label: 'REPORTS',   route: '/reports' },
