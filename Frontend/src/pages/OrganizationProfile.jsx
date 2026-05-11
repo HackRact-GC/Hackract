@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import api from "../api/axiosConfig";
 import { motion, AnimatePresence } from "framer-motion";
+import SignaturePad from "../components/SignaturePad";
 
 // ─── Icons ───────────────────────────────────────────────────────────────────
 const Icons = {
@@ -197,6 +198,7 @@ const OrganizationProfile = () => {
     currency:           "",
     registrationNumber: "",
     taxId:              "",
+    signatureData:      "",
   });
 
   useEffect(() => {
@@ -227,6 +229,7 @@ const OrganizationProfile = () => {
             currency:           org.currency           || "",
             registrationNumber: org.registrationNumber || "",
             taxId:              org.taxId              || "",
+            signatureData:      org.signatureData      || "",
           });
           if (org.logoUrl) setLogoPreview(org.logoUrl);
         }
@@ -274,6 +277,7 @@ const OrganizationProfile = () => {
         currency:           trim(form.currency),
         registrationNumber: trim(form.registrationNumber),
         taxId:              trim(form.taxId),
+        signatureData:      form.signatureData,
       };
 
       if (organizationId) {
@@ -402,6 +406,20 @@ const OrganizationProfile = () => {
             <Field label="Grid Code"><Input name="postalCode" value={form.postalCode} onChange={handleChange} placeholder="581-000" /></Field>
             <Field label="Entity Region"><Input name="country" value={form.country} onChange={handleChange} placeholder="Pan-Pacific" /></Field>
           </div>
+        </SectionCard>
+
+        <SectionCard title="Digital Authorization" subtitle="Official signature of the organization representative for automated legal execution.">
+          <div className="w-full h-64 bg-[#111111] border border-white/[0.05] rounded-xl relative overflow-hidden shadow-[0_0_30px_rgba(0,196,119,0.02)]">
+            <SignaturePad 
+              onSignatureChange={(data) => setForm(p => ({ ...p, signatureData: data }))}
+              initialSignature={form.signatureData}
+            />
+          </div>
+          {form.signatureData && (
+             <p className="text-[10px] font-mono text-[#00c477] mt-2 tracking-widest uppercase">
+               ✔ Signature Matrix Captured & Encrypted
+             </p>
+          )}
         </SectionCard>
 
         <div className="flex flex-wrap items-center gap-6 pt-2 bg-white/[0.01] p-10 rounded-[48px] border border-white/5 shadow-inner">

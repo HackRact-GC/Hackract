@@ -3,12 +3,12 @@ import { signAgreementSchema } from './userSignature.schema.js';
 
 export const sign = async (req, res, next) => {
     try {
-        const { agreementId } = signAgreementSchema.parse(req.body);
+        const { agreementId, signatureData } = signAgreementSchema.parse(req.body);
         const userId = req.user.id;
         const ipAddress = req.ip || req.connection?.remoteAddress;
         const userAgent = req.headers?.['user-agent'];
 
-        res.status(201).json(await service.signAgreement(userId, agreementId, ipAddress, userAgent));
+        res.status(201).json(await service.signAgreement(userId, agreementId, ipAddress, userAgent, signatureData));
     } catch (e) { next(e); }
 };
 
