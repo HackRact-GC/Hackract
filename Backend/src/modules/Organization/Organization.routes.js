@@ -42,14 +42,14 @@ router.use(protect);
  *       400:
  *         description: Validation error
  */
-router.post('/', restrictTo('SUPER_ADMIN', 'ORG_ADMIN', 'PENTESTER'), organizationController.createOrganization);
+router.post('/', restrictTo('ORG_ADMIN'), organizationController.createOrganization);
 
 /**
  * @swagger
  * /api/v1/organizations:
  *   get:
  *     summary: List organizations
- *     description: SUPER_ADMIN can list all organizations; other roles list organizations they are members of.
+ *     description: ORG_ADMIN can list all organizations; other roles list organizations they are members of.
  *     tags: [Organizations]
  *     parameters:
  *       - in: query
@@ -71,7 +71,7 @@ router.post('/', restrictTo('SUPER_ADMIN', 'ORG_ADMIN', 'PENTESTER'), organizati
  *         name: ownerName
  *         schema:
  *           type: string
- *         description: Filter by owner name/handle/email (contains). SUPER_ADMIN only.
+ *         description: Filter by owner name/handle/email (contains). ORG_ADMIN only.
  *     responses:
  *       200:
  *         description: Organizations retrieved successfully
@@ -79,7 +79,7 @@ router.post('/', restrictTo('SUPER_ADMIN', 'ORG_ADMIN', 'PENTESTER'), organizati
  *         description: Unauthorized
  */
 // List organizations (SUPER_ADMIN => all; others => memberships)
-router.get('/', restrictTo('SUPER_ADMIN', 'ORG_ADMIN', 'PENTESTER'), organizationController.listOrganizations);
+router.get('/', restrictTo('ORG_ADMIN', 'PROJECT_ADMIN', 'PENTESTER'), organizationController.listOrganizations);
 
 /**
  * @swagger
@@ -115,7 +115,7 @@ router.get('/', restrictTo('SUPER_ADMIN', 'ORG_ADMIN', 'PENTESTER'), organizatio
  * /api/v1/organizations/by-owner:
  *   get:
  *     summary: Get organizations by owner name
- *     description: SUPER_ADMIN only.
+ *     description: ORG_ADMIN only.
  *     tags: [Organizations]
  *     parameters:
  *       - in: query
@@ -141,15 +141,15 @@ router.get('/', restrictTo('SUPER_ADMIN', 'ORG_ADMIN', 'PENTESTER'), organizatio
  *         description: Forbidden
  */
 // Search / filter helpers
-router.get('/by-name', restrictTo('SUPER_ADMIN', 'ORG_ADMIN', 'PENTESTER'), organizationController.getOrganizationsByName);
-router.get('/by-owner', restrictTo('SUPER_ADMIN'), organizationController.getOrganizationsByOwnerName);
+router.get('/by-name', restrictTo('ORG_ADMIN', 'PROJECT_ADMIN', 'PENTESTER'), organizationController.getOrganizationsByName);
+router.get('/by-owner', restrictTo('ORG_ADMIN'), organizationController.getOrganizationsByOwnerName);
 
 /**
  * @swagger
  * /api/v1/organizations:
  *   delete:
  *     summary: Delete all organizations
- *     description: DANGEROUS. SUPER_ADMIN only.
+ *     description: DANGEROUS. ORG_ADMIN only.
  *     tags: [Organizations]
  *     responses:
  *       200:
@@ -157,8 +157,8 @@ router.get('/by-owner', restrictTo('SUPER_ADMIN'), organizationController.getOrg
  *       403:
  *         description: Forbidden
  */
-// Delete all organizations (DANGEROUS) - SUPER_ADMIN only
-router.delete('/', restrictTo('SUPER_ADMIN'), organizationController.deleteAllOrganizations);
+// Delete all organizations (DANGEROUS) - ORG_ADMIN only
+router.delete('/', restrictTo('ORG_ADMIN'), organizationController.deleteAllOrganizations);
 
 /**
  * @swagger
@@ -408,13 +408,13 @@ router.route('/:organizationId/members/:memberId')
 // Admin Verification Routes
 router.post('/:organizationId/approve',
   protect,
-  restrictTo('SUPER_ADMIN'),
+  restrictTo('ORG_ADMIN'),
   organizationController.approve
 );
 
 router.post('/:organizationId/reject',
   protect,
-  restrictTo('SUPER_ADMIN'),
+  restrictTo('ORG_ADMIN'),
   organizationController.reject
 );
 
