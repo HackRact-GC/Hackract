@@ -19,6 +19,7 @@ import ProjectRouter from "./modules/Project/project.routes.js";
 import NationalIDRouter from "./modules/NationalID_Verification/nationalID.routes.js";
 import ChatRouter from "./modules/Chat/chat.routes.js";
 import InvitationRouter from "./modules/ProjectInvitation/invitation.routes.js";
+import ProjectAgreementRouter from "./modules/ProjectAgreement/projectAgreement.routes.js";
 
 
 const router = express.Router();
@@ -43,6 +44,7 @@ router.use("/projects", ProjectRouter);
 router.use("/national-id", NationalIDRouter);
 router.use("/chat", ChatRouter);
 router.use("/invitations", InvitationRouter);
+router.use("/pentests", ProjectAgreementRouter); // Mounts /api/v1/pentests/:id/agreements...
 
 
 export default router;
