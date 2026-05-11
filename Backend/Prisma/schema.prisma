@@ -210,6 +210,7 @@ model Organization {
   // Legal / Tax Info
   registrationNumber String?
   taxId              String?
+  signatureData      String? @db.Text
 
   // Relations
   members   OrganizationMember[]
@@ -399,9 +400,10 @@ model UserSignature {
   agreementId String
 
   // Metadata
-  ipAddress String?
-  userAgent String?
-  signedAt  DateTime @default(now())
+  ipAddress     String?
+  userAgent     String?
+  signatureData String?
+  signedAt      DateTime @default(now())
 
   @@unique([userId, agreementId])
   @@index([userId])
