@@ -299,17 +299,10 @@ const OrganizationDiscover = () => {
   return (
     <div className="flex flex-col h-full -m-10">
 
-      {/* ── Search Bar ── */}
+      {/* ── Header Area ── */}
       <div className="px-10 py-5 border-b border-white/5 bg-[#050505] flex items-center justify-between sticky top-0 z-10">
         <div className="relative w-full max-w-2xl">
-          <FiSearch className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500 text-lg" />
-          <input
-            type="text"
-            placeholder="Search hacker aliases, skills, or certifications..."
-            className="w-full bg-[#050505] border border-white/10 rounded-lg py-3 pl-12 pr-4 text-sm text-white focus:outline-none focus:border-[#00c477]/50 focus:shadow-[0_0_15px_rgba(0,255,136,0.1)] transition-all font-mono"
-            value={searchQuery}
-            onChange={e => { setSearchQuery(e.target.value); setPage(1); }}
-          />
+          {/* Search bar space reserved or content adjusted */}
         </div>
       </div>
 
