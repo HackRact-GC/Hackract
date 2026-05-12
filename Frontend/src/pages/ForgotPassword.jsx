@@ -2,24 +2,12 @@ import { useState } from "react";
 import toast from "react-hot-toast";
 import api from "../api/axiosConfig";
 
-const FakeCaptcha = ({ checked, onChange }) => (
-  <label className="flex items-center gap-2 border border-gray-300 rounded-sm px-3 py-2 cursor-pointer select-none bg-white">
-    <input type="checkbox" checked={checked} onChange={onChange} className="h-4 w-4" />
-    <span className="text-xs font-mono text-gray-700">I'm not a robot (demo)</span>
-  </label>
-);
-
 const ForgotPassword = () => {
   const [email, setEmail] = useState("");
   const [loading, setLoading] = useState(false);
-  const [captchaChecked, setCaptchaChecked] = useState(false);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!captchaChecked) {
-      toast.error("Please complete the captcha");
-      return;
-    }
     setLoading(true);
     try {
       const { data } = await api.post("/auth/forgot-password", { email });
@@ -52,8 +40,6 @@ const ForgotPassword = () => {
             placeholder="username@domain.com"
           />
         </div>
-
-        <FakeCaptcha checked={captchaChecked} onChange={(e) => setCaptchaChecked(e.target.checked)} />
 
         <button
           type="submit"
