@@ -65,7 +65,13 @@ const HackerProfile = () => {
             bio: profile.bio || prev.bio,
             skills: (profile.primarySkills || []).join(", ") || prev.skills,
             certifications: profile.certifications?.length > 0
-              ? profile.certifications.map(c => ({ title: c, provider: '', date: '' }))
+              ? profile.certifications.map(c => {
+                  try {
+                    return JSON.parse(c);
+                  } catch (e) {
+                    return { title: c, provider: '', date: '' };
+                  }
+                })
               : prev.certifications,
           }));
 
@@ -91,7 +97,7 @@ const HackerProfile = () => {
     reader.onloadend = () => setLogoPreview(reader.result);
     reader.readAsDataURL(file);
 
-    // 2. Upload to S3
+    // 2. Upload to storage
     try {
       const uploadToast = toast.loading("Syncing avatar to secure storage...");
       const s3Url = await uploadFile(file, 'avatars');
@@ -103,7 +109,7 @@ const HackerProfile = () => {
       toast.success("Avatar secured successfully", { id: uploadToast });
       if (refreshUser) await refreshUser();
     } catch (error) {
-      toast.error("File transmission failed. Ensure S3 is configured.");
+      toast.error("File transmission failed. Ensure storage is configured.");
       console.error("Avatar upload error:", error);
     }
   };
@@ -113,20 +119,29 @@ const HackerProfile = () => {
     setNewItem({}); // Reset new item state when toggling
   };
 
-  const saveProfile = async () => {
+  const saveProfileWith = async (overrides = {}) => {
     try {
       const payload = {
         bio: form.bio,
-        primarySkills: form.skills.split(",").map(s => s.trim()).filter(Boolean),
-        certifications: form.certifications.map(c => c.title),
+        primarySkills: form.skills.split(',').map(s => s.trim()).filter(Boolean),
+        certifications: form.certifications.map(c => JSON.stringify({
+          title: c.title,
+          provider: c.provider,
+          certNumber: c.certNumber,
+          file: c.file,
+          fileUrl: c.fileUrl
+        })),
+        ...overrides,
       };
-      await api.put("/hacker-profiles/me", payload);
-      toast.success("Profile saved successfully.");
+      await api.put('/hacker-profiles/me', payload);
+      toast.success('Profile saved successfully.');
       if (refreshUser) await refreshUser();
     } catch (err) {
-      toast.error(err?.response?.data?.message || "Failed to save profile.");
+      toast.error(err?.response?.data?.message || 'Failed to save profile.');
     }
   };
+
+  const saveProfile = async () => saveProfileWith();
 
   const handleSaveSection = async (section) => {
     toggleEdit(section);
@@ -312,21 +327,54 @@ const HackerProfile = () => {
                   <input type="text" placeholder="Provider (e.g. Offensive Security)" value={newItem.provider || ''} onChange={e => setNewItem({ ...newItem, provider: e.target.value })} className="w-full bg-[#111] border border-[#00c477] rounded-lg p-2 text-sm focus:outline-none" />
                   <div className="flex items-center gap-2">
                     <span className="text-sm text-gray-400">Upload Photo/File:</span>
-                    <input type="file" accept="image/*,.pdf" onChange={e => {
+                    <input type="file" accept="image/*,.pdf" onChange={async e => {
                       const file = e.target.files?.[0];
-                      if (file) setNewItem({ ...newItem, file: file.name });
+                      if (!file) return;
+                      const toastId = toast.loading('Uploading certification...');
+                      try {
+                        const url = await uploadFile(file, 'certifications');
+                        // Use functional updater so we never overwrite text fields typed after file was picked
+                        setNewItem(prev => ({ ...prev, file: file.name, fileUrl: url }));
+                        toast.success('File securely uploaded', { id: toastId });
+                      } catch (err) {
+                        console.error('Cert upload error:', err);
+                        toast.error(err?.response?.data?.error || 'File upload failed', { id: toastId });
+                      }
                     }} className="flex-1 bg-[#111] border border-[#00c477] rounded-lg p-2 text-sm focus:outline-none file:mr-4 file:py-1 file:px-3 file:rounded-full file:border-0 file:text-xs file:bg-[#00c477] file:text-black hover:file:bg-[#00ff9d] cursor-pointer" />
                   </div>
                   <div className="flex gap-2 pt-2">
-                    <button onClick={() => {
-                      if (newItem.title) {
-                        setForm({ ...form, certifications: [...form.certifications, { title: newItem.title, provider: newItem.provider, certNumber: newItem.certNumber, file: newItem.file }] });
-                        setNewItem({});
-                        handleSaveSection('certifications'); // also triggers save to backend
-                      } else {
+                    <button onClick={async () => {
+                      if (!newItem.title) {
                         toast.error('Certification Name is required');
+                        return;
                       }
-                    }} className="px-4 py-1.5 bg-[#00c477] text-black text-sm rounded-full font-bold">Add & Save</button>
+                      // Build updated list synchronously — don't rely on React state batching
+                      const newCert = {
+                        title: newItem.title,
+                        provider: newItem.provider,
+                        certNumber: newItem.certNumber,
+                        file: newItem.file,
+                        fileUrl: newItem.fileUrl,
+                      };
+                      const updatedCerts = [...form.certifications, newCert];
+                      setForm(prev => ({ ...prev, certifications: updatedCerts }));
+                      setNewItem({});
+                      setEditMode(prev => ({ ...prev, certifications: false }));
+                      const toastId = toast.loading('Saving certification...');
+                      try {
+                        await api.put('/hacker-profiles/me', {
+                          bio: form.bio,
+                          primarySkills: form.skills.split(',').map(s => s.trim()).filter(Boolean),
+                          certifications: updatedCerts.map(c => JSON.stringify({
+                            title: c.title, provider: c.provider,
+                            certNumber: c.certNumber, file: c.file, fileUrl: c.fileUrl,
+                          })),
+                        });
+                        toast.success('Certification saved!', { id: toastId });
+                      } catch (err) {
+                        toast.error(err?.response?.data?.message || 'Failed to save', { id: toastId });
+                      }
+                    }} className="px-4 py-1.5 bg-[#00c477] text-black text-sm rounded-full font-bold">Add &amp; Save</button>
                     <button onClick={() => toggleEdit('certifications')} className="px-4 py-1.5 bg-white/10 text-white text-sm rounded-full font-bold hover:bg-white/20">Cancel</button>
                   </div>
                 </div>
@@ -413,15 +461,25 @@ const HackerProfile = () => {
                   <textarea placeholder="Description" value={newItem.description || ''} onChange={e => setNewItem({ ...newItem, description: e.target.value })} className="w-full bg-[#111] border border-[#00c477] rounded-lg p-2 text-sm focus:outline-none resize-none min-h-[80px]" />
                   <div className="flex items-center gap-2">
                     <span className="text-sm text-gray-400">Upload Photo/File:</span>
-                    <input type="file" accept="image/*,.pdf" onChange={e => {
+                    <input type="file" accept="image/*,.pdf" onChange={async e => {
                       const file = e.target.files?.[0];
-                      if (file) setNewItem({ ...newItem, file: file.name });
+                      if (!file) return;
+                      const toastId = toast.loading('Uploading experience doc...');
+                      try {
+                        const url = await uploadFile(file, 'other');
+                        // Use functional updater so we never overwrite text fields typed after file was picked
+                        setNewItem(prev => ({ ...prev, file: file.name, fileUrl: url }));
+                        toast.success('Document uploaded', { id: toastId });
+                      } catch (err) {
+                        console.error('Experience upload error:', err);
+                        toast.error(err?.response?.data?.error || 'Upload failed', { id: toastId });
+                      }
                     }} className="flex-1 bg-[#111] border border-[#00c477] rounded-lg p-2 text-sm focus:outline-none file:mr-4 file:py-1 file:px-3 file:rounded-full file:border-0 file:text-xs file:bg-[#00c477] file:text-black hover:file:bg-[#00ff9d] cursor-pointer" />
                   </div>
                   <div className="flex gap-2 pt-2">
                     <button onClick={() => {
                       if (newItem.subject || newItem.description) {
-                        setForm({ ...form, other: [...form.other, { subject: newItem.subject, description: newItem.description, file: newItem.file }] });
+                        setForm({ ...form, other: [...form.other, { subject: newItem.subject, description: newItem.description, file: newItem.file, fileUrl: newItem.fileUrl }] });
                       }
                       toggleEdit('other');
                     }} className="px-4 py-1.5 bg-[#00c477] text-black text-sm rounded-full font-bold">Add & Done</button>

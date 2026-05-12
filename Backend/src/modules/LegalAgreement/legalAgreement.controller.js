@@ -1,12 +1,13 @@
 import * as service from './legalAgreement.service.js';
 import { createAgreementSchema, updateAgreementSchema } from './legalAgreement.schema.js';
 import { normalizeAgreementType } from './legalAgreement.constants.js';
+import { getS3ObjectText } from '../../utils/s3Upload.js';
 
 export const create = async (req, res, next) => {
   try {
     const payload = { ...req.body };
-    if (req.file?.buffer) {
-      payload.content = req.file.buffer.toString('utf8');
+    if (req.file?.key) {
+      payload.content = await getS3ObjectText(req.file.key);
     }
 
     res.status(201).json(await service.createAgreement(createAgreementSchema.parse(payload)));
@@ -43,8 +44,8 @@ export const getActiveByType = async (req, res, next) => {
 export const update = async (req, res, next) => {
   try {
     const payload = { ...req.body };
-    if (req.file?.buffer) {
-      payload.content = req.file.buffer.toString('utf8');
+    if (req.file?.key) {
+      payload.content = await getS3ObjectText(req.file.key);
     }
 
     res.json(await service.updateAgreement(req.params.id, updateAgreementSchema.parse(payload)));
