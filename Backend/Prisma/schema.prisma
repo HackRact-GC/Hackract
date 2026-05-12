@@ -227,6 +227,7 @@ model Organization {
   // Verification Details
   companySize       String?
   verificationStatus VerificationStatus @default(DRAFT)
+  logoUrl            String?
   
   // Timestamps
   createdAt DateTime @default(now())

@@ -4,6 +4,8 @@ import { FiChevronLeft, FiMessageSquare, FiSend, FiCheckCircle, FiAlertCircle, F
 import api from "../api/axiosConfig";
 import toast from "react-hot-toast";
 import { useAuth } from "../context/authContext.jsx";
+import { uploadFile } from "../api/uploadService.js";
+import { FiPaperclip, FiX } from "react-icons/fi";
 
 const FindingDetails = () => {
   const { findingId } = useParams();
@@ -12,6 +14,8 @@ const FindingDetails = () => {
   const [finding, setFinding] = useState(null);
   const [comments, setComments] = useState([]);
   const [newComment, setNewComment] = useState("");
+  const [attachedFile, setAttachedFile] = useState(null);
+  const [uploading, setUploading] = useState(false);
   const [loading, setLoading] = useState(true);
 
   const loadData = async () => {
@@ -49,13 +53,27 @@ const FindingDetails = () => {
 
   const handleAddComment = async (e) => {
     e.preventDefault();
-    if (!newComment.trim()) return;
+    if (!newComment.trim() && !attachedFile) return;
+
+    setUploading(true);
+    let finalContent = newComment;
+
     try {
-      await api.post(`/findings/${findingId}/comments`, { content: newComment });
+      if (attachedFile) {
+        const uploadToast = toast.loading("Uploading evidence...");
+        const s3Url = await uploadFile(attachedFile, 'finding-evidence');
+        finalContent += `\n\n[Evidence Attached: ${attachedFile.name}](${s3Url})`;
+        toast.success("Evidence uploaded", { id: uploadToast });
+      }
+
+      await api.post(`/findings/${findingId}/comments`, { content: finalContent });
       setNewComment("");
+      setAttachedFile(null);
       loadData();
     } catch (error) {
-      toast.error("Failed to add comment");
+      toast.error("Failed to add intelligence update");
+    } finally {
+      setUploading(false);
     }
   };
 
@@ -150,17 +168,39 @@ const FindingDetails = () => {
             </div>
 
             <form onSubmit={handleAddComment} className="relative mt-10 group">
+              {attachedFile && (
+                <div className="absolute -top-12 left-0 right-0 flex items-center gap-3 bg-[#00c477]/10 border border-[#00c477]/20 rounded-xl px-4 py-2.5 animate-in slide-in-from-bottom-2">
+                  <FiPaperclip className="text-[#00c477]" />
+                  <span className="text-xs font-mono text-white/70 truncate flex-1">{attachedFile.name}</span>
+                  <button type="button" onClick={() => setAttachedFile(null)} className="text-white/40 hover:text-red-400 transition-colors">
+                    <FiX size={14} />
+                  </button>
+                </div>
+              )}
               <textarea 
                 value={newComment}
                 onChange={(e) => setNewComment(e.target.value)}
                 placeholder="Post a security update or remediation note..."
                 className="w-full bg-black/60 border border-white/10 rounded-2xl p-6 text-sm text-white focus:outline-none focus:border-[#00c477]/50 h-32 resize-none transition-all placeholder:text-white/20"
+                disabled={uploading}
               />
+              <div className="absolute bottom-6 left-6 flex items-center gap-4">
+                <label className="cursor-pointer p-2.5 rounded-xl bg-white/5 border border-white/10 text-white/40 hover:text-[#00c477] hover:border-[#00c477]/30 transition-all flex items-center gap-2 text-[10px] font-black uppercase tracking-widest">
+                  <FiPaperclip size={14} />
+                  <span>Attach Evidence</span>
+                  <input 
+                    type="file" 
+                    className="hidden" 
+                    onChange={(e) => setAttachedFile(e.target.files?.[0])}
+                  />
+                </label>
+              </div>
               <button 
                 type="submit"
-                className="absolute bottom-6 right-6 px-6 py-2.5 bg-[#00c477] text-black rounded-xl hover:scale-105 active:scale-95 transition-all text-[10px] font-black uppercase tracking-widest flex items-center gap-2 shadow-lg shadow-[#00c477]/10"
+                disabled={uploading || (!newComment.trim() && !attachedFile)}
+                className="absolute bottom-6 right-6 px-6 py-2.5 bg-[#00c477] text-black rounded-xl hover:scale-105 active:scale-95 transition-all text-[10px] font-black uppercase tracking-widest flex items-center gap-2 shadow-lg shadow-[#00c477]/10 disabled:opacity-50"
               >
-                Send Intelligence <FiSend size={14} />
+                {uploading ? "Transmitting..." : "Send Intelligence"} <FiSend size={14} />
               </button>
             </form>
           </div>
