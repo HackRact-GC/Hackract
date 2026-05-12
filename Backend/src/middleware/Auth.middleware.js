@@ -14,10 +14,6 @@ const buildFallbackEmail = (auth0Id, nickname) => {
 
 const getOrCreateRole = async (roleType = 'PENTESTER') => {
   const metaByType = {
-    SUPER_ADMIN: {
-      name: 'Super Admin',
-      description: 'Full system access with all permissions',
-    },
     ORG_ADMIN: {
       name: 'Organization Admin',
       description: 'Full access within their organization',

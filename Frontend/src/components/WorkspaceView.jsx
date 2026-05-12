@@ -51,7 +51,7 @@ const WorkspaceView = ({ projectId, onBack }) => {
 
   const canManage = useMemo(() => {
     return (
-      user?.roles?.some((r) => r.type === "SUPER_ADMIN" || r.type === "ORG_ADMIN") ||
+      user?.roles?.some((r) => r.type === "ORG_ADMIN" || r.type === "ORG_ADMIN") ||
       project?.collaborators?.some((c) => c.userId === user?.id && c.role === "PROJECT_ADMIN")
     );
   }, [user, project]);

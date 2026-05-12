@@ -46,7 +46,6 @@ enum FindingStatus {
 }
 
 enum RoleType {
-  SUPER_ADMIN
   ORG_ADMIN
   PROJECT_ADMIN
   PENTESTER
@@ -272,7 +271,6 @@ model Pentest {
   description String?
   isPersonal  Boolean       @default(false)
   status      PentestStatus @default(PLANNING)
-  isPersonal  Boolean       @default(false)
 
   // Relations
   organization   Organization? @relation(fields: [organizationId], references: [id])

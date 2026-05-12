@@ -119,7 +119,7 @@ router.use(protect);
  *       401:
  *         description: Unauthorized
  */
-router.post('/', restrictTo('SUPER_ADMIN'), upload.single('file'), controller.create);
+router.post('/', restrictTo('ORG_ADMIN'), upload.single('file'), controller.create);
 router.get('/', controller.list);
 
 /**
@@ -217,8 +217,8 @@ router.get('/', controller.list);
  *         description: Forbidden - Super Admin only
  */
 router.get('/:id', controller.get);
-router.patch('/:id', restrictTo('SUPER_ADMIN', 'ORG_ADMIN'), upload.single('file'), controller.update);
-router.delete('/:id', restrictTo('SUPER_ADMIN'), controller.remove);
-router.post('/:id/notify', restrictTo('SUPER_ADMIN'), controller.notify);
+router.patch('/:id', restrictTo('ORG_ADMIN'), upload.single('file'), controller.update);
+router.delete('/:id', restrictTo('ORG_ADMIN'), controller.remove);
+router.post('/:id/notify', restrictTo('ORG_ADMIN'), controller.notify);
 
 export default router;
