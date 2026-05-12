@@ -143,16 +143,8 @@ const HackerLayout = () => {
               <FiMenu size={20} />
             </button>
 
-            {/* Page title on mobile, search on desktop */}
+            {/* Page title on mobile */}
             <span className="text-white font-semibold lg:hidden">{currentPage}</span>
-            <div className="relative w-full max-w-md hidden lg:flex items-center">
-              <FiSearch className="absolute left-4 text-gray-500" />
-              <input
-                type="text"
-                placeholder="Search resources, vulnerabilities..."
-                className="w-full bg-[#161616] border border-white/10 rounded-xl py-2.5 pl-11 pr-4 text-sm text-white focus:outline-none focus:border-[#00c477] transition-colors"
-              />
-            </div>
           </div>
 
           <div className="flex items-center space-x-4">
