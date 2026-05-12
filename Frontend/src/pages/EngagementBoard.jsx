@@ -242,18 +242,6 @@ const EngagementBoard = () => {
 
       <div className="grid lg:grid-cols-[1fr_320px] gap-10">
         <div className="space-y-8">
-          {/* Search */}
-          <div className="relative group">
-            <FiSearch className="absolute left-4 top-1/2 -translate-y-1/2 text-white/40 group-focus-within:text-[#00c477] transition-colors" />
-            <input
-              type="text"
-              value={searchQuery}
-              onChange={e => setSearchQuery(e.target.value)}
-              placeholder="Search by keywords, technical stack, or entity name..."
-              className="w-full bg-black/60 backdrop-blur-sm border border-white/10 rounded-xl pl-12 pr-4 py-4 text-sm text-white focus:outline-none focus:border-[#00c477]/50 focus:ring-4 focus:ring-[#00c477]/10 transition-all placeholder:text-white/40 shadow-inner"
-            />
-          </div>
-
           <AnimatePresence mode="wait">
             {loading ? (
               <motion.div
