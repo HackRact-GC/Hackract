@@ -70,7 +70,7 @@ router.use(protect);
  *       403:
  *         description: Forbidden - Admin only
  */
-router.get('/', restrictTo('SUPER_ADMIN', 'ORG_ADMIN'), controller.list);
+router.get('/', restrictTo('ORG_ADMIN'), controller.list);
 
 /**
  * @swagger
@@ -86,7 +86,7 @@ router.get('/', restrictTo('SUPER_ADMIN', 'ORG_ADMIN'), controller.list);
  *       403:
  *         description: Forbidden
  */
-router.get('/report', restrictTo('SUPER_ADMIN', 'ORG_ADMIN'), controller.generateReport);
+router.get('/report', restrictTo('ORG_ADMIN'), controller.generateReport);
 
 /**
  * @swagger
@@ -111,7 +111,7 @@ router.get('/report', restrictTo('SUPER_ADMIN', 'ORG_ADMIN'), controller.generat
  *       403:
  *         description: Forbidden - Admin only
  */
-router.get('/:id', restrictTo('SUPER_ADMIN', 'ORG_ADMIN'), controller.get);
+router.get('/:id', restrictTo('ORG_ADMIN'), controller.get);
 
 /**
  * @swagger
@@ -147,6 +147,6 @@ router.get('/:id', restrictTo('SUPER_ADMIN', 'ORG_ADMIN'), controller.get);
  *       403:
  *         description: Forbidden - Super Admin only
  */
-router.post('/', restrictTo('SUPER_ADMIN'), controller.create);
+router.post('/', restrictTo('ORG_ADMIN'), controller.create);
 
 export default router;

@@ -103,7 +103,7 @@ router.get('/check/:agreementId', controller.checkSigned);
  *       403:
  *         description: Forbidden - Admin only
  */
-router.get('/agreement/:agreementId', restrictTo('SUPER_ADMIN', 'ORG_ADMIN'), controller.getSignaturesByAgreement);
+router.get('/agreement/:agreementId', restrictTo('ORG_ADMIN'), controller.getSignaturesByAgreement);
 
 /**
  * @swagger
@@ -128,6 +128,6 @@ router.get('/agreement/:agreementId', restrictTo('SUPER_ADMIN', 'ORG_ADMIN'), co
  *       403:
  *         description: Forbidden - Admin only
  */
-router.get('/:id', restrictTo('SUPER_ADMIN', 'ORG_ADMIN'), controller.get);
+router.get('/:id', restrictTo('ORG_ADMIN'), controller.get);
 
 export default router;

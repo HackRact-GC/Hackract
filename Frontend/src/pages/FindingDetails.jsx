@@ -38,7 +38,7 @@ const FindingDetails = () => {
   }, [findingId]);
 
   const canManage = useMemo(() => {
-    return user?.roles?.some(r => r.type === "SUPER_ADMIN" || r.type === "ORG_ADMIN");
+    return user?.roles?.some(r => r.type === "ORG_ADMIN" || r.type === "ORG_ADMIN");
   }, [user]);
 
   const handleStatusChange = async (action, body = {}) => {
