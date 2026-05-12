@@ -1,8 +1,14 @@
 import { useRouteError, Link } from "react-router-dom";
+import NotFound from "./NotFound.jsx";
 
 const ErrorPage = () => {
     const error = useRouteError();
     console.error(error);
+
+    // If it's explicitly a 404 routing error, render the formal 404 page
+    if (error?.status === 404) {
+        return <NotFound />;
+    }
 
     return (
         <div className="min-h-screen bg-[#07090e] text-white flex flex-col items-center justify-center p-6 font-mono relative overflow-hidden">
