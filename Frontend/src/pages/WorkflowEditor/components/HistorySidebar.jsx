@@ -14,11 +14,13 @@ const BADGE_COLORS = {
   TERMINAL_EXEC: '#f59e0b',
   AGENT_RAN: '#d000ff',
   GRAPH_CHANGED: '#ffffff',
+  CREATE_CHECKPOINT: '#00ff41',
+  RESTORE_CHECKPOINT: '#ff4444',
 };
 
 
 
-const HistorySidebar = ({ workflowId, isOpen, onClose, liveEvents = [], localUser }) => {
+const HistorySidebar = ({ workflowId, isOpen, onClose, liveEvents = [], localUser, onCreateCheckpoint, onRestore }) => {
   const [dbHistory, setDbHistory] = useState([]);
   const [loading, setLoading] = useState(false);
   const localUserId = localUser?.id || localUser?._id;
@@ -154,6 +156,15 @@ const HistorySidebar = ({ workflowId, isOpen, onClose, liveEvents = [], localUse
                          <div className="text-[11px] text-gray-400 font-medium">
                            {record.message || record.action.replace(/_/g, ' ')}
                          </div>
+
+                         {record.isSnapshot && record.snapshot && (
+                           <button 
+                             onClick={() => onRestore && onRestore(record.snapshot)}
+                             className="mt-2 text-[10px] font-bold text-[#00a3ff] hover:text-white bg-[#00a3ff]/10 hover:bg-[#00a3ff]/20 px-2 py-1 rounded transition-colors w-full border border-[#00a3ff]/20"
+                           >
+                             RESTORE VERSION
+                           </button>
+                         )}
                        </div>
                      </div>
                    );
@@ -166,7 +177,10 @@ const HistorySidebar = ({ workflowId, isOpen, onClose, liveEvents = [], localUse
 
       {/* Footer / Snapshot Action */}
       <div className="p-4 border-t border-gray-800 bg-[#07090e]">
-        <button className="w-full py-2 bg-[#161a23] border border-[#00ff41]/30 text-[#00ff41] font-mono text-[11px] font-bold rounded hover:bg-[#00ff41]/10 transition-all flex items-center justify-center gap-2 shadow-[0_0_15px_rgba(0,255,65,0.1)]">
+        <button 
+          onClick={onCreateCheckpoint}
+          className="w-full py-2 bg-[#161a23] border border-[#00ff41]/30 text-[#00ff41] font-mono text-[11px] font-bold rounded hover:bg-[#00ff41]/10 transition-all flex items-center justify-center gap-2 shadow-[0_0_15px_rgba(0,255,65,0.1)]"
+        >
           <span>💾</span>
           CREATE CHECKPOINT
         </button>
