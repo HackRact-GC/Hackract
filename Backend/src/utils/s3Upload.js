@@ -1,39 +1,126 @@
-import { S3Client } from '@aws-sdk/client-s3';
+import { GetObjectCommand, S3Client } from '@aws-sdk/client-s3';
 import multer from 'multer';
 import multerS3 from 'multer-s3';
 import { v4 as uuidv4 } from 'uuid';
 import path from 'path';
 
-// Validate environment variables
-const requiredEnvVars = ['AWS_REGION', 'AWS_ACCESS_KEY_ID', 'AWS_SECRET_ACCESS_KEY', 'AWS_S3_BUCKET_NAME'];
-const isS3Configured = requiredEnvVars.every((envVar) => process.env[envVar] && process.env[envVar] !== `your_${envVar.toLowerCase()}_here` && !process.env[envVar].includes('your_'));
+// ─── Helpers ─────────────────────────────────────────────────────────────────
 
-let s3Client;
+/** Read an env var and strip any accidental whitespace */
+const getEnv = (key) => (process.env[key] || '').trim();
 
-if (isS3Configured) {
-  s3Client = new S3Client({
-    region: process.env.AWS_REGION,
-    credentials: {
-      accessKeyId: process.env.AWS_ACCESS_KEY_ID,
-      secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
-    },
+// ─── MinIO Configuration Check ───────────────────────────────────────────────
+
+const requiredEnvVars = [
+  'MINIO_ENDPOINT',
+  'MINIO_ACCESS_KEY',
+  'MINIO_SECRET_KEY',
+  'MINIO_BUCKET_NAME',
+];
+
+const isStorageConfigured = requiredEnvVars.every((envVar) => {
+  const val = getEnv(envVar);
+  return val.length > 0;
+});
+
+// ─── MinIO Client (S3-compatible) ────────────────────────────────────────────
+
+let minioClient;
+
+const getMinioClient = () => {
+  if (!isStorageConfigured) {
+    throw new Error('MinIO is not configured. Set MINIO_ENDPOINT, MINIO_ACCESS_KEY, MINIO_SECRET_KEY and MINIO_BUCKET_NAME in .env');
+  }
+
+  if (!minioClient) {
+    const endpoint = getEnv('MINIO_ENDPOINT'); // e.g. http://localhost:9000
+    const useSSL   = endpoint.startsWith('https');
+    const port     = parseInt(getEnv('MINIO_PORT') || (useSSL ? '443' : '9000'), 10);
+
+    minioClient = new S3Client({
+      endpoint,
+      region: getEnv('MINIO_REGION') || 'us-east-1', // MinIO ignores region, but SDK requires it
+      credentials: {
+        accessKeyId:     getEnv('MINIO_ACCESS_KEY'),
+        secretAccessKey: getEnv('MINIO_SECRET_KEY'),
+      },
+      // REQUIRED for MinIO — use path-style URLs: http://host:9000/bucket/key
+      // instead of virtual-hosted style: http://bucket.host:9000/key
+      forcePathStyle: true,
+      tls: useSSL,
+    });
+  }
+
+  return minioClient;
+};
+
+// ─── Key Builder ─────────────────────────────────────────────────────────────
+
+const buildS3Key = ({ folder, originalName }) => {
+  const uniqueSuffix = `${Date.now()}-${uuidv4()}`;
+  const ext = path.extname(originalName);
+  const normalizedFolder = folder
+    ? `${String(folder).replace(/^\/+|\/+$/g, '')}/`
+    : 'uploads/';
+  return `${normalizedFolder}${uniqueSuffix}${ext}`;
+};
+
+// ─── Public URL Builder ───────────────────────────────────────────────────────
+
+/**
+ * Build the public URL for a stored object.
+ * Format: http(s)://<endpoint>/<bucket>/<key>
+ */
+const getS3PublicUrl = (key) => {
+  const endpoint = getEnv('MINIO_ENDPOINT').replace(/\/$/, '');
+  const bucket   = getEnv('MINIO_BUCKET_NAME');
+  const encodedKey = encodeURI(key);
+  return `${endpoint}/${bucket}/${encodedKey}`;
+};
+
+// ─── Read Object as Text (used by LegalAgreement) ────────────────────────────
+
+const streamToString = (stream) =>
+  new Promise((resolve, reject) => {
+    const chunks = [];
+    stream.on('data', (chunk) => chunks.push(chunk));
+    stream.on('error', reject);
+    stream.on('end',   () => resolve(Buffer.concat(chunks).toString('utf8')));
   });
-} else {
-  console.warn('⚠️ AWS S3 is not fully configured in .env. Falling back to local memory storage for uploads.');
-}
+
+const getS3ObjectText = async (key) => {
+  const client  = getMinioClient();
+  const command = new GetObjectCommand({
+    Bucket: getEnv('MINIO_BUCKET_NAME'),
+    Key:    key,
+  });
+  const response = await client.send(command);
+  if (!response.Body) return '';
+  return streamToString(response.Body);
+};
+
+// ─── File Filter ─────────────────────────────────────────────────────────────
 
 const fileFilter = (req, file, cb) => {
-  // Accept images, videos, audio, and common document/archive formats
+  if (!isStorageConfigured) {
+    cb(new Error('MinIO storage is not configured. Check your .env file.'), false);
+    return;
+  }
+
   const allowedMimeTypes = [
     'image/', 'video/', 'audio/',
-    'application/pdf', 'application/msword',
+    'application/pdf',
+    'application/msword',
     'application/vnd.openxmlformats-officedocument',
     'application/vnd.ms-excel',
-    'application/zip', 'application/x-rar-compressed',
-    'text/plain', 'text/markdown', 'text/csv'
+    'application/zip',
+    'application/x-rar-compressed',
+    'text/plain',
+    'text/markdown',
+    'text/csv',
   ];
 
-  const isAllowed = allowedMimeTypes.some(type => file.mimetype.startsWith(type));
+  const isAllowed = allowedMimeTypes.some((type) => file.mimetype.startsWith(type));
 
   if (isAllowed) {
     cb(null, true);
@@ -42,30 +129,38 @@ const fileFilter = (req, file, cb) => {
   }
 };
 
-const storage = isS3Configured
+// ─── Multer Storage ───────────────────────────────────────────────────────────
+
+const storage = isStorageConfigured
   ? multerS3({
-      s3: s3Client,
-      bucket: process.env.AWS_S3_BUCKET_NAME,
-      acl: 'public-read', // Change to 'private' if you don't want public URLs
-      metadata: function (req, file, cb) {
-        cb(null, { fieldName: file.fieldname });
-      },
-      key: function (req, file, cb) {
-        const uniqueSuffix = `${Date.now()}-${uuidv4()}`;
-        const ext = path.extname(file.originalname);
-        // Organize by folder based on a query param or route if needed, default to 'uploads/'
-        const folder = req.query.folder ? `${req.query.folder}/` : 'uploads/';
-        cb(null, `${folder}${uniqueSuffix}${ext}`);
-      },
-    })
-  : multer.memoryStorage(); // Fallback if S3 is not configured
+    s3:     getMinioClient(),
+    bucket: getEnv('MINIO_BUCKET_NAME'),
+    // MinIO buckets can be set to public via bucket policy — no ACL needed
+    contentType: multerS3.AUTO_CONTENT_TYPE,
+    metadata: (req, file, cb) => {
+      cb(null, { fieldName: file.fieldname });
+    },
+    key: (req, file, cb) => {
+      const folder = req.s3Folder || req.query.folder;
+      cb(null, buildS3Key({ folder, originalName: file.originalname }));
+    },
+  })
+  : multer.memoryStorage();
 
 const s3Upload = multer({
-  storage: storage,
-  fileFilter: fileFilter,
+  storage,
+  fileFilter,
   limits: {
-    fileSize: 10 * 1024 * 1024, // 10MB limit
+    fileSize: 50 * 1024 * 1024, // 50 MB limit
   },
 });
 
-export { s3Upload, isS3Configured };
+// ─── Exports (kept backward-compatible with existing route files) ─────────────
+
+export {
+  s3Upload,
+  isStorageConfigured as isS3Configured, // alias so existing imports don't break
+  getS3ObjectText,
+  getS3PublicUrl,
+  buildS3Key,
+};

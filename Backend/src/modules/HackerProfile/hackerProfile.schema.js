@@ -38,6 +38,8 @@ export const upsertHackerProfileSchema = Joi.object({
   idDocumentNumber: Joi.string().max(50).optional().allow('', null),
   fullName: Joi.string().max(100).optional().allow('', null),
 
+  avatar: Joi.string().uri().max(500).optional().allow('', null),
+
   status: Joi.string()
     .valid(VerificationStatus.DRAFT, VerificationStatus.SUBMITTED)
     .optional(),

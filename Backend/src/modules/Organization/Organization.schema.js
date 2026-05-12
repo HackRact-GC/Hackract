@@ -45,7 +45,8 @@ export const createOrganizationSchema = Joi.object({
   currency: Joi.string().max(10).optional(),
   registrationNumber: Joi.string().max(100).optional(),
   taxId: Joi.string().max(100).optional(),
-  signatureData: Joi.string().allow('', null).optional()
+  signatureData: Joi.string().allow('', null).optional(),
+  logoUrl: Joi.string().uri().max(500).optional().allow('', null)
 });
 
 export const updateOrganizationSchema = Joi.object({
@@ -91,7 +92,8 @@ export const updateOrganizationSchema = Joi.object({
   currency: Joi.string().max(10).optional(),
   registrationNumber: Joi.string().max(100).optional(),
   taxId: Joi.string().max(100).optional(),
-  signatureData: Joi.string().allow('', null).optional()
+  signatureData: Joi.string().allow('', null).optional(),
+  logoUrl: Joi.string().uri().max(500).optional().allow('', null)
 
 }).min(1).messages({
   'object.min': 'At least one field must be provided for update'
@@ -114,7 +116,7 @@ export const addMemberSchema = Joi.object({
       'string.guid': 'Invalid user ID format',
       'any.required': 'User ID is required'
     }),
-    
+
   role: Joi.string()
     .valid(...Object.values(OrganizationRole))
     .default(OrganizationRole.MEMBER)

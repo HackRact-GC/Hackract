@@ -1,7 +1,4 @@
 import express from 'express';
-import multer from 'multer';
-import path from 'path';
-import { fileURLToPath } from 'url';
 import { validateLocal } from '../../middleware/Auth.middleware.js';
 import * as controller from './chat.controller.js';
 import {
@@ -16,10 +13,7 @@ import {
   sendInvitationSchema,
 } from './chat.schema.js';
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-
-import { s3Upload, isS3Configured } from '../../utils/s3Upload.js';
+import { s3Upload } from '../../utils/s3Upload.js';
 
 const router = express.Router();
 

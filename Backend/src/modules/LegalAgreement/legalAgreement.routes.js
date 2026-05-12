@@ -1,16 +1,14 @@
 import express from 'express';
-import multer from 'multer';
 import * as controller from './legalAgreement.controller.js';
 import { protect, restrictTo } from '../../middleware/Auth.middleware.js';
+import { s3Upload } from '../../utils/s3Upload.js';
 
 const router = express.Router();
 
-const upload = multer({
-	storage: multer.memoryStorage(),
-	limits: {
-		fileSize: 2 * 1024 * 1024, // 2MB
-	},
-});
+const setS3Folder = (folder) => (req, res, next) => {
+	req.s3Folder = folder;
+	next();
+};
 
 /**
  * @swagger
@@ -119,7 +117,7 @@ router.use(protect);
  *       401:
  *         description: Unauthorized
  */
-router.post('/', restrictTo('ORG_ADMIN'), upload.single('file'), controller.create);
+router.post('/', restrictTo('ORG_ADMIN'), setS3Folder('legal-agreements'), s3Upload.single('file'), controller.create);
 router.get('/', controller.list);
 
 /**
@@ -217,7 +215,7 @@ router.get('/', controller.list);
  *         description: Forbidden - Super Admin only
  */
 router.get('/:id', controller.get);
-router.patch('/:id', restrictTo('ORG_ADMIN'), upload.single('file'), controller.update);
+router.patch('/:id', restrictTo('ORG_ADMIN'), setS3Folder('legal-agreements'), s3Upload.single('file'), controller.update);
 router.delete('/:id', restrictTo('ORG_ADMIN'), controller.remove);
 router.post('/:id/notify', restrictTo('ORG_ADMIN'), controller.notify);
 

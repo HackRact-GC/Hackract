@@ -254,7 +254,7 @@ const OrganizationProfile = () => {
     reader.onload = (ev) => setLogoPreview(ev.target.result);
     reader.readAsDataURL(file);
 
-    // 2. Upload to S3
+    // 2. Upload to storage
     try {
       if (!organizationId) {
         toast.error("Please save the organization profile first before uploading a logo.");

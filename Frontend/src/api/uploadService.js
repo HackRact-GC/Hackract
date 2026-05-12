@@ -1,10 +1,10 @@
 import api from './axiosConfig';
 
 /**
- * Upload a file to the generic S3 upload endpoint.
+ * Upload a file to the generic storage upload endpoint.
  * @param {File} file - The file object to upload
- * @param {string} folder - Optional folder name to organize the file in S3
- * @returns {Promise<string>} - Returns the uploaded file's S3 URL
+ * @param {string} folder - Optional folder name to organize the file in storage
+ * @returns {Promise<string>} - Returns the uploaded file's storage URL
  */
 export const uploadFile = async (file, folder = 'uploads') => {
   const formData = new FormData();

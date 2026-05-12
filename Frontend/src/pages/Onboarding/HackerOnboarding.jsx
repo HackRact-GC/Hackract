@@ -65,7 +65,13 @@ const HackerOnboarding = () => {
             bio: profile.bio || prev.bio,
             skills: (profile.primarySkills || []).join(", ") || prev.skills,
             certifications: profile.certifications?.length > 0 
-              ? profile.certifications.map(c => ({ title: c, provider: '', date: '' })) 
+              ? profile.certifications.map(c => {
+                  try {
+                    return JSON.parse(c);
+                  } catch {
+                    return { title: c, provider: '', date: '' };
+                  }
+                }) 
               : prev.certifications,
           }));
 
@@ -82,12 +88,22 @@ const HackerOnboarding = () => {
     fetchProfile();
   }, []);
 
-  const handleLogoChange = (event) => {
+  const handleLogoChange = async (event) => {
     const file = event.target.files?.[0];
     if (!file) return;
     const reader = new FileReader();
     reader.onloadend = () => setLogoPreview(reader.result);
     reader.readAsDataURL(file);
+
+    try {
+      const { uploadFile } = await import('../../api/uploadService.js');
+      const uploadToast = toast.loading("Uploading avatar...");
+      const s3Url = await uploadFile(file, 'avatars');
+      await api.put("/hacker-profiles/me", { avatar: s3Url });
+      toast.success("Avatar safely uploaded", { id: uploadToast });
+    } catch(err) {
+      toast.error("Avatar upload failed");
+    }
   };
 
   const toggleEdit = (section) => {
@@ -100,7 +116,13 @@ const HackerOnboarding = () => {
       const payload = {
         bio: form.bio,
         primarySkills: form.skills.split(",").map(s => s.trim()).filter(Boolean),
-        certifications: form.certifications.map(c => c.title),
+        certifications: form.certifications.map(c => JSON.stringify({
+          title: c.title,
+          provider: c.provider,
+          certNumber: c.certNumber,
+          file: c.file,
+          fileUrl: c.fileUrl
+        })),
         status: finalStatus || undefined,
       };
       await api.put("/hacker-profiles/me", payload);
@@ -328,15 +350,25 @@ const HackerOnboarding = () => {
                   <input type="text" placeholder="Provider (e.g. Offensive Security)" value={newItem.provider || ''} onChange={e => setNewItem({...newItem, provider: e.target.value})} className="w-full bg-[#111] border border-[#00c477] rounded-lg p-2 text-sm focus:outline-none" />
                   <div className="flex items-center gap-2">
                     <span className="text-sm text-gray-400">Upload Photo/File:</span>
-                    <input type="file" accept="image/*,.pdf" onChange={e => {
+                    <input type="file" accept="image/*,.pdf" onChange={async e => {
                       const file = e.target.files?.[0];
-                      if(file) setNewItem({...newItem, file: file.name});
+                      if (file) {
+                        const toastId = toast.loading("Uploading certification...");
+                        try {
+                          const { uploadFile } = await import('../../api/uploadService.js');
+                          const url = await uploadFile(file, 'certifications');
+                          setNewItem({ ...newItem, file: file.name, fileUrl: url });
+                          toast.success("File uploaded", { id: toastId });
+                        } catch (err) {
+                          toast.error("Upload failed", { id: toastId });
+                        }
+                      }
                     }} className="flex-1 bg-[#111] border border-[#00c477] rounded-lg p-2 text-sm focus:outline-none file:mr-4 file:py-1 file:px-3 file:rounded-full file:border-0 file:text-xs file:bg-[#00c477] file:text-black hover:file:bg-[#00ff9d] cursor-pointer" />
                   </div>
                   <div className="flex gap-2 pt-2">
                     <button onClick={() => {
-                      if(newItem.title) {
-                        setForm({...form, certifications: [...form.certifications, { title: newItem.title, provider: newItem.provider, certNumber: newItem.certNumber, file: newItem.file }]});
+                      if (newItem.title) {
+                        setForm({ ...form, certifications: [...form.certifications, { title: newItem.title, provider: newItem.provider, certNumber: newItem.certNumber, file: newItem.file, fileUrl: newItem.fileUrl }] });
                         setNewItem({});
                         handleSaveSection('certifications'); // also triggers save to backend
                       } else {
@@ -429,15 +461,25 @@ const HackerOnboarding = () => {
                   <textarea placeholder="Description" value={newItem.description || ''} onChange={e => setNewItem({...newItem, description: e.target.value})} className="w-full bg-[#111] border border-[#00c477] rounded-lg p-2 text-sm focus:outline-none resize-none min-h-[80px]" />
                   <div className="flex items-center gap-2">
                     <span className="text-sm text-gray-400">Upload Photo/File:</span>
-                    <input type="file" accept="image/*,.pdf" onChange={e => {
+                    <input type="file" accept="image/*,.pdf" onChange={async e => {
                       const file = e.target.files?.[0];
-                      if(file) setNewItem({...newItem, file: file.name});
+                      if (file) {
+                        const toastId = toast.loading("Uploading experience doc...");
+                        try {
+                          const { uploadFile } = await import('../../api/uploadService.js');
+                          const url = await uploadFile(file, 'other');
+                          setNewItem({ ...newItem, file: file.name, fileUrl: url });
+                          toast.success("Document uploaded", { id: toastId });
+                        } catch (err) {
+                          toast.error("Upload failed", { id: toastId });
+                        }
+                      }
                     }} className="flex-1 bg-[#111] border border-[#00c477] rounded-lg p-2 text-sm focus:outline-none file:mr-4 file:py-1 file:px-3 file:rounded-full file:border-0 file:text-xs file:bg-[#00c477] file:text-black hover:file:bg-[#00ff9d] cursor-pointer" />
                   </div>
                   <div className="flex gap-2 pt-2">
                     <button onClick={() => {
-                      if(newItem.subject || newItem.description) {
-                        setForm({...form, other: [...form.other, { subject: newItem.subject, description: newItem.description, file: newItem.file }]});
+                      if (newItem.subject || newItem.description) {
+                        setForm({ ...form, other: [...form.other, { subject: newItem.subject, description: newItem.description, file: newItem.file, fileUrl: newItem.fileUrl }] });
                       }
                       toggleEdit('other');
                     }} className="px-4 py-1.5 bg-[#00c477] text-black text-sm rounded-full font-bold">Add & Done</button>
