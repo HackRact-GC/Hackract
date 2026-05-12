@@ -207,10 +207,6 @@ const HackerDashboard = () => {
            <p className="text-[11px] font-mono font-bold text-gray-500 uppercase tracking-widest">Unclaimed technical challenges across the global spectrum.</p>
          </div>
          <div className="flex items-center gap-4 w-full md:w-auto">
-            <div className="relative grow md:grow-0">
-              <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500"><Icons.Search /></span>
-              <input type="text" placeholder="Mission ID / Scope..." className="w-full md:w-72 pl-12 pr-6 py-3.5 bg-white/[0.02] border border-white/10 rounded-2xl text-[11px] font-mono font-bold text-white placeholder-gray-600 focus:outline-none focus:border-[#00c477]/50 focus:ring-1 focus:ring-[#00c477]/20 transition-all uppercase" />
-            </div>
             <button className="px-8 py-3.5 bg-[#00c477] text-black text-[11px] font-mono font-black uppercase tracking-widest rounded-[18px] shadow-[0_0_20px_rgba(0,255,136,0.3)] hover:scale-105 transition-all">Filter Archive</button>
          </div>
        </div>
@@ -421,12 +417,7 @@ const HackerDashboard = () => {
         </div>
 
         <div className="ml-auto flex items-center gap-10">
-          <div className="relative hidden xl:block group">
-            <span className="absolute left-5 top-1/2 -translate-y-1/2 text-gray-600 group-focus-within:text-[#00c477] transition-colors"><Icons.Search /></span>
-            <input type="text" placeholder="Decrypt globals, intel, scopes..." className="w-[480px] pl-14 pr-8 py-4 bg-white/[0.02] border border-white/10 rounded-2xl text-[11px] font-mono font-bold text-white focus:outline-none focus:border-[#00c477]/50 focus:bg-white/[0.04] transition-all placeholder-gray-700 uppercase tracking-widest" />
-          </div>
-          
-          <div className="flex items-center gap-8 border-l border-white/5 pl-10">
+          <div className="flex items-center gap-8 pl-10">
              <button className="relative p-3.5 rounded-2xl bg-white/[0.02] border border-white/5 text-gray-500 hover:text-[#00c477] hover:border-[#00c477]/30 transition-all group">
                 <Icons.Bell />
                 <span className="absolute top-3.5 right-3.5 w-2 h-2 bg-rose-500 rounded-full ring-[4px] ring-black animate-pulse" />
