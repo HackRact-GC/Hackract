@@ -60,6 +60,9 @@ import SystemAdminDashboard from "../pages/Admin/SystemAdminDashboard.jsx";
 // Optional (only if you really have this file)
 import DashboardPreview from "../pages/DashboardPreview.jsx";
 
+// 404 Route
+import NotFound from "../pages/NotFound.jsx";
+
 const router = createBrowserRouter([
   {
     path: "/",
@@ -319,6 +322,10 @@ const router = createBrowserRouter([
             element: <ResetPassword />,
           },
         ]
+      },
+      {
+        path: "*",
+        element: <NotFound />,
       },
     ]
   },
