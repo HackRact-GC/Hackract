@@ -15,8 +15,14 @@ const HackerProfile = () => {
   const navigate = useNavigate();
 
   // Avatar / Identity
-  const [logoPreview, setLogoPreview] = useState(null);
+  const [logoPreview, setLogoPreview] = useState(user?.avatar || null);
   const displayName = user?.fullName || user?.handle || "Digital Ghost";
+
+  useEffect(() => {
+    if (user?.avatar && !logoPreview) {
+      setLogoPreview(user.avatar);
+    }
+  }, [user?.avatar]);
   const initials = displayName.split(" ").map(n => n[0]).join("").toUpperCase().slice(0, 2);
 
   // Form State
@@ -121,13 +127,13 @@ const HackerProfile = () => {
       const s3Url = await uploadFile(file, 'avatars');
       
       // 3. Update profile with the new URL
-      // We pass the avatar URL to the upsert endpoint which we just updated to handle it
-      await api.put("/hacker-profiles/me", { avatar: s3Url });
+      // Use the users/profile endpoint to update avatar without requiring bio validation
+      await api.patch("/users/profile", { avatar: s3Url });
       
       toast.success("Avatar secured successfully", { id: uploadToast });
       if (refreshUser) await refreshUser();
     } catch (error) {
-      toast.error("File transmission failed. Ensure storage is configured.");
+      toast.error(error?.response?.data?.message || "File transmission failed.");
       console.error("Avatar upload error:", error);
     }
   };
@@ -137,31 +143,31 @@ const HackerProfile = () => {
     setNewItem({}); // Reset new item state when toggling
   };
 
-  const saveProfileWith = async (overrides = {}) => {
+  const saveProfileWith = async (newFormState = {}) => {
+    const finalForm = { ...form, ...newFormState };
     try {
       const payload = {
-        bio: form.bio,
-        primarySkills: form.skills.split(',').map(s => s.trim()).filter(Boolean),
-        certifications: form.certifications.map(c => JSON.stringify({
+        bio: finalForm.bio,
+        primarySkills: finalForm.skills.split(',').map(s => s.trim()).filter(Boolean),
+        certifications: finalForm.certifications.map(c => JSON.stringify({
           title: c.title,
           provider: c.provider,
           certNumber: c.certNumber,
           file: c.file,
           fileUrl: c.fileUrl
         })),
-        employment: form.employment.map(e => JSON.stringify({
+        employment: finalForm.employment.map(e => JSON.stringify({
           company: e.company,
           title: e.title,
           from: e.from,
           to: e.to
         })),
-        otherExperiences: form.other.map(o => JSON.stringify({
+        otherExperiences: finalForm.other.map(o => JSON.stringify({
           subject: o.subject,
           description: o.description,
           file: o.file,
           fileUrl: o.fileUrl
-        })),
-        ...overrides,
+        }))
       };
       await api.put('/hacker-profiles/me', payload);
       toast.success('Profile saved successfully.');
@@ -392,14 +398,7 @@ const HackerProfile = () => {
                       setEditMode(prev => ({ ...prev, certifications: false }));
                       const toastId = toast.loading('Saving certification...');
                       try {
-                        await api.put('/hacker-profiles/me', {
-                          bio: form.bio,
-                          primarySkills: form.skills.split(',').map(s => s.trim()).filter(Boolean),
-                          certifications: updatedCerts.map(c => JSON.stringify({
-                            title: c.title, provider: c.provider,
-                            certNumber: c.certNumber, file: c.file, fileUrl: c.fileUrl,
-                          })),
-                        });
+                        await saveProfileWith({ certifications: updatedCerts });
                         toast.success('Certification saved!', { id: toastId });
                       } catch (err) {
                         toast.error(err?.response?.data?.message || 'Failed to save', { id: toastId });
@@ -439,7 +438,11 @@ const HackerProfile = () => {
                         </div>
                       )}
                     </div>
-                    <button onClick={() => setForm({ ...form, certifications: form.certifications.filter((_, i) => i !== idx) })} className="absolute top-0 right-0 hidden group-hover/item:flex w-8 h-8 rounded-full bg-red-500/10 text-red-500 items-center justify-center hover:bg-red-500 hover:text-white">
+                    <button onClick={async () => {
+                      const updatedCerts = form.certifications.filter((_, i) => i !== idx);
+                      setForm({ ...form, certifications: updatedCerts });
+                      await saveProfileWith({ certifications: updatedCerts });
+                    }} className="absolute top-0 right-0 hidden group-hover/item:flex w-8 h-8 rounded-full bg-red-500/10 text-red-500 items-center justify-center hover:bg-red-500 hover:text-white">
                       <FiTrash2 size={14} />
                     </button>
                   </div>
@@ -467,11 +470,15 @@ const HackerProfile = () => {
                     <input type="text" placeholder="To (e.g. Present)" value={newItem.to || ''} onChange={e => setNewItem({ ...newItem, to: e.target.value })} className="w-1/2 bg-[#111] border border-[#00c477] rounded-lg p-2 text-sm focus:outline-none" />
                   </div>
                   <div className="flex gap-2 pt-2">
-                    <button onClick={() => {
+                    <button onClick={async () => {
                       if (newItem.company || newItem.title) {
-                        setForm({ ...form, employment: [...form.employment, { company: newItem.company, title: newItem.title, from: newItem.from, to: newItem.to }] });
+                        const updatedEmployment = [...form.employment, { company: newItem.company, title: newItem.title, from: newItem.from, to: newItem.to }];
+                        setForm({ ...form, employment: updatedEmployment });
+                        toggleEdit('employment');
+                        await saveProfileWith({ employment: updatedEmployment });
+                      } else {
+                        toggleEdit('employment');
                       }
-                      toggleEdit('employment');
                     }} className="px-4 py-1.5 bg-[#00c477] text-black text-sm rounded-full font-bold">Add & Done</button>
                     <button onClick={() => toggleEdit('employment')} className="px-4 py-1.5 bg-white/10 text-white text-sm rounded-full font-bold hover:bg-white/20">Cancel</button>
                   </div>
@@ -483,7 +490,11 @@ const HackerProfile = () => {
                   <div key={idx} className="group/item relative border-b border-white/5 pb-4 last:border-0 last:pb-0">
                     <h3 className="font-bold text-lg">{job.title} {job.company ? `| ${job.company}` : ''}</h3>
                     {(job.from || job.to) && <p className="text-sm text-gray-400 mb-2">{job.from} - {job.to}</p>}
-                    <button onClick={() => setForm({ ...form, employment: form.employment.filter((_, i) => i !== idx) })} className="absolute top-0 right-0 hidden group-hover/item:flex w-8 h-8 rounded-full bg-red-500/10 text-red-500 items-center justify-center hover:bg-red-500 hover:text-white">
+                    <button onClick={async () => {
+                      const updatedEmployment = form.employment.filter((_, i) => i !== idx);
+                      setForm({ ...form, employment: updatedEmployment });
+                      await saveProfileWith({ employment: updatedEmployment });
+                    }} className="absolute top-0 right-0 hidden group-hover/item:flex w-8 h-8 rounded-full bg-red-500/10 text-red-500 items-center justify-center hover:bg-red-500 hover:text-white">
                       <FiTrash2 size={14} />
                     </button>
                   </div>
@@ -524,11 +535,15 @@ const HackerProfile = () => {
                     }} className="flex-1 bg-[#111] border border-[#00c477] rounded-lg p-2 text-sm focus:outline-none file:mr-4 file:py-1 file:px-3 file:rounded-full file:border-0 file:text-xs file:bg-[#00c477] file:text-black hover:file:bg-[#00ff9d] cursor-pointer" />
                   </div>
                   <div className="flex gap-2 pt-2">
-                    <button onClick={() => {
+                    <button onClick={async () => {
                       if (newItem.subject || newItem.description) {
-                        setForm({ ...form, other: [...form.other, { subject: newItem.subject, description: newItem.description, file: newItem.file, fileUrl: newItem.fileUrl }] });
+                        const updatedOther = [...form.other, { subject: newItem.subject, description: newItem.description, file: newItem.file, fileUrl: newItem.fileUrl }];
+                        setForm({ ...form, other: updatedOther });
+                        toggleEdit('other');
+                        await saveProfileWith({ other: updatedOther });
+                      } else {
+                        toggleEdit('other');
                       }
-                      toggleEdit('other');
                     }} className="px-4 py-1.5 bg-[#00c477] text-black text-sm rounded-full font-bold">Add & Done</button>
                     <button onClick={() => toggleEdit('other')} className="px-4 py-1.5 bg-white/10 text-white text-sm rounded-full font-bold hover:bg-white/20">Cancel</button>
                   </div>
@@ -558,7 +573,11 @@ const HackerProfile = () => {
                         )}
                       </div>
                     )}
-                    <button onClick={() => setForm({ ...form, other: form.other.filter((_, i) => i !== idx) })} className="absolute top-0 right-0 hidden group-hover/item:flex w-8 h-8 rounded-full bg-red-500/10 text-red-500 items-center justify-center hover:bg-red-500 hover:text-white">
+                    <button onClick={async () => {
+                      const updatedOther = form.other.filter((_, i) => i !== idx);
+                      setForm({ ...form, other: updatedOther });
+                      await saveProfileWith({ other: updatedOther });
+                    }} className="absolute top-0 right-0 hidden group-hover/item:flex w-8 h-8 rounded-full bg-red-500/10 text-red-500 items-center justify-center hover:bg-red-500 hover:text-white">
                       <FiTrash2 size={14} />
                     </button>
                   </div>
