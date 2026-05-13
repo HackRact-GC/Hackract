@@ -34,7 +34,7 @@ export const checkLegalSignature = async (req, res, next) => {
 
     // If no projectId but we have a findingId, look up the project
     if (!projectId && findingId && req.baseUrl.includes('findings')) {
-      const finding = await prisma.vulnerabilityFinding.findUnique({
+      const finding = await prisma.finding.findUnique({
         where: { id: findingId },
         select: { pentestId: true }
       });

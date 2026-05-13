@@ -32,6 +32,16 @@ const WorkspaceView = ({ projectId, onBack }) => {
 
   useEffect(() => {
     if (projectId) loadProject();
+
+    // Listen for updates from other tabs (like WorkflowEditor)
+    const channel = new BroadcastChannel('project_updates');
+    channel.onmessage = (event) => {
+      if (event.data.type === 'FINDING_CREATED' && event.data.pentestId === projectId) {
+        loadProject();
+      }
+    };
+
+    return () => channel.close();
   }, [projectId]);
 
   const projectAdmin = useMemo(
