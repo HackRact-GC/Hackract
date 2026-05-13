@@ -33,6 +33,9 @@ const HackerOnboarding = () => {
     education: [],
     employment: [],
     other: [],
+    country: "",
+    yearsOfExperience: "",
+    specialization: "",
   });
 
   // Edit Modes
@@ -43,6 +46,7 @@ const HackerOnboarding = () => {
     education: false,
     employment: false,
     other: false,
+    identity: false,
   });
 
   // New Item State for forms
@@ -70,32 +74,35 @@ const HackerOnboarding = () => {
             ...prev,
             bio: profile.bio || prev.bio,
             skills: (profile.primarySkills || []).join(", ") || prev.skills,
-            certifications: profile.certifications?.length > 0 
+            country: profile.country || prev.country,
+            yearsOfExperience: profile.yearsOfExperience || prev.yearsOfExperience,
+            specialization: profile.specialization || prev.specialization,
+            certifications: profile.certifications?.length > 0
               ? profile.certifications.map(c => {
-                  try {
-                    return JSON.parse(c);
-                  } catch {
-                    return { title: c, provider: '', date: '' };
-                  }
-                }) 
+                try {
+                  return JSON.parse(c);
+                } catch {
+                  return { title: c, provider: '', date: '' };
+                }
+              })
               : prev.certifications,
             employment: profile.employment?.length > 0
               ? profile.employment.map(e => {
-                  try {
-                    return JSON.parse(e);
-                  } catch (err) {
-                    return { company: '', title: e, from: '', to: '' };
-                  }
-                })
+                try {
+                  return JSON.parse(e);
+                } catch (err) {
+                  return { company: '', title: e, from: '', to: '' };
+                }
+              })
               : prev.employment,
             other: profile.otherExperiences?.length > 0
               ? profile.otherExperiences.map(o => {
-                  try {
-                    return JSON.parse(o);
-                  } catch (err) {
-                    return { subject: o, description: '', file: null };
-                  }
-                })
+                try {
+                  return JSON.parse(o);
+                } catch (err) {
+                  return { subject: o, description: '', file: null };
+                }
+              })
               : prev.other,
           }));
 
@@ -126,7 +133,7 @@ const HackerOnboarding = () => {
       await api.patch("/users/profile", { avatar: s3Url });
       toast.success("Avatar safely uploaded", { id: uploadToast });
       if (refreshUser) await refreshUser();
-    } catch(err) {
+    } catch (err) {
       toast.error("Avatar upload failed");
     }
   };
@@ -161,6 +168,9 @@ const HackerOnboarding = () => {
           file: o.file,
           fileUrl: o.fileUrl
         })),
+        country: form.country,
+        yearsOfExperience: parseInt(form.yearsOfExperience) || 0,
+        specialization: form.specialization,
         status: finalStatus || undefined,
       };
       await api.put("/hacker-profiles/me", payload);
@@ -205,14 +215,14 @@ const HackerOnboarding = () => {
   return (
     <div className="min-h-screen bg-[#050505] text-white p-4 lg:p-8 font-sans">
       <div className="max-w-[1200px] mx-auto space-y-6">
-        
+
         {/* ONBOARDING HEADER */}
         <div className="bg-[#0c0c0c] border border-[#00c477]/30 rounded-2xl p-6 flex flex-col md:flex-row justify-between items-center gap-4">
           <div>
             <h1 className="text-2xl font-bold text-[#00c477]">Complete Your Operator Profile</h1>
             <p className="text-gray-400 text-sm">Provide your details to unlock the mission dashboard.</p>
           </div>
-          <button 
+          <button
             onClick={handleCompleteOnboarding}
             disabled={submitting}
             className="px-8 py-3 bg-[#00c477] text-black font-black uppercase tracking-widest rounded-xl hover:bg-[#00ff9d] transition-all disabled:opacity-50"
@@ -240,7 +250,7 @@ const HackerOnboarding = () => {
                 <FiCheckCircle className="text-[#0c0c0c]" size={12} />
               </div>
             </div>
-            
+
             <div>
               <h1 className="text-2xl font-bold flex items-center gap-2">
                 {displayName} <span className="text-gray-500 text-sm font-mono">(Awaiting Verification)</span>
@@ -251,7 +261,7 @@ const HackerOnboarding = () => {
 
         {/* TWO COLUMN LAYOUT */}
         <div className="grid grid-cols-1 lg:grid-cols-[300px_1fr] gap-6">
-          
+
           {/* LEFT COLUMN */}
           <div className="space-y-6">
 
@@ -259,41 +269,41 @@ const HackerOnboarding = () => {
             <div className="bg-[#0c0c0c] border border-white/5 rounded-2xl p-6">
               <h2 className="text-lg font-bold mb-4">Verifications</h2>
               {isNationalIdVerified ? (
-                 <div className="flex items-center gap-2 text-sm">
-                   <FiCheckCircle className="text-[#00c477]" />
-                   <span>ID: Verified</span>
-                 </div>
-               ) : (
-                 <div className="flex items-center justify-between text-sm">
-                   <div className="flex items-center gap-2 text-gray-400">
-                     <FiShield />
-                     <span>ID: Unverified</span>
-                   </div>
-                   <button onClick={() => navigate('/national-id-verification')} className="w-8 h-8 rounded-full border border-white/20 flex items-center justify-center hover:bg-white/10 text-[#00c477]"><FiPlus size={16} /></button>
-                 </div>
-               )}
+                <div className="flex items-center gap-2 text-sm">
+                  <FiCheckCircle className="text-[#00c477]" />
+                  <span>ID: Verified</span>
+                </div>
+              ) : (
+                <div className="flex items-center justify-between text-sm">
+                  <div className="flex items-center gap-2 text-gray-400">
+                    <FiShield />
+                    <span>ID: Unverified</span>
+                  </div>
+                  <button onClick={() => navigate('/national-id-verification')} className="w-8 h-8 rounded-full border border-white/20 flex items-center justify-center hover:bg-white/10 text-[#00c477]"><FiPlus size={16} /></button>
+                </div>
+              )}
             </div>
 
             {/* Education */}
             <div className="bg-[#0c0c0c] border border-white/5 rounded-2xl p-6 relative group">
               <h2 className="text-lg font-bold mb-4">Education</h2>
-              
+
               <button onClick={() => toggleEdit('education')} className="absolute top-6 right-6 w-8 h-8 rounded-full border border-[#00c477] flex items-center justify-center hover:bg-[#00c477]/10 text-[#00c477] opacity-0 group-hover:opacity-100 transition-opacity">
                 <FiPlus size={14} />
               </button>
 
               {editMode.education ? (
                 <div className="space-y-3 mt-4 border-b border-white/5 pb-4 mb-4">
-                  <input type="text" placeholder="School / University" value={newItem.school || ''} onChange={e => setNewItem({...newItem, school: e.target.value})} className="w-full bg-[#111] border border-[#00c477] rounded-lg p-2 text-sm focus:outline-none" />
-                  <input type="text" placeholder="Area of Study (Degree)" value={newItem.degree || ''} onChange={e => setNewItem({...newItem, degree: e.target.value})} className="w-full bg-[#111] border border-[#00c477] rounded-lg p-2 text-sm focus:outline-none" />
+                  <input type="text" placeholder="School / University" value={newItem.school || ''} onChange={e => setNewItem({ ...newItem, school: e.target.value })} className="w-full bg-[#111] border border-[#00c477] rounded-lg p-2 text-sm focus:outline-none" />
+                  <input type="text" placeholder="Area of Study (Degree)" value={newItem.degree || ''} onChange={e => setNewItem({ ...newItem, degree: e.target.value })} className="w-full bg-[#111] border border-[#00c477] rounded-lg p-2 text-sm focus:outline-none" />
                   <div className="flex gap-2">
-                    <input type="text" placeholder="From (e.g. 2018)" value={newItem.from || ''} onChange={e => setNewItem({...newItem, from: e.target.value})} className="w-1/2 bg-[#111] border border-[#00c477] rounded-lg p-2 text-sm focus:outline-none" />
-                    <input type="text" placeholder="To (e.g. 2022)" value={newItem.to || ''} onChange={e => setNewItem({...newItem, to: e.target.value})} className="w-1/2 bg-[#111] border border-[#00c477] rounded-lg p-2 text-sm focus:outline-none" />
+                    <input type="text" placeholder="From (e.g. 2018)" value={newItem.from || ''} onChange={e => setNewItem({ ...newItem, from: e.target.value })} className="w-1/2 bg-[#111] border border-[#00c477] rounded-lg p-2 text-sm focus:outline-none" />
+                    <input type="text" placeholder="To (e.g. 2022)" value={newItem.to || ''} onChange={e => setNewItem({ ...newItem, to: e.target.value })} className="w-1/2 bg-[#111] border border-[#00c477] rounded-lg p-2 text-sm focus:outline-none" />
                   </div>
                   <div className="flex gap-2 pt-2">
                     <button onClick={() => {
-                      if(newItem.school || newItem.degree) {
-                        setForm({...form, education: [...form.education, { school: newItem.school, degree: newItem.degree, from: newItem.from, to: newItem.to }]});
+                      if (newItem.school || newItem.degree) {
+                        setForm({ ...form, education: [...form.education, { school: newItem.school, degree: newItem.degree, from: newItem.from, to: newItem.to }] });
                       }
                       toggleEdit('education');
                     }} className="px-3 py-1 bg-[#00c477] text-black text-xs rounded-full font-bold">Add & Done</button>
@@ -308,7 +318,7 @@ const HackerOnboarding = () => {
                     <h3 className="font-semibold text-sm">{edu.school}</h3>
                     <p className="text-gray-300 text-sm">{edu.degree}</p>
                     {(edu.from || edu.to) && <p className="text-gray-500 text-xs mt-1">{edu.from} - {edu.to}</p>}
-                    <button onClick={() => setForm({...form, education: form.education.filter((_, i) => i !== idx)})} className="absolute top-0 right-0 hidden group-hover/item:flex w-6 h-6 rounded-full bg-red-500/10 text-red-500 items-center justify-center hover:bg-red-500 hover:text-white">
+                    <button onClick={() => setForm({ ...form, education: form.education.filter((_, i) => i !== idx) })} className="absolute top-0 right-0 hidden group-hover/item:flex w-6 h-6 rounded-full bg-red-500/10 text-red-500 items-center justify-center hover:bg-red-500 hover:text-white">
                       <FiTrash2 size={12} />
                     </button>
                   </div>
@@ -322,7 +332,34 @@ const HackerOnboarding = () => {
 
           {/* RIGHT COLUMN */}
           <div className="space-y-6">
-            
+
+            {/* Identity & Focus */}
+            <div className="bg-[#0c0c0c] border border-white/5 rounded-2xl p-6 lg:p-8 space-y-6">
+              <div className="relative group">
+                <h2 className="text-xl font-bold mb-4">Identity & Focus</h2>
+                <button onClick={() => toggleEdit('identity')} className="absolute -top-1 right-0 w-8 h-8 rounded-full border border-[#00c477] flex items-center justify-center hover:bg-[#00c477]/10 text-[#00c477] opacity-0 group-hover:opacity-100 transition-opacity">
+                  <FiEdit2 size={14} />
+                </button>
+
+                {editMode.identity ? (
+                  <div className="w-full space-y-3">
+                    <input type="text" placeholder="Country / Location" value={form.country} onChange={e => setForm({ ...form, country: e.target.value })} className="w-full bg-[#111] border border-[#00c477] rounded-lg p-2 text-sm focus:outline-none" />
+                    <input type="number" placeholder="Years of Experience" value={form.yearsOfExperience} onChange={e => setForm({ ...form, yearsOfExperience: e.target.value })} className="w-full bg-[#111] border border-[#00c477] rounded-lg p-2 text-sm focus:outline-none" />
+                    <input type="text" placeholder="Specialization (e.g. Web Exploitation)" value={form.specialization} onChange={e => setForm({ ...form, specialization: e.target.value })} className="w-full bg-[#111] border border-[#00c477] rounded-lg p-2 text-sm focus:outline-none" />
+                    <div className="mt-2">
+                      <button onClick={() => handleSaveSection('identity')} className="px-4 py-1.5 bg-[#00c477] text-black text-sm rounded-full font-bold">Save</button>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    <p className="text-gray-300 text-sm"><span className="text-gray-500 font-mono">Location:</span> {form.country || "Not set"}</p>
+                    <p className="text-gray-300 text-sm"><span className="text-gray-500 font-mono">Experience:</span> {form.yearsOfExperience ? `${form.yearsOfExperience} years` : "Not set"}</p>
+                    <p className="text-gray-300 text-sm"><span className="text-gray-500 font-mono">Specialization:</span> {form.specialization || "Not set"}</p>
+                  </div>
+                )}
+              </div>
+            </div>
+
             {/* Bio Section (Description) */}
             <div className="bg-[#0c0c0c] border border-white/5 rounded-2xl p-6 lg:p-8 space-y-6">
               <div className="relative group">
@@ -330,10 +367,10 @@ const HackerOnboarding = () => {
                 <button onClick={() => toggleEdit('bio')} className="absolute -top-1 right-0 w-8 h-8 rounded-full border border-[#00c477] flex items-center justify-center hover:bg-[#00c477]/10 text-[#00c477] opacity-0 group-hover:opacity-100 transition-opacity">
                   <FiEdit2 size={14} />
                 </button>
-                
+
                 {editMode.bio ? (
                   <div className="w-full">
-                    <textarea value={form.bio} onChange={e => setForm({...form, bio: e.target.value})} className="w-full bg-[#111] border border-[#00c477] rounded-lg p-4 min-h-[150px] text-sm focus:outline-none resize-none" placeholder="Greetings 👋! I'm..."></textarea>
+                    <textarea value={form.bio} onChange={e => setForm({ ...form, bio: e.target.value })} className="w-full bg-[#111] border border-[#00c477] rounded-lg p-4 min-h-[150px] text-sm focus:outline-none resize-none" placeholder="Greetings 👋! I'm..."></textarea>
                     <div className="mt-2">
                       <button onClick={() => handleSaveSection('bio')} className="px-4 py-1.5 bg-[#00c477] text-black text-sm rounded-full font-bold">Save</button>
                     </div>
@@ -355,7 +392,7 @@ const HackerOnboarding = () => {
 
               {editMode.skills ? (
                 <div>
-                  <textarea value={form.skills} onChange={e => setForm({...form, skills: e.target.value})} className="w-full bg-[#111] border border-[#00c477] rounded-lg p-4 text-sm focus:outline-none" placeholder="Comma separated skills..."></textarea>
+                  <textarea value={form.skills} onChange={e => setForm({ ...form, skills: e.target.value })} className="w-full bg-[#111] border border-[#00c477] rounded-lg p-4 text-sm focus:outline-none" placeholder="Comma separated skills..."></textarea>
                   <div className="mt-2">
                     <button onClick={() => handleSaveSection('skills')} className="px-4 py-1.5 bg-[#00c477] text-black text-sm rounded-full font-bold">Save</button>
                   </div>
@@ -383,9 +420,9 @@ const HackerOnboarding = () => {
 
               {editMode.certifications ? (
                 <div className="space-y-3 border-b border-white/5 pb-4 mb-4">
-                  <input type="text" placeholder="Certification Name" value={newItem.title || ''} onChange={e => setNewItem({...newItem, title: e.target.value})} className="w-full bg-[#111] border border-[#00c477] rounded-lg p-2 text-sm focus:outline-none" />
-                  <input type="text" placeholder="Certification Number" value={newItem.certNumber || ''} onChange={e => setNewItem({...newItem, certNumber: e.target.value})} className="w-full bg-[#111] border border-[#00c477] rounded-lg p-2 text-sm focus:outline-none" />
-                  <input type="text" placeholder="Provider (e.g. Offensive Security)" value={newItem.provider || ''} onChange={e => setNewItem({...newItem, provider: e.target.value})} className="w-full bg-[#111] border border-[#00c477] rounded-lg p-2 text-sm focus:outline-none" />
+                  <input type="text" placeholder="Certification Name" value={newItem.title || ''} onChange={e => setNewItem({ ...newItem, title: e.target.value })} className="w-full bg-[#111] border border-[#00c477] rounded-lg p-2 text-sm focus:outline-none" />
+                  <input type="text" placeholder="Certification Number" value={newItem.certNumber || ''} onChange={e => setNewItem({ ...newItem, certNumber: e.target.value })} className="w-full bg-[#111] border border-[#00c477] rounded-lg p-2 text-sm focus:outline-none" />
+                  <input type="text" placeholder="Provider (e.g. Offensive Security)" value={newItem.provider || ''} onChange={e => setNewItem({ ...newItem, provider: e.target.value })} className="w-full bg-[#111] border border-[#00c477] rounded-lg p-2 text-sm focus:outline-none" />
                   <div className="flex items-center gap-2">
                     <span className="text-sm text-gray-400">Upload Photo/File:</span>
                     <input type="file" accept="image/*,.pdf" onChange={async e => {
@@ -451,7 +488,7 @@ const HackerOnboarding = () => {
                     </div>
                     <button onClick={async () => {
                       const updatedCerts = form.certifications.filter((_, i) => i !== idx);
-                      setForm({...form, certifications: updatedCerts});
+                      setForm({ ...form, certifications: updatedCerts });
                       await saveProfile(undefined, { certifications: updatedCerts });
                     }} className="absolute top-0 right-0 hidden group-hover/item:flex w-8 h-8 rounded-full bg-red-500/10 text-red-500 items-center justify-center hover:bg-red-500 hover:text-white">
                       <FiTrash2 size={14} />
@@ -474,17 +511,17 @@ const HackerOnboarding = () => {
 
               {editMode.employment ? (
                 <div className="space-y-3 border-b border-white/5 pb-4 mb-4">
-                  <input type="text" placeholder="Company Name" value={newItem.company || ''} onChange={e => setNewItem({...newItem, company: e.target.value})} className="w-full bg-[#111] border border-[#00c477] rounded-lg p-2 text-sm focus:outline-none" />
-                  <input type="text" placeholder="Title" value={newItem.title || ''} onChange={e => setNewItem({...newItem, title: e.target.value})} className="w-full bg-[#111] border border-[#00c477] rounded-lg p-2 text-sm focus:outline-none" />
+                  <input type="text" placeholder="Company Name" value={newItem.company || ''} onChange={e => setNewItem({ ...newItem, company: e.target.value })} className="w-full bg-[#111] border border-[#00c477] rounded-lg p-2 text-sm focus:outline-none" />
+                  <input type="text" placeholder="Title" value={newItem.title || ''} onChange={e => setNewItem({ ...newItem, title: e.target.value })} className="w-full bg-[#111] border border-[#00c477] rounded-lg p-2 text-sm focus:outline-none" />
                   <div className="flex gap-2">
-                    <input type="text" placeholder="From (e.g. Jan 2020)" value={newItem.from || ''} onChange={e => setNewItem({...newItem, from: e.target.value})} className="w-1/2 bg-[#111] border border-[#00c477] rounded-lg p-2 text-sm focus:outline-none" />
-                    <input type="text" placeholder="To (e.g. Present)" value={newItem.to || ''} onChange={e => setNewItem({...newItem, to: e.target.value})} className="w-1/2 bg-[#111] border border-[#00c477] rounded-lg p-2 text-sm focus:outline-none" />
+                    <input type="text" placeholder="From (e.g. Jan 2020)" value={newItem.from || ''} onChange={e => setNewItem({ ...newItem, from: e.target.value })} className="w-1/2 bg-[#111] border border-[#00c477] rounded-lg p-2 text-sm focus:outline-none" />
+                    <input type="text" placeholder="To (e.g. Present)" value={newItem.to || ''} onChange={e => setNewItem({ ...newItem, to: e.target.value })} className="w-1/2 bg-[#111] border border-[#00c477] rounded-lg p-2 text-sm focus:outline-none" />
                   </div>
                   <div className="flex gap-2 pt-2">
                     <button onClick={async () => {
-                      if(newItem.company || newItem.title) {
+                      if (newItem.company || newItem.title) {
                         const updatedEmployment = [...form.employment, { company: newItem.company, title: newItem.title, from: newItem.from, to: newItem.to }];
-                        setForm({...form, employment: updatedEmployment});
+                        setForm({ ...form, employment: updatedEmployment });
                         toggleEdit('employment');
                         await saveProfile(undefined, { employment: updatedEmployment });
                       } else {
@@ -503,7 +540,7 @@ const HackerOnboarding = () => {
                     {(job.from || job.to) && <p className="text-sm text-gray-400 mb-2">{job.from} - {job.to}</p>}
                     <button onClick={async () => {
                       const updatedEmployment = form.employment.filter((_, i) => i !== idx);
-                      setForm({...form, employment: updatedEmployment});
+                      setForm({ ...form, employment: updatedEmployment });
                       await saveProfile(undefined, { employment: updatedEmployment });
                     }} className="absolute top-0 right-0 hidden group-hover/item:flex w-8 h-8 rounded-full bg-red-500/10 text-red-500 items-center justify-center hover:bg-red-500 hover:text-white">
                       <FiTrash2 size={14} />
@@ -526,8 +563,8 @@ const HackerOnboarding = () => {
 
               {editMode.other ? (
                 <div className="space-y-3 border-b border-white/5 pb-4 mb-4">
-                  <input type="text" placeholder="Subject or Name" value={newItem.subject || ''} onChange={e => setNewItem({...newItem, subject: e.target.value})} className="w-full bg-[#111] border border-[#00c477] rounded-lg p-2 text-sm focus:outline-none" />
-                  <textarea placeholder="Description" value={newItem.description || ''} onChange={e => setNewItem({...newItem, description: e.target.value})} className="w-full bg-[#111] border border-[#00c477] rounded-lg p-2 text-sm focus:outline-none resize-none min-h-[80px]" />
+                  <input type="text" placeholder="Subject or Name" value={newItem.subject || ''} onChange={e => setNewItem({ ...newItem, subject: e.target.value })} className="w-full bg-[#111] border border-[#00c477] rounded-lg p-2 text-sm focus:outline-none" />
+                  <textarea placeholder="Description" value={newItem.description || ''} onChange={e => setNewItem({ ...newItem, description: e.target.value })} className="w-full bg-[#111] border border-[#00c477] rounded-lg p-2 text-sm focus:outline-none resize-none min-h-[80px]" />
                   <div className="flex items-center gap-2">
                     <span className="text-sm text-gray-400">Upload Photo/File:</span>
                     <input type="file" accept="image/*,.pdf" onChange={async e => {
@@ -586,7 +623,7 @@ const HackerOnboarding = () => {
                     )}
                     <button onClick={async () => {
                       const updatedOther = form.other.filter((_, i) => i !== idx);
-                      setForm({...form, other: updatedOther});
+                      setForm({ ...form, other: updatedOther });
                       await saveProfile(undefined, { other: updatedOther });
                     }} className="absolute top-0 right-0 hidden group-hover/item:flex w-8 h-8 rounded-full bg-red-500/10 text-red-500 items-center justify-center hover:bg-red-500 hover:text-white">
                       <FiTrash2 size={14} />
