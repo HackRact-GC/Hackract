@@ -4,7 +4,7 @@ import { useAuth } from '../context/authContext.jsx';
 import {
   FiGrid, FiBriefcase, FiGlobe, FiShield, FiSettings,
   FiFileText, FiBell, FiChevronDown, FiPlus, FiCpu,
-  FiActivity, FiTarget, FiZap, FiLogOut, FiMessageSquare, FiPenTool
+  FiActivity, FiTarget, FiZap, FiLogOut, FiMessageSquare
 } from 'react-icons/fi';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -22,13 +22,18 @@ const OrganizationLayout = () => {
     { icon: FiBriefcase,      label: 'PROJECTS',  route: '/org-projects' },
     { icon: FiGlobe,          label: 'DISCOVER',  route: '/discover' },
     { icon: FiMessageSquare,  label: 'MESSAGES',  route: '/org-messages' },
-    { icon: FiPenTool,        label: 'AGREEMENTS',route: '/org-agreement' },
-    { icon: FiShield,         label: 'LEGAL',     route: '/legal' },
+    { icon: FiShield,         label: 'LEGAL AGREEMENTS', route: '/legal' },
     { icon: FiSettings,       label: 'SETTINGS',  route: '/organization-profile' },
     { icon: FiFileText,       label: 'REPORTS',   route: '/reports' },
   ];
 
-  const isActive = (route) => location.pathname === route;
+  const isActive = (route) => {
+    if (route === '/legal') {
+      return ['/legal', '/legal/create', '/org-agreement'].some((path) => location.pathname === path || location.pathname.startsWith(`${path}/`));
+    }
+
+    return location.pathname === route;
+  };
 
   return (
     <div className="flex h-screen bg-[#050505] text-gray-400 font-sans overflow-hidden">
@@ -50,7 +55,7 @@ const OrganizationLayout = () => {
               className={`w-full flex items-center gap-4 px-8 py-4 transition-all relative group ${
                 isActive(item.route) 
                   ? 'text-[#00c477]' 
-                  : 'text-gray-500 hover:text-white hover:bg-white/[0.02]'
+                  : 'text-gray-500 hover:text-white hover:bg-white/2'
               }`}
             >
               {isActive(item.route) && (
@@ -92,7 +97,7 @@ const OrganizationLayout = () => {
 
           <div className="flex items-center gap-6">
             <button 
-              className="relative p-2 rounded-lg bg-white/[0.02] border border-white/5 text-gray-400 hover:text-[#00c477] transition-all"
+              className="relative p-2 rounded-lg bg-white/2 border border-white/5 text-gray-400 hover:text-[#00c477] transition-all"
               onClick={() => setIsNotificationsOpen(!isNotificationsOpen)}
             >
               <FiBell />
@@ -100,7 +105,7 @@ const OrganizationLayout = () => {
             </button>
             
             <div className="flex items-center gap-3 pl-6 border-l border-white/10">
-              <div className="w-9 h-9 rounded-full bg-gradient-to-br from-[#00c477]/20 to-emerald-500/10 border border-[#00c477]/30 flex items-center justify-center font-black text-[#00c477] shadow-[0_0_10px_rgba(0,255,136,0.1)]">
+                <div className="w-9 h-9 rounded-full bg-linear-to-br from-[#00c477]/20 to-emerald-500/10 border border-[#00c477]/30 flex items-center justify-center font-black text-[#00c477] shadow-[0_0_10px_rgba(0,255,136,0.1)]">
                 {userInitial}
               </div>
             </div>
