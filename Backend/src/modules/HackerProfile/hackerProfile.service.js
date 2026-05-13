@@ -44,6 +44,8 @@ export const upsertMyProfile = async (userId, payload) => {
     yearsOfExperience: payload.yearsOfExperience ? Number(payload.yearsOfExperience) : null,
     primarySkills: toArray(payload.primarySkills),
     certifications: toArray(payload.certifications),
+    employment: toArray(payload.employment),
+    otherExperiences: toArray(payload.otherExperiences),
     portfolioLinks: toArray(payload.portfolioLinks),
 
     // Extended identity fields
@@ -66,7 +68,7 @@ export const upsertMyProfile = async (userId, payload) => {
   if (payload.fullName || payload.avatar) {
     await prisma.user.update({
       where: { id: userId },
-      data: { 
+      data: {
         ...(payload.fullName && { fullName: payload.fullName }),
         ...(payload.avatar && { avatar: payload.avatar }),
       },

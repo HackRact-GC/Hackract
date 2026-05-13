@@ -73,6 +73,24 @@ const HackerProfile = () => {
                   }
                 })
               : prev.certifications,
+            employment: profile.employment?.length > 0
+              ? profile.employment.map(e => {
+                  try {
+                    return JSON.parse(e);
+                  } catch (err) {
+                    return { company: '', title: e, from: '', to: '' };
+                  }
+                })
+              : prev.employment,
+            other: profile.otherExperiences?.length > 0
+              ? profile.otherExperiences.map(o => {
+                  try {
+                    return JSON.parse(o);
+                  } catch (err) {
+                    return { subject: o, description: '', file: null };
+                  }
+                })
+              : prev.other,
           }));
 
           if (profile.avatar) {
@@ -130,6 +148,18 @@ const HackerProfile = () => {
           certNumber: c.certNumber,
           file: c.file,
           fileUrl: c.fileUrl
+        })),
+        employment: form.employment.map(e => JSON.stringify({
+          company: e.company,
+          title: e.title,
+          from: e.from,
+          to: e.to
+        })),
+        otherExperiences: form.other.map(o => JSON.stringify({
+          subject: o.subject,
+          description: o.description,
+          file: o.file,
+          fileUrl: o.fileUrl
         })),
         ...overrides,
       };
@@ -390,7 +420,24 @@ const HackerProfile = () => {
                       <h3 className="font-bold text-lg">{cert.title}</h3>
                       {cert.provider && <p className="text-sm text-gray-400">Provider: {cert.provider}</p>}
                       {cert.certNumber && <p className="text-sm text-gray-400">Cert. Number: {cert.certNumber}</p>}
-                      {cert.file && <p className="text-xs text-[#00c477] mt-1 flex items-center gap-1"><FiFolder size={12} /> Attached: {cert.file}</p>}
+                      {cert.file && (
+                        <div className="mt-3 flex items-center gap-2">
+                          {cert.fileUrl?.match(/\.(jpeg|jpg|gif|png)$/i) ? (
+                            <div className="flex items-center gap-3">
+                              <a href={cert.fileUrl} target="_blank" rel="noreferrer" className="block shrink-0">
+                                <img src={cert.fileUrl} alt={cert.file} className="h-12 w-12 object-cover border border-[#00c477]/50 rounded-lg hover:border-[#00c477] transition-colors" />
+                              </a>
+                              <a href={cert.fileUrl} target="_blank" rel="noreferrer" className="text-xs text-[#00c477] hover:underline flex items-center gap-1">
+                                <FiFolder size={12} /> {cert.file}
+                              </a>
+                            </div>
+                          ) : (
+                            <a href={cert.fileUrl} target="_blank" rel="noreferrer" className="text-xs text-[#00c477] hover:underline flex items-center gap-1">
+                              <FiFolder size={12} /> {cert.file}
+                            </a>
+                          )}
+                        </div>
+                      )}
                     </div>
                     <button onClick={() => setForm({ ...form, certifications: form.certifications.filter((_, i) => i !== idx) })} className="absolute top-0 right-0 hidden group-hover/item:flex w-8 h-8 rounded-full bg-red-500/10 text-red-500 items-center justify-center hover:bg-red-500 hover:text-white">
                       <FiTrash2 size={14} />
@@ -493,7 +540,24 @@ const HackerProfile = () => {
                   <div key={idx} className="group/item relative border-b border-white/5 pb-4 last:border-0 last:pb-0">
                     <h3 className="font-bold text-lg text-white mb-1">{exp.subject}</h3>
                     <p className="text-sm text-gray-300 pr-10">{exp.description}</p>
-                    {exp.file && <p className="text-xs text-[#00c477] mt-2 flex items-center gap-1"><FiFolder size={12} /> Attached: {exp.file}</p>}
+                    {exp.file && (
+                      <div className="mt-3 flex items-center gap-2">
+                        {exp.fileUrl?.match(/\.(jpeg|jpg|gif|png)$/i) ? (
+                          <div className="flex items-center gap-3">
+                            <a href={exp.fileUrl} target="_blank" rel="noreferrer" className="block shrink-0">
+                              <img src={exp.fileUrl} alt={exp.file} className="h-12 w-12 object-cover border border-[#00c477]/50 rounded-lg hover:border-[#00c477] transition-colors" />
+                            </a>
+                            <a href={exp.fileUrl} target="_blank" rel="noreferrer" className="text-xs text-[#00c477] hover:underline flex items-center gap-1">
+                              <FiFolder size={12} /> {exp.file}
+                            </a>
+                          </div>
+                        ) : (
+                          <a href={exp.fileUrl} target="_blank" rel="noreferrer" className="text-xs text-[#00c477] hover:underline flex items-center gap-1">
+                            <FiFolder size={12} /> {exp.file}
+                          </a>
+                        )}
+                      </div>
+                    )}
                     <button onClick={() => setForm({ ...form, other: form.other.filter((_, i) => i !== idx) })} className="absolute top-0 right-0 hidden group-hover/item:flex w-8 h-8 rounded-full bg-red-500/10 text-red-500 items-center justify-center hover:bg-red-500 hover:text-white">
                       <FiTrash2 size={14} />
                     </button>
