@@ -2,6 +2,41 @@ import * as service from './hackerProfile.service.js';
 import ApiResponse from '../../utils/ApiResponse.js';
 import { VerificationStatus } from './hackerProfile.constants.js';
 
+export const discoverHackers = async (req, res, next) => {
+  try {
+    const page   = Math.max(1, parseInt(req.query.page  || '1',  10));
+    const limit  = Math.min(50, Math.max(1, parseInt(req.query.limit || '12', 10)));
+    const search = req.query.search || '';
+
+    // Accept comma-separated OR multiple query params: ?skills=Web Exploitation,Cloud Security
+    const parseList = (raw) => {
+      if (!raw) return [];
+      const items = Array.isArray(raw) ? raw : [raw];
+      return items.flatMap(v => v.split(',').map(s => s.trim())).filter(Boolean);
+    };
+
+    const skills = parseList(req.query.skills);
+    const certs  = parseList(req.query.certs);
+
+    const result = await service.discoverHackers({ page, limit, search, skills, certs });
+    ApiResponse.success(res, result, 'Hackers retrieved successfully');
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const getPublicHackerProfile = async (req, res, next) => {
+  try {
+    const profile = await service.getPublicProfile(req.params.userId);
+    if (!profile) {
+      return next(new AppError('Hacker profile not found or not approved', 404));
+    }
+    ApiResponse.success(res, { profile }, 'Public hacker profile retrieved');
+  } catch (error) {
+    next(error);
+  }
+};
+
 export const getMe = async (req, res, next) => {
   try {
     const profile = await service.getMyProfile(req.user.id);

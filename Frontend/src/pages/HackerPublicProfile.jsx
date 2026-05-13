@@ -1,6 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
+import api from '../api/axiosConfig';
+import toast from 'react-hot-toast';
 import {
   FiArrowLeft, FiStar, FiMapPin, FiShield, FiTool,
   FiAward, FiBriefcase, FiMessageSquare, FiCheckCircle,
@@ -66,6 +68,73 @@ const MOCK_HACKERS = {
   4: { id: 4, name: "Ghost_Shell", alias: "Kai Zero", tag: "#SH_DEEP_33", status: "ACTIVE SENTINEL", rating: 4.7, rank: "GOLD", location: "Remote", avatar: "https://api.dicebear.com/7.x/bottts/svg?seed=Ghost&baseColor=00ff88", bio: "Binary analyst and exploit developer with OSCE certification.", arsenal: ["Binary Analysis", "Heap Spray", "ROP Chains"], skills: ["Binary Analysis"], certifications: [{ name: "OSCE", body: "Offensive Security", verified: true }], telemetry: { vulnsFound: 682, uptimeIntegrity: "98.3%" }, projects: [], reviews: [] },
   5: { id: 5, name: "Buffer_Overrun", alias: "Dana Cross", tag: "#B0_X64_11", status: "ACTIVE SENTINEL", rating: 4.6, rank: "SILVER", location: "Remote", avatar: "https://api.dicebear.com/7.x/bottts/svg?seed=Buffer&baseColor=00ff88", bio: "Fuzzing and malware analysis specialist.", arsenal: ["Fuzzing", "Malware RE", "AFL++"], skills: ["Fuzzing", "Malware"], certifications: [], telemetry: { vulnsFound: 334, uptimeIntegrity: "96.8%" }, projects: [], reviews: [] },
   6: { id: 6, name: "Packet_Wizard", alias: "Eliot Forge", tag: "#PW_TCP_8080", status: "ACTIVE SENTINEL", rating: 4.9, rank: "ELITE", location: "Remote", avatar: "https://api.dicebear.com/7.x/bottts/svg?seed=Wizard&baseColor=00ff88", bio: "Network forensics expert and GREM-certified malware reverse engineer.", arsenal: ["Network Forensics", "Wireshark", "Zeek", "Suricata", "YARA"], skills: ["Network Forensics"], certifications: [{ name: "GREM", body: "GIAC", verified: true }], telemetry: { vulnsFound: 1567, uptimeIntegrity: "99.8%" }, projects: [], reviews: [] },
+};
+
+// ─── DATA NORMALISER ─────────────────────────────────────────────────────────
+// Converts the DB response into the shape the UI sections expect.
+const normalise = (profile) => {
+  if (!profile) return null;
+  const u = profile.user || {};
+
+  // Merge led + collaborated projects, de-dup by id
+  const led  = (u.pentestsLed || []).map(p => ({ ...p, role: 'Lead' }));
+  const collab = (u.pentestCollaborators || []).map(c => ({ ...c.pentest, role: 'Collaborator' }));
+  const seen = new Set();
+  const projects = [...led, ...collab]
+    .filter(p => p && p.id && !seen.has(p.id) && seen.add(p.id))
+    .map(p => ({
+      id:     p.id,
+      org:    p.organization?.name || '[Confidential]',
+      year:   new Date(p.createdAt).getFullYear(),
+      title:  p.name,
+      status: p.status,
+      role:   p.role,
+    }));
+
+  const reviews = (u.reviewsReceived || []).map(r => ({
+    from:   r.author?.fullName || r.author?.handle || 'Anonymous',
+    rating: r.rating,
+    text:   r.comment || '',
+    date:   new Date(r.createdAt).toLocaleDateString('en-US', { month: 'short', year: 'numeric' }),
+  }));
+
+  const skills = profile.primarySkills || [];
+  const certs  = (profile.certifications || []).map(c => ({ name: c, body: 'Verified Cert', verified: true }));
+
+  const trustScore = u.trustScore ?? 100;
+  const rank = trustScore >= 95 ? 'ELITE' : trustScore >= 85 ? 'PLATINUM' : trustScore >= 70 ? 'GOLD' : 'SILVER';
+
+  return {
+    id:       profile.id,
+    userId:   profile.userId,
+    name:     u.fullName || 'Unknown Hacker',
+    alias:    u.fullName || '',
+    tag:      u.handle ? `@${u.handle}` : '',
+    status:   'ACTIVE SENTINEL',
+    rating:   reviews.length > 0
+                ? +(reviews.reduce((s, r) => s + r.rating, 0) / reviews.length).toFixed(1)
+                : null,
+    rank,
+    trustScore,
+    location: profile.country || 'Remote',
+    avatar:   u.avatar || `https://api.dicebear.com/7.x/bottts/svg?seed=${u.handle}&baseColor=00ff88`,
+    bio:      profile.bio || '',
+    arsenal:  skills,           // reuse skills as arsenal (no separate tool list in schema)
+    skills,
+    certifications: certs,
+    specialization: profile.specialization || '',
+    yearsOfExperience: profile.yearsOfExperience,
+    portfolioLinks: profile.portfolioLinks || [],
+    github:   profile.githubUsername,
+    linkedin: profile.linkedinProfile,
+    twitter:  profile.twitter,
+    telemetry: {
+      vulnsFound:       0,   // not tracked per-hacker yet
+      uptimeIntegrity:  `${trustScore}%`,
+    },
+    projects,
+    reviews,
+  };
 };
 
 const TAB_ICONS = {
@@ -347,9 +416,10 @@ const ReviewsSection = ({ hacker }) => (
 const HackerPublicProfile = () => {
   const { hackerId } = useParams();
   const navigate = useNavigate();
-  const [activeTab, setActiveTab] = useState("ABOUT");
+  const [activeTab, setActiveTab] = useState('ABOUT');
   const [assignModalOpen, setAssignModalOpen] = useState(false);
 
+  // Use mock data for everyone for now
   const hacker = MOCK_HACKERS[parseInt(hackerId, 10)] || MOCK_HACKERS[1];
   const rankStyle = RANK_COLORS[hacker.rank] || RANK_COLORS.SILVER;
 
@@ -412,14 +482,22 @@ const HackerPublicProfile = () => {
               </div>
 
               <h1 className="text-4xl font-black text-white tracking-tight mb-1">{hacker.name}</h1>
-              <p className="text-sm text-gray-500 font-mono mb-3">{hacker.alias} · {hacker.tag}</p>
+              <p className="text-sm text-gray-500 font-mono mb-3">{hacker.tag}{hacker.specialization ? ` · ${hacker.specialization}` : ''}</p>
 
               <div className="flex items-center gap-6 flex-wrap">
-                <div className="flex items-center gap-2">
-                  <FiStar className="text-[#00c477] fill-[#00c477] text-sm" />
-                  <span className="text-white font-bold text-sm">{hacker.rating}</span>
-                  <span className="text-gray-500 text-xs font-mono">Rating</span>
-                </div>
+                {hacker.rating != null && (
+                  <div className="flex items-center gap-2">
+                    <FiStar className="text-[#00c477] fill-[#00c477] text-sm" />
+                    <span className="text-white font-bold text-sm">{hacker.rating}</span>
+                    <span className="text-gray-500 text-xs font-mono">Rating</span>
+                  </div>
+                )}
+                {hacker.yearsOfExperience != null && (
+                  <div className="flex items-center gap-2">
+                    <FiCalendar className="text-gray-500 text-sm" />
+                    <span className="text-gray-400 text-xs font-mono">{hacker.yearsOfExperience}y exp</span>
+                  </div>
+                )}
                 <div className="flex items-center gap-2">
                   <FiMapPin className="text-gray-500 text-sm" />
                   <span className="text-gray-400 text-xs font-mono">{hacker.location}</span>

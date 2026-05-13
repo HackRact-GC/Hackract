@@ -16,6 +16,12 @@ router.put('/me', restrictTo('PENTESTER', 'PROJECT_ADMIN'), validate(upsertHacke
 router.post('/me/submit', restrictTo('PENTESTER', 'PROJECT_ADMIN'), controller.submitMe);
 router.post('/me/sign-agreement', restrictTo('PENTESTER', 'PROJECT_ADMIN'), controller.signAgreement);
 
+// Discovery route — MUST come before /:id to avoid route conflicts
+router.get('/discover', restrictTo('ORG_ADMIN'), controller.discoverHackers);
+
+// Public profile by userId — ORG_ADMIN can view any approved hacker profile
+router.get('/public/:userId', restrictTo('ORG_ADMIN'), controller.getPublicHackerProfile);
+
 // Admin review routes
 router.get('/', restrictTo('ORG_ADMIN'), controller.listForReview);
 router.post('/:id/approve', restrictTo('ORG_ADMIN'), controller.approve);
