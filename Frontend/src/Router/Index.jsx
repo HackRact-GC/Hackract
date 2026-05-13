@@ -50,6 +50,7 @@ import OrganizationChat from "../pages/OrganizationChat.jsx";
 // Agreement Execute
 import AgreementExecute from "../pages/AgreementExecute.jsx";
 import LegalAgreementCreate from "../pages/LegalAgreementCreate.jsx";
+import LegalAgreementList from "../pages/LegalAgreementList.jsx";
 
 // Phase 18 Admin Imports
 import ApprovalsDashboard from "../pages/Admin/ApprovalsDashboard.jsx";
@@ -230,6 +231,10 @@ const router = createBrowserRouter([
           },
           {
             path: "legal",
+            element: <LegalAgreementList />,
+          },
+          {
+            path: "legal/create",
             element: <LegalAgreementCreate />,
           },
           {

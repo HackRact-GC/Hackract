@@ -71,7 +71,7 @@ const LegalAgreementCreate = () => {
       });
 
       toast.success("Legal agreement created");
-      navigate("/dashboard");
+      navigate("/legal");
     } catch (error) {
       const message =
         error?.response?.data?.message ||
@@ -101,9 +101,21 @@ const LegalAgreementCreate = () => {
     <div className="min-h-screen bg-gray-50">
       <div className="max-w-3xl mx-auto px-4 py-10">
         <div className="bg-white border border-gray-100 rounded-2xl shadow-sm overflow-hidden">
-          <div className="px-6 py-5 border-b border-gray-100">
-            <h1 className="text-lg font-semibold text-gray-900">Create Legal Agreement</h1>
-            <p className="text-sm text-gray-600 mt-1">Upload a file, review it, then publish.</p>
+          <div className="px-6 py-5 border-b border-gray-100 flex items-center gap-4">
+            <button
+              type="button"
+              onClick={() => navigate('/legal')}
+              className="text-gray-400 hover:text-gray-600 transition-colors"
+              title="Back to agreements"
+            >
+              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
+              </svg>
+            </button>
+            <div>
+              <h1 className="text-lg font-semibold text-gray-900">Create Legal Agreement</h1>
+              <p className="text-sm text-gray-600 mt-0.5">Upload a file, review it, then publish.</p>
+            </div>
           </div>
 
           <form onSubmit={submit} className="px-6 py-6 space-y-5">
@@ -189,7 +201,7 @@ const LegalAgreementCreate = () => {
 
               <button
                 type="button"
-                onClick={() => navigate(-1)}
+                onClick={() => navigate('/legal')}
                 className="inline-flex items-center justify-center rounded-lg border border-gray-200 bg-white text-gray-700 text-sm font-semibold px-4 py-2.5"
               >
                 Cancel
