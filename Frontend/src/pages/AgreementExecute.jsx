@@ -4,10 +4,19 @@ import { motion } from 'framer-motion';
 import { toast } from 'react-hot-toast';
 import { jsPDF } from 'jspdf';
 import SignaturePad from '../components/SignaturePad';
+import PentesterSigningPortal from '../components/PentesterSigningPortal';
 import api from '../api/axiosConfig';
 import { useAuth } from '../context/authContext';
 
 const CLOSING_OPTIONS = ['Sincerely,', 'Best regards,', 'Yours truly,', 'Respectfully,', 'Warm regards,', 'Love,'];
+
+const AGREEMENT_TYPE_OPTIONS = [
+  { value: 'terms_of_service', label: 'Terms of Service' },
+  { value: 'nda', label: 'NDA' },
+  { value: 'privacy_policy', label: 'Privacy Policy' },
+  { value: 'sla', label: 'SLA' },
+  { value: 'other', label: 'Other' },
+];
 
 const todayFormatted = () =>
   new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
@@ -50,7 +59,7 @@ const renderLetterText = (letter) => {
 
 const sanitizeFileName = (value) => value.replace(/[^a-z0-9]+/gi, '_').replace(/^_+|_+$/g, '');
 
-const buildAgreementPdf = ({ title, content, filename }) => {
+const buildAgreementPdf = ({ title, content, filename, watermark }) => {
   const pdf = new jsPDF({ unit: 'pt', format: 'a4' });
   const pageWidth = pdf.internal.pageSize.getWidth();
   const pageHeight = pdf.internal.pageSize.getHeight();
@@ -58,6 +67,21 @@ const buildAgreementPdf = ({ title, content, filename }) => {
   const maxWidth = pageWidth - margin * 2;
   const lineHeight = 16;
   let cursorY = margin;
+
+  const drawWatermark = () => {
+    if (!watermark) return;
+    pdf.saveGraphicsState?.();
+    pdf.setTextColor(236, 236, 236);
+    pdf.setFont('helvetica', 'bold');
+    pdf.setFontSize(54);
+    pdf.text(watermark, pageWidth / 2, pageHeight / 2, {
+      align: 'center',
+      angle: 315,
+    });
+    pdf.restoreGraphicsState?.();
+  };
+
+  drawWatermark();
 
   pdf.setFont('helvetica', 'bold');
   pdf.setFontSize(18);
@@ -83,6 +107,7 @@ const buildAgreementPdf = ({ title, content, filename }) => {
 
     if (cursorY + blockHeight > pageHeight - margin) {
       pdf.addPage();
+      drawWatermark();
       cursorY = margin;
     }
 
@@ -92,6 +117,8 @@ const buildAgreementPdf = ({ title, content, filename }) => {
 
   pdf.save(filename);
 };
+
+const formatAgreementType = (value) => AGREEMENT_TYPE_OPTIONS.find((option) => option.value === value)?.label || 'Agreement';
 
 const MotionDiv = motion.div;
 
@@ -127,6 +154,7 @@ export default function AgreementExecute() {
   const [submitting, setSubmitting] = useState(false);
   const [editableContent, setEditableContent] = useState('');
   const [editableTitle, setEditableTitle] = useState('');
+  const [agreementType, setAgreementType] = useState('terms_of_service');
   const [alreadySigned, setAlreadySigned] = useState(false);
   const [letter, setLetter] = useState(emptyLetter());
 
@@ -140,6 +168,7 @@ export default function AgreementExecute() {
       title,
       content,
       filename: fileName,
+      watermark: isOrg ? formatAgreementType(agreementType).toUpperCase() : '',
     });
   };
 
@@ -156,6 +185,7 @@ export default function AgreementExecute() {
           const parsed = parseLetter(rawContent);
           setEditableContent(stripLetter(rawContent));
           setEditableTitle(agreementRes.data.data.title || '');
+          setAgreementType(agreementRes.data.data.type || 'terms_of_service');
           setAlreadySigned(signedRes.data?.signed ?? false);
           if (parsed) setLetter({ ...emptyLetter(), ...parsed });
         } else {
@@ -167,6 +197,7 @@ export default function AgreementExecute() {
           });
           setEditableContent('');
           setEditableTitle('');
+          setAgreementType('terms_of_service');
           setLetter(emptyLetter());
         }
       } catch (err) {
@@ -212,11 +243,12 @@ export default function AgreementExecute() {
           await api.patch(`/legal-agreements/${currentId}`, {
             content: mergedContent,
             title: editableTitle,
+            type: agreementType,
           });
         } else {
           const formData = new FormData();
           formData.append('title', editableTitle);
-          formData.append('type', 'terms_of_service');
+          formData.append('type', agreementType);
           formData.append('content', mergedContent);
           formData.append('version', agreement.version);
           formData.append('isActive', true);
@@ -255,6 +287,10 @@ export default function AgreementExecute() {
         <div className="w-8 h-8 border-2 border-[#00c477] border-t-transparent rounded-full animate-spin" />
       </div>
     );
+  }
+
+  if (!id && !isOrg) {
+    return <PentesterSigningPortal />;
   }
 
   if (!agreement) return null;
@@ -297,16 +333,21 @@ export default function AgreementExecute() {
         <div className="flex-1 overflow-y-auto px-10 py-12 custom-scrollbar">
           {isOrg ? (
             /* ─── Org: Live Letter Preview (paper) ─── */
-            <div className="max-w-2xl mx-auto bg-[#fafaf5] text-[#1a1a1a] rounded-sm shadow-[0_20px_60px_-15px_rgba(0,0,0,0.6)] p-12 md:p-16 min-h-[calc(100vh-12rem)] font-serif">
+            <div className="max-w-2xl mx-auto bg-[#fafaf5] text-[#1a1a1a] rounded-sm shadow-[0_20px_60px_-15px_rgba(0,0,0,0.6)] p-12 md:p-16 min-h-[calc(100vh-12rem)] font-serif relative overflow-hidden">
+              <div className="absolute inset-0 flex items-center justify-center pointer-events-none select-none">
+                <div className="-rotate-45 text-[clamp(3rem,10vw,7rem)] font-black tracking-[0.3em] text-[#00c477]/10 uppercase whitespace-nowrap">
+                  {formatAgreementType(agreementType)}
+                </div>
+              </div>
               {/* Title (subject) */}
               {editableTitle && (
-                <div className="text-center mb-10 pb-6 border-b border-gray-200">
+                <div className="relative z-10 text-center mb-10 pb-6 border-b border-gray-200">
                   <h1 className="text-2xl font-bold text-gray-900 leading-tight">{editableTitle}</h1>
                 </div>
               )}
 
               {/* Sender Block - right aligned */}
-              <div className="text-right text-[15px] leading-relaxed mb-10 min-h-20">
+              <div className="relative z-10 text-right text-[15px] leading-relaxed mb-10 min-h-20">
                 {letter.sender_name ? (
                   <p className="font-semibold">{letter.sender_name},</p>
                 ) : (
@@ -323,7 +364,7 @@ export default function AgreementExecute() {
               </div>
 
               {/* Greeting */}
-              <p className="text-[15px] mb-6">
+              <p className="relative z-10 text-[15px] mb-6">
                 Dear{' '}
                 {letter.recipient_name ? (
                   <span>{letter.recipient_name},</span>
@@ -333,7 +374,7 @@ export default function AgreementExecute() {
               </p>
 
               {/* Body */}
-              <div className="text-[15px] leading-[1.9] space-y-5 min-h-32">
+              <div className="relative z-10 text-[15px] leading-[1.9] space-y-5 min-h-32">
                 {letter.body ? (
                   letter.body
                     .split(/\n{2,}/)
@@ -344,7 +385,7 @@ export default function AgreementExecute() {
               </div>
 
               {/* Closing */}
-              <div className="mt-12 text-[15px] leading-relaxed">
+              <div className="relative z-10 mt-12 text-[15px] leading-relaxed">
                 <p className="font-semibold">{letter.closing || 'Sincerely,'}</p>
                 <p className="mt-6 font-semibold">
                   {letter.signer_name || <span className="text-gray-400 italic font-normal">(Your Name)</span>}
@@ -412,6 +453,24 @@ export default function AgreementExecute() {
                     placeholder="e.g. Sample Letter To A Best Friend"
                     className="w-full bg-[#111] border border-white/10 rounded-lg px-4 py-3 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-[#00c477]/50 transition-colors"
                   />
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-[10px] font-mono text-gray-500 tracking-widest uppercase">Agreement Type</label>
+                  <select
+                    value={agreementType}
+                    onChange={(e) => setAgreementType(e.target.value)}
+                    className="w-full bg-[#111] border border-white/10 rounded-lg px-4 py-3 text-sm text-white focus:outline-none focus:border-[#00c477]/50 transition-colors"
+                  >
+                    {AGREEMENT_TYPE_OPTIONS.map((option) => (
+                      <option key={option.value} value={option.value}>
+                        {option.label}
+                      </option>
+                    ))}
+                  </select>
+                  <p className="text-[10px] font-mono text-gray-600 tracking-wide">
+                    The selected type is shown as a watermark on the preview and PDF.
+                  </p>
                 </div>
 
                 <div className="h-px bg-white/5 my-6" />

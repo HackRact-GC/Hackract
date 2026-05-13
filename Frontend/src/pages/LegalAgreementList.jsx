@@ -90,7 +90,7 @@ export default function LegalAgreementList() {
             </p>
           </div>
           <button
-            onClick={() => navigate('/legal/create')}
+            onClick={() => navigate('/org-agreement')}
             className="flex items-center gap-2 px-5 py-2.5 bg-[#00c477] hover:bg-[#00e088] text-[#0a0a0a] font-black text-xs tracking-widest uppercase rounded-xl transition-all hover:shadow-[0_0_20px_rgba(0,196,119,0.4)] hover:-translate-y-0.5"
           >
             <FiPlus className="text-base" />
@@ -109,7 +109,7 @@ export default function LegalAgreementList() {
             <p className="text-gray-400 font-mono tracking-widest text-sm uppercase">No agreements yet</p>
             <p className="text-gray-600 font-mono text-xs mt-1">Create your first legal agreement to get started</p>
             <button
-              onClick={() => navigate('/legal/create')}
+              onClick={() => navigate('/org-agreement')}
               className="mt-6 px-5 py-2.5 bg-[#00c477]/10 border border-[#00c477]/20 text-[#00c477] font-mono text-xs tracking-widest uppercase rounded-lg hover:bg-[#00c477]/20 transition-colors"
             >
               Create Agreement
@@ -127,7 +127,7 @@ export default function LegalAgreementList() {
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, x: -20 }}
                 transition={{ delay: idx * 0.04 }}
-                className="group bg-[#0d0d0d] border border-white/[0.05] rounded-2xl p-6 hover:border-white/10 transition-all"
+                className="group bg-[#0d0d0d] border border-white/5 rounded-2xl p-6 hover:border-white/10 transition-all"
               >
                 <div className="flex items-start justify-between gap-4">
                   {/* Left: info */}
