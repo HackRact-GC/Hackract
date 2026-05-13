@@ -27,6 +27,9 @@ const HackerOnboarding = () => {
     education: [],
     employment: [],
     other: [],
+    country: "",
+    yearsOfExperience: "",
+    specialization: "",
   });
 
   // Edit Modes
@@ -37,6 +40,7 @@ const HackerOnboarding = () => {
     education: false,
     employment: false,
     other: false,
+    identity: false,
   });
 
   // New Item State for forms
@@ -64,6 +68,9 @@ const HackerOnboarding = () => {
             ...prev,
             bio: profile.bio || prev.bio,
             skills: (profile.primarySkills || []).join(", ") || prev.skills,
+            country: profile.country || prev.country,
+            yearsOfExperience: profile.yearsOfExperience || prev.yearsOfExperience,
+            specialization: profile.specialization || prev.specialization,
             certifications: profile.certifications?.length > 0 
               ? profile.certifications.map(c => {
                   try {
@@ -123,6 +130,9 @@ const HackerOnboarding = () => {
           file: c.file,
           fileUrl: c.fileUrl
         })),
+        country: form.country,
+        yearsOfExperience: parseInt(form.yearsOfExperience) || 0,
+        specialization: form.specialization,
         status: finalStatus || undefined,
       };
       await api.put("/hacker-profiles/me", payload);
@@ -284,6 +294,33 @@ const HackerOnboarding = () => {
 
           {/* RIGHT COLUMN */}
           <div className="space-y-6">
+            
+            {/* Identity & Focus */}
+            <div className="bg-[#0c0c0c] border border-white/5 rounded-2xl p-6 lg:p-8 space-y-6">
+              <div className="relative group">
+                <h2 className="text-xl font-bold mb-4">Identity & Focus</h2>
+                <button onClick={() => toggleEdit('identity')} className="absolute -top-1 right-0 w-8 h-8 rounded-full border border-[#00c477] flex items-center justify-center hover:bg-[#00c477]/10 text-[#00c477] opacity-0 group-hover:opacity-100 transition-opacity">
+                  <FiEdit2 size={14} />
+                </button>
+                
+                {editMode.identity ? (
+                  <div className="w-full space-y-3">
+                    <input type="text" placeholder="Country / Location" value={form.country} onChange={e => setForm({...form, country: e.target.value})} className="w-full bg-[#111] border border-[#00c477] rounded-lg p-2 text-sm focus:outline-none" />
+                    <input type="number" placeholder="Years of Experience" value={form.yearsOfExperience} onChange={e => setForm({...form, yearsOfExperience: e.target.value})} className="w-full bg-[#111] border border-[#00c477] rounded-lg p-2 text-sm focus:outline-none" />
+                    <input type="text" placeholder="Specialization (e.g. Web Exploitation)" value={form.specialization} onChange={e => setForm({...form, specialization: e.target.value})} className="w-full bg-[#111] border border-[#00c477] rounded-lg p-2 text-sm focus:outline-none" />
+                    <div className="mt-2">
+                      <button onClick={() => handleSaveSection('identity')} className="px-4 py-1.5 bg-[#00c477] text-black text-sm rounded-full font-bold">Save</button>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    <p className="text-gray-300 text-sm"><span className="text-gray-500 font-mono">Location:</span> {form.country || "Not set"}</p>
+                    <p className="text-gray-300 text-sm"><span className="text-gray-500 font-mono">Experience:</span> {form.yearsOfExperience ? `${form.yearsOfExperience} years` : "Not set"}</p>
+                    <p className="text-gray-300 text-sm"><span className="text-gray-500 font-mono">Specialization:</span> {form.specialization || "Not set"}</p>
+                  </div>
+                )}
+              </div>
+            </div>
             
             {/* Bio Section (Description) */}
             <div className="bg-[#0c0c0c] border border-white/5 rounded-2xl p-6 lg:p-8 space-y-6">
