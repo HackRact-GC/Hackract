@@ -26,7 +26,6 @@ import TerminalNode from './nodes/TerminalNode';
 import Sidebar from './components/Sidebar';
 import HistorySidebar from './components/HistorySidebar';
 import WorkflowControls from './components/WorkflowControls';
-import RecordVulnerabilityModal from './components/RecordVulnerabilityModal';
 
 // Hooks & Services
 import { useWorkflowSocket } from '../../hooks/useWorkflowSocket';
@@ -61,16 +60,16 @@ const buildMessage = (action, details = {}) => {
   const targetLabel = details.targetLabel || details.target || 'target';
 
   const messages = {
-    ADD_NODE: hasLabel ? `Added node ${nodeLabel}` : `Added ${nodeLabel}`,
-    DELETE_NODE: hasLabel ? `Deleted node ${nodeLabel}` : `Deleted ${nodeLabel}`,
-    MOVE_NODE: `Moved ${nodeLabel}`,
-    UPDATE_TITLE: `Renamed node to "${details.newTitle || 'Untitled'}"`,
-    CONNECT_NODES: details.source && details.target ? `Connected ${hasConnectionLabels ? `"${sourceLabel}" to "${targetLabel}"` : 'two nodes'}` : `Connected two nodes`,
-    DELETE_EDGE: `Removed a connection`,
-    LINK_FINDING: `Linked finding to ${nodeLabel}`,
-    GRAPH_CHANGED: `Updated the canvas`,
-    AGENT_RAN: `Ran the "${details.agentName || 'AI'}" agent`,
-    TERMINAL_EXEC: `Executed command in Terminal`,
+    ADD_NODE:       hasLabel ? `Added node ${nodeLabel}` : `Added ${nodeLabel}`,
+    DELETE_NODE:    hasLabel ? `Deleted node ${nodeLabel}` : `Deleted ${nodeLabel}`,
+    MOVE_NODE:      `Moved ${nodeLabel}`,
+    UPDATE_TITLE:   `Renamed node to "${details.newTitle || 'Untitled'}"`,
+    CONNECT_NODES:  details.source && details.target ? `Connected ${hasConnectionLabels ? `"${sourceLabel}" to "${targetLabel}"` : 'two nodes'}` : `Connected two nodes`,
+    DELETE_EDGE:    `Removed a connection`,
+    LINK_FINDING:   `Linked finding to ${nodeLabel}`,
+    GRAPH_CHANGED:  `Updated the canvas`,
+    AGENT_RAN:      `Ran the "${details.agentName || 'AI'}" agent`,
+    TERMINAL_EXEC:  `Executed command in Terminal`,
     CREATE_CHECKPOINT: `Saved a version checkpoint`,
     RESTORE_CHECKPOINT: `Restored to a previous version`,
   };
@@ -119,11 +118,10 @@ const WorkflowEditor = ({ workflowId: propWorkflowId }) => {
   const [reactFlowInstance, setReactFlowInstance] = useState(null);
   const [lastSaved, setLastSaved] = useState(new Date());
   const [isHistoryOpen, setIsHistoryOpen] = useState(false);
-  const [isPublishModalOpen, setIsPublishModalOpen] = useState(false);
   const [isLocked, setIsLocked] = useState(false);
   const [canEdit, setCanEdit] = useState(true);
   const [findings, setFindings] = useState([]);
-  const [projectInfo, setProjectInfo] = useState({ name: null, type: 'Audit', pentestId: null }); // null = loading
+  const [projectInfo, setProjectInfo] = useState({ name: null, type: 'Audit' }); // null = loading
 
   const {
     socket,
@@ -285,9 +283,8 @@ const WorkflowEditor = ({ workflowId: propWorkflowId }) => {
           }
 
           setProjectInfo({
-            name: projectName || 'Mission Operational Workspace',
-            type: projectType,
-            pentestId: data.pentestId || data.pentest?.id
+            name: projectName || 'Mission Operational Workspace', 
+            type: projectType
           });
         }
 
@@ -333,7 +330,7 @@ const WorkflowEditor = ({ workflowId: propWorkflowId }) => {
       user: { fullName: localUser.name, id: localUser.id },
       isOptimistic: true // marker for debug/styles
     };
-
+    
     console.log('[HISTORY][OPTIMISTIC]', optimisticRecord);
     emitHistoryEvent(optimisticRecord);
 
@@ -387,10 +384,10 @@ const WorkflowEditor = ({ workflowId: propWorkflowId }) => {
     // Call side effects once outside state setter
     setTimeout(() => {
       emitWorkflowChange(newNodes, newEdges);
-      saveToDatabase(newNodes, newEdges, "DELETE_NODE", {
-        nodeId: id,
-        type: deletedNode?.type,
-        label: deletedNode?.data?.label
+      saveToDatabase(newNodes, newEdges, "DELETE_NODE", { 
+        nodeId: id, 
+        type: deletedNode?.type, 
+        label: deletedNode?.data?.label 
       });
     }, 10);
   }, [emitWorkflowChange, setNodes, setEdges]);
@@ -414,7 +411,7 @@ const WorkflowEditor = ({ workflowId: propWorkflowId }) => {
     });
 
     setNodes(newNodes);
-
+    
     emitWorkflowChange(newNodes, currentEdges);
     saveToDatabase(newNodes, currentEdges, "UPDATE_TITLE", { nodeId: id, newTitle });
   }, [emitWorkflowChange, setNodes]);
@@ -436,14 +433,14 @@ const WorkflowEditor = ({ workflowId: propWorkflowId }) => {
     });
 
     setNodes(newNodes);
-
+    
     emitWorkflowChange(newNodes, currentEdges);
     saveToDatabase(newNodes, currentEdges, "LINK_FINDING", { nodeId: id, findingId });
   }, [emitWorkflowChange, setNodes]);
 
   const restoreCheckpoint = useCallback((snapshot) => {
     if (!snapshot || !snapshot.nodes || !snapshot.edges) return;
-
+    
     // Restore node behavior functions
     const restoredNodes = snapshot.nodes.map(node => ({
       ...node,
@@ -456,10 +453,10 @@ const WorkflowEditor = ({ workflowId: propWorkflowId }) => {
         activeUsers: activeNodes[node.id] || {}
       }
     }));
-
+    
     setNodes(restoredNodes);
     setEdges(snapshot.edges);
-
+    
     emitWorkflowChange(restoredNodes, snapshot.edges);
     saveToDatabase(restoredNodes, snapshot.edges, "RESTORE_CHECKPOINT", { label: "Reverted to a previous version" });
   }, [deleteNode, updateNodeTitle, linkFinding, findings, activeNodes, setNodes, setEdges, emitWorkflowChange]);
@@ -485,7 +482,7 @@ const WorkflowEditor = ({ workflowId: propWorkflowId }) => {
     const currentEdges = edgesRef.current;
     const newNodes = [...currentNodes, newNode];
     setNodes(newNodes);
-
+    
     emitWorkflowChange(newNodes, currentEdges);
     saveToDatabase(newNodes, currentEdges, "ADD_NODE", { type, label: defaultLabel });
   }, [emitWorkflowChange, deleteNode, updateNodeTitle, setNodes]);
@@ -562,10 +559,10 @@ const WorkflowEditor = ({ workflowId: propWorkflowId }) => {
         const removedChange = changes.find(c => c.type === 'remove');
         const node = nodes.find(n => n.id === removedChange.id);
         if (node) {
-          removalMeta = {
-            nodeId: node.id,
-            type: node.type,
-            label: node.data?.label || node.id
+          removalMeta = { 
+            nodeId: node.id, 
+            type: node.type, 
+            label: node.data?.label || node.id 
           };
           console.log('[HISTORY][TRACE] Capturing removal metadata:', removalMeta);
         }
@@ -598,12 +595,12 @@ const WorkflowEditor = ({ workflowId: propWorkflowId }) => {
 
     const isDelete = changes.some(c => c.type === "remove");
     if (isDelete) {
-      setTimeout(() => {
-        const nds = nodesRef.current;
-        const eds = edgesRef.current;
-        emitWorkflowChange(nds, eds);
-        saveToDatabase(nds, eds, "DELETE_EDGE");
-      }, 20);
+       setTimeout(() => {
+         const nds = nodesRef.current;
+         const eds = edgesRef.current;
+         emitWorkflowChange(nds, eds);
+         saveToDatabase(nds, eds, "DELETE_EDGE");
+       }, 20);
     }
   }, [onEdgesChange, emitWorkflowChange]);
 
@@ -658,45 +655,8 @@ const WorkflowEditor = ({ workflowId: propWorkflowId }) => {
     });
   };
 
-  const handleSaveFinding = async (findingData) => {
-    if (!projectInfo.pentestId) {
-      toast.error('Cannot save finding: no pentest linked to this workflow.');
-      return;
-    }
-    const toastId = toast.loading('Saving vulnerability...');
-    try {
-      const payload = {
-        pentestId: projectInfo.pentestId,
-        title: findingData.title,
-        severity: findingData.severity,
-        affectedAsset: findingData.affectedAsset,
-        cvssScore: findingData.cvssScore,
-        description: findingData.description,
-        proof: findingData.proof,
-      };
-      await api.post('/findings', payload);
-      toast.success('Vulnerability saved successfully!', { id: toastId });
-      setIsPublishModalOpen(false);
-      
-      // Broadcast finding creation to other tabs (e.g., WorkspaceView)
-      const channel = new BroadcastChannel('project_updates');
-      channel.postMessage({ type: 'FINDING_CREATED', pentestId: projectInfo.pentestId });
-      channel.close();
-
-      // optionally fetch findings again or add to local state
-    } catch (err) {
-      console.error(err);
-      toast.error(err?.response?.data?.message || 'Failed to save finding.', { id: toastId });
-    }
-  };
-
   return (
     <div className="flex flex-col h-screen bg-[#13151a] text-white overflow-hidden relative">
-      <RecordVulnerabilityModal
-        isOpen={isPublishModalOpen}
-        onClose={() => setIsPublishModalOpen(false)}
-        onSave={handleSaveFinding}
-      />
       {/* Top Header Bar */}
       <div className="h-14 border-b border-[#252830] flex items-center justify-between px-4 bg-[#1a1c23]/90 backdrop-blur-md z-20 shadow-sm relative">
         <div className="flex items-center gap-4">
@@ -742,85 +702,82 @@ const WorkflowEditor = ({ workflowId: propWorkflowId }) => {
         </div>
 
         <div className="flex items-center gap-4">
-          {/* Active Collaborators Profiles — always show self first, then remote peers */}
-          <div className="flex -space-x-2 items-center">
-            {/* Self — always online */}
-            <div
-              className="relative group transition-transform hover:-translate-y-1 hover:z-30 cursor-help"
-              style={{ zIndex: 20 }}
-              title={`${localUser.name} (You)`}
-            >
-              <div
-                className="w-8 h-8 rounded-full border-2 border-[#00ff41]/60 flex items-center justify-center text-xs font-bold shadow-md"
-                style={{ backgroundColor: localUser.color, color: '#000' }}
-              >
-                {localUser.name?.[0]?.toUpperCase() || 'Y'}
-              </div>
-              <span className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-[#00ff41] border-[1.5px] border-[#1a1c23] rounded-full shadow-[0_0_6px_rgba(0,255,65,0.7)]"></span>
+            {/* Active Collaborators Profiles — always show self first, then remote peers */}
+            <div className="flex -space-x-2 items-center">
+               {/* Self — always online */}
+               <div
+                 className="relative group transition-transform hover:-translate-y-1 hover:z-30 cursor-help"
+                 style={{ zIndex: 20 }}
+                 title={`${localUser.name} (You)`}
+               >
+                 <div
+                   className="w-8 h-8 rounded-full border-2 border-[#00ff41]/60 flex items-center justify-center text-xs font-bold shadow-md"
+                   style={{ backgroundColor: localUser.color, color: '#000' }}
+                 >
+                   {localUser.name?.[0]?.toUpperCase() || 'Y'}
+                 </div>
+                 <span className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-[#00ff41] border-[1.5px] border-[#1a1c23] rounded-full shadow-[0_0_6px_rgba(0,255,65,0.7)]"></span>
+               </div>
+               {/* Remote peers */}
+               {Object.values(collaborators)
+                 .filter(c => c.id !== socket?.id) /* exclude self from socket list */
+                 .map((collab, index) => (
+                 <div
+                   key={collab.id}
+                   className="relative group transition-transform hover:-translate-y-1 hover:z-30 cursor-help"
+                   style={{ zIndex: 10 + index }}
+                   title={collab.user || 'Online Hacker'}
+                 >
+                   <div
+                     className="w-8 h-8 rounded-full border-2 border-[#1a1c23] flex items-center justify-center text-xs font-bold shadow-md"
+                     style={{ backgroundColor: collab.color || '#00ff41', color: '#000' }}
+                   >
+                     {collab.user?.[0]?.toUpperCase() || 'H'}
+                   </div>
+                   <span className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-[#00ff41] border-[1.5px] border-[#1a1c23] rounded-full shadow-[0_0_5px_rgba(0,255,65,0.4)]"></span>
+                 </div>
+               ))}
             </div>
-            {/* Remote peers */}
-            {Object.values(collaborators)
-              .filter(c => c.id !== socket?.id) /* exclude self from socket list */
-              .map((collab, index) => (
-                <div
-                  key={collab.id}
-                  className="relative group transition-transform hover:-translate-y-1 hover:z-30 cursor-help"
-                  style={{ zIndex: 10 + index }}
-                  title={collab.user || 'Online Hacker'}
-                >
-                  <div
-                    className="w-8 h-8 rounded-full border-2 border-[#1a1c23] flex items-center justify-center text-xs font-bold shadow-md"
-                    style={{ backgroundColor: collab.color || '#00ff41', color: '#000' }}
-                  >
-                    {collab.user?.[0]?.toUpperCase() || 'H'}
-                  </div>
-                  <span className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-[#00ff41] border-[1.5px] border-[#1a1c23] rounded-full shadow-[0_0_5px_rgba(0,255,65,0.4)]"></span>
-                </div>
-              ))}
-          </div>
 
-          <div className="h-6 w-px bg-gray-700 mx-1"></div>
+           <div className="h-6 w-px bg-gray-700 mx-1"></div>
 
-          <button
-            className={`hover:text-[#00ff41] transition-colors flex items-center gap-2 font-semibold text-xs ${isHistoryOpen ? 'text-[#00ff41]' : 'text-gray-400'}`}
-            title="History"
-            onClick={() => setIsHistoryOpen(!isHistoryOpen)}
-          >
-            <FiClock size={16} />
-            <span>HISTORY</span>
-          </button>
-          <button className="text-gray-400 hover:text-[#00ff41] transition-colors" title="Comments">
-            <FiMessageSquare size={16} />
-          </button>
-          <button
-            onClick={() => setIsPublishModalOpen(true)}
-            className="bg-[#00ff41] hover:bg-[#00cc33] text-black px-4 py-1.5 rounded-md text-xs font-bold transition-all shadow-[0_0_10px_rgba(0,255,65,0.2)] active:scale-95"
-          >
-            Findings
-          </button>
+           <button
+             className={`hover:text-[#00ff41] transition-colors flex items-center gap-2 font-semibold text-xs ${isHistoryOpen ? 'text-[#00ff41]' : 'text-gray-400'}`}
+             title="History"
+             onClick={() => setIsHistoryOpen(!isHistoryOpen)}
+           >
+             <FiClock size={16} />
+             <span>HISTORY</span>
+           </button>
+           <button className="text-gray-400 hover:text-[#00ff41] transition-colors" title="Comments">
+             <FiMessageSquare size={16} />
+           </button>
+           <button className="bg-[#00ff41] hover:bg-[#00cc33] text-black px-4 py-1.5 rounded-md text-xs font-bold transition-all shadow-[0_0_10px_rgba(0,255,65,0.2)] active:scale-95">
+              PUBLISH
+           </button>
         </div>
       </div>
 
       {/* Main Workspace */}
       <div className="flex flex-1 overflow-hidden relative"
-        onMouseMove={(e) => {
-          if (reactFlowWrapper.current) {
-            const rect = reactFlowWrapper.current.getBoundingClientRect();
-            const x = e.clientX - rect.left;
-            const y = e.clientY - rect.top;
-
-            emitCursorMove(x, y, localUser);
-
-            reactFlowWrapper.current.style.setProperty('--mouse-x', `${x}px`);
-            reactFlowWrapper.current.style.setProperty('--mouse-y', `${y}px`);
-          }
-        }}
-        onMouseLeave={() => {
-          if (reactFlowWrapper.current) {
-            reactFlowWrapper.current.style.setProperty('--mouse-x', `-1000px`);
-            reactFlowWrapper.current.style.setProperty('--mouse-y', `-1000px`);
-          }
-        }}>
+           onMouseMove={(e) => {
+             if (reactFlowWrapper.current) {
+                const rect = reactFlowWrapper.current.getBoundingClientRect();
+                const x = e.clientX - rect.left;
+                const y = e.clientY - rect.top;
+                
+                emitCursorMove(x, y, localUser);
+                
+                reactFlowWrapper.current.style.setProperty('--mouse-x', `${x}px`);
+                reactFlowWrapper.current.style.setProperty('--mouse-y', `${y}px`);
+             }
+           }}
+           onMouseLeave={() => {
+             if (reactFlowWrapper.current) {
+               reactFlowWrapper.current.style.setProperty('--mouse-x', `-1000px`);
+               reactFlowWrapper.current.style.setProperty('--mouse-y', `-1000px`);
+             }
+           }}>
 
         <Sidebar onAdd={addNodeByClick} />
 
@@ -874,9 +831,9 @@ const WorkflowEditor = ({ workflowId: propWorkflowId }) => {
               />
             </ReactFlow>
           </ReactFlowProvider>
-          <HistorySidebar
-            workflowId={workflowId}
-            isOpen={isHistoryOpen}
+          <HistorySidebar 
+            workflowId={workflowId} 
+            isOpen={isHistoryOpen} 
             onClose={() => setIsHistoryOpen(false)}
             liveEvents={liveHistoryEvents}
             localUser={localUser}

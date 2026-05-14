@@ -89,7 +89,7 @@ router.post("/personal", async (req, res, next) => {
 
     // Auto-add creator as a HACKER collaborator so they can submit findings
     await prisma.pentestCollaborator.create({
-      data: { pentestId: project.id, userId: req.user.id, role: "HACKER", canEditFindings: true },
+      data: { pentestId: project.id, userId: req.user.id, role: "HACKER" },
     });
 
     await logAction("PERSONAL_WORKSPACE_CREATED", req.user.id, { pentestId: project.id, name }, req);
@@ -215,9 +215,9 @@ router.post("/", async (req, res, next) => {
     const uniqueHackers = [...new Set((hackerIds || []).filter(Boolean))];
     const collaboratorRows = [
       ...(projectAdminId
-        ? [{ pentestId: project.id, userId: projectAdminId, role: "PROJECT_ADMIN", canEditFindings: true }]
+        ? [{ pentestId: project.id, userId: projectAdminId, role: "PROJECT_ADMIN" }]
         : []),
-      ...uniqueHackers.map((userId) => ({ pentestId: project.id, userId, role: "HACKER", canEditFindings: true })),
+      ...uniqueHackers.map((userId) => ({ pentestId: project.id, userId, role: "HACKER" })),
     ];
 
     if (collaboratorRows.length > 0) {
