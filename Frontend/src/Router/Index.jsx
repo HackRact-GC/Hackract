@@ -135,6 +135,14 @@ const router = createBrowserRouter([
             path: "messages",
             element: <HackerChat />,
           },
+          {
+            path: "execute-agreement",
+            element: <AgreementExecute />,
+          },
+          {
+            path: "execute-agreement/:id",
+            element: <AgreementExecute />,
+          },
         ],
       },
 
@@ -184,6 +192,10 @@ const router = createBrowserRouter([
           },
           {
             path: "pa-agreement",
+            element: <AgreementExecute />,
+          },
+          {
+            path: "execute-agreement/:id",
             element: <AgreementExecute />,
           },
         ],
@@ -245,6 +257,10 @@ const router = createBrowserRouter([
             path: "org-agreement",
             element: <AgreementExecute />,
           },
+          {
+            path: "execute-agreement/:id",
+            element: <AgreementExecute />,
+          },
         ],
       },
 
@@ -290,14 +306,6 @@ const router = createBrowserRouter([
             </RoleGuard>
           </OnboardingGuard>
         ),
-      },
-      {
-        path: "execute-agreement",
-        element: <OnboardingGuard><AgreementExecute /></OnboardingGuard>,
-      },
-      {
-        path: "execute-agreement/:id",
-        element: <OnboardingGuard><AgreementExecute /></OnboardingGuard>,
       },
       {
         element: <AuthLayout />,
