@@ -7,6 +7,9 @@ const execAsync = promisify(exec);
 // { workflowId: { containerName, refCount } }
 const activeContainers = new Map();
 
+// { workflowId: Promise } - To prevent race conditions during simultaneous startup
+const startingContainers = new Map();
+
 export const setupTerminalSocket = (io) => {
   const terminalNamespace = io.of('/terminal');
 
@@ -23,19 +26,41 @@ export const setupTerminalSocket = (io) => {
     console.log(`💻 Terminal client connected: ${socket.id} (Workflow: ${workflowId})`);
 
     try {
-      // 1. Ensure the shared container is running
+      // 1. Ensure the shared container is running (with race condition protection)
       let containerInfo = activeContainers.get(workflowId);
       
       if (!containerInfo) {
-        console.log(`🏗️ Starting shared container for project: ${workflowId}`);
-        // Remove existing if any (resilience)
-        await execAsync(`docker rm -f ${containerName}`).catch(() => {});
-        
-        // Start a persistent container in the background
-        await execAsync(`docker run -d --name ${containerName} hackract-terminal tail -f /dev/null`);
-        
-        containerInfo = { containerName, refCount: 0 };
-        activeContainers.set(workflowId, containerInfo);
+        // If another request is already starting the container, wait for it
+        if (startingContainers.has(workflowId)) {
+          console.log(`⏳ Waiting for container ${containerName} to finish starting...`);
+          await startingContainers.get(workflowId);
+          containerInfo = activeContainers.get(workflowId);
+        } else {
+          // We are the first to start the container
+          const startPromise = (async () => {
+            console.log(`🏗️ Starting shared container for project: ${workflowId}`);
+            // Remove existing if any (resilience)
+            await execAsync(`docker rm -f ${containerName}`).catch(() => {});
+            
+            // Start a persistent container in the background
+            await execAsync(`docker run -d --name ${containerName} hackract-terminal tail -f /dev/null`);
+            
+            const info = { containerName, refCount: 0 };
+            activeContainers.set(workflowId, info);
+            return info;
+          })();
+
+          startingContainers.set(workflowId, startPromise);
+          try {
+            containerInfo = await startPromise;
+          } finally {
+            startingContainers.delete(workflowId);
+          }
+        }
+      }
+
+      if (!containerInfo) {
+        throw new Error("Failed to initialize project container");
       }
 
       // 2. Spawn a NEW independent bash process inside that shared container
