@@ -156,7 +156,7 @@ const WorkspaceView = ({ projectId, onBack }) => {
   const { user } = useAuth();
   const [project, setProject] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState(searchParams.get("tab") || "overview");
+  const [activeTab, setActiveTab] = useState(searchParams.get("tab") || "workflow");
   const [showInvite, setShowInvite] = useState(false);
 
   const workspaceName = project?.name || "Project Workspace";
@@ -293,7 +293,7 @@ const WorkspaceView = ({ projectId, onBack }) => {
 
         {/* Tabs */}
         <div className="flex bg-black/60 p-1.5 rounded-2xl border border-white/10 w-fit">
-          {["overview", "workflow", "findings", "team", ...(canManage ? ["hiring", "settings"] : [])].map((tab) => (
+          {["workflow", "findings", ...(project?.isPersonal ? [] : ["team"]), ...(canManage ? ["hiring", "settings"] : [])].map((tab) => (
             <button
               key={tab}
               onClick={() => setActiveTab(tab)}
@@ -308,111 +308,6 @@ const WorkspaceView = ({ projectId, onBack }) => {
 
         {/* Content Area */}
         <div className="min-h-[400px]">
-          {activeTab === "overview" && (
-            <div className="grid lg:grid-cols-3 gap-8">
-              <div className="lg:col-span-1 space-y-6">                <div className="bg-black/70 backdrop-blur-md border border-white/10 p-8 rounded-4xl space-y-6">
-                  <div>
-                    <h3 className="text-xs font-black text-white/40 uppercase tracking-[0.2em] mb-4">Mission Scope</h3>
-                    <p className="text-sm text-white/80 leading-relaxed font-medium mb-6">
-                      {project.description || "Mission parameters are currently classified."}
-                    </p>
-
-                    <div className="space-y-4 pt-4 border-t border-white/5">
-                      {project.targetDomains?.length > 0 && (
-                        <div className="flex flex-col gap-1.5">
-                          <span className="text-[10px] font-black text-white/30 uppercase tracking-widest flex items-center gap-2">
-                            <FiGlobe size={10} /> Target Domains
-                          </span>
-                          <div className="flex flex-wrap gap-1.5">
-                            {project.targetDomains.map(d => (
-                              <span key={d} className="px-2 py-0.5 bg-white/5 border border-white/10 rounded-md text-[10px] font-mono text-[#00ff88]">
-                                {d}
-                              </span>
-                            ))}
-                          </div>
-                        </div>
-                      )}
-                      
-                      {project.ipRanges?.length > 0 && (
-                        <div className="flex flex-col gap-1.5">
-                          <span className="text-[10px] font-black text-white/30 uppercase tracking-widest flex items-center gap-2">
-                            <FiServer size={10} /> IP Ranges
-                          </span>
-                          <div className="flex flex-wrap gap-1.5">
-                            {project.ipRanges.map(ip => (
-                              <span key={ip} className="px-2 py-0.5 bg-white/5 border border-white/10 rounded-md text-[10px] font-mono text-[#00ff88]">
-                                {ip}
-                              </span>
-                            ))}
-                          </div>
-                        </div>
-                      )}
-
-                      {project.excludedAssets && (
-                        <div className="flex flex-col gap-1.5">
-                          <span className="text-[10px] font-black text-rose-400/50 uppercase tracking-widest flex items-center gap-2">
-                            <FiFileMinus size={10} /> Excluded Assets
-                          </span>
-                          <p className="text-[11px] text-rose-200/60 leading-relaxed">
-                            {project.excludedAssets}
-                          </p>
-                        </div>
-                      )}
-
-                      {(project.startDate || project.endDate) && (
-                        <div className="flex flex-col gap-1.5">
-                          <span className="text-[10px] font-black text-white/30 uppercase tracking-widest flex items-center gap-2">
-                            <FiCalendar size={10} /> Testing Schedule
-                          </span>
-                          <p className="text-[11px] text-white/60 font-mono">
-                            {project.startDate ? new Date(project.startDate).toLocaleDateString() : 'TBD'} 
-                            <span className="mx-2 text-white/20">→</span> 
-                            {project.endDate ? new Date(project.endDate).toLocaleDateString() : 'TBD'}
-                          </p>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-
-                  <div className="pt-6 border-t border-white/5 space-y-4">
-                    <div className="flex items-center justify-between">
-                      <h3 className="text-xs font-black text-white/40 uppercase tracking-[0.2em]">Authorized Team</h3>
-                      <button 
-                        onClick={() => setActiveTab('team')}
-                        className="text-[9px] font-black text-[#00ff88] uppercase tracking-widest hover:underline"
-                      >
-                        Manage
-                      </button>
-                    </div>
-                    <div className="space-y-3">
-                      {project.collaborators?.filter(c => c.role !== 'APPLICANT').map((h) => (
-                        <div key={h.id} className="flex items-center gap-3 p-3 bg-white/5 rounded-2xl border border-white/5">
-                          <div className="w-8 h-8 rounded-xl bg-black border border-white/10 flex items-center justify-center text-[10px] font-bold text-[#00ff88]">
-                            {h.user?.fullName?.[0] || "U"}
-                          </div>
-                          <div>
-                            <p className="text-[10px] font-bold text-white uppercase tracking-widest">{h.user?.fullName || h.user?.email}</p>
-                            <p className="text-[9px] text-[#00ff88]/60 font-mono">{h.role}</p>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              <div className="lg:col-span-2">
-                <div className="bg-black/70 backdrop-blur-md border border-white/10 p-8 rounded-4xl h-full">
-                  <h3 className="text-xs font-black text-white/40 uppercase tracking-[0.2em] mb-6 flex items-center gap-3">
-                    <div className="w-2 h-2 rounded-full bg-[#00ff88] animate-pulse shadow-[0_0_8px_#00ff88]" />
-                    Live Activity Feed
-                  </h3>
-                  <ProjectActivity projectId={projectId} />
-                </div>
-              </div>
-            </div>
-          )}
-
           {activeTab === "workflow" && (
             <div className="bg-black/70 backdrop-blur-md border border-white/10 p-12 rounded-4xl text-center space-y-6">
               <div className="w-20 h-20 bg-[#00ff88]/10 border border-[#00ff88]/20 rounded-3xl flex items-center justify-center text-[#00ff88] mx-auto shadow-inner">
