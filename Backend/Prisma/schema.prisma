@@ -149,6 +149,8 @@ model HackerProfile {
   yearsOfExperience Int?
   primarySkills     String[]
   certifications    String[]
+  employment        String[]
+  otherExperiences  String[]
   portfolioLinks    String[]
   specialization    String?
   idDocumentNumber  String?
@@ -340,8 +342,10 @@ model Finding {
   description String?
   severity    FindingSeverity @default(LOW)
   status      FindingStatus   @default(OPEN)
-  remediation String?
-  proof       String?
+  remediation   String?
+  proof         String?
+  affectedAsset String?
+  cvssScore     Float?
 
   // Relations
   pentest   Pentest @relation(fields: [pentestId], references: [id], onDelete: Cascade)
