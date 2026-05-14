@@ -291,6 +291,13 @@ model Pentest {
   projectAgreements   ProjectAgreement[]
   projectAgreementAcceptances ProjectAgreementAcceptance[]
 
+  // Scope & Timeline
+  targetDomains   String[]
+  ipRanges        String[]
+  excludedAssets  String?
+  startDate       DateTime?
+  endDate         DateTime?
+
   // Timestamps
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
