@@ -175,13 +175,27 @@ const InviteModal = ({ hacker, onClose }) => {
 
 // ─── HACKER CARD ──────────────────────────────────────────────────────────────
 const HackerCard = ({ hacker, index, onInvite, onViewProfile }) => {
-  const name   = hacker.user?.fullName || hacker.name || 'Unknown';
-  const handle = hacker.user?.handle   || hacker.tag  || '';
-  const avatar = hacker.user?.avatar   || `https://api.dicebear.com/7.x/bottts/svg?seed=${handle}&baseColor=00ff88`;
-  const skills = hacker.primarySkills  || hacker.skills || [];
-  const certs  = hacker.certifications || hacker.certs  || [];
-  const rating = hacker.rating         || 4.5;
-  const rank   = hacker.rank           || 'SILVER';
+  const name = hacker.user?.fullName || hacker.name || 'Unknown';
+  const handle = hacker.user?.handle || hacker.tag || '';
+  const avatar = hacker.user?.avatar || `https://api.dicebear.com/7.x/bottts/svg?seed=${handle}&baseColor=00ff88`;
+
+  // Parse skills and certs which might be JSON strings
+  const parseItems = (items) => {
+    if (!items) return [];
+    return items.map(item => {
+      try {
+        const parsed = JSON.parse(item);
+        return parsed.title || parsed.name || item;
+      } catch {
+        return item;
+      }
+    });
+  };
+
+  const skills = parseItems(hacker.primarySkills || hacker.skills);
+  const certs = parseItems(hacker.certifications || hacker.certs);
+  const rating = hacker.rating || 4.5;
+  const rank = hacker.rank || 'SILVER';
   const trustScore = hacker.user?.trustScore;
 
   return (
@@ -318,6 +332,7 @@ const OrganizationDiscover = () => {
   });
 
   const handleViewProfile = (hacker) => {
+    // Navigate using the userId which is the standard for the public profile route
     const id = hacker.userId || hacker.user?.id || hacker.id;
     navigate(`/discover/${id}`);
   };

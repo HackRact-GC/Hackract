@@ -33,26 +33,34 @@ export const getPublicProfile = async (userId) => {
     include: {
       user: {
         select: {
-          id:         true,
-          fullName:   true,
-          handle:     true,
-          avatar:     true,
+          id: true,
+          fullName: true,
+          handle: true,
+          avatar: true,
           trustScore: true,
-          country:    false,
+          nationalIDVerification: { select: { verificationStatus: true } },
           // Fetch completed pentests where user was lead or collaborator
           pentestsLed: {
-            where:   { status: { in: ['CLOSED', 'REPORTING', 'IN_PROGRESS'] } },
-            select:  { id: true, name: true, status: true, createdAt: true,
-                       organization: { select: { name: true } } },
+            where: { status: { in: ['CLOSED', 'REPORTING', 'IN_PROGRESS'] } },
+            select: {
+              id: true, name: true, status: true, createdAt: true,
+              organization: { select: { name: true } }
+            },
             orderBy: { createdAt: 'desc' },
-            take:    10,
+            take: 10,
           },
           pentestCollaborators: {
-            where:   { pentest: { status: { in: ['CLOSED', 'REPORTING', 'IN_PROGRESS'] } } },
-            select:  { pentest: { select: { id: true, name: true, status: true, createdAt: true,
-                                           organization: { select: { name: true } } } } },
+            where: { pentest: { status: { in: ['CLOSED', 'REPORTING', 'IN_PROGRESS'] } } },
+            select: {
+              pentest: {
+                select: {
+                  id: true, name: true, status: true, createdAt: true,
+                  organization: { select: { name: true } }
+                }
+              }
+            },
             orderBy: { addedAt: 'desc' },
-            take:    10,
+            take: 10,
           },
           reviewsReceived: {
             select: {
@@ -92,6 +100,7 @@ export const upsertMyProfile = async (userId, payload) => {
     yearsOfExperience: payload.yearsOfExperience ? Number(payload.yearsOfExperience) : null,
     primarySkills: toArray(payload.primarySkills),
     certifications: toArray(payload.certifications),
+    education: toArray(payload.education),
     employment: toArray(payload.employment),
     otherExperiences: toArray(payload.otherExperiences),
     portfolioLinks: toArray(payload.portfolioLinks),
@@ -177,11 +186,11 @@ export const discoverHackers = async ({ page = 1, limit = 12, search, skills, ce
   if (search && search.trim()) {
     const q = search.trim();
     where.OR = [
-      { bio:            { contains: q, mode: 'insensitive' } },
+      { bio: { contains: q, mode: 'insensitive' } },
       { specialization: { contains: q, mode: 'insensitive' } },
-      { country:        { contains: q, mode: 'insensitive' } },
+      { country: { contains: q, mode: 'insensitive' } },
       { user: { fullName: { contains: q, mode: 'insensitive' } } },
-      { user: { handle:   { contains: q, mode: 'insensitive' } } },
+      { user: { handle: { contains: q, mode: 'insensitive' } } },
     ];
   }
 
@@ -194,10 +203,10 @@ export const discoverHackers = async ({ page = 1, limit = 12, search, skills, ce
       include: {
         user: {
           select: {
-            id:         true,
-            fullName:   true,
-            handle:     true,
-            avatar:     true,
+            id: true,
+            fullName: true,
+            handle: true,
+            avatar: true,
             trustScore: true,
           },
         },
