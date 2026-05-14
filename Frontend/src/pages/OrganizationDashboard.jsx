@@ -1,10 +1,14 @@
 import React, { useState, useEffect } from "react";
 import { motion } from "framer-motion";
+import { useNavigate } from "react-router-dom";
 import { 
   FiShield, FiUsers, FiAlertCircle, FiArrowRight, 
   FiExternalLink, FiChevronDown, FiPlus, FiEye, 
   FiBarChart2, FiActivity, FiGlobe, FiClock, FiTarget
 } from "react-icons/fi";
+import api from "../api/axiosConfig";
+import { useAuth } from "../context/authContext";
+import toast from "react-hot-toast";
 
 // ─── Stat Card Component ──────────────────────────────────────────────────────
 const StatCard = ({ label, value, sub, icon: Icon, color, trend, progress, avatars }) => (
@@ -60,18 +64,19 @@ const StatCard = ({ label, value, sub, icon: Icon, color, trend, progress, avata
 );
 
 // ─── Project Table Component ──────────────────────────────────────────────────
-const RecentProjects = () => {
-  const projects = [
-    { name: "Project Chimera", id: "#8821-XP", status: "ACTIVE", admin: "S. Caulfield" },
-    { name: "Internal Nexus", id: "#9902-QL", status: "PLANNING", admin: "T. Miller" },
-    { name: "Firewall Audit V3", id: "#1244-AF", status: "ACTIVE", admin: "E. Chen" },
-  ];
+const RecentProjects = ({ projects, onNavigate }) => {
+  const displayProjects = (projects || []).slice(0, 5);
 
   return (
     <div className="bg-[#050505] border border-white/5 rounded-[32px] overflow-hidden flex flex-col shadow-2xl h-full">
       <div className="px-10 py-8 border-b border-white/5 flex items-center justify-between">
         <h3 className="text-sm font-black text-white tracking-widest uppercase font-mono">Recent Projects</h3>
-        <button className="text-[9px] font-black text-gray-500 hover:text-[#00c477] transition-colors uppercase tracking-[0.2em]">View All</button>
+        <button 
+          onClick={onNavigate}
+          className="text-[9px] font-black text-gray-500 hover:text-[#00c477] transition-colors uppercase tracking-[0.2em]"
+        >
+          View All
+        </button>
       </div>
       <div className="p-0 flex-1">
         <table className="w-full text-left border-collapse">
@@ -84,17 +89,17 @@ const RecentProjects = () => {
             </tr>
           </thead>
           <tbody className="divide-y divide-white/3">
-            {projects.map((p, i) => (
+            {displayProjects.map((p, i) => (
               <tr key={i} className="hover:bg-white/1 transition-all group">
                 <td className="px-10 py-6">
                   <div>
                     <p className="text-sm font-black text-white uppercase tracking-tight group-hover:text-[#00c477] transition-colors">{p.name}</p>
-                    <p className="text-[10px] font-mono text-gray-600 mt-1">ID: {p.id}</p>
+                    <p className="text-[10px] font-mono text-gray-600 mt-1">ID: {p.id.slice(0, 8)}</p>
                   </div>
                 </td>
                 <td className="px-10 py-6">
                   <span className={`text-[8px] font-black px-2.5 py-1 rounded-md border tracking-widest ${
-                    p.status === 'ACTIVE' 
+                    p.status === 'IN_PROGRESS' 
                       ? 'bg-[#00c477]/5 text-[#00c477] border-[#00c477]/20' 
                       : 'bg-blue-500/5 text-blue-400 border-blue-500/20'
                   }`}>
@@ -102,13 +107,22 @@ const RecentProjects = () => {
                   </span>
                 </td>
                 <td className="px-10 py-6 text-center">
-                  <span className="text-xs font-mono font-bold text-gray-400">{p.admin}</span>
+                  <span className="text-xs font-mono font-bold text-gray-400">
+                    {p.collaborators?.find(c => c.role === 'PROJECT_ADMIN')?.user?.fullName || 'N/A'}
+                  </span>
                 </td>
                 <td className="px-10 py-6 text-right">
-                  <button className="text-gray-600 hover:text-white transition-colors"><FiEye size={16} /></button>
+                  <button onClick={() => onNavigate(p.id)} className="text-gray-600 hover:text-white transition-colors"><FiEye size={16} /></button>
                 </td>
               </tr>
             ))}
+            {displayProjects.length === 0 && (
+              <tr>
+                <td colSpan={4} className="px-10 py-20 text-center text-[10px] text-white/20 uppercase tracking-widest font-mono">
+                  No mission directives found
+                </td>
+              </tr>
+            )}
           </tbody>
         </table>
       </div>
@@ -170,39 +184,83 @@ const VulnerabilityTrend = () => {
 
 // ─── Main Content ─────────────────────────────────────────────────────────────
 const OrganizationDashboard = () => {
+  const { user } = useAuth();
+  const navigate = useNavigate();
+  const [projects, setProjects] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  const organization = React.useMemo(() => user?.organizations?.[0]?.organization, [user]);
+
+  const fetchDashboardData = async () => {
+    if (!organization?.id) return;
+    try {
+      const { data } = await api.get(`/projects?organizationId=${organization.id}`);
+      setProjects(data.data || []);
+    } catch (err) {
+      toast.error("Telemetry link unstable. Failed to sync dashboard.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchDashboardData();
+  }, [organization?.id]);
+
+  // Calculations
+  const activeCount = projects.filter(p => p.status === 'IN_PROGRESS').length;
+  
+  const allHackers = projects.flatMap(p => 
+    (p.collaborators || []).filter(c => c.role === 'HACKER').map(c => c.userId)
+  );
+  const uniqueHackerCount = new Set(allHackers).size;
+  
+  const hackerAvatars = projects.flatMap(p => 
+    (p.collaborators || []).filter(c => c.role === 'HACKER').map(c => c.user?.fullName?.[0] || 'H')
+  ).slice(0, 4);
+
+  const openFindingsCount = projects.reduce((acc, p) => acc + (p._count?.findings || 0), 0);
+
+  if (loading && projects.length === 0) {
+    return (
+      <div className="flex flex-col items-center justify-center py-64 bg-[#050505] -m-10 min-h-screen">
+        <div className="w-12 h-12 border-2 border-white/10 border-t-[#00c477] rounded-full animate-spin mb-4" />
+        <span className="text-[10px] font-black text-white/40 uppercase tracking-[0.3em]">Syncing Mission Control</span>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
-
-
       {/* STATS GRID */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
         <StatCard 
           label="ACTIVE PROJECTS" 
-          value="04" 
+          value={activeCount.toString().padStart(2, '0')} 
           icon={FiGlobe} 
           color="text-[#00c477]" 
-          progress={45} 
-          trend="+12%"
+          progress={projects.length > 0 ? (activeCount / projects.length) * 100 : 0} 
+          trend={projects.length > 0 ? `OF ${projects.length} TOTAL` : "NO DATA"}
         />
         <StatCard 
           label="ASSIGNED PENTESTERS" 
-          value="07" 
+          value={uniqueHackerCount.toString().padStart(2, '0')} 
           icon={FiUsers} 
           color="text-blue-400" 
-          avatars={['JD', 'SM', 'RJ', 'AK']}
+          avatars={hackerAvatars}
         />
         <StatCard 
-          label="OPEN FINDINGS" 
-          value="23" 
+          label="TOTAL FINDINGS" 
+          value={openFindingsCount.toString().padStart(2, '0')} 
           icon={FiAlertCircle} 
           color="text-[#ff3366]" 
-          sub="CRITICAL ASSETS EXPOSED"
+          sub="ACROSS ALL ENGAGEMENTS"
         />
       </div>
 
       {/* MIDDLE GRID */}
       <div className="grid grid-cols-1 lg:grid-cols-[1.5fr_1fr] gap-8">
-        <RecentProjects />
+        <RecentProjects projects={projects} onNavigate={(id) => id && typeof id === 'string' ? navigate(`/org-projects/${id}`) : navigate('/org-projects')} />
         <VulnerabilityTrend />
       </div>
 
