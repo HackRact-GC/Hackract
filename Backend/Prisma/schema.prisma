@@ -149,6 +149,7 @@ model HackerProfile {
   yearsOfExperience Int?
   primarySkills     String[]
   certifications    String[]
+  education         String[]
   employment        String[]
   otherExperiences  String[]
   portfolioLinks    String[]

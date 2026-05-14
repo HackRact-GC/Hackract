@@ -38,7 +38,7 @@ export const getPublicProfile = async (userId) => {
           handle:     true,
           avatar:     true,
           trustScore: true,
-          country:    false,
+          nationalIDVerification: { select: { verificationStatus: true } },
           // Fetch completed pentests where user was lead or collaborator
           pentestsLed: {
             where:   { status: { in: ['CLOSED', 'REPORTING', 'IN_PROGRESS'] } },
@@ -92,6 +92,7 @@ export const upsertMyProfile = async (userId, payload) => {
     yearsOfExperience: payload.yearsOfExperience ? Number(payload.yearsOfExperience) : null,
     primarySkills: toArray(payload.primarySkills),
     certifications: toArray(payload.certifications),
+    education: toArray(payload.education),
     employment: toArray(payload.employment),
     otherExperiences: toArray(payload.otherExperiences),
     portfolioLinks: toArray(payload.portfolioLinks),

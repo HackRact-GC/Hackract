@@ -95,6 +95,15 @@ const HackerOnboarding = () => {
                 }
               })
               : prev.employment,
+            education: profile.education?.length > 0
+              ? profile.education.map(e => {
+                try {
+                  return JSON.parse(e);
+                } catch (err) {
+                  return { school: '', degree: e, from: '', to: '' };
+                }
+              })
+              : prev.education,
             other: profile.otherExperiences?.length > 0
               ? profile.otherExperiences.map(o => {
                 try {
@@ -159,6 +168,12 @@ const HackerOnboarding = () => {
         employment: finalForm.employment.map(e => JSON.stringify({
           company: e.company,
           title: e.title,
+          from: e.from,
+          to: e.to
+        })),
+        education: finalForm.education.map(e => JSON.stringify({
+          school: e.school,
+          degree: e.degree,
           from: e.from,
           to: e.to
         })),
