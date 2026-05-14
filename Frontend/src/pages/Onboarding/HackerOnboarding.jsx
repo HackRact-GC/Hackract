@@ -157,19 +157,19 @@ const HackerOnboarding = () => {
           file: c.file,
           fileUrl: c.fileUrl
         })),
-        employment: finalForm.employment.map(e => JSON.stringify({
+        employment: form.employment.map(e => JSON.stringify({
           company: e.company,
           title: e.title,
           from: e.from,
           to: e.to
         })),
-        education: finalForm.education.map(e => JSON.stringify({
+        education: form.education.map(e => JSON.stringify({
           school: e.school,
           degree: e.degree,
           from: e.from,
           to: e.to
         })),
-        otherExperiences: finalForm.other.map(o => JSON.stringify({
+        otherExperiences: form.other.map(o => JSON.stringify({
           subject: o.subject,
           description: o.description,
           file: o.file,
