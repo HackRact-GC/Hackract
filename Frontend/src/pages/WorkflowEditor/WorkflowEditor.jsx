@@ -26,6 +26,7 @@ import TerminalNode from './nodes/TerminalNode';
 import Sidebar from './components/Sidebar';
 import HistorySidebar from './components/HistorySidebar';
 import WorkflowControls from './components/WorkflowControls';
+import RecordFindingModal from './components/RecordFindingModal';
 
 // Hooks & Services
 import { useWorkflowSocket } from '../../hooks/useWorkflowSocket';
@@ -60,16 +61,16 @@ const buildMessage = (action, details = {}) => {
   const targetLabel = details.targetLabel || details.target || 'target';
 
   const messages = {
-    ADD_NODE:       hasLabel ? `Added node ${nodeLabel}` : `Added ${nodeLabel}`,
-    DELETE_NODE:    hasLabel ? `Deleted node ${nodeLabel}` : `Deleted ${nodeLabel}`,
-    MOVE_NODE:      `Moved ${nodeLabel}`,
-    UPDATE_TITLE:   `Renamed node to "${details.newTitle || 'Untitled'}"`,
-    CONNECT_NODES:  details.source && details.target ? `Connected ${hasConnectionLabels ? `"${sourceLabel}" to "${targetLabel}"` : 'two nodes'}` : `Connected two nodes`,
-    DELETE_EDGE:    `Removed a connection`,
-    LINK_FINDING:   `Linked finding to ${nodeLabel}`,
-    GRAPH_CHANGED:  `Updated the canvas`,
-    AGENT_RAN:      `Ran the "${details.agentName || 'AI'}" agent`,
-    TERMINAL_EXEC:  `Executed command in Terminal`,
+    ADD_NODE: hasLabel ? `Added node ${nodeLabel}` : `Added ${nodeLabel}`,
+    DELETE_NODE: hasLabel ? `Deleted node ${nodeLabel}` : `Deleted ${nodeLabel}`,
+    MOVE_NODE: `Moved ${nodeLabel}`,
+    UPDATE_TITLE: `Renamed node to "${details.newTitle || 'Untitled'}"`,
+    CONNECT_NODES: details.source && details.target ? `Connected ${hasConnectionLabels ? `"${sourceLabel}" to "${targetLabel}"` : 'two nodes'}` : `Connected two nodes`,
+    DELETE_EDGE: `Removed a connection`,
+    LINK_FINDING: `Linked finding to ${nodeLabel}`,
+    GRAPH_CHANGED: `Updated the canvas`,
+    AGENT_RAN: `Ran the "${details.agentName || 'AI'}" agent`,
+    TERMINAL_EXEC: `Executed command in Terminal`,
     CREATE_CHECKPOINT: `Saved a version checkpoint`,
     RESTORE_CHECKPOINT: `Restored to a previous version`,
   };
@@ -121,7 +122,8 @@ const WorkflowEditor = ({ workflowId: propWorkflowId }) => {
   const [isLocked, setIsLocked] = useState(false);
   const [canEdit, setCanEdit] = useState(true);
   const [findings, setFindings] = useState([]);
-  const [projectInfo, setProjectInfo] = useState({ name: null, type: 'Audit' }); // null = loading
+  const [projectInfo, setProjectInfo] = useState({ name: null, type: 'Audit', id: null, targetDomains: [] });
+  const [isRecordFindingOpen, setIsRecordFindingOpen] = useState(false);
 
   const {
     socket,
@@ -177,9 +179,9 @@ const WorkflowEditor = ({ workflowId: propWorkflowId }) => {
       createdAt: new Date().toISOString(),
       userId: localUser.id,
       user: { fullName: localUser.name, id: localUser.id },
-      isOptimistic: true 
+      isOptimistic: true
     };
-    
+
     emitHistoryEvent(optimisticRecord);
 
     try {
@@ -218,10 +220,10 @@ const WorkflowEditor = ({ workflowId: propWorkflowId }) => {
 
     setTimeout(() => {
       emitWorkflowChange(newNodes, newEdges);
-      saveToDatabase(newNodes, newEdges, "DELETE_NODE", { 
-        nodeId: id, 
-        type: deletedNode?.type, 
-        label: deletedNode?.data?.label 
+      saveToDatabase(newNodes, newEdges, "DELETE_NODE", {
+        nodeId: id,
+        type: deletedNode?.type,
+        label: deletedNode?.data?.label
       });
     }, 10);
   }, [emitWorkflowChange, setNodes, setEdges, workflowId, localUser]);
@@ -255,6 +257,25 @@ const WorkflowEditor = ({ workflowId: propWorkflowId }) => {
     emitWorkflowChange(newNodes, currentEdges);
     saveToDatabase(newNodes, currentEdges, "LINK_FINDING", { nodeId: id, findingId });
   }, [emitWorkflowChange, setNodes, workflowId, localUser]);
+
+  const handleSaveFinding = async (findingData) => {
+    try {
+      const response = await api.post('/findings', {
+        ...findingData,
+        pentestId: projectInfo.id,
+      });
+      const newFinding = response.data;
+      setFindings(prev => [...prev, newFinding]);
+      setNodes(nds => nds.map(node => ({
+        ...node,
+        data: { ...node.data, findings: [...(node.data.findings || []), newFinding] }
+      })));
+      saveToDatabase(nodesRef.current, edgesRef.current, "LINK_FINDING", { label: `Recorded finding: ${findingData.title}` });
+    } catch (err) {
+      console.error('Failed to save finding:', err);
+      throw err;
+    }
+  };
 
   const onDataChange = useCallback((id, newData) => {
     setNodes(nds => nds.map(node => {
@@ -340,7 +361,7 @@ const WorkflowEditor = ({ workflowId: propWorkflowId }) => {
     const currentEdges = edgesRef.current;
     const newNodes = [...currentNodes, newNode];
     setNodes(newNodes);
-    
+
     emitWorkflowChange(newNodes, currentEdges);
     saveToDatabase(newNodes, currentEdges, "ADD_NODE", { type, label: defaultLabel });
   }, [emitWorkflowChange, deleteNode, updateNodeTitle, onDataChange, runAutomation, setNodes, workflowId, localUser]);
@@ -503,8 +524,10 @@ const WorkflowEditor = ({ workflowId: propWorkflowId }) => {
           }
 
           setProjectInfo({
-            name: projectName || 'Mission Operational Workspace', 
-            type: projectType
+            id: data.pentestId,
+            name: projectName || 'Mission Operational Workspace',
+            type: projectType,
+            targetDomains: data.pentest?.targetDomains || []
           });
         }
 
@@ -601,10 +624,10 @@ const WorkflowEditor = ({ workflowId: propWorkflowId }) => {
         const removedChange = changes.find(c => c.type === 'remove');
         const node = nodes.find(n => n.id === removedChange.id);
         if (node) {
-          removalMeta = { 
-            nodeId: node.id, 
-            type: node.type, 
-            label: node.data?.label || node.id 
+          removalMeta = {
+            nodeId: node.id,
+            type: node.type,
+            label: node.data?.label || node.id
           };
           console.log('[HISTORY][TRACE] Capturing removal metadata:', removalMeta);
         }
@@ -637,12 +660,12 @@ const WorkflowEditor = ({ workflowId: propWorkflowId }) => {
 
     const isDelete = changes.some(c => c.type === "remove");
     if (isDelete) {
-       setTimeout(() => {
-         const nds = nodesRef.current;
-         const eds = edgesRef.current;
-         emitWorkflowChange(nds, eds);
-         saveToDatabase(nds, eds, "DELETE_EDGE");
-       }, 20);
+      setTimeout(() => {
+        const nds = nodesRef.current;
+        const eds = edgesRef.current;
+        emitWorkflowChange(nds, eds);
+        saveToDatabase(nds, eds, "DELETE_EDGE");
+      }, 20);
     }
   }, [onEdgesChange, emitWorkflowChange]);
 
@@ -744,82 +767,91 @@ const WorkflowEditor = ({ workflowId: propWorkflowId }) => {
         </div>
 
         <div className="flex items-center gap-4">
-            {/* Active Collaborators Profiles — always show self first, then remote peers */}
-            <div className="flex -space-x-2 items-center">
-               {/* Self — always online */}
-               <div
-                 className="relative group transition-transform hover:-translate-y-1 hover:z-30 cursor-help"
-                 style={{ zIndex: 20 }}
-                 title={`${localUser.name} (You)`}
-               >
-                 <div
-                   className="w-8 h-8 rounded-full border-2 border-[#00ff41]/60 flex items-center justify-center text-xs font-bold shadow-md"
-                   style={{ backgroundColor: localUser.color, color: '#000' }}
-                 >
-                   {localUser.name?.[0]?.toUpperCase() || 'Y'}
-                 </div>
-                 <span className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-[#00ff41] border-[1.5px] border-[#1a1c23] rounded-full shadow-[0_0_6px_rgba(0,255,65,0.7)]"></span>
-               </div>
-               {/* Remote peers */}
-               {Object.values(collaborators)
-                 .filter(c => c.id !== socket?.id) /* exclude self from socket list */
-                 .map((collab, index) => (
-                 <div
-                   key={collab.id}
-                   className="relative group transition-transform hover:-translate-y-1 hover:z-30 cursor-help"
-                   style={{ zIndex: 10 + index }}
-                   title={collab.user || 'Online Hacker'}
-                 >
-                   <div
-                     className="w-8 h-8 rounded-full border-2 border-[#1a1c23] flex items-center justify-center text-xs font-bold shadow-md"
-                     style={{ backgroundColor: collab.color || '#00ff41', color: '#000' }}
-                   >
-                     {collab.user?.[0]?.toUpperCase() || 'H'}
-                   </div>
-                   <span className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-[#00ff41] border-[1.5px] border-[#1a1c23] rounded-full shadow-[0_0_5px_rgba(0,255,65,0.4)]"></span>
-                 </div>
-               ))}
+          {/* Active Collaborators Profiles — always show self first, then remote peers */}
+          <div className="flex -space-x-2 items-center">
+            {/* Self — always online */}
+            <div
+              className="relative group transition-transform hover:-translate-y-1 hover:z-30 cursor-help"
+              style={{ zIndex: 20 }}
+              title={`${localUser.name} (You)`}
+            >
+              <div
+                className="w-8 h-8 rounded-full border-2 border-[#00ff41]/60 flex items-center justify-center text-xs font-bold shadow-md"
+                style={{ backgroundColor: localUser.color, color: '#000' }}
+              >
+                {localUser.name?.[0]?.toUpperCase() || 'Y'}
+              </div>
+              <span className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-[#00ff41] border-[1.5px] border-[#1a1c23] rounded-full shadow-[0_0_6px_rgba(0,255,65,0.7)]"></span>
             </div>
+            {/* Remote peers */}
+            {Object.values(collaborators)
+              .filter(c => c.id !== socket?.id) /* exclude self from socket list */
+              .map((collab, index) => (
+                <div
+                  key={collab.id}
+                  className="relative group transition-transform hover:-translate-y-1 hover:z-30 cursor-help"
+                  style={{ zIndex: 10 + index }}
+                  title={collab.user || 'Online Hacker'}
+                >
+                  <div
+                    className="w-8 h-8 rounded-full border-2 border-[#1a1c23] flex items-center justify-center text-xs font-bold shadow-md"
+                    style={{ backgroundColor: collab.color || '#00ff41', color: '#000' }}
+                  >
+                    {collab.user?.[0]?.toUpperCase() || 'H'}
+                  </div>
+                  <span className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-[#00ff41] border-[1.5px] border-[#1a1c23] rounded-full shadow-[0_0_5px_rgba(0,255,65,0.4)]"></span>
+                </div>
+              ))}
+          </div>
 
-           <div className="h-6 w-px bg-gray-700 mx-1"></div>
+          <div className="h-6 w-px bg-gray-700 mx-1"></div>
 
-           <button
-             className={`hover:text-[#00ff41] transition-colors flex items-center gap-2 font-semibold text-xs ${isHistoryOpen ? 'text-[#00ff41]' : 'text-gray-400'}`}
-             title="History"
-             onClick={() => setIsHistoryOpen(!isHistoryOpen)}
-           >
-             <FiClock size={16} />
-             <span>HISTORY</span>
-           </button>
-           <button className="text-gray-400 hover:text-[#00ff41] transition-colors" title="Comments">
-             <FiMessageSquare size={16} />
-           </button>
-           <button className="bg-[#00ff41] hover:bg-[#00cc33] text-black px-4 py-1.5 rounded-md text-xs font-bold transition-all shadow-[0_0_10px_rgba(0,255,65,0.2)] active:scale-95">
-              PUBLISH
-           </button>
+          <button
+            className={`hover:text-[#00ff41] transition-colors flex items-center gap-2 font-semibold text-xs ${isHistoryOpen ? 'text-[#00ff41]' : 'text-gray-400'}`}
+            title="History"
+            onClick={() => setIsHistoryOpen(!isHistoryOpen)}
+          >
+            <FiClock size={16} />
+            <span>HISTORY</span>
+          </button>
+          <button className="text-gray-400 hover:text-[#00ff41] transition-colors" title="Comments">
+            <FiMessageSquare size={16} />
+          </button>
+          <button
+            className="bg-transparent border border-[#00ff41]/50 text-[#00ff41] hover:bg-[#00ff41]/10 px-4 py-1.5 rounded-md text-xs font-bold transition-all active:scale-95"
+            onClick={() => setIsRecordFindingOpen(true)}
+          >
+            RECORD FINDING
+          </button>
+          <button
+            className="bg-[#00ff41] hover:bg-[#00cc33] text-black px-4 py-1.5 rounded-md text-xs font-bold transition-all shadow-[0_0_10px_rgba(0,255,65,0.2)] active:scale-95"
+            onClick={() => navigate('/findings')}
+          >
+            FINDINGS PANEL
+          </button>
         </div>
       </div>
 
       {/* Main Workspace */}
       <div className="flex flex-1 overflow-hidden relative"
-           onMouseMove={(e) => {
-             if (reactFlowWrapper.current) {
-                const rect = reactFlowWrapper.current.getBoundingClientRect();
-                const x = e.clientX - rect.left;
-                const y = e.clientY - rect.top;
-                
-                emitCursorMove(x, y, localUser);
-                
-                reactFlowWrapper.current.style.setProperty('--mouse-x', `${x}px`);
-                reactFlowWrapper.current.style.setProperty('--mouse-y', `${y}px`);
-             }
-           }}
-           onMouseLeave={() => {
-             if (reactFlowWrapper.current) {
-               reactFlowWrapper.current.style.setProperty('--mouse-x', `-1000px`);
-               reactFlowWrapper.current.style.setProperty('--mouse-y', `-1000px`);
-             }
-           }}>
+        onMouseMove={(e) => {
+          if (reactFlowWrapper.current) {
+            const rect = reactFlowWrapper.current.getBoundingClientRect();
+            const x = e.clientX - rect.left;
+            const y = e.clientY - rect.top;
+
+            emitCursorMove(x, y, localUser);
+
+            reactFlowWrapper.current.style.setProperty('--mouse-x', `${x}px`);
+            reactFlowWrapper.current.style.setProperty('--mouse-y', `${y}px`);
+          }
+        }}
+        onMouseLeave={() => {
+          if (reactFlowWrapper.current) {
+            reactFlowWrapper.current.style.setProperty('--mouse-x', `-1000px`);
+            reactFlowWrapper.current.style.setProperty('--mouse-y', `-1000px`);
+          }
+        }}>
 
         <Sidebar onAdd={addNodeByClick} />
 
@@ -873,9 +905,9 @@ const WorkflowEditor = ({ workflowId: propWorkflowId }) => {
               />
             </ReactFlow>
           </ReactFlowProvider>
-          <HistorySidebar 
-            workflowId={workflowId} 
-            isOpen={isHistoryOpen} 
+          <HistorySidebar
+            workflowId={workflowId}
+            isOpen={isHistoryOpen}
             onClose={() => setIsHistoryOpen(false)}
             liveEvents={liveHistoryEvents}
             localUser={localUser}
@@ -884,6 +916,13 @@ const WorkflowEditor = ({ workflowId: propWorkflowId }) => {
           />
         </div>
       </div>
+
+      <RecordFindingModal
+        isOpen={isRecordFindingOpen}
+        onClose={() => setIsRecordFindingOpen(false)}
+        onSave={handleSaveFinding}
+        assets={projectInfo.targetDomains}
+      />
     </div>
   );
 };
