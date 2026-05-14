@@ -127,6 +127,7 @@ const WorkspaceView = ({ projectId, onBack }) => {
   const navigate = useNavigate();
   const { user } = useAuth();
   const [project, setProject] = useState(null);
+  const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState("overview");
   const [showInvite, setShowInvite] = useState(false);
 
