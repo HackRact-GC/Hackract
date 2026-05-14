@@ -5,7 +5,6 @@ import toast from "react-hot-toast";
 import api from "../api/axiosConfig";
 import ProjectActivity from "./ProjectActivity.jsx";
 import KickoffChecklist from "./KickoffChecklist.jsx";
-import NdaGate from "./NdaGate.jsx";
 import { useAuth } from "../context/authContext.jsx";
 import { FiDownload, FiExternalLink, FiFileText, FiArrowLeft, FiCode, FiPrinter, FiGlobe, FiServer, FiFileMinus, FiCalendar, FiPlus, FiUserPlus, FiTrash2, FiSearch, FiX, FiSend, FiEdit2, FiStar, FiSettings } from "react-icons/fi";
 
@@ -264,7 +263,7 @@ const WorkspaceView = ({ projectId, onBack }) => {
   }
 
   return (
-    <NdaGate projectId={projectId}>
+    <>
       <motion.div
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
@@ -754,7 +753,7 @@ const WorkspaceView = ({ projectId, onBack }) => {
           />
         )}
       </AnimatePresence>
-    </NdaGate>
+    </>
   );
 };
 
