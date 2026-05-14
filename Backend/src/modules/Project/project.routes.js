@@ -73,6 +73,8 @@ router.post("/personal", async (req, res, next) => {
         isPersonal: true,
         leadPentesterId: req.user.id,
         status: "IN_PROGRESS",
+        targetDomains: [],
+        ipRanges: [],
         workflows: {
           create: {
             name: `${name.trim()} — Workflow`,

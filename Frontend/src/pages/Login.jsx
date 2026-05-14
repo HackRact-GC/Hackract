@@ -4,6 +4,7 @@ import { useAuth0 } from "@auth0/auth0-react";
 import { FcGoogle } from "react-icons/fc";
 import { FaGithub } from "react-icons/fa";
 import { useAuth } from "../context/authContext.jsx";
+import PasswordField from "../components/PasswordField.jsx";
 
 const InputField = ({ label, type, placeholder, id, name, value, onChange }) => (
     <div className="flex flex-col gap-2 group">
@@ -120,15 +121,19 @@ const Login = () => {
                     value={form.email}
                     onChange={handleChange}
                 />
-                <InputField
-                    label="Password"
-                    type="password"
-                    id="password"
-                    name="password"
-                    placeholder="••••••••"
-                    value={form.password}
-                    onChange={handleChange}
-                />
+                
+                <div className="flex flex-col gap-2 group">
+                    <label
+                        htmlFor="password"
+                        className="text-xs font-bold tracking-widest uppercase text-gray-500 font-sans cursor-pointer"
+                    >
+                        Password
+                    </label>
+                    <PasswordField
+                        value={form.password}
+                        onChange={handleChange}
+                    />
+                </div>
 
                 <div className="text-right text-[11px] font-mono text-gray-500">
                     <Link to="/forgot-password" size="sm" className="underline hover:text-black transition-colors font-bold uppercase">

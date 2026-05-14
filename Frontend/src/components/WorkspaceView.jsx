@@ -155,6 +155,7 @@ const WorkspaceView = ({ projectId, onBack }) => {
   const [searchParams] = useSearchParams();
   const { user } = useAuth();
   const [project, setProject] = useState(null);
+  const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState(searchParams.get("tab") || "overview");
   const [showInvite, setShowInvite] = useState(false);
 

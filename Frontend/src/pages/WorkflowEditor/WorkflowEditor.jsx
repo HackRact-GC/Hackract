@@ -1,5 +1,5 @@
 import React, { useState, useRef, useCallback, useEffect } from 'react';
-import { FiArrowLeft, FiHome, FiSave, FiClock, FiMessageSquare, FiExternalLink } from 'react-icons/fi';
+import { FiArrowLeft, FiHome, FiSave, FiClock, FiMessageSquare, FiExternalLink, FiTerminal } from 'react-icons/fi';
 import {
   ReactFlow,
   ReactFlowProvider,
@@ -156,6 +156,221 @@ const WorkflowEditor = ({ workflowId: propWorkflowId }) => {
     edgesRef.current = edges;
   }, [nodes, edges]);
 
+  // --- CORE HANDLERS (Moved up to resolve TDZ errors) ---
+
+  const saveToDatabase = async (currentNodes, currentEdges, action = "GRAPH_CHANGED", meta = {}, isSnapshot = false) => {
+    const tempId = `temp-${Date.now()}`;
+    const message = buildMessage(action, meta);
+    const details = {
+      nodesCount: currentNodes.length,
+      edgesCount: currentEdges.length,
+      ...meta
+    };
+
+    const optimisticRecord = {
+      id: tempId,
+      action,
+      message,
+      details,
+      isSnapshot,
+      snapshot: isSnapshot ? { nodes: currentNodes, edges: currentEdges } : undefined,
+      createdAt: new Date().toISOString(),
+      userId: localUser.id,
+      user: { fullName: localUser.name, id: localUser.id },
+      isOptimistic: true 
+    };
+    
+    emitHistoryEvent(optimisticRecord);
+
+    try {
+      await workflowService.updateWorkflow(workflowId, { nodes: currentNodes, edges: currentEdges });
+      const record = await workflowService.recordWorkflowHistory(workflowId, {
+        action,
+        message,
+        details,
+        isSnapshot,
+        snapshot: isSnapshot ? { nodes: currentNodes, edges: currentEdges } : undefined
+      });
+
+      if (record) {
+        const eventRecord = {
+          ...record,
+          userId: record.userId || localUser.id,
+          user: { fullName: localUser.name, id: localUser.id }
+        };
+        emitHistoryEvent(eventRecord, tempId);
+      }
+      setLastSaved(new Date());
+    } catch (err) {
+      console.error("[HISTORY][ERROR] Failed to save changes", err);
+    }
+  };
+
+  const deleteNode = useCallback((id) => {
+    const currentNodes = nodesRef.current;
+    const currentEdges = edgesRef.current;
+    const deletedNode = currentNodes.find(n => n.id === id);
+    const newNodes = currentNodes.filter((node) => node.id !== id);
+    const newEdges = currentEdges.filter((edge) => edge.source !== id && edge.target !== id);
+
+    setNodes(newNodes);
+    setEdges(newEdges);
+
+    setTimeout(() => {
+      emitWorkflowChange(newNodes, newEdges);
+      saveToDatabase(newNodes, newEdges, "DELETE_NODE", { 
+        nodeId: id, 
+        type: deletedNode?.type, 
+        label: deletedNode?.data?.label 
+      });
+    }, 10);
+  }, [emitWorkflowChange, setNodes, setEdges, workflowId, localUser]);
+
+  const updateNodeTitle = useCallback((id, newTitle) => {
+    const currentNodes = nodesRef.current;
+    const currentEdges = edgesRef.current;
+    const newNodes = currentNodes.map((node) => {
+      if (node.id === id) {
+        return { ...node, data: { ...node.data, label: newTitle } };
+      }
+      return node;
+    });
+
+    setNodes(newNodes);
+    emitWorkflowChange(newNodes, currentEdges);
+    saveToDatabase(newNodes, currentEdges, "UPDATE_TITLE", { nodeId: id, newTitle });
+  }, [emitWorkflowChange, setNodes, workflowId, localUser]);
+
+  const linkFinding = useCallback((id, findingId) => {
+    const currentNodes = nodesRef.current;
+    const currentEdges = edgesRef.current;
+    const newNodes = currentNodes.map((node) => {
+      if (node.id === id) {
+        return { ...node, data: { ...node.data, findingId } };
+      }
+      return node;
+    });
+
+    setNodes(newNodes);
+    emitWorkflowChange(newNodes, currentEdges);
+    saveToDatabase(newNodes, currentEdges, "LINK_FINDING", { nodeId: id, findingId });
+  }, [emitWorkflowChange, setNodes, workflowId, localUser]);
+
+  const onDataChange = useCallback((id, newData) => {
+    setNodes(nds => nds.map(node => {
+      if (node.id === id) {
+        return { ...node, data: { ...node.data, ...newData } };
+      }
+      return node;
+    }));
+
+    if (broadcastDataDebounce.current) clearTimeout(broadcastDataDebounce.current);
+    broadcastDataDebounce.current = setTimeout(() => {
+      emitWorkflowChange(nodesRef.current, edgesRef.current);
+    }, 400);
+  }, [emitWorkflowChange, setNodes]);
+
+  const runAutomation = useCallback((host, sourceNodeId) => {
+    if (!host) return;
+    const sourceNode = nodesRef.current.find(n => n.id === sourceNodeId);
+    const startPos = sourceNode?.position || { x: 0, y: 0 };
+
+    const automationTasks = [
+      { type: 'terminal', label: 'Nmap Scan', command: `nmap -sV ${host}`, offset: { x: 400, y: -150 } },
+      { type: 'terminal', label: 'Dirsearch', command: `dirsearch -u ${host}`, offset: { x: 400, y: 50 } },
+      { type: 'terminal', label: 'Nikto Scan', command: `nikto -h ${host}`, offset: { x: 400, y: 250 } },
+    ];
+
+    const newNodesList = [...nodesRef.current];
+    const newEdgesList = [...edgesRef.current];
+
+    automationTasks.forEach((task, index) => {
+      const id = `${task.type}-auto-${Date.now()}-${index}`;
+      const newNode = {
+        id,
+        type: task.type,
+        position: { x: startPos.x + task.offset.x, y: startPos.y + task.offset.y },
+        data: {
+          label: task.label,
+          initialCommand: task.command,
+          onDelete: () => deleteNode(id),
+          onTitleChange: (newTitle) => updateNodeTitle(id, newTitle),
+          onDataChange: (newData) => onDataChange(id, newData),
+          activeUsers: {},
+          workflowId
+        },
+      };
+
+      newNodesList.push(newNode);
+      newEdgesList.push({
+        id: `e-${sourceNodeId}-${id}`,
+        source: sourceNodeId,
+        target: id,
+        animated: true,
+        style: { stroke: '#00ff41', strokeWidth: 1.5 }
+      });
+    });
+
+    setNodes(newNodesList);
+    setEdges(newEdgesList);
+    emitWorkflowChange(newNodesList, newEdgesList);
+    saveToDatabase(newNodesList, newEdgesList, "TERMINAL_EXEC", { label: "Triggered Automated Scans" });
+  }, [workflowId, deleteNode, updateNodeTitle, onDataChange, setNodes, setEdges, emitWorkflowChange, localUser]);
+
+  const addNode = useCallback((type, position) => {
+    const id = `${type}-${Date.now()}`;
+    const defaultLabel = NODE_TYPE_LABELS[type] || type;
+
+    const newNode = {
+      id,
+      type,
+      position,
+      data: {
+        label: defaultLabel,
+        onDelete: () => deleteNode(id),
+        onTitleChange: (newTitle) => updateNodeTitle(id, newTitle),
+        onDataChange: (newData) => onDataChange(id, newData),
+        onRunAutomation: (host) => runAutomation(host, id),
+        activeUsers: {},
+        workflowId
+      },
+    };
+
+    const currentNodes = nodesRef.current;
+    const currentEdges = edgesRef.current;
+    const newNodes = [...currentNodes, newNode];
+    setNodes(newNodes);
+    
+    emitWorkflowChange(newNodes, currentEdges);
+    saveToDatabase(newNodes, currentEdges, "ADD_NODE", { type, label: defaultLabel });
+  }, [emitWorkflowChange, deleteNode, updateNodeTitle, onDataChange, runAutomation, setNodes, workflowId, localUser]);
+
+  const restoreCheckpoint = useCallback((snapshot) => {
+    if (!snapshot || !snapshot.nodes || !snapshot.edges) return;
+    const restoredNodes = snapshot.nodes.map(node => ({
+      ...node,
+      data: {
+        ...node.data,
+        onDelete: () => deleteNode(node.id),
+        onTitleChange: (newTitle) => updateNodeTitle(node.id, newTitle),
+        onLinkFinding: (findingId) => linkFinding(node.id, findingId),
+        onDataChange: (newData) => onDataChange(node.id, newData),
+        onRunAutomation: (host) => runAutomation(host, node.id),
+        findings,
+        activeUsers: activeNodes[node.id] || {},
+        workflowId
+      }
+    }));
+    setNodes(restoredNodes);
+    setEdges(snapshot.edges);
+    emitWorkflowChange(restoredNodes, snapshot.edges);
+    saveToDatabase(restoredNodes, snapshot.edges, "RESTORE_CHECKPOINT", { label: "Reverted to a previous version" });
+  }, [deleteNode, updateNodeTitle, linkFinding, onDataChange, runAutomation, findings, activeNodes, setNodes, setEdges, emitWorkflowChange, workflowId, localUser]);
+
+  const createCheckpoint = useCallback(() => {
+    saveToDatabase(nodesRef.current, edgesRef.current, "CREATE_CHECKPOINT", { label: "User created a manual checkpoint" }, true);
+  }, [workflowId, localUser]);
+
   // ── Merge remote patches without disrupting local drag state ──────────────
   useEffect(() => {
     if (!remotePatch) return;
@@ -206,6 +421,7 @@ const WorkflowEditor = ({ workflowId: propWorkflowId }) => {
                 onDelete: () => deleteNode(remoteNode.id),
                 onTitleChange: (newTitle) => updateNodeTitle(remoteNode.id, newTitle),
                 onLinkFinding: (findingId) => linkFinding(remoteNode.id, findingId),
+                onRunAutomation: (host) => runAutomation(host, remoteNode.id),
                 findings,
                 activeUsers: activeNodes[remoteNode.id] || {},
               },
@@ -243,8 +459,10 @@ const WorkflowEditor = ({ workflowId: propWorkflowId }) => {
               onTitleChange: (newTitle) => updateNodeTitle(node.id, newTitle),
               onLinkFinding: (findingId) => linkFinding(node.id, findingId),
               onDataChange: (newData) => onDataChange(node.id, newData),
+              onRunAutomation: (host) => runAutomation(host, node.id),
               findings: data.pentest?.findings || [],
-              activeUsers: activeNodes[node.id] || {}
+              activeUsers: activeNodes[node.id] || {},
+              workflowId
             }
           }));
           setNodes(nodesWithHandlers);
@@ -309,206 +527,7 @@ const WorkflowEditor = ({ workflowId: propWorkflowId }) => {
     fetchInitialData();
   }, [workflowId, setNodes, setEdges]);
 
-  // Helper to save structural changes to DB History
-  const saveToDatabase = async (currentNodes, currentEdges, action = "GRAPH_CHANGED", meta = {}, isSnapshot = false) => {
-    const tempId = `temp-${Date.now()}`;
-    const message = buildMessage(action, meta);
-    const details = {
-      nodesCount: currentNodes.length,
-      edgesCount: currentEdges.length,
-      ...meta
-    };
 
-    // 1. Optimistic Update: Emit temporary record immediately
-    const optimisticRecord = {
-      id: tempId,
-      action,
-      message,
-      details,
-      isSnapshot,
-      snapshot: isSnapshot ? { nodes: currentNodes, edges: currentEdges } : undefined,
-      createdAt: new Date().toISOString(),
-      userId: localUser.id,
-      user: { fullName: localUser.name, id: localUser.id },
-      isOptimistic: true // marker for debug/styles
-    };
-    
-    console.log('[HISTORY][OPTIMISTIC]', optimisticRecord);
-    emitHistoryEvent(optimisticRecord);
-
-    try {
-      // 2. Persist to DB
-      await workflowService.updateWorkflow(workflowId, { nodes: currentNodes, edges: currentEdges });
-      const record = await workflowService.recordWorkflowHistory(workflowId, {
-        action,
-        message,
-        details,
-        isSnapshot,
-        snapshot: isSnapshot ? { nodes: currentNodes, edges: currentEdges } : undefined
-      });
-
-      if (record) {
-        console.log('[HISTORY][SERVER_SYNC]', record.id);
-        // We don't necessarily need to replace the optimistic record if the socket handles deduplication by ID,
-        // but since the server generated a REAL ID, we emit the real one to peers.
-        const eventRecord = {
-          ...record,
-          userId: record.userId || localUser.id,
-          user: { fullName: localUser.name, id: localUser.id }
-        };
-        emitHistoryEvent(eventRecord, tempId); // Replace optimistic entry with real one
-      }
-
-      setLastSaved(new Date());
-    } catch (err) {
-      console.error("[HISTORY][ERROR] Failed to save changes", err);
-    }
-  };
-
-  const createCheckpoint = useCallback(() => {
-    const currentNodes = nodesRef.current;
-    const currentEdges = edgesRef.current;
-    saveToDatabase(currentNodes, currentEdges, "CREATE_CHECKPOINT", { label: "User created a manual checkpoint" }, true);
-  }, []);
-
-
-  // Delete Node Handler
-  const deleteNode = useCallback((id) => {
-    const currentNodes = nodesRef.current;
-    const currentEdges = edgesRef.current;
-    const deletedNode = currentNodes.find(n => n.id === id);
-    const newNodes = currentNodes.filter((node) => node.id !== id);
-    const newEdges = currentEdges.filter((edge) => edge.source !== id && edge.target !== id);
-
-    setNodes(newNodes);
-    setEdges(newEdges);
-
-    // Call side effects once outside state setter
-    setTimeout(() => {
-      emitWorkflowChange(newNodes, newEdges);
-      saveToDatabase(newNodes, newEdges, "DELETE_NODE", { 
-        nodeId: id, 
-        type: deletedNode?.type, 
-        label: deletedNode?.data?.label 
-      });
-    }, 10);
-  }, [emitWorkflowChange, setNodes, setEdges]);
-
-
-  // Update Node Title Handler
-  const updateNodeTitle = useCallback((id, newTitle) => {
-    const currentNodes = nodesRef.current;
-    const currentEdges = edgesRef.current;
-    const newNodes = currentNodes.map((node) => {
-      if (node.id === id) {
-        return {
-          ...node,
-          data: {
-            ...node.data,
-            label: newTitle,
-          },
-        };
-      }
-      return node;
-    });
-
-    setNodes(newNodes);
-    
-    emitWorkflowChange(newNodes, currentEdges);
-    saveToDatabase(newNodes, currentEdges, "UPDATE_TITLE", { nodeId: id, newTitle });
-  }, [emitWorkflowChange, setNodes]);
-
-  const linkFinding = useCallback((id, findingId) => {
-    const currentNodes = nodesRef.current;
-    const currentEdges = edgesRef.current;
-    const newNodes = currentNodes.map((node) => {
-      if (node.id === id) {
-        return {
-          ...node,
-          data: {
-            ...node.data,
-            findingId,
-          },
-        };
-      }
-      return node;
-    });
-
-    setNodes(newNodes);
-    
-    emitWorkflowChange(newNodes, currentEdges);
-    saveToDatabase(newNodes, currentEdges, "LINK_FINDING", { nodeId: id, findingId });
-  }, [emitWorkflowChange, setNodes]);
-
-  const onDataChange = useCallback((id, newData) => {
-    const currentNodes = nodesRef.current;
-    const currentEdges = edgesRef.current;
-    
-    setNodes(nds => nds.map(node => {
-      if (node.id === id) {
-        return { ...node, data: { ...node.data, ...newData } };
-      }
-      return node;
-    }));
-
-    // Debounce the socket broadcast to avoid flooding with every keystroke
-    if (broadcastDataDebounce.current) clearTimeout(broadcastDataDebounce.current);
-    broadcastDataDebounce.current = setTimeout(() => {
-      // Access updated nodes from ref (updated after setNodes re-render)
-      emitWorkflowChange(nodesRef.current, edgesRef.current);
-    }, 400);
-  }, [emitWorkflowChange, setNodes]);
-
-  const restoreCheckpoint = useCallback((snapshot) => {
-    if (!snapshot || !snapshot.nodes || !snapshot.edges) return;
-    
-    // Restore node behavior functions
-    const restoredNodes = snapshot.nodes.map(node => ({
-      ...node,
-      data: {
-        ...node.data,
-        onDelete: () => deleteNode(node.id),
-        onTitleChange: (newTitle) => updateNodeTitle(node.id, newTitle),
-        onLinkFinding: (findingId) => linkFinding(node.id, findingId),
-        onDataChange: (newData) => onDataChange(node.id, newData),
-        findings,
-        activeUsers: activeNodes[node.id] || {}
-      }
-    }));
-    
-    setNodes(restoredNodes);
-    setEdges(snapshot.edges);
-    
-    emitWorkflowChange(restoredNodes, snapshot.edges);
-    saveToDatabase(restoredNodes, snapshot.edges, "RESTORE_CHECKPOINT", { label: "Reverted to a previous version" });
-  }, [deleteNode, updateNodeTitle, linkFinding, findings, activeNodes, setNodes, setEdges, emitWorkflowChange]);
-
-  // Core Add Node Function
-  const addNode = useCallback((type, position) => {
-    const id = `${type}-${Date.now()}`;
-    const defaultLabel = NODE_TYPE_LABELS[type] || type;
-
-    const newNode = {
-      id,
-      type,
-      position,
-      data: {
-        label: defaultLabel,
-        onDelete: () => deleteNode(id),
-        onTitleChange: (newTitle) => updateNodeTitle(id, newTitle),
-        onDataChange: (newData) => onDataChange(id, newData),
-        activeUsers: {}
-      },
-    };
-
-    const currentNodes = nodesRef.current;
-    const currentEdges = edgesRef.current;
-    const newNodes = [...currentNodes, newNode];
-    setNodes(newNodes);
-    
-    emitWorkflowChange(newNodes, currentEdges);
-    saveToDatabase(newNodes, currentEdges, "ADD_NODE", { type, label: defaultLabel });
-  }, [emitWorkflowChange, deleteNode, updateNodeTitle, setNodes]);
 
   const addNodeByClick = (type) => {
     // Add to center of view
