@@ -152,7 +152,6 @@ model HackerProfile {
   education         String[]
   employment        String[]
   otherExperiences  String[]
-=======
   portfolioLinks    String[]
   specialization    String?
   idDocumentNumber  String?
