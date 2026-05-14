@@ -50,7 +50,7 @@ const NoteNode = ({ data, selected }) => {
           className="w-full h-24 bg-black border border-gray-800 text-gray-300 p-2 rounded resize-none focus:outline-none focus:border-[#00ff88]/50"
           placeholder="taking note about what i am doing"
           defaultValue={data.text || ''}
-          onChange={data.onChange}
+          onChange={(e) => data.onDataChange && data.onDataChange({ text: e.target.value })}
         />
 
         {/* Finding Linkage UI */}
