@@ -95,7 +95,7 @@ const TerminalNode = ({ data, selected }) => {
       console.log(`🤖 Auto-executing command: ${data.initialCommand}`);
       // Send the command followed by Enter (\r)
       sendInput(`${data.initialCommand}\r`);
-      
+
       // Clear the initialCommand in the local state so it doesn't run again on re-connects
       // We use data.onDataChange if available to update the node's permanent state
       if (data.onDataChange) {
@@ -157,33 +157,6 @@ const TerminalNode = ({ data, selected }) => {
           onClick={(e) => e.stopPropagation()}
         />
 
-        {/* Finding Linkage UI */}
-        <div className="pt-2 border-t border-[#00ff88]/20 space-y-2">
-          <div className="flex items-center justify-between text-[10px] text-gray-500 font-bold uppercase tracking-widest">
-            <div className="flex items-center gap-1">
-              <FiLink size={10} />
-              <span>Evidence Link</span>
-            </div>
-          </div>
-
-          <select
-            className="w-full bg-black/50 border border-gray-800 text-[10px] p-1.5 rounded focus:outline-none text-gray-400 select-none"
-            value={data.findingId || ''}
-            onChange={(e) => data.onLinkFinding && data.onLinkFinding(e.target.value)}
-          >
-            <option value="">None</option>
-            {data.findings?.map(f => (
-              <option key={f.id} value={f.id}>[{f.severity}] {f.title}</option>
-            ))}
-          </select>
-
-          {data.findingId && (
-            <div className="flex items-center gap-2 p-1.5 bg-[#00ff88]/5 border border-[#00ff88]/20 rounded text-[9px] text-[#00ff88] animate-pulse">
-              <FiAlertCircle size={10} />
-              <span className="truncate">Terminal Output Linked to Finding</span>
-            </div>
-          )}
-        </div>
       </div>
 
       <Handle type="target" position={Position.Left} className="w-3 h-3 bg-[#00ff88] border-2 border-[#0b0f19]" />
