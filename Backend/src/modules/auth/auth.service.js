@@ -33,7 +33,7 @@ const USER_PROFILE_INCLUDE = {
             primarySkills: true,
             certifications: true,
             portfolioLinks: true,
-            // Exclude `specialization` until DB is migrated to include it
+            specialization: true,
             idDocumentNumber: true,
             githubUsername: true,
             linkedinProfile: true,
