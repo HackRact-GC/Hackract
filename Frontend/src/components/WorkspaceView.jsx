@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import toast from "react-hot-toast";
 import api from "../api/axiosConfig";
@@ -7,7 +7,7 @@ import ProjectActivity from "./ProjectActivity.jsx";
 import KickoffChecklist from "./KickoffChecklist.jsx";
 import NdaGate from "./NdaGate.jsx";
 import { useAuth } from "../context/authContext.jsx";
-import { FiDownload, FiExternalLink, FiFileText, FiArrowLeft, FiCode, FiPrinter, FiGlobe, FiServer, FiFileMinus, FiCalendar, FiPlus, FiUserPlus, FiTrash2, FiSearch, FiX, FiSend } from "react-icons/fi";
+import { FiDownload, FiExternalLink, FiFileText, FiArrowLeft, FiCode, FiPrinter, FiGlobe, FiServer, FiFileMinus, FiCalendar, FiPlus, FiUserPlus, FiTrash2, FiSearch, FiX, FiSend, FiEdit2, FiStar, FiSettings } from "react-icons/fi";
 
 const InviteMemberModal = ({ projectId, onClose, onInvited }) => {
   const [search, setSearch] = useState("");
@@ -40,6 +40,22 @@ const InviteMemberModal = ({ projectId, onClose, onInvited }) => {
       onInvited();
     } catch (e) {
       toast.error(e?.response?.data?.error || "Failed to send invitation");
+    } finally {
+      setSending(null);
+    }
+  };
+
+  const addDirectly = async (hackerId) => {
+    setSending(hackerId);
+    try {
+      await api.post(`/projects/${projectId}/hackers`, {
+        hackerIds: [hackerId]
+      });
+      toast.success("Hacker added directly!");
+      onInvited();
+      onClose();
+    } catch (e) {
+      toast.error(e?.response?.data?.error || "Failed to add hacker");
     } finally {
       setSending(null);
     }
@@ -102,13 +118,24 @@ const InviteMemberModal = ({ projectId, onClose, onInvited }) => {
                       <p className="text-[10px] text-white/40 font-mono tracking-tighter">{u.handle} • {u.email}</p>
                     </div>
                   </div>
-                  <button
-                    disabled={sending === u.id}
-                    onClick={() => sendInvite(u.id)}
-                    className="p-3 bg-white/5 hover:bg-[#00ff88] text-white/40 hover:text-black rounded-xl transition-all border border-white/5 hover:border-[#00ff88] disabled:opacity-50"
-                  >
-                    {sending === u.id ? <div className="w-4 h-4 border-2 border-black/20 border-t-black rounded-full animate-spin" /> : <FiSend size={14} />}
-                  </button>
+                  <div className="flex items-center gap-2">
+                    <button
+                      disabled={sending === u.id}
+                      onClick={() => sendInvite(u.id)}
+                      className="p-3 bg-white/5 hover:bg-[#00ff88]/20 text-white/40 hover:text-[#00ff88] rounded-xl transition-all border border-white/5 hover:border-[#00ff88]/30 disabled:opacity-50"
+                      title="Send Invitation"
+                    >
+                      {sending === u.id ? <div className="w-4 h-4 border-2 border-white/10 border-t-[#00ff88] rounded-full animate-spin" /> : <FiSend size={14} />}
+                    </button>
+                    <button
+                      disabled={sending === u.id}
+                      onClick={() => addDirectly(u.id)}
+                      className="p-3 bg-[#00ff88]/10 hover:bg-[#00ff88] text-[#00ff88] hover:text-black rounded-xl transition-all border border-[#00ff88]/20 hover:border-[#00ff88] disabled:opacity-50"
+                      title="Direct Add"
+                    >
+                      {sending === u.id ? <div className="w-4 h-4 border-2 border-black/20 border-t-black rounded-full animate-spin" /> : <FiUserPlus size={14} />}
+                    </button>
+                  </div>
                 </div>
               ))
             ) : search && !loading ? (
@@ -125,9 +152,10 @@ const InviteMemberModal = ({ projectId, onClose, onInvited }) => {
 
 const WorkspaceView = ({ projectId, onBack }) => {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { user } = useAuth();
   const [project, setProject] = useState(null);
-  const [activeTab, setActiveTab] = useState("overview");
+  const [activeTab, setActiveTab] = useState(searchParams.get("tab") || "overview");
   const [showInvite, setShowInvite] = useState(false);
 
   const workspaceName = project?.name || "Project Workspace";
@@ -177,6 +205,40 @@ const WorkspaceView = ({ projectId, onBack }) => {
       loadProject();
     } catch (error) {
       toast.error(error?.response?.data?.error || "Hiring failed");
+    }
+  };
+  const handleMakeAdmin = async (userId) => {
+    try {
+      await api.patch(`/projects/${projectId}/admin`, { projectAdminId: userId });
+      toast.success("Lead Pentester assigned!");
+      loadProject();
+    } catch (err) {
+      toast.error(err.response?.data?.message || "Failed to make lead pentester");
+    }
+  };
+
+  const handleRemoveMember = async (userId) => {
+    if (!window.confirm("Are you sure you want to remove this member from the project?")) return;
+    try {
+      await api.delete(`/projects/${projectId}/collaborators/${userId}`);
+      toast.success("Member removed from project");
+      setProject(prev => ({
+        ...prev,
+        collaborators: prev.collaborators.filter(c => c.userId !== userId)
+      }));
+    } catch (err) {
+      toast.error(err.response?.data?.message || "Failed to remove member");
+    }
+  };
+
+  const handleDeleteProject = async () => {
+    if (!window.confirm("CRITICAL: Are you sure you want to delete this project? This cannot be undone.")) return;
+    try {
+      await api.delete(`/projects/${projectId}`);
+      toast.success("Project deleted successfully");
+      navigate('/org-projects');
+    } catch (err) {
+      toast.error(err.response?.data?.message || "Failed to delete project");
     }
   };
 
@@ -230,7 +292,7 @@ const WorkspaceView = ({ projectId, onBack }) => {
 
         {/* Tabs */}
         <div className="flex bg-black/60 p-1.5 rounded-2xl border border-white/10 w-fit">
-          {["overview", "workflow", "findings", "team", ...(canManage ? ["hiring"] : [])].map((tab) => (
+          {["overview", "workflow", "findings", "team", ...(canManage ? ["hiring", "settings"] : [])].map((tab) => (
             <button
               key={tab}
               onClick={() => setActiveTab(tab)}
@@ -549,16 +611,98 @@ const WorkspaceView = ({ projectId, onBack }) => {
                     
                     {canManage && member.userId !== user?.id && (
                       <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                        {member.role !== 'PROJECT_ADMIN' && (
+                          <button 
+                            onClick={() => handleMakeAdmin(member.userId)}
+                            title="Make Lead Pentester"
+                            className="p-2.5 rounded-xl bg-purple-500/5 hover:bg-purple-500/10 text-purple-400/40 hover:text-purple-400 transition-all border border-white/5"
+                          >
+                            <FiStar size={14} />
+                          </button>
+                        )}
                         <button className="p-2.5 rounded-xl bg-white/5 hover:bg-white/10 text-white/40 hover:text-white transition-all border border-white/5">
                           <FiEdit2 size={14} />
                         </button>
-                        <button className="p-2.5 rounded-xl bg-rose-500/5 hover:bg-rose-500/10 text-rose-500/40 hover:text-rose-500 transition-all border border-white/5">
+                        <button 
+                          onClick={() => handleRemoveMember(member.userId)}
+                          className="p-2.5 rounded-xl bg-rose-500/5 hover:bg-rose-500/10 text-rose-500/40 hover:text-rose-500 transition-all border border-white/5"
+                        >
                           <FiTrash2 size={14} />
                         </button>
                       </div>
                     )}
                   </div>
                 ))}
+              </div>
+            </div>
+          )}
+
+          {activeTab === "settings" && canManage && (
+            <div className="max-w-4xl">
+              <div className="bg-[#0a0a0a] border border-white/5 rounded-2xl p-8 shadow-2xl">
+                <div className="flex items-center gap-3 mb-8">
+                  <div className="w-12 h-12 rounded-xl bg-[#00ff88]/10 flex items-center justify-center text-[#00ff88]">
+                    <FiSettings size={24} />
+                  </div>
+                  <div>
+                    <h2 className="text-xl font-bold text-white">Project Management</h2>
+                    <p className="text-sm text-white/40 font-mono uppercase tracking-widest">Global Configuration & Controls</p>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                  <div className="space-y-6">
+                    <div>
+                      <label className="block text-[10px] font-black text-white/30 uppercase tracking-[0.2em] mb-2">Project Identity</label>
+                      <input 
+                        type="text" 
+                        defaultValue={project.name} 
+                        onBlur={(e) => api.patch(`/projects/${projectId}`, { name: e.target.value }).then(() => toast.success("Name updated"))}
+                        className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:border-[#00ff88]/50 transition-all outline-none"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[10px] font-black text-white/30 uppercase tracking-[0.2em] mb-2">Operational Status</label>
+                      <select 
+                        defaultValue={project.status}
+                        onChange={(e) => api.patch(`/projects/${projectId}`, { status: e.target.value }).then(() => toast.success("Status updated"))}
+                        className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:border-[#00ff88]/50 transition-all outline-none appearance-none"
+                      >
+                        <option value="PLANNING">Planning</option>
+                        <option value="IN_PROGRESS">In Progress</option>
+                        <option value="REPORTING">Reporting</option>
+                        <option value="CLOSED">Closed</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  <div className="space-y-6">
+                    <div>
+                      <label className="block text-[10px] font-black text-white/30 uppercase tracking-[0.2em] mb-2">Primary Scope</label>
+                      <textarea 
+                        defaultValue={project.targetDomains?.join('\n')}
+                        placeholder="one domain per line"
+                        onBlur={(e) => api.patch(`/projects/${projectId}`, { targetDomains: e.target.value.split('\n').filter(Boolean) }).then(() => toast.success("Scope updated"))}
+                        className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white h-32 focus:border-[#00ff88]/50 transition-all outline-none resize-none font-mono text-xs"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                <div className="mt-12 pt-8 border-t border-white/5">
+                  <div className="p-6 rounded-2xl bg-rose-500/5 border border-rose-500/10 flex items-center justify-between">
+                    <div>
+                      <h4 className="text-rose-500 font-bold mb-1">Danger Zone</h4>
+                      <p className="text-[11px] text-white/40">Permanently delete this project and all associated data.</p>
+                    </div>
+                    <button 
+                      onClick={handleDeleteProject}
+                      className="px-6 py-2.5 rounded-xl bg-rose-500 hover:bg-rose-600 text-white text-[11px] font-black uppercase tracking-widest transition-all shadow-lg shadow-rose-500/20"
+                    >
+                      Delete Project
+                    </button>
+                  </div>
+                </div>
               </div>
             </div>
           )}
