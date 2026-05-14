@@ -143,6 +143,11 @@ const HistorySidebar = ({ workflowId, isOpen, onClose, liveEvents = [], localUse
                              <span className="text-xs font-bold text-gray-300">
                                {isYou ? 'You' : userName}
                              </span>
+                             {record.user?.roles?.[0] && (
+                               <span className="text-[7px] bg-white/5 border border-white/10 text-gray-500 px-1 py-0.5 rounded uppercase font-black tracking-tighter leading-none">
+                                 {record.user.roles[0].type.replace('_', ' ')}
+                               </span>
+                             )}
                              {isLive && !isYou && <span className="text-[8px] bg-[#00ff41]/20 text-[#00ff41] px-1 rounded uppercase font-bold animate-pulse">New</span>}
                            </div>
                            <div 
