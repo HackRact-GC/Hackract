@@ -89,8 +89,23 @@ const TerminalNode = ({ data, selected }) => {
     };
   }, [sendInput, sendResize, setOnOutput, data.workflowId]);
 
+  // Handle Auto-Execution of commands
+  useEffect(() => {
+    if (isConnected && data.initialCommand && xtermRef.current) {
+      console.log(`🤖 Auto-executing command: ${data.initialCommand}`);
+      // Send the command followed by Enter (\r)
+      sendInput(`${data.initialCommand}\r`);
+      
+      // Clear the initialCommand in the local state so it doesn't run again on re-connects
+      // We use data.onDataChange if available to update the node's permanent state
+      if (data.onDataChange) {
+        data.onDataChange({ initialCommand: null });
+      }
+    }
+  }, [isConnected, data.initialCommand, sendInput, data]);
+
   return (
-    <div className={`bg-[#0b0f19] border rounded-lg w-[320px] font-mono text-sm transition-all relative ${selected || showPresence ? 'border-[#00ff88] shadow-[0_0_20px_rgba(0,255,136,0.6)]' : 'border-[#00ff88]/50 shadow-[0_0_10px_rgba(0,255,136,0.3)]'}`}>
+    <div className={`bg-[#0b0f19] border rounded-lg w-[320px] font-mono text-sm transition-all relative select-none ${selected || showPresence ? 'border-[#00ff88] shadow-[0_0_20px_rgba(0,255,136,0.6)]' : 'border-[#00ff88]/50 shadow-[0_0_10px_rgba(0,255,136,0.3)]'}`}>
       {/* Presence Indicators (Figma Style) */}
       {showPresence && (
         <div className="absolute -top-6 right-0 flex -space-x-2">
@@ -119,7 +134,7 @@ const TerminalNode = ({ data, selected }) => {
         </div>
         <div className="flex items-center gap-2">
           <input
-            className="bg-transparent border-none text-right focus:outline-none text-gray-500 text-xs placeholder-gray-700 w-[120px]"
+            className="bg-transparent border-none text-right focus:outline-none text-gray-500 text-xs placeholder-gray-700 w-[120px] select-text"
             placeholder="Process title..."
             defaultValue={data.label || ''}
             onBlur={(e) => data.onTitleChange && data.onTitleChange(e.target.value)}
@@ -136,8 +151,9 @@ const TerminalNode = ({ data, selected }) => {
       <div className="p-3 space-y-3">
         {/* Real Terminal Area */}
         <div
-          className="w-full h-48 bg-black border border-[#00ff88]/30 rounded overflow-hidden shadow-inner"
+          className="w-full h-48 bg-black border border-[#00ff88]/30 rounded overflow-hidden shadow-inner select-text"
           ref={terminalRef}
+          onMouseDown={(e) => e.stopPropagation()}
           onClick={(e) => e.stopPropagation()}
         />
 
@@ -151,7 +167,7 @@ const TerminalNode = ({ data, selected }) => {
           </div>
 
           <select
-            className="w-full bg-black/50 border border-gray-800 text-[10px] p-1.5 rounded focus:outline-none text-gray-400"
+            className="w-full bg-black/50 border border-gray-800 text-[10px] p-1.5 rounded focus:outline-none text-gray-400 select-none"
             value={data.findingId || ''}
             onChange={(e) => data.onLinkFinding && data.onLinkFinding(e.target.value)}
           >

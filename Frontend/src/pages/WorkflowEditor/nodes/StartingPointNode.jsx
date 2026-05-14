@@ -57,7 +57,11 @@ const StartingPointNode = ({ data, selected }) => {
               defaultValue={data.host || ''}
               onChange={(e) => data.onDataChange && data.onDataChange({ host: e.target.value })}
             />
-            <button className="bg-[#00ff88] text-black px-3 py-1 flex items-center justify-center rounded hover:bg-[#00cc33] transition-colors">
+            <button 
+              onClick={() => data.onRunAutomation && data.onRunAutomation(data.host)}
+              className="bg-[#00ff88] text-black px-3 py-1 flex items-center justify-center rounded hover:bg-[#00cc33] transition-colors active:scale-95"
+              title="Run Automated Recon"
+            >
               <FiPlay size={14} />
             </button>
           </div>
