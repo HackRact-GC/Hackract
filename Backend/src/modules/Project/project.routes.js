@@ -168,6 +168,45 @@ router.get("/:projectId", async (req, res, next) => {
   }
 });
 
+router.patch("/:projectId", async (req, res, next) => {
+  try {
+    const { projectId } = req.params;
+    const { name, description, status, targetDomains, ipRanges, excludedAssets, startDate, endDate } = req.body || {};
+
+    const project = await prisma.pentest.findUnique({ where: { id: projectId } });
+    if (!project) throw new AppError("Project not found", 404);
+
+    const canManage = await isOrgAdminMember(project.organizationId, req.user.id);
+    const isProjectAdmin = await prisma.pentestCollaborator.findFirst({
+        where: { pentestId: projectId, userId: req.user.id, role: "PROJECT_ADMIN" }
+    });
+
+    if (!canManage && !isProjectAdmin) {
+      throw new AppError("Only organization admin or project admin can update project details", 403);
+    }
+
+    const updated = await prisma.pentest.update({
+      where: { id: projectId },
+      data: {
+        ...(name && { name }),
+        ...(description !== undefined && { description }),
+        ...(status && { status }),
+        ...(targetDomains && { targetDomains }),
+        ...(ipRanges && { ipRanges }),
+        ...(excludedAssets !== undefined && { excludedAssets }),
+        ...(startDate && { startDate: new Date(startDate) }),
+        ...(endDate && { endDate: new Date(endDate) }),
+      }
+    });
+
+    await logAction("PROJECT_UPDATED", req.user.id, { pentestId: projectId, updates: req.body }, req);
+
+    res.json({ success: true, data: updated, message: "Project updated successfully" });
+  } catch (error) {
+    next(error);
+  }
+});
+
 router.post("/", async (req, res, next) => {
   try {
     const { 
@@ -196,7 +235,7 @@ router.post("/", async (req, res, next) => {
       data: {
         name,
         description,
-        organizationId,
+        organization: { connect: { id: organizationId } },
         status: "PLANNING",
         targetDomains,
         ipRanges,
@@ -206,10 +245,29 @@ router.post("/", async (req, res, next) => {
         workflows: {
           create: {
             name: `${name} - Main Workflow`,
-            nodes: [],
-            edges: [],
+            nodes: [
+              { id: 'node-1', type: 'customNode', position: { x: 100, y: 150 }, data: { label: 'Reconnaissance', status: 'pending' } },
+              { id: 'node-2', type: 'customNode', position: { x: 350, y: 150 }, data: { label: 'Exploitation', status: 'pending' } },
+              { id: 'node-3', type: 'customNode', position: { x: 600, y: 150 }, data: { label: 'Reporting', status: 'pending' } }
+            ],
+            edges: [
+              { id: 'edge-1-2', source: 'node-1', target: 'node-2', animated: true, style: { stroke: '#00c477', strokeWidth: 2 } },
+              { id: 'edge-2-3', source: 'node-2', target: 'node-3', animated: true, style: { stroke: '#00c477', strokeWidth: 2 } }
+            ],
           },
         },
+        projectAgreements: {
+          create: {
+            title: `Standard Non-Disclosure & Rules of Engagement - ${name}`,
+            version: 1,
+            body: `This document outlines the standard rules of engagement and confidentiality agreements for ${name}. By signing this, you agree to not disclose any vulnerabilities found to the public until authorized.`,
+            scopeSummary: `Target Domains: ${targetDomains.join(', ') || 'N/A'}\nIP Ranges: ${ipRanges.join(', ') || 'N/A'}\nExcluded: ${excludedAssets || 'None'}`,
+            allowedActions: "Standard web exploitation, no destructive testing.",
+            confidentiality: "Strictly confidential.",
+            legalLiability: "Organization holds harmless the hacker for actions within scope.",
+            createdBy: { connect: { id: req.user.id } }
+          }
+        }
       },
       include: { workflows: true },
     });
@@ -268,12 +326,25 @@ router.patch("/:projectId/admin", async (req, res, next) => {
       throw new AppError("Only organization owner/admin can assign project admin", 403);
     }
 
-    await prisma.pentestCollaborator.deleteMany({
+    // 1. Demote any existing PROJECT_ADMINs to HACKER
+    await prisma.pentestCollaborator.updateMany({
       where: { pentestId: projectId, role: "PROJECT_ADMIN" },
+      data: { role: "HACKER" }
     });
 
-    await prisma.pentestCollaborator.create({
-      data: { pentestId: projectId, userId: projectAdminId, role: "PROJECT_ADMIN" },
+    // 2. Upsert the new PROJECT_ADMIN
+    await prisma.pentestCollaborator.upsert({
+      where: {
+        pentestId_userId: { pentestId: projectId, userId: projectAdminId }
+      },
+      update: { role: "PROJECT_ADMIN" },
+      create: { pentestId: projectId, userId: projectAdminId, role: "PROJECT_ADMIN" }
+    });
+
+    // 3. Update the leadPentesterId on the project
+    await prisma.pentest.update({
+      where: { id: projectId },
+      data: { leadPentesterId: projectAdminId }
     });
 
     res.json({ success: true, message: "Project admin assigned successfully" });
@@ -601,6 +672,36 @@ router.delete("/:projectId", async (req, res, next) => {
     }, req);
 
     res.json({ success: true, message: "Project deleted successfully" });
+  } catch (error) {
+    next(error);
+  }
+});
+
+router.delete("/:projectId/collaborators/:userId", async (req, res, next) => {
+  try {
+    const { projectId, userId } = req.params;
+
+    const project = await prisma.pentest.findUnique({ where: { id: projectId } });
+    if (!project) throw new AppError("Project not found", 404);
+
+    const canManage = await isOrgAdminMember(project.organizationId, req.user.id);
+    const isProjectAdmin = await prisma.pentestCollaborator.findFirst({
+        where: { pentestId: projectId, userId: req.user.id, role: "PROJECT_ADMIN" }
+    });
+
+    if (!canManage && !isProjectAdmin) {
+      throw new AppError("Only organization admin or project admin can remove collaborators", 403);
+    }
+
+    // Prevent removing the last admin? (Optional safety)
+    
+    await prisma.pentestCollaborator.delete({
+      where: { pentestId_userId: { pentestId: projectId, userId } }
+    });
+
+    await logAction("COLLABORATOR_REMOVED", req.user.id, { pentestId: projectId, removedUserId: userId }, req);
+
+    res.json({ success: true, message: "Collaborator removed successfully" });
   } catch (error) {
     next(error);
   }

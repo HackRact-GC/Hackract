@@ -131,6 +131,24 @@ const HackerProfile = () => {
           file: c.file,
           fileUrl: c.fileUrl
         })),
+        employment: form.employment.map(e => JSON.stringify({
+          company: e.company,
+          title: e.title,
+          from: e.from,
+          to: e.to
+        })),
+        education: form.education.map(e => JSON.stringify({
+          school: e.school,
+          degree: e.degree,
+          from: e.from,
+          to: e.to
+        })),
+        otherExperiences: form.other.map(o => JSON.stringify({
+          subject: o.subject,
+          description: o.description,
+          file: o.file,
+          fileUrl: o.fileUrl
+        })),
         ...overrides,
       };
       await api.put('/hacker-profiles/me', payload);

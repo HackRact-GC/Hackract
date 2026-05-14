@@ -88,9 +88,16 @@ const ProjectCard = ({ project, onManage, index }) => {
                 className="absolute right-0 top-10 bg-[#111] border border-white/10 rounded-xl p-1.5 min-w-[170px] shadow-[0_20px_40px_-5px_rgba(0,0,0,0.8)] backdrop-blur-xl z-20"
               >
                 {[
-                  { icon: FiEdit2, label: "Edit Details", action: () => { } },
+                  { icon: FiEdit2, label: "Settings & Scope", action: () => navigate(`/org-projects/${project.id}?tab=settings`) },
                   { icon: FiExternalLink, label: "Open Workspace", action: () => onManage(project.id) },
-                  { icon: FiTrash2, label: "Archive Program", action: () => { }, destructive: true },
+                  { icon: FiTrash2, label: "Archive Program", action: () => {
+                    if(window.confirm("Archive this program? This will delete all project data.")) {
+                      api.delete(`/projects/${project.id}`).then(() => {
+                        toast.success("Program archived");
+                        window.location.reload();
+                      });
+                    }
+                  }, destructive: true },
                 ].map(item => (
                   <button
                     key={item.label}

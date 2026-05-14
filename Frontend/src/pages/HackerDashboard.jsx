@@ -266,7 +266,11 @@ const HackerDashboard = () => {
         );
         if (status === "ACCEPTED") {
           setPendingCount(c => Math.max(0, c - 1));
-          toast.success("Invitation accepted! You now have project access.");
+          toast.success("Invitation accepted! Proceeding to workspace...");
+          const pentestId = invitations.find(i => i.id === id)?.pentestId;
+          if (pentestId) {
+            navigate(`/projects/${pentestId}`);
+          }
         } else {
           setPendingCount(c => Math.max(0, c - 1));
           toast("Invitation declined.");
