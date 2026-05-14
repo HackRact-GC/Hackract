@@ -296,10 +296,10 @@ export default function AgreementExecute() {
   if (!agreement) return null;
 
   return (
-    <div className="min-h-screen bg-[#0a0a0a] text-white flex flex-col md:flex-row overflow-hidden font-sans selection:bg-[#00c477]/30">
+    <div className="min-h-full bg-[#0a0a0a] text-white flex flex-col lg:flex-row overflow-hidden font-sans selection:bg-[#00c477]/30">
 
       {/* ───────────── LEFT PANEL ───────────── */}
-      <div className="w-full md:w-1/2 h-screen flex flex-col border-r border-white/5 bg-[#0d0d0d] relative z-10">
+      <div className="w-full lg:w-1/2 flex flex-col border-r border-white/5 bg-[#0d0d0d] relative z-10 min-h-[500px]">
 
         {/* Header */}
         <div className="px-8 py-6 border-b border-white/5 flex items-center justify-between shrink-0">
@@ -415,7 +415,7 @@ export default function AgreementExecute() {
       </div>
 
       {/* ───────────── RIGHT PANEL ───────────── */}
-      <div className="w-full md:w-1/2 h-screen flex flex-col relative bg-[#0a0a0a]">
+      <div className="w-full lg:w-1/2 flex flex-col relative bg-[#0a0a0a] min-h-[500px]">
 
         {/* Grid background */}
         <div className="absolute inset-0 pointer-events-none opacity-20" style={{ backgroundImage: 'radial-gradient(circle at center, #ffffff 1px, transparent 1px)', backgroundSize: '24px 24px' }}></div>
