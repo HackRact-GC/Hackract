@@ -142,6 +142,7 @@ const WorkflowEditor = ({ workflowId: propWorkflowId }) => {
 
   // Track whether we are locally dragging so we don't overwrite positions mid-drag
   const isDraggingRef = useRef(false);
+  const broadcastDataDebounce = useRef(null);
 
   const { user: authUser } = useAuth();
 
@@ -243,6 +244,7 @@ const WorkflowEditor = ({ workflowId: propWorkflowId }) => {
               onDelete: () => deleteNode(node.id),
               onTitleChange: (newTitle) => updateNodeTitle(node.id, newTitle),
               onLinkFinding: (findingId) => linkFinding(node.id, findingId),
+              onDataChange: (newData) => onDataChange(node.id, newData),
               findings: data.pentest?.findings || [],
               activeUsers: activeNodes[node.id] || {}
             }
@@ -441,6 +443,25 @@ const WorkflowEditor = ({ workflowId: propWorkflowId }) => {
     saveToDatabase(newNodes, currentEdges, "LINK_FINDING", { nodeId: id, findingId });
   }, [emitWorkflowChange, setNodes]);
 
+  const onDataChange = useCallback((id, newData) => {
+    const currentNodes = nodesRef.current;
+    const currentEdges = edgesRef.current;
+    
+    setNodes(nds => nds.map(node => {
+      if (node.id === id) {
+        return { ...node, data: { ...node.data, ...newData } };
+      }
+      return node;
+    }));
+
+    // Debounce the socket broadcast to avoid flooding with every keystroke
+    if (broadcastDataDebounce.current) clearTimeout(broadcastDataDebounce.current);
+    broadcastDataDebounce.current = setTimeout(() => {
+      // Access updated nodes from ref (updated after setNodes re-render)
+      emitWorkflowChange(nodesRef.current, edgesRef.current);
+    }, 400);
+  }, [emitWorkflowChange, setNodes]);
+
   const restoreCheckpoint = useCallback((snapshot) => {
     if (!snapshot || !snapshot.nodes || !snapshot.edges) return;
 
@@ -452,6 +473,7 @@ const WorkflowEditor = ({ workflowId: propWorkflowId }) => {
         onDelete: () => deleteNode(node.id),
         onTitleChange: (newTitle) => updateNodeTitle(node.id, newTitle),
         onLinkFinding: (findingId) => linkFinding(node.id, findingId),
+        onDataChange: (newData) => onDataChange(node.id, newData),
         findings,
         activeUsers: activeNodes[node.id] || {}
       }
@@ -477,6 +499,7 @@ const WorkflowEditor = ({ workflowId: propWorkflowId }) => {
         label: defaultLabel,
         onDelete: () => deleteNode(id),
         onTitleChange: (newTitle) => updateNodeTitle(id, newTitle),
+        onDataChange: (newData) => onDataChange(id, newData),
         activeUsers: {}
       },
     };
