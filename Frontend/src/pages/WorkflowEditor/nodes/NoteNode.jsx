@@ -52,34 +52,6 @@ const NoteNode = ({ data, selected }) => {
           defaultValue={data.text || ''}
           onChange={(e) => data.onDataChange && data.onDataChange({ text: e.target.value })}
         />
-
-        {/* Finding Linkage UI */}
-        <div className="pt-2 border-t border-[#00ff88]/20 space-y-2">
-          <div className="flex items-center justify-between text-[10px] text-gray-500 font-bold uppercase tracking-widest">
-            <div className="flex items-center gap-1">
-              <FiLink size={10} />
-              <span>Linked Finding</span>
-            </div>
-          </div>
-
-          <select
-            className="w-full bg-black/50 border border-gray-800 text-[10px] p-1.5 rounded focus:outline-none text-gray-400"
-            value={data.findingId || ''}
-            onChange={(e) => data.onLinkFinding && data.onLinkFinding(e.target.value)}
-          >
-            <option value="">None</option>
-            {data.findings?.map(f => (
-              <option key={f.id} value={f.id}>[{f.severity}] {f.title}</option>
-            ))}
-          </select>
-
-          {data.findingId && (
-            <div className="flex items-center gap-2 p-1.5 bg-[#00ff88]/5 border border-[#00ff88]/20 rounded text-[9px] text-[#00ff88] animate-pulse">
-              <FiAlertCircle size={10} />
-              <span className="truncate">Active Vulnerability Linked</span>
-            </div>
-          )}
-        </div>
       </div>
 
       {/* Handles */}
