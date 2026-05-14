@@ -1,4 +1,4 @@
-import { GetObjectCommand, S3Client } from '@aws-sdk/client-s3';
+import { GetObjectCommand, S3Client, HeadBucketCommand, CreateBucketCommand, PutBucketPolicyCommand } from '@aws-sdk/client-s3';
 import multer from 'multer';
 import multerS3 from 'multer-s3';
 import { v4 as uuidv4 } from 'uuid';
@@ -52,6 +52,52 @@ const getMinioClient = () => {
   }
 
   return minioClient;
+};
+
+/** Ensure the bucket exists and is configured for public read */
+export const initializeStorage = async () => {
+  if (!isStorageConfigured) {
+    console.warn('[Storage] Skipping initialization: MinIO not configured.');
+    return;
+  }
+  
+  const client = getMinioClient();
+  const bucketName = getEnv('MINIO_BUCKET_NAME');
+
+  try {
+    await client.send(new HeadBucketCommand({ Bucket: bucketName }));
+    console.log(`[Storage] Bucket "${bucketName}" verified.`);
+  } catch (err) {
+    // If bucket doesn't exist, create it
+    if (err.name === 'NotFound' || err.$metadata?.httpStatusCode === 404) {
+      console.log(`[Storage] Bucket "${bucketName}" not found. Creating...`);
+      try {
+        await client.send(new CreateBucketCommand({ Bucket: bucketName }));
+        
+        // Apply public read policy so browser can access files directly
+        const policy = {
+          Version: "2012-10-17",
+          Statement: [{
+            Effect: "Allow",
+            Principal: "*",
+            Action: ["s3:GetObject"],
+            Resource: [`arn:aws:s3:::${bucketName}/*`]
+          }]
+        };
+
+        await client.send(new PutBucketPolicyCommand({
+          Bucket: bucketName,
+          Policy: JSON.stringify(policy)
+        }));
+        
+        console.log(`[Storage] Bucket "${bucketName}" initialized with public policy.`);
+      } catch (createErr) {
+        console.error(`[Storage] Failed to create bucket "${bucketName}":`, createErr.message);
+      }
+    } else {
+      console.error(`[Storage] Unexpected error checking bucket:`, err.message);
+    }
+  }
 };
 
 // ─── Key Builder ─────────────────────────────────────────────────────────────
