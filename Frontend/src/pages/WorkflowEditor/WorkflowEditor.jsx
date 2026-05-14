@@ -1,5 +1,5 @@
 import React, { useState, useRef, useCallback, useEffect } from 'react';
-import { FiArrowLeft, FiHome, FiSave, FiClock, FiMessageSquare, FiExternalLink } from 'react-icons/fi';
+import { FiArrowLeft, FiHome, FiSave, FiClock, FiMessageSquare, FiExternalLink, FiTerminal } from 'react-icons/fi';
 import {
   ReactFlow,
   ReactFlowProvider,
@@ -244,7 +244,8 @@ const WorkflowEditor = ({ workflowId: propWorkflowId }) => {
               onLinkFinding: (findingId) => linkFinding(node.id, findingId),
               onDataChange: (newData) => onDataChange(node.id, newData),
               findings: data.pentest?.findings || [],
-              activeUsers: activeNodes[node.id] || {}
+              activeUsers: activeNodes[node.id] || {},
+              workflowId
             }
           }));
           setNodes(nodesWithHandlers);
@@ -497,7 +498,8 @@ const WorkflowEditor = ({ workflowId: propWorkflowId }) => {
         onDelete: () => deleteNode(id),
         onTitleChange: (newTitle) => updateNodeTitle(id, newTitle),
         onDataChange: (newData) => onDataChange(id, newData),
-        activeUsers: {}
+        activeUsers: {},
+        workflowId
       },
     };
 
