@@ -46,6 +46,7 @@ router.get("/", async (req, res, next) => {
           },
         },
         workflows: { select: { id: true, name: true, updatedAt: true } },
+        _count: { select: { findings: true } },
       },
     });
 
@@ -167,7 +168,19 @@ router.get("/:projectId", async (req, res, next) => {
 
 router.post("/", async (req, res, next) => {
   try {
-    const { name, description, organizationId, projectAdminId, hackerIds = [] } = req.body || {};
+    const { 
+      name, 
+      description, 
+      organizationId, 
+      projectAdminId, 
+      hackerIds = [],
+      targetDomains = [],
+      ipRanges = [],
+      excludedAssets = "",
+      startDate = null,
+      endDate = null
+    } = req.body || {};
+
     if (!name || !organizationId) {
       throw new AppError("name and organizationId are required", 400);
     }
@@ -183,6 +196,11 @@ router.post("/", async (req, res, next) => {
         description,
         organizationId,
         status: "PLANNING",
+        targetDomains,
+        ipRanges,
+        excludedAssets,
+        startDate: startDate ? new Date(startDate) : null,
+        endDate: endDate ? new Date(endDate) : null,
         workflows: {
           create: {
             name: `${name} - Main Workflow`,
