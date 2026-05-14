@@ -149,6 +149,7 @@ model HackerProfile {
   yearsOfExperience Int?
   primarySkills     String[]
   certifications    String[]
+  education         String[]
   employment        String[]
   otherExperiences  String[]
   portfolioLinks    String[]
@@ -290,6 +291,13 @@ model Pentest {
   projectAgreements   ProjectAgreement[]
   projectAgreementAcceptances ProjectAgreementAcceptance[]
 
+  // Scope & Timeline
+  targetDomains   String[]
+  ipRanges        String[]
+  excludedAssets  String?
+  startDate       DateTime?
+  endDate         DateTime?
+
   // Timestamps
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -335,10 +343,8 @@ model Finding {
   description String?
   severity    FindingSeverity @default(LOW)
   status      FindingStatus   @default(OPEN)
-  remediation   String?
-  proof         String?
-  affectedAsset String?
-  cvssScore     Float?
+  remediation String?
+  proof       String?
 
   // Relations
   pentest   Pentest @relation(fields: [pentestId], references: [id], onDelete: Cascade)

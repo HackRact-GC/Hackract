@@ -46,6 +46,7 @@ router.get("/", async (req, res, next) => {
           },
         },
         workflows: { select: { id: true, name: true, updatedAt: true } },
+        _count: { select: { findings: true } },
       },
     });
 
@@ -88,7 +89,7 @@ router.post("/personal", async (req, res, next) => {
 
     // Auto-add creator as a HACKER collaborator so they can submit findings
     await prisma.pentestCollaborator.create({
-      data: { pentestId: project.id, userId: req.user.id, role: "HACKER", canEditFindings: true },
+      data: { pentestId: project.id, userId: req.user.id, role: "HACKER" },
     });
 
     await logAction("PERSONAL_WORKSPACE_CREATED", req.user.id, { pentestId: project.id, name }, req);
@@ -167,7 +168,19 @@ router.get("/:projectId", async (req, res, next) => {
 
 router.post("/", async (req, res, next) => {
   try {
-    const { name, description, organizationId, projectAdminId, hackerIds = [] } = req.body || {};
+    const { 
+      name, 
+      description, 
+      organizationId, 
+      projectAdminId, 
+      hackerIds = [],
+      targetDomains = [],
+      ipRanges = [],
+      excludedAssets = "",
+      startDate = null,
+      endDate = null
+    } = req.body || {};
+
     if (!name || !organizationId) {
       throw new AppError("name and organizationId are required", 400);
     }
@@ -183,6 +196,11 @@ router.post("/", async (req, res, next) => {
         description,
         organizationId,
         status: "PLANNING",
+        targetDomains,
+        ipRanges,
+        excludedAssets,
+        startDate: startDate ? new Date(startDate) : null,
+        endDate: endDate ? new Date(endDate) : null,
         workflows: {
           create: {
             name: `${name} - Main Workflow`,
@@ -197,9 +215,9 @@ router.post("/", async (req, res, next) => {
     const uniqueHackers = [...new Set((hackerIds || []).filter(Boolean))];
     const collaboratorRows = [
       ...(projectAdminId
-        ? [{ pentestId: project.id, userId: projectAdminId, role: "PROJECT_ADMIN", canEditFindings: true }]
+        ? [{ pentestId: project.id, userId: projectAdminId, role: "PROJECT_ADMIN" }]
         : []),
-      ...uniqueHackers.map((userId) => ({ pentestId: project.id, userId, role: "HACKER", canEditFindings: true })),
+      ...uniqueHackers.map((userId) => ({ pentestId: project.id, userId, role: "HACKER" })),
     ];
 
     if (collaboratorRows.length > 0) {
