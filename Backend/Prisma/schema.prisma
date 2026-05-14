@@ -149,12 +149,10 @@ model HackerProfile {
   yearsOfExperience Int?
   primarySkills     String[]
   certifications    String[]
-<<<<<<< HEAD
   education         String[]
   employment        String[]
   otherExperiences  String[]
 =======
->>>>>>> parent of da086c4 (Merge pull request #160 from HackRact-GC/Ai_Agent_code)
   portfolioLinks    String[]
   specialization    String?
   idDocumentNumber  String?
