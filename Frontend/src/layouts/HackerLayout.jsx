@@ -36,6 +36,7 @@ const HackerLayout = () => {
     { icon: FiGrid,          label: 'Dashboard',   route: '/hacker-dashboard' },
     { icon: FiFolder,        label: 'Projects',    route: '/projects' },
     { icon: FiShoppingBag,   label: 'Engagements', route: '/engagements' },
+    { icon: FiShield,        label: 'Findings',    route: '/findings' },
     { icon: FiMessageSquare, label: 'Messages',    route: '/messages' },
     { icon: FiFileText,      label: 'Reports',     route: '/my-applications' },
     { icon: FiSettings,      label: 'Settings',    route: '/hacker-profile' },
