@@ -23,6 +23,62 @@ export const getMyProfile = async (userId) => {
   return profile;
 };
 
+/**
+ * Public profile — used by ORG_ADMIN to view a hacker's full approved profile.
+ * Fetches by userId and includes user info + completed pentest projects.
+ */
+export const getPublicProfile = async (userId) => {
+  const profile = await prisma.hackerProfile.findUnique({
+    where: { userId },
+    include: {
+      user: {
+        select: {
+          id: true,
+          fullName: true,
+          handle: true,
+          avatar: true,
+          trustScore: true,
+          nationalIDVerification: { select: { verificationStatus: true } },
+          // Fetch completed pentests where user was lead or collaborator
+          pentestsLed: {
+            where: { status: { in: ['CLOSED', 'REPORTING', 'IN_PROGRESS'] } },
+            select: {
+              id: true, name: true, status: true, createdAt: true,
+              organization: { select: { name: true } }
+            },
+            orderBy: { createdAt: 'desc' },
+            take: 10,
+          },
+          pentestCollaborators: {
+            where: { pentest: { status: { in: ['CLOSED', 'REPORTING', 'IN_PROGRESS'] } } },
+            select: {
+              pentest: {
+                select: {
+                  id: true, name: true, status: true, createdAt: true,
+                  organization: { select: { name: true } }
+                }
+              }
+            },
+            orderBy: { addedAt: 'desc' },
+            take: 10,
+          },
+          reviewsReceived: {
+            select: {
+              id: true, rating: true, comment: true, createdAt: true,
+              author: { select: { fullName: true, handle: true } },
+            },
+            orderBy: { createdAt: 'desc' },
+            take: 10,
+          },
+        },
+      },
+    },
+  });
+
+  if (!profile || profile.status !== 'APPROVED') return null;
+  return profile;
+};
+
 export const upsertMyProfile = async (userId, payload) => {
   const existing = await prisma.hackerProfile.findUnique({ where: { userId } });
 
@@ -44,6 +100,9 @@ export const upsertMyProfile = async (userId, payload) => {
     yearsOfExperience: payload.yearsOfExperience ? Number(payload.yearsOfExperience) : null,
     primarySkills: toArray(payload.primarySkills),
     certifications: toArray(payload.certifications),
+    education: toArray(payload.education),
+    employment: toArray(payload.employment),
+    otherExperiences: toArray(payload.otherExperiences),
     portfolioLinks: toArray(payload.portfolioLinks),
 
     // Extended identity fields
@@ -66,7 +125,7 @@ export const upsertMyProfile = async (userId, payload) => {
   if (payload.fullName || payload.avatar) {
     await prisma.user.update({
       where: { id: userId },
-      data: { 
+      data: {
         ...(payload.fullName && { fullName: payload.fullName }),
         ...(payload.avatar && { avatar: payload.avatar }),
       },
@@ -101,6 +160,70 @@ export const submitMyProfile = async (userId) => {
   await calculateTrustScore(userId);
 
   return updated;
+};
+
+/**
+ * Public discovery endpoint — returns paginated APPROVED hacker profiles.
+ * Supports text search, skill filtering, and cert filtering.
+ */
+export const discoverHackers = async ({ page = 1, limit = 12, search, skills, certs }) => {
+  const skip = (page - 1) * limit;
+
+  // Build the `where` clause
+  const where = { status: 'APPROVED' };
+
+  // Skills filter: profile must have at least one of the selected skills
+  if (skills && skills.length > 0) {
+    where.primarySkills = { hasSome: skills };
+  }
+
+  // Certs filter: profile must have at least one of the selected certs
+  if (certs && certs.length > 0) {
+    where.certifications = { hasSome: certs };
+  }
+
+  // Text search across bio, specialization, country, and joined user fields
+  if (search && search.trim()) {
+    const q = search.trim();
+    where.OR = [
+      { bio: { contains: q, mode: 'insensitive' } },
+      { specialization: { contains: q, mode: 'insensitive' } },
+      { country: { contains: q, mode: 'insensitive' } },
+      { user: { fullName: { contains: q, mode: 'insensitive' } } },
+      { user: { handle: { contains: q, mode: 'insensitive' } } },
+    ];
+  }
+
+  const [profiles, total] = await Promise.all([
+    prisma.hackerProfile.findMany({
+      where,
+      skip,
+      take: limit,
+      orderBy: { createdAt: 'desc' },
+      include: {
+        user: {
+          select: {
+            id: true,
+            fullName: true,
+            handle: true,
+            avatar: true,
+            trustScore: true,
+          },
+        },
+      },
+    }),
+    prisma.hackerProfile.count({ where }),
+  ]);
+
+  return {
+    profiles,
+    pagination: {
+      page,
+      limit,
+      total,
+      totalPages: Math.ceil(total / limit),
+    },
+  };
 };
 
 export const listProfilesForReview = async (statusFilter) => {

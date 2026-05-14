@@ -5,6 +5,7 @@ import { Server } from "socket.io";
 import jwt from "jsonwebtoken";
 import prisma from "./src/database/prismaClient.js";
 import { upsertUserPresence } from "./src/modules/Chat/chat.repository.js";
+import { setupTerminalSocket } from "./src/modules/Terminal/terminal.socket.js";
 
 const PORT = process.env.PORT || 3000;
 const HOST = process.env.HOST || "127.0.0.1";
@@ -197,6 +198,8 @@ const startServer = async () => {
       }
     });
   });
+
+  setupTerminalSocket(io);
 
 
   // ── Helper: broadcast a new message to all participants in a conversation ──

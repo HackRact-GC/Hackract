@@ -50,6 +50,7 @@ import OrganizationChat from "../pages/OrganizationChat.jsx";
 // Agreement Execute
 import AgreementExecute from "../pages/AgreementExecute.jsx";
 import LegalAgreementCreate from "../pages/LegalAgreementCreate.jsx";
+import LegalAgreementList from "../pages/LegalAgreementList.jsx";
 
 // Phase 18 Admin Imports
 import ApprovalsDashboard from "../pages/Admin/ApprovalsDashboard.jsx";
@@ -134,6 +135,14 @@ const router = createBrowserRouter([
             path: "messages",
             element: <HackerChat />,
           },
+          {
+            path: "execute-agreement",
+            element: <AgreementExecute />,
+          },
+          {
+            path: "execute-agreement/:id",
+            element: <AgreementExecute />,
+          },
         ],
       },
 
@@ -185,6 +194,10 @@ const router = createBrowserRouter([
             path: "pa-agreement",
             element: <AgreementExecute />,
           },
+          {
+            path: "execute-agreement/:id",
+            element: <AgreementExecute />,
+          },
         ],
       },
 
@@ -230,6 +243,10 @@ const router = createBrowserRouter([
           },
           {
             path: "legal",
+            element: <LegalAgreementList />,
+          },
+          {
+            path: "legal/create",
             element: <LegalAgreementCreate />,
           },
           {
@@ -238,6 +255,10 @@ const router = createBrowserRouter([
           },
           {
             path: "org-agreement",
+            element: <AgreementExecute />,
+          },
+          {
+            path: "execute-agreement/:id",
             element: <AgreementExecute />,
           },
         ],
@@ -285,14 +306,6 @@ const router = createBrowserRouter([
             </RoleGuard>
           </OnboardingGuard>
         ),
-      },
-      {
-        path: "execute-agreement",
-        element: <OnboardingGuard><AgreementExecute /></OnboardingGuard>,
-      },
-      {
-        path: "execute-agreement/:id",
-        element: <OnboardingGuard><AgreementExecute /></OnboardingGuard>,
       },
       {
         element: <AuthLayout />,

@@ -7,14 +7,129 @@ import ProjectActivity from "./ProjectActivity.jsx";
 import KickoffChecklist from "./KickoffChecklist.jsx";
 import NdaGate from "./NdaGate.jsx";
 import { useAuth } from "../context/authContext.jsx";
-import { FiDownload, FiExternalLink, FiFileText, FiArrowLeft, FiCode, FiPrinter } from "react-icons/fi";
+import { FiDownload, FiExternalLink, FiFileText, FiArrowLeft, FiCode, FiPrinter, FiGlobe, FiServer, FiFileMinus, FiCalendar, FiPlus, FiUserPlus, FiTrash2, FiSearch, FiX, FiSend } from "react-icons/fi";
+
+const InviteMemberModal = ({ projectId, onClose, onInvited }) => {
+  const [search, setSearch] = useState("");
+  const [results, setResults] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [sending, setSending] = useState(null);
+
+  const handleSearch = async () => {
+    if (!search.trim()) return;
+    setLoading(true);
+    try {
+      const { data } = await api.get(`/users?search=${search}`);
+      setResults(data.data || []);
+    } catch (e) {
+      toast.error("Failed to find users");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const sendInvite = async (hackerId) => {
+    setSending(hackerId);
+    try {
+      await api.post(`/invitations`, {
+        pentestId: projectId,
+        hackerId,
+        message: "You have been invited to collaborate on this security program.",
+      });
+      toast.success("Invitation sent!");
+      onInvited();
+    } catch (e) {
+      toast.error(e?.response?.data?.error || "Failed to send invitation");
+    } finally {
+      setSending(null);
+    }
+  };
+
+  return (
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      className="fixed inset-0 bg-black/80 backdrop-blur-md z-[100] flex items-center justify-center p-6"
+      onClick={onClose}
+    >
+      <motion.div
+        initial={{ opacity: 0, scale: 0.95 }}
+        animate={{ opacity: 1, scale: 1 }}
+        className="bg-[#0a0a0a] border border-white/10 rounded-4xl w-full max-w-lg overflow-hidden shadow-2xl shadow-black"
+        onClick={e => e.stopPropagation()}
+      >
+        <div className="p-8 space-y-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <h3 className="text-xl font-bold text-white tracking-tight">Deploy Personnel</h3>
+              <p className="text-[10px] text-white/20 font-mono tracking-[0.2em] mt-1">SEARCH & AUTHORIZE OPERATORS</p>
+            </div>
+            <button onClick={onClose} className="p-2 rounded-xl hover:bg-white/5 text-white/20 hover:text-white transition-all">
+              <FiX size={20} />
+            </button>
+          </div>
+
+          <div className="relative">
+            <input
+              autoFocus
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+              onKeyDown={e => e.key === 'Enter' && handleSearch()}
+              placeholder="Search by handle or email..."
+              className="w-full bg-black border border-white/10 rounded-2xl px-5 py-4 text-sm text-white outline-none focus:border-[#00ff88]/50 transition-all font-medium"
+            />
+            <button
+              onClick={handleSearch}
+              className="absolute right-3 top-3 p-2 bg-[#00ff88] text-black rounded-xl hover:scale-105 active:scale-95 transition-all"
+            >
+              <FiSearch size={16} />
+            </button>
+          </div>
+
+          <div className="max-h-[300px] overflow-y-auto space-y-3 pr-2 scrollbar-hide">
+            {loading ? (
+              <div className="py-12 flex justify-center"><div className="w-6 h-6 border-2 border-white/10 border-t-[#00ff88] rounded-full animate-spin" /></div>
+            ) : results.length > 0 ? (
+              results.map(u => (
+                <div key={u.id} className="flex items-center justify-between p-4 bg-white/5 rounded-2xl border border-white/5 group hover:border-white/10 transition-all">
+                  <div className="flex items-center gap-4">
+                    <div className="w-10 h-10 rounded-xl bg-black border border-white/10 flex items-center justify-center font-bold text-[#00ff88]">
+                      {u.fullName?.[0] || "?"}
+                    </div>
+                    <div>
+                      <p className="text-sm font-bold text-white tracking-tight">{u.fullName}</p>
+                      <p className="text-[10px] text-white/40 font-mono tracking-tighter">{u.handle} • {u.email}</p>
+                    </div>
+                  </div>
+                  <button
+                    disabled={sending === u.id}
+                    onClick={() => sendInvite(u.id)}
+                    className="p-3 bg-white/5 hover:bg-[#00ff88] text-white/40 hover:text-black rounded-xl transition-all border border-white/5 hover:border-[#00ff88] disabled:opacity-50"
+                  >
+                    {sending === u.id ? <div className="w-4 h-4 border-2 border-black/20 border-t-black rounded-full animate-spin" /> : <FiSend size={14} />}
+                  </button>
+                </div>
+              ))
+            ) : search && !loading ? (
+              <p className="text-center py-10 text-[10px] text-white/20 uppercase tracking-widest font-mono">No operators found matching criteria</p>
+            ) : (
+              <p className="text-center py-10 text-[10px] text-white/20 uppercase tracking-widest font-mono italic">Enter credentials to begin search</p>
+            )}
+          </div>
+        </div>
+      </motion.div>
+    </motion.div>
+  );
+};
 
 const WorkspaceView = ({ projectId, onBack }) => {
   const navigate = useNavigate();
   const { user } = useAuth();
   const [project, setProject] = useState(null);
-  const [activeTab, setActiveTab] = useState("overview");
   const [loading, setLoading] = useState(true);
+  const [activeTab, setActiveTab] = useState("overview");
+  const [showInvite, setShowInvite] = useState(false);
 
   const workspaceName = project?.name || "Project Workspace";
 
@@ -116,7 +231,7 @@ const WorkspaceView = ({ projectId, onBack }) => {
 
         {/* Tabs */}
         <div className="flex bg-black/60 p-1.5 rounded-2xl border border-white/10 w-fit">
-          {["overview", "workflow", "findings", ...(canManage ? ["hiring"] : [])].map((tab) => (
+          {["overview", "workflow", "findings", "team", ...(canManage ? ["hiring"] : [])].map((tab) => (
             <button
               key={tab}
               onClick={() => setActiveTab(tab)}
@@ -133,32 +248,92 @@ const WorkspaceView = ({ projectId, onBack }) => {
         <div className="min-h-[400px]">
           {activeTab === "overview" && (
             <div className="grid lg:grid-cols-3 gap-8">
-              <div className="lg:col-span-1 space-y-6">
-                <div className="bg-black/70 backdrop-blur-md border border-white/10 p-8 rounded-4xl space-y-6">
+              <div className="lg:col-span-1 space-y-6">                <div className="bg-black/70 backdrop-blur-md border border-white/10 p-8 rounded-4xl space-y-6">
                   <div>
                     <h3 className="text-xs font-black text-white/40 uppercase tracking-[0.2em] mb-4">Mission Scope</h3>
-                    <p className="text-sm text-white/80 leading-relaxed font-medium">
+                    <p className="text-sm text-white/80 leading-relaxed font-medium mb-6">
                       {project.description || "Mission parameters are currently classified."}
                     </p>
+
+                    <div className="space-y-4 pt-4 border-t border-white/5">
+                      {project.targetDomains?.length > 0 && (
+                        <div className="flex flex-col gap-1.5">
+                          <span className="text-[10px] font-black text-white/30 uppercase tracking-widest flex items-center gap-2">
+                            <FiGlobe size={10} /> Target Domains
+                          </span>
+                          <div className="flex flex-wrap gap-1.5">
+                            {project.targetDomains.map(d => (
+                              <span key={d} className="px-2 py-0.5 bg-white/5 border border-white/10 rounded-md text-[10px] font-mono text-[#00ff88]">
+                                {d}
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                      
+                      {project.ipRanges?.length > 0 && (
+                        <div className="flex flex-col gap-1.5">
+                          <span className="text-[10px] font-black text-white/30 uppercase tracking-widest flex items-center gap-2">
+                            <FiServer size={10} /> IP Ranges
+                          </span>
+                          <div className="flex flex-wrap gap-1.5">
+                            {project.ipRanges.map(ip => (
+                              <span key={ip} className="px-2 py-0.5 bg-white/5 border border-white/10 rounded-md text-[10px] font-mono text-[#00ff88]">
+                                {ip}
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      {project.excludedAssets && (
+                        <div className="flex flex-col gap-1.5">
+                          <span className="text-[10px] font-black text-rose-400/50 uppercase tracking-widest flex items-center gap-2">
+                            <FiFileMinus size={10} /> Excluded Assets
+                          </span>
+                          <p className="text-[11px] text-rose-200/60 leading-relaxed">
+                            {project.excludedAssets}
+                          </p>
+                        </div>
+                      )}
+
+                      {(project.startDate || project.endDate) && (
+                        <div className="flex flex-col gap-1.5">
+                          <span className="text-[10px] font-black text-white/30 uppercase tracking-widest flex items-center gap-2">
+                            <FiCalendar size={10} /> Testing Schedule
+                          </span>
+                          <p className="text-[11px] text-white/60 font-mono">
+                            {project.startDate ? new Date(project.startDate).toLocaleDateString() : 'TBD'} 
+                            <span className="mx-2 text-white/20">→</span> 
+                            {project.endDate ? new Date(project.endDate).toLocaleDateString() : 'TBD'}
+                          </p>
+                        </div>
+                      )}
+                    </div>
                   </div>
 
                   <div className="pt-6 border-t border-white/5 space-y-4">
-                    <h3 className="text-xs font-black text-white/40 uppercase tracking-[0.2em]">Authorized Team</h3>
+                    <div className="flex items-center justify-between">
+                      <h3 className="text-xs font-black text-white/40 uppercase tracking-[0.2em]">Authorized Team</h3>
+                      <button 
+                        onClick={() => setActiveTab('team')}
+                        className="text-[9px] font-black text-[#00ff88] uppercase tracking-widest hover:underline"
+                      >
+                        Manage
+                      </button>
+                    </div>
                     <div className="space-y-3">
-                      {hackers.map((h) => (
+                      {project.collaborators?.filter(c => c.role !== 'APPLICANT').map((h) => (
                         <div key={h.id} className="flex items-center gap-3 p-3 bg-white/5 rounded-2xl border border-white/5">
                           <div className="w-8 h-8 rounded-xl bg-black border border-white/10 flex items-center justify-center text-[10px] font-bold text-[#00ff88]">
                             {h.user?.fullName?.[0] || "U"}
                           </div>
                           <div>
                             <p className="text-[10px] font-bold text-white uppercase tracking-widest">{h.user?.fullName || h.user?.email}</p>
-                            <p className="text-[9px] text-[#00ff88]/60 font-mono">OPERATOR</p>
+                            <p className="text-[9px] text-[#00ff88]/60 font-mono">{h.role}</p>
                           </div>
                         </div>
                       ))}
-                      {hackers.length === 0 && (
-                        <p className="text-[10px] text-white/40 uppercase tracking-widest italic">No operators deployed.</p>
-                      )}
                     </div>
                   </div>
                 </div>
@@ -334,6 +509,61 @@ const WorkspaceView = ({ projectId, onBack }) => {
             </div>
           )}
 
+          {activeTab === "team" && (
+            <div className="bg-black/70 backdrop-blur-md border border-white/10 p-8 rounded-4xl space-y-8">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="text-xs font-black text-white/40 uppercase tracking-[0.2em] mb-1">Personnel Management</h3>
+                  <p className="text-[10px] text-white/20 font-mono tracking-widest">AUTHORIZED PROJECT STAFF</p>
+                </div>
+                {canManage && (
+                  <button 
+                    onClick={() => setShowInvite(true)}
+                    className="flex items-center gap-2 px-4 py-2 bg-[#00ff88] text-black rounded-xl text-[10px] font-black uppercase tracking-widest hover:scale-105 transition-all shadow-lg shadow-[#00ff88]/10"
+                  >
+                    <FiUserPlus size={14} /> Invite Member
+                  </button>
+                )}
+              </div>
+
+              <div className="grid gap-4">
+                {project.collaborators?.filter(c => c.role !== 'APPLICANT').map((member) => (
+                  <div key={member.id} className="bg-black border border-white/5 p-6 rounded-3xl flex items-center justify-between group hover:border-[#00ff88]/30 transition-all">
+                    <div className="flex items-center gap-4">
+                      <div className="w-12 h-12 rounded-2xl bg-white/5 border border-white/5 flex items-center justify-center font-bold text-[#00ff88] shadow-inner text-xl">
+                        {member.user?.fullName?.[0] || "?"}
+                      </div>
+                      <div>
+                        <div className="font-bold text-sm tracking-tight text-white">{member.user?.fullName || "Anonymous"}</div>
+                        <div className="flex items-center gap-2 mt-1">
+                          <span className={`text-[9px] px-2 py-0.5 rounded-full font-black uppercase tracking-widest ${
+                            member.role === 'PROJECT_ADMIN' ? 'bg-purple-500/20 text-purple-400' : 'bg-[#00ff88]/20 text-[#00ff88]'
+                          }`}>
+                            {member.role}
+                          </span>
+                          <span className="text-[10px] text-white/20 font-mono tracking-tighter">
+                            {member.user?.email}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                    
+                    {canManage && member.userId !== user?.id && (
+                      <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <button className="p-2.5 rounded-xl bg-white/5 hover:bg-white/10 text-white/40 hover:text-white transition-all border border-white/5">
+                          <FiEdit2 size={14} />
+                        </button>
+                        <button className="p-2.5 rounded-xl bg-rose-500/5 hover:bg-rose-500/10 text-rose-500/40 hover:text-rose-500 transition-all border border-white/5">
+                          <FiTrash2 size={14} />
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
           {activeTab === "hiring" && canManage && (
             <div className="bg-black/70 backdrop-blur-md border border-white/10 p-8 rounded-4xl space-y-8">
               <h3 className="text-xs font-black text-white/40 uppercase tracking-[0.2em]">Application Pipeline</h3>
@@ -368,6 +598,18 @@ const WorkspaceView = ({ projectId, onBack }) => {
           )}
         </div>
       </motion.div>
+
+      <AnimatePresence>
+        {showInvite && (
+          <InviteMemberModal
+            projectId={projectId}
+            onClose={() => setShowInvite(false)}
+            onInvited={() => {
+              // Optionally refresh invitations or team list
+            }}
+          />
+        )}
+      </AnimatePresence>
     </NdaGate>
   );
 };

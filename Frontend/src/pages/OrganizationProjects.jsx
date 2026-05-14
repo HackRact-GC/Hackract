@@ -1,84 +1,33 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   FiShield, FiPlus, FiX, FiUsers, FiClock, FiTarget,
   FiActivity, FiArrowRight, FiCheck, FiAlertTriangle,
   FiBriefcase, FiBarChart2, FiPieChart,
-  FiMoreVertical, FiEdit2, FiTrash2, FiExternalLink, FiCalendar
+  FiMoreVertical, FiEdit2, FiTrash2, FiExternalLink, FiCalendar, FiGlobe, FiServer, FiFileMinus
 } from 'react-icons/fi';
+import api from '../api/axiosConfig';
+import { useAuth } from '../context/authContext';
+import toast from 'react-hot-toast';
 
 // ─── MOCK DATA ───────────────────────────────────────────────────────────────
-const MOCK_PROJECTS = [
-  {
-    id: 1,
-    name: "Alpha Bank Core API Pentest",
-    description: "Comprehensive penetration test on core banking REST API endpoints. Scope includes authentication, IDOR, and rate limiting.",
-    status: "IN_PROGRESS",
-    threatLevel: "CRITICAL",
-    assignedHackers: [
-      { name: "Null_Pointer_Ex", avatar: "https://api.dicebear.com/7.x/identicon/svg?seed=NullPointer&baseColor=00c477" },
-      { name: "Cyber_Sentinel", avatar: "https://api.dicebear.com/7.x/identicon/svg?seed=Sentinel&baseColor=00c477" },
-    ],
-    findings: 14,
-    createdAt: "Apr 01, 2026",
-    deadline: "Apr 28, 2026",
-  },
-  {
-    id: 2,
-    name: "CloudStack Infrastructure Audit",
-    description: "AWS S3, IAM, and VPC misconfiguration review. Focus on privilege escalation paths.",
-    status: "PLANNING",
-    threatLevel: "HIGH",
-    assignedHackers: [
-      { name: "Ghost_Shell", avatar: "https://api.dicebear.com/7.x/identicon/svg?seed=Ghost&baseColor=00c477" },
-    ],
-    findings: 0,
-    createdAt: "Apr 09, 2026",
-    deadline: "May 15, 2026",
-  },
-  {
-    id: 3,
-    name: "Mobile App Security Review",
-    description: "Android & iOS binary analysis, certificate pinning bypass, local storage inspection.",
-    status: "REPORTING",
-    threatLevel: "MEDIUM",
-    assignedHackers: [
-      { name: "Packet_Wizard", avatar: "https://api.dicebear.com/7.x/identicon/svg?seed=Wizard&baseColor=00c477" },
-      { name: "Root_Access", avatar: "https://api.dicebear.com/7.x/identicon/svg?seed=Root&baseColor=00c477" },
-    ],
-    findings: 27,
-    createdAt: "Mar 12, 2026",
-    deadline: "Apr 20, 2026",
-  },
-  {
-    id: 4,
-    name: "Zero-Day Research Program",
-    description: "Open-scope research engagement. All subdomains and APIs in scope.",
-    status: "CLOSED",
-    threatLevel: "CRITICAL",
-    assignedHackers: [
-      { name: "Buffer_Overrun", avatar: "https://api.dicebear.com/7.x/identicon/svg?seed=Buffer&baseColor=00c477" },
-    ],
-    findings: 53,
-    createdAt: "Jan 05, 2026",
-    deadline: "Mar 31, 2026",
-  },
-];
+// Mock data is now only a fallback or removed in favor of real API data
+const FALLBACK_PROJECTS = [];
 
 // ─── CONSTANTS & CONFIG (Executive Black & Green Theme) ───────────────────────
 const STATUS_CONFIG = {
-  PLANNING:    { label: "Planning",    color: "text-amber-400",  bg: "bg-amber-400/10",  border: "border-amber-400/30" },
-  IN_PROGRESS: { label: "In Progress", color: "text-[#00c477]", bg: "bg-[#00c477]/10", border: "border-[#00c477]/30"  },
-  REPORTING:   { label: "Reporting",   color: "text-purple-400", bg: "bg-purple-400/10", border: "border-purple-400/30"},
-  CLOSED:      { label: "Closed",      color: "text-gray-500",   bg: "bg-gray-500/10",   border: "border-gray-500/30"  },
+  PLANNING: { label: "Planning", color: "text-amber-400", bg: "bg-amber-400/10", border: "border-amber-400/30" },
+  IN_PROGRESS: { label: "In Progress", color: "text-[#00c477]", bg: "bg-[#00c477]/10", border: "border-[#00c477]/30" },
+  REPORTING: { label: "Reporting", color: "text-purple-400", bg: "bg-purple-400/10", border: "border-purple-400/30" },
+  CLOSED: { label: "Closed", color: "text-gray-500", bg: "bg-gray-500/10", border: "border-gray-500/30" },
 };
 
 const THREAT_CONFIG = {
-  CRITICAL: { color: "text-rose-500",   bg: "bg-rose-500/10",   border: "border-rose-500/30"    },
-  HIGH:     { color: "text-amber-500",  bg: "bg-amber-500/10",  border: "border-amber-500/30" },
-  MEDIUM:   { color: "text-[#00c477]",  bg: "bg-[#00c477]/10",  border: "border-[#00c477]/30" },
-  LOW:      { color: "text-gray-400",   bg: "bg-gray-400/10",   border: "border-gray-500/30"   },
+  CRITICAL: { color: "text-rose-500", bg: "bg-rose-500/10", border: "border-rose-500/30" },
+  HIGH: { color: "text-amber-500", bg: "bg-amber-500/10", border: "border-amber-500/30" },
+  MEDIUM: { color: "text-[#00c477]", bg: "bg-[#00c477]/10", border: "border-[#00c477]/30" },
+  LOW: { color: "text-gray-400", bg: "bg-gray-400/10", border: "border-gray-500/30" },
 };
 
 const FILTERS = ["ALL", "PLANNING", "IN_PROGRESS", "REPORTING", "CLOSED"];
@@ -139,16 +88,15 @@ const ProjectCard = ({ project, onManage, index }) => {
                 className="absolute right-0 top-10 bg-[#111] border border-white/10 rounded-xl p-1.5 min-w-[170px] shadow-[0_20px_40px_-5px_rgba(0,0,0,0.8)] backdrop-blur-xl z-20"
               >
                 {[
-                  { icon: FiEdit2, label: "Edit Details", action: () => {} },
+                  { icon: FiEdit2, label: "Edit Details", action: () => { } },
                   { icon: FiExternalLink, label: "Open Workspace", action: () => onManage(project.id) },
-                  { icon: FiTrash2, label: "Archive Program", action: () => {}, destructive: true },
+                  { icon: FiTrash2, label: "Archive Program", action: () => { }, destructive: true },
                 ].map(item => (
                   <button
                     key={item.label}
                     onClick={() => { item.action(); setMenuOpen(false); }}
-                    className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-[13px] font-medium transition-colors text-left ${
-                      item.destructive ? 'text-rose-400 hover:bg-rose-500/10' : 'text-gray-300 hover:text-white hover:bg-white/5'
-                    }`}
+                    className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-[13px] font-medium transition-colors text-left ${item.destructive ? 'text-rose-400 hover:bg-rose-500/10' : 'text-gray-300 hover:text-white hover:bg-white/5'
+                      }`}
                   >
                     <item.icon fontSize={14} />
                     {item.label}
@@ -171,27 +119,36 @@ const ProjectCard = ({ project, onManage, index }) => {
       {/* Assigned hackers */}
       <div className="flex items-center gap-3 mb-6 p-3 rounded-xl bg-white/[0.02] border border-white/5">
         <div className="flex -space-x-2">
-          {project.assignedHackers.map((h, i) => (
-            <img
+          {(project.collaborators || []).slice(0, 3).map((c, i) => (
+            <div
               key={i}
-              src={h.avatar}
-              alt={h.name}
-              title={h.name}
-              className="w-8 h-8 rounded-full border-2 border-[#0a0a0a] bg-black"
-            />
+              className="w-8 h-8 rounded-full border-2 border-[#0a0a0a] bg-black flex items-center justify-center text-[10px] font-bold text-[#00c477] overflow-hidden"
+              title={c.user?.fullName || c.user?.email}
+            >
+              {c.user?.avatar ? (
+                <img src={c.user.avatar} alt="avatar" className="w-full h-full object-cover" />
+              ) : (
+                <span>{(c.user?.fullName || "H")[0].toUpperCase()}</span>
+              )}
+            </div>
           ))}
-          {project.assignedHackers.length === 0 && (
+          {(project.collaborators?.length || 0) === 0 && (
             <div className="w-8 h-8 rounded-full border-2 border-dashed border-gray-600 flex items-center justify-center bg-[#0a0a0a]">
               <FiPlus className="text-gray-400 text-[10px]" />
+            </div>
+          )}
+          {(project.collaborators?.length || 0) > 3 && (
+            <div className="w-8 h-8 rounded-full border-2 border-[#0a0a0a] bg-white/5 flex items-center justify-center text-[9px] text-gray-400 font-bold">
+              +{(project.collaborators.length - 3)}
             </div>
           )}
         </div>
         <div className="flex flex-col">
           <span className="text-[11px] text-gray-300 font-medium font-sans">
-            Assigned Hackers
+            Assigned Team
           </span>
           <span className="text-[10px] text-gray-500">
-            {project.assignedHackers.length === 0 ? 'None assigned' : `${project.assignedHackers.length} Active`}
+            {(project.collaborators?.length || 0) === 0 ? 'None assigned' : `${project.collaborators.length} Members`}
           </span>
         </div>
       </div>
@@ -200,13 +157,13 @@ const ProjectCard = ({ project, onManage, index }) => {
       <div className="flex items-center justify-between pt-4 border-t border-white/5 text-[12px] font-medium text-gray-400">
         <div className="flex items-center gap-2">
           <div className="w-6 h-6 rounded-md bg-[#00c477]/10 flex items-center justify-center text-[#00c477]">
-             <FiTarget size={12} />
+            <FiTarget size={12} />
           </div>
-          <span className="text-gray-200 font-bold">{project.findings} <span className="font-normal text-gray-500">Findings</span></span>
+          <span className="text-gray-200 font-bold">{project.findings?.length || 0} <span className="font-normal text-gray-500">Findings</span></span>
         </div>
         <div className={`flex items-center gap-1.5 ${isOverdue ? 'text-rose-400 bg-rose-500/10 px-2 py-1 rounded-md' : ''}`}>
           <FiCalendar size={13} />
-          <span>{project.deadline}</span>
+          <span>{project.endDate ? new Date(project.endDate).toLocaleDateString() : 'No deadline'}</span>
         </div>
       </div>
 
@@ -223,9 +180,17 @@ const ProjectCard = ({ project, onManage, index }) => {
 };
 
 // ─── CREATE PROJECT MODAL ─────────────────────────────────────────────────────
-const CreateProjectModal = ({ onClose, onCreate }) => {
+const CreateProjectModal = ({ onClose, onCreate, organizationId }) => {
   const [form, setForm] = useState({
-    name: '', description: '', type: 'WEB_APP', threatLevel: 'HIGH', deadline: '',
+    name: '',
+    description: '',
+    type: 'WEB_APP',
+    threatLevel: 'HIGH',
+    startDate: '',
+    endDate: '',
+    targetDomains: '', // Will split by newline/comma
+    ipRanges: '',      // Will split by newline/comma
+    excludedAssets: '',
   });
   const [loading, setLoading] = useState(false);
 
@@ -233,18 +198,26 @@ const CreateProjectModal = ({ onClose, onCreate }) => {
     e.preventDefault();
     if (!form.name.trim()) return;
     setLoading(true);
-    // Simulate API call
-    await new Promise(r => setTimeout(r, 800));
-    onCreate({ 
-      ...form, 
-      id: Date.now(), 
-      status: 'PLANNING', 
-      assignedHackers: [], 
-      findings: 0, 
-      createdAt: 'Today' 
-    });
-    setLoading(false);
-    onClose();
+
+    try {
+      const payload = {
+        ...form,
+        organizationId,
+        targetDomains: form.targetDomains.split(/[\n,]+/).map(s => s.trim()).filter(Boolean),
+        ipRanges: form.ipRanges.split(/[\n,]+/).map(s => s.trim()).filter(Boolean),
+      };
+
+      const { data } = await api.post('/projects', payload);
+      if (data.success) {
+        toast.success("Security program initialized!");
+        onCreate(data.data);
+        onClose();
+      }
+    } catch (error) {
+      toast.error(error?.response?.data?.error || "Failed to initialize program");
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -281,27 +254,14 @@ const CreateProjectModal = ({ onClose, onCreate }) => {
             </p>
           </div>
 
-          <div className="relative z-10 mt-10">
-            <div className="bg-black/50 border border-white/5 rounded-xl p-5 backdrop-blur-md">
-              <div className="flex items-center justify-between mb-3">
-                <div className="flex items-center gap-2.5">
-                  <div className="w-2 h-2 rounded-full bg-[#00c477] animate-pulse shadow-[0_0_8px_#00c477]" />
-                  <span className="text-[10px] font-black text-white tracking-widest uppercase">Network Status</span>
-                </div>
-                <FiActivity className="text-[#00c477]/50" />
-              </div>
-              <p className="text-[11px] text-gray-500 font-mono leading-relaxed">
-                Sentinel Command is ready to deploy your infrastructure requirements to the verified hacker network.
-              </p>
-            </div>
-          </div>
+
         </div>
 
         {/* Right Pane - Form Fields */}
         <div className="md:w-7/12 p-8 md:p-10 relative bg-[#0a0a0a]">
-          <button 
-            type="button" 
-            onClick={onClose} 
+          <button
+            type="button"
+            onClick={onClose}
             className="absolute top-6 right-6 w-8 h-8 rounded-full flex items-center justify-center text-gray-500 hover:text-white hover:bg-white/10 transition-colors z-20"
           >
             <FiX size={18} />
@@ -329,19 +289,16 @@ const CreateProjectModal = ({ onClose, onCreate }) => {
               </label>
               <div className="grid grid-cols-3 gap-3">
                 {[
-                  { id: 'WEB_APP', label: 'Web App' },
-                  { id: 'MOBILE', label: 'Mobile' },
-                  { id: 'NETWORK', label: 'Network' }
+                  { id: 'WEB_APP', label: 'Web App' }
                 ].map(type => (
                   <button
                     key={type.id}
                     type="button"
                     onClick={() => setForm(f => ({ ...f, type: type.id }))}
-                    className={`py-2.5 rounded-lg text-xs font-bold transition-all border ${
-                      form.type === type.id 
-                        ? 'bg-[#00c477]/10 border-[#00c477] text-[#00c477]' 
-                        : 'bg-black border-white/5 text-gray-500 hover:border-white/20'
-                    }`}
+                    className={`py-2.5 rounded-lg text-xs font-bold transition-all border ${form.type === type.id
+                      ? 'bg-[#00c477]/10 border-[#00c477] text-[#00c477]'
+                      : 'bg-black border-white/5 text-gray-500 hover:border-white/20'
+                      }`}
                   >
                     {type.label}
                   </button>
@@ -352,14 +309,54 @@ const CreateProjectModal = ({ onClose, onCreate }) => {
             {/* Objectives */}
             <div>
               <label className="text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-2.5 block">
-                Objectives & Scope Directives
+                Objectives & Mission Directives
               </label>
               <textarea
                 value={form.description}
                 onChange={e => setForm(f => ({ ...f, description: e.target.value }))}
-                rows={3}
-                placeholder="Detail the primary systems, authorized subdomains, and specific attack vectors to test..."
-                className="w-full bg-[#050505] border border-white/10 focus:border-[#00c477] focus:ring-1 focus:ring-[#00c477] rounded-xl px-4 py-3.5 text-sm text-white outline-none transition-all placeholder-gray-600 resize-none shadow-inner"
+                rows={2}
+                placeholder="Detail the primary systems and attack vectors to test..."
+                className="w-full bg-[#050505] border border-white/10 focus:border-[#00c477] focus:ring-1 focus:ring-[#00c477] rounded-xl px-4 py-3 text-sm text-white outline-none transition-all placeholder-gray-600 resize-none shadow-inner"
+              />
+            </div>
+
+            {/* Scope Details */}
+            <div className="grid grid-cols-2 gap-5">
+              <div>
+                <label className="text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-2.5 block flex items-center gap-2">
+                  <FiGlobe className="text-[#00c477]" /> Target Domains
+                </label>
+                <textarea
+                  value={form.targetDomains}
+                  onChange={e => setForm(f => ({ ...f, targetDomains: e.target.value }))}
+                  rows={2}
+                  placeholder="e.g. api.hackract.com, *.hackract.com"
+                  className="w-full bg-[#050505] border border-white/10 focus:border-[#00c477] focus:ring-1 focus:ring-[#00c477] rounded-xl px-4 py-3 text-xs text-white outline-none transition-all placeholder-gray-600 resize-none shadow-inner"
+                />
+              </div>
+              <div>
+                <label className="text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-2.5 block flex items-center gap-2">
+                  <FiServer className="text-[#00c477]" /> IP Ranges
+                </label>
+                <textarea
+                  value={form.ipRanges}
+                  onChange={e => setForm(f => ({ ...f, ipRanges: e.target.value }))}
+                  rows={2}
+                  placeholder="e.g. 192.168.1.0/24"
+                  className="w-full bg-[#050505] border border-white/10 focus:border-[#00c477] focus:ring-1 focus:ring-[#00c477] rounded-xl px-4 py-3 text-xs text-white outline-none transition-all placeholder-gray-600 resize-none shadow-inner"
+                />
+              </div>
+            </div>
+
+            <div>
+              <label className="text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-2.5 block flex items-center gap-2">
+                <FiFileMinus className="text-rose-500" /> Excluded Assets
+              </label>
+              <input
+                value={form.excludedAssets}
+                onChange={e => setForm(f => ({ ...f, excludedAssets: e.target.value }))}
+                placeholder="Identify systems strictly out of scope..."
+                className="w-full bg-[#050505] border border-white/10 focus:border-[#00c477] focus:ring-1 focus:ring-[#00c477] rounded-xl px-4 py-3 text-sm text-white outline-none transition-all placeholder-gray-600 shadow-inner"
               />
             </div>
 
@@ -367,32 +364,25 @@ const CreateProjectModal = ({ onClose, onCreate }) => {
             <div className="grid grid-cols-2 gap-5">
               <div>
                 <label className="text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-2.5 block">
-                  Threat Tier
-                </label>
-                <div className="relative">
-                  <select
-                    value={form.threatLevel}
-                    onChange={e => setForm(f => ({ ...f, threatLevel: e.target.value }))}
-                    className="w-full bg-[#050505] border border-white/10 focus:border-[#00c477] focus:ring-1 focus:ring-[#00c477] rounded-xl px-4 py-3.5 text-sm text-white outline-none transition-all appearance-none"
-                  >
-                    {['CRITICAL', 'HIGH', 'MEDIUM', 'LOW'].map(l => (
-                      <option key={l} value={l}>{l.charAt(0) + l.slice(1).toLowerCase()} Priority</option>
-                    ))}
-                  </select>
-                  <div className="absolute inset-y-0 right-4 flex items-center pointer-events-none">
-                    <FiAlertTriangle className="text-gray-500 text-sm" />
-                  </div>
-                </div>
-              </div>
-              <div>
-                <label className="text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-2.5 block">
-                  Target Deadline
+                  Engagement Window (Start)
                 </label>
                 <input
                   type="date"
-                  value={form.deadline}
-                  onChange={e => setForm(f => ({ ...f, deadline: e.target.value }))}
-                  className="w-full bg-[#050505] border border-white/10 focus:border-[#00c477] focus:ring-1 focus:ring-[#00c477] rounded-xl px-4 py-3.5 text-sm text-white outline-none transition-all"
+                  value={form.startDate}
+                  onChange={e => setForm(f => ({ ...f, startDate: e.target.value }))}
+                  className="w-full bg-[#050505] border border-white/10 focus:border-[#00c477] focus:ring-1 focus:ring-[#00c477] rounded-xl px-4 py-3 text-sm text-white outline-none transition-all"
+                  style={{ colorScheme: 'dark' }}
+                />
+              </div>
+              <div>
+                <label className="text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-2.5 block">
+                  Target Deadline (End)
+                </label>
+                <input
+                  type="date"
+                  value={form.endDate}
+                  onChange={e => setForm(f => ({ ...f, endDate: e.target.value }))}
+                  className="w-full bg-[#050505] border border-white/10 focus:border-[#00c477] focus:ring-1 focus:ring-[#00c477] rounded-xl px-4 py-3 text-sm text-white outline-none transition-all"
                   style={{ colorScheme: 'dark' }}
                 />
               </div>
@@ -429,21 +419,52 @@ const CreateProjectModal = ({ onClose, onCreate }) => {
 // ─── MAIN COMPONENT ───────────────────────────────────────────────────────────
 const OrganizationProjects = () => {
   const navigate = useNavigate();
-  const [projects, setProjects] = useState(MOCK_PROJECTS);
+  const { user } = useAuth();
+  const [projects, setProjects] = useState([]);
   const [filter, setFilter] = useState('ALL');
   const [showCreate, setShowCreate] = useState(false);
+  const [loading, setLoading] = useState(true);
+
+  // Get the active organization for this user
+  const organization = useMemo(() => user?.organizations?.[0]?.organization, [user]);
+
+  const fetchProjects = async () => {
+    if (!organization?.id) return;
+    setLoading(true);
+    try {
+      const { data } = await api.get(`/projects?organizationId=${organization.id}`);
+      setProjects(data.data || []);
+    } catch (error) {
+      toast.error("Failed to sync security programs");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchProjects();
+  }, [organization?.id]);
 
   const filtered = filter === 'ALL' ? projects : projects.filter(p => p.status === filter);
-  const totalHackers = projects.reduce((acc, p) => acc + p.assignedHackers.length, 0);
-  const totalFindings = projects.reduce((acc, p) => acc + p.findings, 0);
+  const totalHackers = projects.reduce((acc, p) => acc + (p.collaborators?.filter(c => c.role === 'HACKER') || []).length, 0);
+  const totalFindings = projects.reduce((acc, p) => acc + (p.findings || []).length, 0);
   const activeCount = projects.filter(p => p.status === 'IN_PROGRESS').length;
+
+  if (loading && projects.length === 0) {
+    return (
+      <div className="flex flex-col items-center justify-center py-64 bg-[#050505] -m-10 min-h-screen">
+        <div className="w-12 h-12 border-2 border-white/10 border-t-[#00c477] rounded-full animate-spin mb-4" />
+        <span className="text-[10px] font-black text-white/40 uppercase tracking-[0.3em]">Syncing Mission Grid</span>
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col h-full bg-[#050505] -m-10 min-h-screen text-gray-200 font-sans selection:bg-[#00c477]/30">
-      
+
       {/* ── Header Area ── */}
       <div className="relative overflow-hidden px-10 pt-12 pb-8 border-b border-white/5 bg-[#050505] z-10">
-        
+
         {/* Subtle Decorative Elements */}
         <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-[#00c477]/5 rounded-full blur-[120px] pointer-events-none" />
 
@@ -477,10 +498,10 @@ const OrganizationProjects = () => {
         {/* Stats Strip */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-5 mt-10 max-w-7xl mx-auto">
           {[
-            { label: "Total Initiatives",  value: projects.length,  icon: FiBriefcase,    color: "text-[#00c477]", bg: "bg-[#00c477]/10" },
-            { label: "Active Audits",      value: activeCount,       icon: FiActivity,     color: "text-cyan-400",  bg: "bg-cyan-500/10"  },
-            { label: "Consultants",        value: totalHackers,      icon: FiUsers,        color: "text-purple-400",bg: "bg-purple-500/10" },
-            { label: "Critical Findings",  value: totalFindings,     icon: FiAlertTriangle,color: "text-rose-400",   bg: "bg-rose-500/10" },
+            { label: "Total Initiatives", value: projects.length, icon: FiBriefcase, color: "text-[#00c477]", bg: "bg-[#00c477]/10" },
+            { label: "Active Audits", value: activeCount, icon: FiActivity, color: "text-cyan-400", bg: "bg-cyan-500/10" },
+            { label: "Consultants", value: totalHackers, icon: FiUsers, color: "text-purple-400", bg: "bg-purple-500/10" },
+            { label: "Critical Findings", value: totalFindings, icon: FiAlertTriangle, color: "text-rose-400", bg: "bg-rose-500/10" },
           ].map((stat, i) => (
             <motion.div
               key={stat.label}
@@ -509,22 +530,21 @@ const OrganizationProjects = () => {
               <button
                 key={f}
                 onClick={() => setFilter(f)}
-                className={`px-5 py-2 rounded-lg text-[11px] font-bold tracking-wide transition-all ${
-                  filter === f
-                    ? 'bg-white/10 text-white shadow-sm'
-                    : 'text-gray-500 hover:text-white hover:bg-white/5'
-                }`}
+                className={`px-5 py-2 rounded-lg text-[11px] font-bold tracking-wide transition-all ${filter === f
+                  ? 'bg-white/10 text-white shadow-sm'
+                  : 'text-gray-500 hover:text-white hover:bg-white/5'
+                  }`}
               >
                 {f === 'IN_PROGRESS' ? 'Active' : f.charAt(0) + f.slice(1).toLowerCase()}
                 {f === 'ALL' && <span className="ml-1.5 opacity-60">({projects.length})</span>}
               </button>
             ))}
           </div>
-          
+
           <div className="flex items-center gap-3">
-             <div className="px-4 py-2.5 rounded-xl bg-white/[0.02] border border-white/5 text-[12px] text-gray-400 font-medium flex items-center gap-2">
-               <FiBarChart2 className="text-gray-500" /> Sort: Priority
-             </div>
+            <div className="px-4 py-2.5 rounded-xl bg-white/[0.02] border border-white/5 text-[12px] text-gray-400 font-medium flex items-center gap-2">
+              <FiBarChart2 className="text-gray-500" /> Sort: Priority
+            </div>
           </div>
         </div>
       </div>
@@ -593,6 +613,7 @@ const OrganizationProjects = () => {
       <AnimatePresence>
         {showCreate && (
           <CreateProjectModal
+            organizationId={organization?.id}
             onClose={() => setShowCreate(false)}
             onCreate={newProject => setProjects(prev => [newProject, ...prev])}
           />

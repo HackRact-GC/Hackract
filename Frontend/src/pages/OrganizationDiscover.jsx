@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { FiSearch, FiStar, FiChevronLeft, FiChevronRight, FiCheck, FiSend, FiX, FiLoader, FiMessageSquare } from 'react-icons/fi';
+import { FiSearch, FiStar, FiChevronLeft, FiChevronRight, FiCheck, FiSend, FiX, FiLoader, FiMessageSquare, FiUser } from 'react-icons/fi';
 import { motion, AnimatePresence } from 'framer-motion';
 import api from '../api/axiosConfig';
 import toast from 'react-hot-toast';
@@ -174,14 +174,29 @@ const InviteModal = ({ hacker, onClose }) => {
 };
 
 // ─── HACKER CARD ──────────────────────────────────────────────────────────────
-const HackerCard = ({ hacker, index, onInvite }) => {
-  const name   = hacker.user?.fullName || hacker.name || 'Unknown';
-  const handle = hacker.user?.handle   || hacker.tag  || '';
-  const avatar = hacker.user?.avatar   || `https://api.dicebear.com/7.x/bottts/svg?seed=${handle}&baseColor=00ff88`;
-  const skills = hacker.primarySkills  || hacker.skills || [];
-  const certs  = hacker.certifications || hacker.certs  || [];
-  const rating = hacker.rating         || 4.5;
-  const rank   = hacker.rank           || 'SILVER';
+const HackerCard = ({ hacker, index, onInvite, onViewProfile }) => {
+  const name = hacker.user?.fullName || hacker.name || 'Unknown';
+  const handle = hacker.user?.handle || hacker.tag || '';
+  const avatar = hacker.user?.avatar || `https://api.dicebear.com/7.x/bottts/svg?seed=${handle}&baseColor=00ff88`;
+
+  // Parse skills and certs which might be JSON strings
+  const parseItems = (items) => {
+    if (!items) return [];
+    return items.map(item => {
+      try {
+        const parsed = JSON.parse(item);
+        return parsed.title || parsed.name || item;
+      } catch {
+        return item;
+      }
+    });
+  };
+
+  const skills = parseItems(hacker.primarySkills || hacker.skills);
+  const certs = parseItems(hacker.certifications || hacker.certs);
+  const rating = hacker.rating || 4.5;
+  const rank = hacker.rank || 'SILVER';
+  const trustScore = hacker.user?.trustScore;
 
   return (
     <motion.div
@@ -224,8 +239,27 @@ const HackerCard = ({ hacker, index, onInvite }) => {
         )}
       </div>
 
+      {/* Trust Score */}
+      {trustScore != null && (
+        <div className="mb-4 flex items-center gap-2">
+          <div className="h-1.5 flex-1 bg-white/5 rounded-full overflow-hidden">
+            <div
+              className="h-full bg-gradient-to-r from-[#00c477] to-emerald-400 rounded-full transition-all"
+              style={{ width: `${Math.min(100, trustScore)}%` }}
+            />
+          </div>
+          <span className="text-[10px] text-gray-500 font-mono w-10 text-right">{trustScore}%</span>
+        </div>
+      )}
+
       {/* Actions */}
       <div className="flex gap-2">
+        <button
+          onClick={() => onViewProfile(hacker)}
+          className="flex-1 py-2.5 rounded-lg border border-white/10 hover:border-[#00c477]/50 text-gray-300 hover:text-white font-bold text-sm transition-all flex items-center justify-center gap-2"
+        >
+          <FiUser className="text-xs" /> Profile
+        </button>
         <button
           onClick={() => onInvite(hacker)}
           className="flex-1 py-2.5 rounded-lg bg-[#00c477] hover:bg-[#009a5e] text-black font-bold text-sm transition-all shadow-[0_0_15px_rgba(0,255,136,0.15)] hover:shadow-[0_0_25px_rgba(0,255,136,0.3)] flex items-center justify-center gap-2"
@@ -239,6 +273,7 @@ const HackerCard = ({ hacker, index, onInvite }) => {
 
 // ─── MAIN ─────────────────────────────────────────────────────────────────────
 const OrganizationDiscover = () => {
+  const navigate = useNavigate();
   const [hackers, setHackers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
@@ -247,7 +282,7 @@ const OrganizationDiscover = () => {
   const [minRating, setMinRating] = useState(0);
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
-  const [inviteTarget, setInviteTarget] = useState(null); // hacker being invited
+  const [inviteTarget, setInviteTarget] = useState(null);
 
   const LIMIT = 12;
 
@@ -257,21 +292,21 @@ const OrganizationDiscover = () => {
       const params = new URLSearchParams();
       params.set('page', page);
       params.set('limit', LIMIT);
-      params.set('status', 'APPROVED');
       if (searchQuery) params.set('search', searchQuery);
+      if (selectedSkills.length > 0) params.set('skills', selectedSkills.join(','));
+      if (selectedCerts.length  > 0) params.set('certs',  selectedCerts.join(','));
 
-      const { data } = await api.get(`/hacker-profiles?${params.toString()}`);
-      const list = data?.data?.profiles || data?.profiles || data?.data || [];
-      const tp   = data?.pagination?.totalPages || data?.totalPages || 1;
+      const { data } = await api.get(`/hacker-profiles/discover?${params.toString()}`);
+      const list = data?.data?.profiles || data?.profiles || [];
+      const tp   = data?.data?.pagination?.totalPages || data?.pagination?.totalPages || 1;
       setHackers(Array.isArray(list) ? list : []);
       setTotalPages(tp);
     } catch (err) {
       console.error('Failed to load hackers', err);
-      // Fallback: keep showing whatever is there
     } finally {
       setLoading(false);
     }
-  }, [page, searchQuery]);
+  }, [page, searchQuery, selectedSkills, selectedCerts]);
 
   useEffect(() => {
     const id = setTimeout(fetchHackers, 300);
@@ -296,13 +331,35 @@ const OrganizationDiscover = () => {
     return true;
   });
 
+  const handleViewProfile = (hacker) => {
+    // Navigate using the userId which is the standard for the public profile route
+    const id = hacker.userId || hacker.user?.id || hacker.id;
+    navigate(`/discover/${id}`);
+  };
+
   return (
     <div className="flex flex-col h-full -m-10">
 
       {/* ── Header Area ── */}
-      <div className="px-10 py-5 border-b border-white/5 bg-[#050505] flex items-center justify-between sticky top-0 z-10">
-        <div className="relative w-full max-w-2xl">
-          {/* Search bar space reserved or content adjusted */}
+      <div className="px-10 py-5 border-b border-white/5 bg-[#050505] flex items-center gap-4 sticky top-0 z-10">
+        <div className="relative flex-1 max-w-2xl">
+          <FiSearch className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500 text-sm pointer-events-none" />
+          <input
+            id="hacker-search"
+            type="text"
+            value={searchQuery}
+            onChange={e => setSearchQuery(e.target.value)}
+            placeholder="Search by name, handle, bio, specialization…"
+            className="w-full bg-[#0c0c0c] border border-white/10 focus:border-[#00c477] rounded-xl pl-10 pr-4 py-2.5 text-sm text-white outline-none transition-all placeholder-gray-600"
+          />
+          {searchQuery && (
+            <button
+              onClick={() => setSearchQuery('')}
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-white transition-colors"
+            >
+              <FiX className="text-sm" />
+            </button>
+          )}
         </div>
       </div>
 
@@ -417,6 +474,7 @@ const OrganizationDiscover = () => {
                   hacker={hacker}
                   index={i}
                   onInvite={setInviteTarget}
+                  onViewProfile={handleViewProfile}
                 />
               ))}
             </div>

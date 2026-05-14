@@ -55,9 +55,13 @@ const StartingPointNode = ({ data, selected }) => {
               placeholder="example.com"
               className="flex-1 bg-[#161a23] border border-gray-600 rounded px-2 py-1 text-gray-300 focus:outline-none focus:border-[#00ff88]"
               defaultValue={data.host || ''}
-              onChange={(e) => data.onChange && data.onChange(e.target.value)}
+              onChange={(e) => data.onDataChange && data.onDataChange({ host: e.target.value })}
             />
-            <button className="bg-[#00ff88] text-black px-3 py-1 flex items-center justify-center rounded hover:bg-[#00cc33] transition-colors">
+            <button 
+              onClick={() => data.onRunAutomation && data.onRunAutomation(data.host)}
+              className="bg-[#00ff88] text-black px-3 py-1 flex items-center justify-center rounded hover:bg-[#00cc33] transition-colors active:scale-95"
+              title="Run Automated Recon"
+            >
               <FiPlay size={14} />
             </button>
           </div>
