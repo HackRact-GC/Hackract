@@ -875,6 +875,8 @@ const WorkflowEditor = ({ workflowId: propWorkflowId }) => {
                 style: { stroke: '#00ff41', strokeWidth: 1.5, opacity: 0.6 }
               }}
               fitView
+              minZoom={0.1}
+              maxZoom={10}
               className="bg-transparent"
               nodesDraggable={!isLocked}
               nodesConnectable={!isLocked}
@@ -928,5 +930,3 @@ const WorkflowEditor = ({ workflowId: propWorkflowId }) => {
 };
 
 export default WorkflowEditor;
-
-
