@@ -122,9 +122,33 @@ export const respondToInvitation = async (invitationId, hackerId, status, req) =
                 data: {
                     pentestId: invitation.pentestId,
                     userId: hackerId,
-                    role: 'collaborator',
+                    role: 'HACKER',
                 },
             });
+        }
+
+        // Auto-create PENDING ProjectAgreementAcceptance for the hacker
+        const activeAgreement = await prisma.projectAgreement.findFirst({
+            where: { pentestId: invitation.pentestId, isActive: true },
+            orderBy: { version: 'desc' }
+        });
+
+        if (activeAgreement) {
+            const alreadyAccepted = await prisma.projectAgreementAcceptance.findUnique({
+                where: { agreementId_hackerId: { agreementId: activeAgreement.id, hackerId } }
+            });
+
+            if (!alreadyAccepted) {
+                await prisma.projectAgreementAcceptance.create({
+                    data: {
+                        agreementId: activeAgreement.id,
+                        hackerId,
+                        pentestId: invitation.pentestId,
+                        version: activeAgreement.version,
+                        status: 'PENDING'
+                    }
+                });
+            }
         }
     }
 
