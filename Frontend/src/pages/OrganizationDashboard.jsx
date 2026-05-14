@@ -64,13 +64,13 @@ const StatCard = ({ label, value, sub, icon: Icon, color, trend, progress, avata
 );
 
 // ─── Project Table Component ──────────────────────────────────────────────────
-const RecentProjects = ({ projects, onNavigate }) => {
-  const displayProjects = (projects || []).slice(0, 5);
+const ActiveProjects = ({ projects, onNavigate }) => {
+  const displayProjects = (projects || []).filter(p => p.status === 'IN_PROGRESS').slice(0, 5);
 
   return (
     <div className="bg-[#050505] border border-white/5 rounded-[32px] overflow-hidden flex flex-col shadow-2xl h-full">
       <div className="px-10 py-8 border-b border-white/5 flex items-center justify-between">
-        <h3 className="text-sm font-black text-white tracking-widest uppercase font-mono">Recent Projects</h3>
+        <h3 className="text-sm font-black text-white tracking-widest uppercase font-mono">Active Projects</h3>
         <button 
           onClick={onNavigate}
           className="text-[9px] font-black text-gray-500 hover:text-[#00c477] transition-colors uppercase tracking-[0.2em]"
@@ -260,7 +260,7 @@ const OrganizationDashboard = () => {
 
       {/* MIDDLE GRID */}
       <div className="grid grid-cols-1 lg:grid-cols-[1.5fr_1fr] gap-8">
-        <RecentProjects projects={projects} onNavigate={(id) => id && typeof id === 'string' ? navigate(`/org-projects/${id}`) : navigate('/org-projects')} />
+        <ActiveProjects projects={projects} onNavigate={(id) => id && typeof id === 'string' ? navigate(`/org-projects/${id}`) : navigate('/org-projects')} />
         <VulnerabilityTrend />
       </div>
 
