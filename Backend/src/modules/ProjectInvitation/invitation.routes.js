@@ -47,7 +47,7 @@ router.use(protect);
  *       404:
  *         description: Project or hacker not found
  */
-router.post('/', restrictTo('ORG_ADMIN', 'PROJECT_ADMIN'), controller.send);
+router.post('/', restrictTo('ORG_ADMIN', 'PROJECT_ADMIN', 'PENTESTER'), controller.send);
 
 /**
  * @swagger
@@ -115,7 +115,7 @@ router.get('/mine/count', restrictTo('PENTESTER', 'PROJECT_ADMIN'), controller.c
  *       200:
  *         description: List of invitations
  */
-router.get('/project/:pentestId', restrictTo('ORG_ADMIN', 'PROJECT_ADMIN'), controller.listForProject);
+router.get('/project/:pentestId', restrictTo('ORG_ADMIN', 'PROJECT_ADMIN', 'PENTESTER'), controller.listForProject);
 
 /**
  * @swagger
@@ -168,6 +168,6 @@ router.patch('/:id/respond', restrictTo('PENTESTER', 'PROJECT_ADMIN'), controlle
  *       409:
  *         description: Invitation is not in PENDING state
  */
-router.delete('/:id', restrictTo('ORG_ADMIN', 'PROJECT_ADMIN'), controller.revoke);
+router.delete('/:id', restrictTo('ORG_ADMIN', 'PROJECT_ADMIN', 'PENTESTER'), controller.revoke);
 
 export default router;
