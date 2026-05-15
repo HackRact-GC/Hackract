@@ -1,6 +1,9 @@
 import { useState } from 'react';
 import { Outlet, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/authContext.jsx';
+import { useNotifications } from '../context/NotificationContext.jsx';
+import NotificationPanel from '../components/NotificationPanel.jsx';
+import { motion, AnimatePresence } from 'framer-motion';
 import {
   FiGrid,
   FiFolder,
@@ -23,6 +26,8 @@ const HackerLayout = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { user, logout } = useAuth();
+  const { unreadCount } = useNotifications();
+  const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
 
   const handleLogout = async () => {
     await logout();
@@ -134,7 +139,7 @@ const HackerLayout = () => {
       <div className="flex-1 flex flex-col h-full min-w-0 overflow-hidden">
 
         {/* Top header */}
-        <header className="flex justify-between items-center p-4 lg:p-5 border-b border-white/5 bg-[#050505] z-30 flex-shrink-0">
+        <header className="flex justify-between items-center p-4 lg:p-5 border-b border-white/5 bg-[#050505] z-30 shrink-0">
           <div className="flex items-center flex-1 gap-4">
             {/* Mobile hamburger */}
             <button
@@ -148,11 +153,25 @@ const HackerLayout = () => {
             <span className="text-white font-semibold lg:hidden">{currentPage}</span>
           </div>
 
-          <div className="flex items-center space-x-4">
-            <button className="relative text-gray-400 hover:text-white transition-colors hidden sm:block">
+          <div className="flex items-center space-x-4 relative">
+            <button 
+              className="relative text-gray-400 hover:text-white transition-colors hidden sm:block"
+              onClick={() => setIsNotificationsOpen(!isNotificationsOpen)}
+            >
               <FiBell size={20} />
-              <span className="absolute -top-1 -right-1 w-2 h-2 bg-[#00c477] rounded-full" />
+              {unreadCount > 0 && (
+                <span className="absolute -top-1 -right-1 w-2 h-2 bg-[#00c477] rounded-full" />
+              )}
             </button>
+
+            <AnimatePresence>
+              {isNotificationsOpen && (
+                <NotificationPanel 
+                  isOpen={isNotificationsOpen} 
+                  onClose={() => setIsNotificationsOpen(false)} 
+                />
+              )}
+            </AnimatePresence>
             <div
               className="flex items-center space-x-2 border-l border-white/10 pl-4 cursor-pointer"
               onClick={() => navigate('/hacker-profile')}
