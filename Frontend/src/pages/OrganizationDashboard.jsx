@@ -211,12 +211,12 @@ const OrganizationDashboard = () => {
   const activeCount = projects.filter(p => p.status === 'IN_PROGRESS').length;
   
   const allHackers = projects.flatMap(p => 
-    (p.collaborators || []).filter(c => c.role === 'HACKER').map(c => c.userId)
+    (p.collaborators || []).filter(c => ['HACKER', 'PROJECT_ADMIN', 'PENTESTER'].includes(c.role)).map(c => c.userId)
   );
   const uniqueHackerCount = new Set(allHackers).size;
   
   const hackerAvatars = projects.flatMap(p => 
-    (p.collaborators || []).filter(c => c.role === 'HACKER').map(c => c.user?.fullName?.[0] || 'H')
+    (p.collaborators || []).filter(c => ['HACKER', 'PROJECT_ADMIN', 'PENTESTER'].includes(c.role)).map(c => c.user?.fullName?.[0] || 'H')
   ).slice(0, 4);
 
   const openFindingsCount = projects.reduce((acc, p) => acc + (p._count?.findings || 0), 0);
@@ -235,12 +235,12 @@ const OrganizationDashboard = () => {
       {/* STATS GRID */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
         <StatCard 
-          label="ACTIVE PROJECTS" 
-          value={activeCount.toString().padStart(2, '0')} 
+          label="TOTAL PROJECTS" 
+          value={projects.length.toString().padStart(2, '0')} 
           icon={FiGlobe} 
           color="text-[#00c477]" 
           progress={projects.length > 0 ? (activeCount / projects.length) * 100 : 0} 
-          trend={projects.length > 0 ? `OF ${projects.length} TOTAL` : "NO DATA"}
+          trend={projects.length > 0 ? `${activeCount} ACTIVE` : "NO ACTIVE PROJECTS"}
         />
         <StatCard 
           label="ASSIGNED PENTESTERS" 
