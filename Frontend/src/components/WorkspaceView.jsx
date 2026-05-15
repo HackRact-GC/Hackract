@@ -7,6 +7,7 @@ import ProjectActivity from "./ProjectActivity.jsx";
 import KickoffChecklist from "./KickoffChecklist.jsx";
 import { useAuth } from "../context/authContext.jsx";
 import { FiDownload, FiExternalLink, FiFileText, FiArrowLeft, FiCode, FiPrinter, FiGlobe, FiServer, FiFileMinus, FiCalendar, FiPlus, FiUserPlus, FiTrash2, FiSearch, FiX, FiSend, FiEdit2, FiStar, FiSettings } from "react-icons/fi";
+import SystemAdminDashboard from "../pages/Admin/SystemAdminDashboard.jsx";
 
 const InviteMemberModal = ({ projectId, onClose, onInvited }) => {
   const [search, setSearch] = useState("");
@@ -155,8 +156,15 @@ const WorkspaceView = ({ projectId, onBack }) => {
   const { user } = useAuth();
   const [project, setProject] = useState(null);
   const [loading, setLoading] = useState(true);
+  //const [activeTab, setActiveTab] = useState(searchParams.get("tab") || "workflow");
   const [showInvite, setShowInvite] = useState(false);
   const workspaceName = project?.name || "Project Workspace";
+
+  const isProjectAdmin = useMemo(() => {
+    return project?.collaborators?.some(
+      (c) => c.userId === user?.id && c.role === "PROJECT_ADMIN"
+    );
+  }, [user, project]);
 
   const tabs = useMemo(() => {
     if (!project) return [];
@@ -164,9 +172,14 @@ const WorkspaceView = ({ projectId, onBack }) => {
       // Local Lab: Only Workflow and Findings. Deletion moved to header.
       return ["workflow", "findings"];
     }
-    // Org Project (Hacker Side): Overview, Workflow, Findings, Team.
-    return ["overview", "workflow", "findings", "team"];
-  }, [project]);
+    // Org Project (Hacker Side): Overview, Workflow, Findings, [Admin Dashboard], Team.
+    const baseTabs = ["overview", "workflow", "findings"];
+    if (isProjectAdmin) {
+      baseTabs.push("admin-dashboard");
+    }
+    baseTabs.push("team");
+    return baseTabs;
+  }, [project, isProjectAdmin]);
 
   const [activeTab, setActiveTab] = useState(() => {
     const queryTab = searchParams.get("tab");
@@ -176,10 +189,10 @@ const WorkspaceView = ({ projectId, onBack }) => {
 
   useEffect(() => {
     if (project) {
-        const currentTabs = project.isPersonal ? ["workflow", "findings"] : ["overview", "workflow", "findings", "team"];
-        if (!currentTabs.includes(activeTab)) {
-          setActiveTab(project.isPersonal ? "workflow" : "overview");
-        }
+      const currentTabs = project.isPersonal ? ["workflow", "findings"] : ["overview", "workflow", "findings", "team"];
+      if (!currentTabs.includes(activeTab)) {
+        setActiveTab(project.isPersonal ? "workflow" : "overview");
+      }
     }
   }, [project]);
 
@@ -327,122 +340,16 @@ const WorkspaceView = ({ projectId, onBack }) => {
             <button
               key={tab}
               onClick={() => setActiveTab(tab)}
-              className={`px-6 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all whitespace-nowrap ${
-                activeTab === tab ? "bg-[#00ff88] text-black shadow-lg shadow-black/30" : "text-white/60 hover:text-white"
-              }`}
+              className={`px-6 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all whitespace-nowrap ${activeTab === tab ? "bg-[#00ff88] text-black shadow-lg shadow-black/30" : "text-white/60 hover:text-white"
+                }`}
             >
-              {tab}
+              {tab.replace('-', ' ')}
             </button>
           ))}
         </div>
 
         {/* Content Area */}
         <div className="min-h-[400px]">
-          {activeTab === "overview" && (
-            <div className="grid lg:grid-cols-3 gap-8">
-              <div className="lg:col-span-1 space-y-6">                <div className="bg-black/70 backdrop-blur-md border border-white/10 p-8 rounded-4xl space-y-6">
-                  <div>
-                    <h3 className="text-xs font-black text-white/40 uppercase tracking-[0.2em] mb-4">Mission Scope</h3>
-                    <p className="text-sm text-white/80 leading-relaxed font-medium mb-6">
-                      {project.description || "Mission parameters are currently classified."}
-                    </p>
-
-                    <div className="space-y-4 pt-4 border-t border-white/5">
-                      {project.targetDomains?.length > 0 && (
-                        <div className="flex flex-col gap-1.5">
-                          <span className="text-[10px] font-black text-white/30 uppercase tracking-widest flex items-center gap-2">
-                            <FiGlobe size={10} /> Target Domains
-                          </span>
-                          <div className="flex flex-wrap gap-1.5">
-                            {project.targetDomains.map(d => (
-                              <span key={d} className="px-2 py-0.5 bg-white/5 border border-white/10 rounded-md text-[10px] font-mono text-[#00ff88]">
-                                {d}
-                              </span>
-                            ))}
-                          </div>
-                        </div>
-                      )}
-                      
-                      {project.ipRanges?.length > 0 && (
-                        <div className="flex flex-col gap-1.5">
-                          <span className="text-[10px] font-black text-white/30 uppercase tracking-widest flex items-center gap-2">
-                            <FiServer size={10} /> IP Ranges
-                          </span>
-                          <div className="flex flex-wrap gap-1.5">
-                            {project.ipRanges.map(ip => (
-                              <span key={ip} className="px-2 py-0.5 bg-white/5 border border-white/10 rounded-md text-[10px] font-mono text-[#00ff88]">
-                                {ip}
-                              </span>
-                            ))}
-                          </div>
-                        </div>
-                      )}
-
-                      {project.excludedAssets && (
-                        <div className="flex flex-col gap-1.5">
-                          <span className="text-[10px] font-black text-rose-400/50 uppercase tracking-widest flex items-center gap-2">
-                            <FiFileMinus size={10} /> Excluded Assets
-                          </span>
-                          <p className="text-[11px] text-rose-200/60 leading-relaxed">
-                            {project.excludedAssets}
-                          </p>
-                        </div>
-                      )}
-
-                      {(project.startDate || project.endDate) && (
-                        <div className="flex flex-col gap-1.5">
-                          <span className="text-[10px] font-black text-white/30 uppercase tracking-widest flex items-center gap-2">
-                            <FiCalendar size={10} /> Testing Schedule
-                          </span>
-                          <p className="text-[11px] text-white/60 font-mono">
-                            {project.startDate ? new Date(project.startDate).toLocaleDateString() : 'TBD'} 
-                            <span className="mx-2 text-white/20">→</span> 
-                            {project.endDate ? new Date(project.endDate).toLocaleDateString() : 'TBD'}
-                          </p>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-
-                  <div className="pt-6 border-t border-white/5 space-y-4">
-                    <div className="flex items-center justify-between">
-                      <h3 className="text-xs font-black text-white/40 uppercase tracking-[0.2em]">Authorized Team</h3>
-                      <button 
-                        onClick={() => setActiveTab('team')}
-                        className="text-[9px] font-black text-[#00ff88] uppercase tracking-widest hover:underline"
-                      >
-                        Manage
-                      </button>
-                    </div>
-                    <div className="space-y-3">
-                      {project.collaborators?.filter(c => c.role !== 'APPLICANT').map((h) => (
-                        <div key={h.id} className="flex items-center gap-3 p-3 bg-white/5 rounded-2xl border border-white/5">
-                          <div className="w-8 h-8 rounded-xl bg-black border border-white/10 flex items-center justify-center text-[10px] font-bold text-[#00ff88]">
-                            {h.user?.fullName?.[0] || "U"}
-                          </div>
-                          <div>
-                            <p className="text-[10px] font-bold text-white uppercase tracking-widest">{h.user?.fullName || h.user?.email}</p>
-                            <p className="text-[9px] text-[#00ff88]/60 font-mono">{h.role}</p>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              <div className="lg:col-span-2">
-                <div className="bg-black/70 backdrop-blur-md border border-white/10 p-8 rounded-4xl h-full">
-                  <h3 className="text-xs font-black text-white/40 uppercase tracking-[0.2em] mb-6 flex items-center gap-3">
-                    <div className="w-2 h-2 rounded-full bg-[#00ff88] animate-pulse shadow-[0_0_8px_#00ff88]" />
-                    Live Activity Feed
-                  </h3>
-                  <ProjectActivity projectId={projectId} />
-                </div>
-              </div>
-            </div>
-          )}
-
           {activeTab === "workflow" && (
             <div className="bg-black/70 backdrop-blur-md border border-white/10 p-12 rounded-4xl text-center space-y-6">
               <div className="w-20 h-20 bg-[#00ff88]/10 border border-[#00ff88]/20 rounded-3xl flex items-center justify-center text-[#00ff88] mx-auto shadow-inner">
@@ -468,7 +375,7 @@ const WorkspaceView = ({ projectId, onBack }) => {
                 <button
                   onClick={async () => {
                     try {
-                      const res = await api.post('/workflows', { 
+                      const res = await api.post('/workflows', {
                         pentestId: projectId,
                         name: `${project.name} — Operational Workflow`
                       });
@@ -551,8 +458,8 @@ const WorkspaceView = ({ projectId, onBack }) => {
                             newWindow.document.close();
                             newWindow.focus();
                             setTimeout(() => {
-                                newWindow.print();
-                                newWindow.close();
+                              newWindow.print();
+                              newWindow.close();
                             }, 500);
                           } catch (e) { toast.error("Export failed."); }
                         }}
@@ -579,11 +486,10 @@ const WorkspaceView = ({ projectId, onBack }) => {
                         <div className="space-y-2">
                           <div className="text-sm font-bold group-hover:text-[#00ff88] transition-colors">{f.title}</div>
                           <div className="flex items-center gap-3 text-[9px] font-black uppercase tracking-widest">
-                            <span className={`px-2 py-1 rounded-md border ${
-                              f.severity === 'CRITICAL' ? 'text-red-500 border-red-500/20 bg-red-500/5' :
+                            <span className={`px-2 py-1 rounded-md border ${f.severity === 'CRITICAL' ? 'text-red-500 border-red-500/20 bg-red-500/5' :
                               f.severity === 'HIGH' ? 'text-orange-500 border-orange-500/20 bg-orange-500/5' :
-                              'text-white/40 border-white/10'
-                            }`}>
+                                'text-white/40 border-white/10'
+                              }`}>
                               {f.severity}
                             </span>
                             <span className="text-white/20">•</span>
@@ -598,6 +504,12 @@ const WorkspaceView = ({ projectId, onBack }) => {
                   </div>
                 )}
               </div>
+            </div>
+          )}
+
+          {activeTab === "admin-dashboard" && isProjectAdmin && (
+            <div className="bg-black/70 backdrop-blur-md border border-white/10 rounded-4xl overflow-hidden h-[800px]">
+              <SystemAdminDashboard />
             </div>
           )}
 
@@ -620,9 +532,8 @@ const WorkspaceView = ({ projectId, onBack }) => {
                       <div>
                         <div className="font-bold text-sm tracking-tight text-white">{member.user?.fullName || "Anonymous"}</div>
                         <div className="flex items-center gap-2 mt-1">
-                          <span className={`text-[9px] px-2 py-0.5 rounded-full font-black uppercase tracking-widest ${
-                            member.role === 'PROJECT_ADMIN' ? 'bg-purple-500/20 text-purple-400' : 'bg-[#00ff88]/20 text-[#00ff88]'
-                          }`}>
+                          <span className={`text-[9px] px-2 py-0.5 rounded-full font-black uppercase tracking-widest ${member.role === 'PROJECT_ADMIN' ? 'bg-purple-500/20 text-purple-400' : 'bg-[#00ff88]/20 text-[#00ff88]'
+                            }`}>
                             {member.role}
                           </span>
                           <span className="text-[10px] text-white/20 font-mono tracking-tighter">
@@ -631,11 +542,11 @@ const WorkspaceView = ({ projectId, onBack }) => {
                         </div>
                       </div>
                     </div>
-                    
+
                     {canManage && member.userId !== user?.id && (
                       <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
                         {member.role !== 'PROJECT_ADMIN' && (
-                          <button 
+                          <button
                             onClick={() => handleMakeAdmin(member.userId)}
                             title="Make Lead Pentester"
                             className="p-2.5 rounded-xl bg-purple-500/5 hover:bg-purple-500/10 text-purple-400/40 hover:text-purple-400 transition-all border border-white/5"
@@ -646,7 +557,7 @@ const WorkspaceView = ({ projectId, onBack }) => {
                         <button className="p-2.5 rounded-xl bg-white/5 hover:bg-white/10 text-white/40 hover:text-white transition-all border border-white/5">
                           <FiEdit2 size={14} />
                         </button>
-                        <button 
+                        <button
                           onClick={() => handleRemoveMember(member.userId)}
                           className="p-2.5 rounded-xl bg-rose-500/5 hover:bg-rose-500/10 text-rose-500/40 hover:text-rose-500 transition-all border border-white/5"
                         >
@@ -677,16 +588,16 @@ const WorkspaceView = ({ projectId, onBack }) => {
                   <div className="space-y-6">
                     <div>
                       <label className="block text-[10px] font-black text-white/30 uppercase tracking-[0.2em] mb-2">Project Identity</label>
-                      <input 
-                        type="text" 
-                        defaultValue={project.name} 
+                      <input
+                        type="text"
+                        defaultValue={project.name}
                         onBlur={(e) => api.patch(`/projects/${projectId}`, { name: e.target.value }).then(() => toast.success("Name updated"))}
                         className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:border-[#00ff88]/50 transition-all outline-none"
                       />
                     </div>
                     <div>
                       <label className="block text-[10px] font-black text-white/30 uppercase tracking-[0.2em] mb-2">Operational Status</label>
-                      <select 
+                      <select
                         defaultValue={project.status}
                         onChange={(e) => api.patch(`/projects/${projectId}`, { status: e.target.value }).then(() => toast.success("Status updated"))}
                         className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:border-[#00ff88]/50 transition-all outline-none appearance-none"
@@ -702,7 +613,7 @@ const WorkspaceView = ({ projectId, onBack }) => {
                   <div className="space-y-6">
                     <div>
                       <label className="block text-[10px] font-black text-white/30 uppercase tracking-[0.2em] mb-2">Primary Scope</label>
-                      <textarea 
+                      <textarea
                         defaultValue={project.targetDomains?.join('\n')}
                         placeholder="one domain per line"
                         onBlur={(e) => api.patch(`/projects/${projectId}`, { targetDomains: e.target.value.split('\n').filter(Boolean) }).then(() => toast.success("Scope updated"))}
@@ -718,7 +629,7 @@ const WorkspaceView = ({ projectId, onBack }) => {
                       <h4 className="text-rose-500 font-bold mb-1">Danger Zone</h4>
                       <p className="text-[11px] text-white/40">Permanently delete this project and all associated data.</p>
                     </div>
-                    <button 
+                    <button
                       onClick={handleDeleteProject}
                       className="px-6 py-2.5 rounded-xl bg-rose-500 hover:bg-rose-600 text-white text-[11px] font-black uppercase tracking-widest transition-all shadow-lg shadow-rose-500/20"
                     >
