@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import { Outlet, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/authContext.jsx';
+import { useNotifications } from '../context/NotificationContext.jsx';
+import NotificationPanel from '../components/NotificationPanel.jsx';
 import {
   FiGrid, FiBriefcase, FiGlobe, FiShield, FiSettings,
   FiFileText, FiBell, FiChevronDown, FiPlus, FiCpu,
@@ -12,6 +14,7 @@ const OrganizationLayout = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { user, logout } = useAuth();
+  const { unreadCount } = useNotifications();
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
 
   const orgName = user?.organization?.name || "Cyberdyne Systems";
@@ -101,8 +104,21 @@ const OrganizationLayout = () => {
               onClick={() => setIsNotificationsOpen(!isNotificationsOpen)}
             >
               <FiBell />
-              <span className="absolute -top-1 -right-1 w-4 h-4 bg-[#ff3366] text-white text-[9px] flex items-center justify-center rounded-full font-black border-2 border-[#050505]">3</span>
+              {unreadCount > 0 && (
+                <span className="absolute -top-1 -right-1 w-4 h-4 bg-[#ff3366] text-white text-[9px] flex items-center justify-center rounded-full font-black border-2 border-[#050505]">
+                  {unreadCount}
+                </span>
+              )}
             </button>
+            
+            <AnimatePresence>
+              {isNotificationsOpen && (
+                <NotificationPanel 
+                  isOpen={isNotificationsOpen} 
+                  onClose={() => setIsNotificationsOpen(false)} 
+                />
+              )}
+            </AnimatePresence>
             
             <div className="flex items-center gap-3 pl-6 border-l border-white/10">
                 <div className="w-9 h-9 rounded-full bg-linear-to-br from-[#00c477]/20 to-emerald-500/10 border border-[#00c477]/30 flex items-center justify-center font-black text-[#00c477] shadow-[0_0_10px_rgba(0,255,136,0.1)]">

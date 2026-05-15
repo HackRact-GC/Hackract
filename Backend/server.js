@@ -11,16 +11,49 @@ import { initializeStorage } from "./src/utils/s3Upload.js";
 const PORT = process.env.PORT || 3000;
 const HOST = process.env.HOST || "127.0.0.1";
 
+import dotenv from 'dotenv';
+dotenv.config();
+
 // Decode socket token and return user id, or null
-const decodeSocketUser = (socket) => {
+const decodeSocketUser = async (socket) => {
   try {
     const token =
       socket.handshake.auth?.token ||
       socket.handshake.headers?.authorization?.replace("Bearer ", "");
-    if (!token) return null;
-    const decoded = jwt.verify(token, process.env.JWT_ACCESS_SECRET);
-    return decoded?.id || decoded?.sub || null;
-  } catch {
+    
+    if (!token) {
+      console.warn("🔌 Socket: No token provided");
+      return null;
+    }
+
+    // 1. Try local JWT verification
+    try {
+      const decoded = jwt.verify(token, process.env.JWT_ACCESS_SECRET);
+      const userId = decoded?.id || decoded?.sub || null;
+      if (userId) return userId;
+    } catch (localErr) {
+      // 2. If local fails, it might be an Auth0 token
+      const decoded = jwt.decode(token);
+      if (decoded && decoded.sub) {
+        // Find user by Auth0 ID (sub) or UUID (sub)
+        const user = await prisma.user.findFirst({
+          where: {
+            OR: [
+              { auth0Id: decoded.sub },
+              { id: decoded.sub }
+            ]
+          }
+        });
+        if (user) {
+          console.log(`🔌 Socket: Resolved Auth0 user: ${user.id}`);
+          return user.id;
+        }
+      }
+      console.error(`🔌 Socket: Token validation failed: ${localErr.message}`);
+    }
+    return null;
+  } catch (err) {
+    console.error(`🔌 Socket: Decoding error: ${err.message}`);
     return null;
   }
 };
@@ -53,7 +86,7 @@ const startServer = async () => {
   io.on("connection", async (socket) => {
     console.log(`🔌 New client connected: ${socket.id}`);
 
-    const userId = decodeSocketUser(socket);
+    const userId = await decodeSocketUser(socket);
 
     // ── Chat: register presence ────────────────────────────────────────────
     if (userId) {
@@ -216,6 +249,14 @@ const startServer = async () => {
 
   app.locals.broadcastMessageDelete = (conversationId, messageId) => {
     io.to(`conv:${conversationId}`).emit("chat:message-deleted", { conversationId, messageId });
+  };
+
+  app.locals.sendNotification = (userId, notification) => {
+    console.log(`🔔 Sending notification to user:${userId}`, notification);
+    const room = `user:${userId}`;
+    const clients = io.sockets.adapter.rooms.get(room);
+    console.log(`   Target room: ${room}, Active clients: ${clients ? clients.size : 0}`);
+    io.to(room).emit("notification", notification);
   };
 
   const maxRetries = 5;

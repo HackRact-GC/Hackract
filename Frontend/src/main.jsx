@@ -6,6 +6,7 @@ import { Auth0Provider } from "@auth0/auth0-react";
 import { RouterProvider } from "react-router-dom";
 import router from "../src/Router/Index";
 import { AuthProvider } from "./context/authContext.jsx";
+import { NotificationProvider } from "./context/NotificationContext.jsx";
 // import { Provider } from "react-redux";
 // import  store  from "./store/Store.js";
 
@@ -22,7 +23,9 @@ ReactDOM.createRoot(document.getElementById("root")).render(
       }}
     >
       <AuthProvider>
-        <RouterProvider router={router} />
+        <NotificationProvider>
+          <RouterProvider router={router} />
+        </NotificationProvider>
       </AuthProvider>
     </Auth0Provider>
     {/* </Provider> */}
