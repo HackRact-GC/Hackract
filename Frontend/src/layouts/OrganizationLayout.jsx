@@ -13,8 +13,7 @@ const OrganizationLayout = () => {
   const location = useLocation();
   const { user, logout } = useAuth();
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
-
-  const orgName = user?.organization?.name || "Cyberdyne Systems";
+  const orgName = user?.organization?.name || "Organization";
   const userInitial = user?.fullName?.[0]?.toUpperCase() || user?.email?.[0]?.toUpperCase() || "O";
 
   const navItems = [
@@ -42,8 +41,7 @@ const OrganizationLayout = () => {
       <aside className="w-64 bg-[#050505] border-r border-white/5 flex flex-col z-50">
         <div className="p-8 pb-12">
           <div className="flex flex-col gap-1">
-            <h1 className="text-xl font-black text-white tracking-[0.2em] font-mono">HACKRACT AI</h1>
-            <p className="text-[10px] text-gray-600 font-mono tracking-widest uppercase">Vulnerability Labs</p>
+            <h1 className="text-xl font-black text-white tracking-[0.2em] font-mono">HACKRACT</h1>
           </div>
         </div>
 
@@ -116,21 +114,6 @@ const OrganizationLayout = () => {
         <main className="flex-1 overflow-y-auto p-10 bg-[#050505]">
           <Outlet />
         </main>
-
-        {/* AI AGENT STATUS BAR */}
-        <footer className="h-10 bg-[#050505] border-t border-white/5 px-10 flex items-center justify-between text-[9px] font-black font-mono uppercase tracking-[0.2em] text-gray-500">
-          <div className="flex items-center gap-4">
-            <div className="flex items-center gap-2 text-[#00c477]">
-              <FiActivity className="animate-pulse" />
-              <span>AI Agent: System Ready</span>
-            </div>
-          </div>
-          <div className="flex items-center gap-8">
-            <span className="flex items-center gap-2"><FiZap className="text-amber-500" /> Latency: 14ms</span>
-            <span className="flex items-center gap-2"><FiTarget className="text-blue-500" /> Core_Temp: 32°C</span>
-            <span className="flex items-center gap-2"><span className="text-gray-700">Session:</span> 0x4F...2E</span>
-          </div>
-        </footer>
 
         {/* Floating Action Button */}
         <button className="fixed bottom-16 right-10 w-14 h-14 bg-[#00c477] text-black rounded-full shadow-[0_0_25px_rgba(0,255,136,0.3)] flex items-center justify-center hover:scale-110 active:scale-95 transition-all z-50">
