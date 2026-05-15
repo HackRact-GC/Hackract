@@ -8,51 +8,10 @@ import {
   FiTerminal, FiArrowRight, FiZap,
   FiCheck, FiX, FiLock, FiActivity,
   FiTarget, FiClock, FiBell, FiCode, FiCpu,
-  FiChevronRight, FiFolder, FiCheckCircle, FiTrash2
+  FiChevronRight, FiFolder, FiCheckCircle, FiTrash2, FiUser
 } from "react-icons/fi";
+import invitationService from "../services/invitation.service";
 
-// ─── MOCK ASSIGNED PROJECTS (org-side) ───────────────────────────────────────
-const MOCK_ORG_ASSIGNMENTS = [
-  {
-    id: "org-1",
-    name: "Alpha Bank Core API Pentest",
-    orgName: "Alpha Bank Corp",
-    orgAvatar: "https://api.dicebear.com/7.x/identicon/svg?seed=AlphaBank&baseColor=00c477",
-    role: "LEAD",
-    status: "IN_PROGRESS",
-    inviteStatus: "ACCEPTED",
-    assignedAt: "Apr 05, 2026",
-    deadline: "Apr 28, 2026",
-    findings: 14,
-    description: "Full penetration test on core banking REST API endpoints.",
-  },
-  {
-    id: "org-2",
-    name: "CloudStack Infrastructure Audit",
-    orgName: "NexCloud Systems",
-    orgAvatar: "https://api.dicebear.com/7.x/identicon/svg?seed=NexCloud&baseColor=00c477",
-    role: "CONTRIBUTOR",
-    status: "PLANNING",
-    inviteStatus: "PENDING",
-    assignedAt: "Apr 10, 2026",
-    deadline: "May 15, 2026",
-    findings: 0,
-    description: "AWS IAM and VPC misconfiguration review.",
-  },
-  {
-    id: "org-3",
-    name: "Mobile App Security Review",
-    orgName: "Veloce Fintech",
-    orgAvatar: "https://api.dicebear.com/7.x/identicon/svg?seed=Veloce&baseColor=00c477",
-    role: "CONTRIBUTOR",
-    status: "REPORTING",
-    inviteStatus: "ACCEPTED",
-    assignedAt: "Mar 14, 2026",
-    deadline: "Apr 20, 2026",
-    findings: 27,
-    description: "Android & iOS binary analysis and certificate pinning bypass.",
-  },
-];
 
 // ─── CONSTANTS & CONFIG ────────────────────────────────────────────────
 const STATUS_CONFIG = {
@@ -176,17 +135,23 @@ const OrgProjectCard = ({ project, onOpen, onAccept, onDecline, index }) => {
 
       <div className="flex items-start gap-4 mb-4">
         <div className="w-10 h-10 rounded-xl border border-white/10 bg-white/5 shrink-0 overflow-hidden flex items-center justify-center">
-          <img
-            src={project.orgAvatar}
-            alt={project.orgName}
-            className={`w-10 h-10 object-cover ${!isPending ? 'group-hover:scale-110 transition-transform' : ''}`}
-          />
+          {project.organization?.avatar ? (
+             <img
+               src={project.organization.avatar}
+               alt={project.organization?.name || "Org"}
+               className={`w-10 h-10 object-cover ${!isPending ? 'group-hover:scale-110 transition-transform' : ''}`}
+             />
+          ) : (
+             <div className="text-[#00c477] font-black text-sm">
+                {(project.organization?.name || project.orgName || "H")?.[0]?.toUpperCase()}
+             </div>
+          )}
         </div>
         <div>
-          <h3 className={`text-lg font-bold ${isPending ? 'text-white' : 'text-white group-hover:text-[#00c477]'} transition-colors leading-snug`}>
+          <h3 className={`text-lg font-bold ${isPending ? 'text-white' : 'text-white group-hover:text-[#00c477]'} transition-colors leading-snug truncate max-w-[200px]`}>
             {getProjectDisplayName(project)}
           </h3>
-          <p className="text-[12px] text-gray-400 font-medium mt-0.5">{project.orgName}</p>
+          <p className="text-[12px] text-gray-400 font-medium mt-0.5">{project.organization?.name || project.orgName || "Private Org"}</p>
         </div>
       </div>
 
@@ -200,11 +165,11 @@ const OrgProjectCard = ({ project, onOpen, onAccept, onDecline, index }) => {
           <div className="w-6 h-6 rounded-md bg-white/5 flex items-center justify-center text-gray-400">
              <FiTarget size={12} />
           </div>
-          <span className="text-[12px] text-gray-300 font-bold">{project.findings} <span className="font-normal text-gray-500">Vulns</span></span>
+          <span className="text-[12px] text-gray-300 font-bold">{project.findings || project._count?.findings || 0} <span className="font-normal text-gray-500">Vulns</span></span>
         </div>
         <div className={`flex items-center gap-1.5 text-[12px] font-medium ${isPending ? 'text-amber-500' : 'text-gray-400'}`}>
           <FiClock size={13} />
-          {project.deadline}
+          {project.deadline || (project.endDate ? new Date(project.endDate).toLocaleDateString() : "No Deadline")}
         </div>
       </div>
 
@@ -345,36 +310,65 @@ const Projects = () => {
   const { user } = useAuth();
 
   const [personalProjects, setPersonalProjects] = useState([]);
-  const [orgAssignments, setOrgAssignments] = useState(MOCK_ORG_ASSIGNMENTS);
+  const [orgProjects, setOrgProjects] = useState([]);
+  const [pendingInvitations, setPendingInvitations] = useState([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState("ALL_ACCESS");
 
   // Load real personal + org projects from API
+  const loadData = async () => {
+    setLoading(true);
+    try {
+      const [projRes, invRes] = await Promise.all([
+        api.get("/projects"),
+        invitationService.getMyInvitations({ status: 'PENDING' })
+      ]);
+
+      const allProjects = projRes.data?.data || [];
+      const myInvites = invRes.data?.invitations || invRes.data || [];
+
+      setPersonalProjects(allProjects.filter(p => p.isPersonal));
+      setOrgProjects(allProjects.filter(p => p.organizationId));
+      setPendingInvitations(myInvites);
+    } catch (err) {
+      console.error("Failed to load projects", err);
+      toast.error("Network disruption: Could not sync node state");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
-    (async () => {
-      setLoading(true);
-      try {
-        const { data } = await api.get("/projects");
-        const all = data?.data || [];
-        setPersonalProjects(all.filter(p => p.isPersonal || p.leadPentesterId === user?.id));
-      } catch {
-        // silently fall back to mock data
-      } finally {
-        setLoading(false);
-      }
-    })();
+    if (user) loadData();
   }, [user]);
 
-  const pendingCount = orgAssignments.filter(p => p.inviteStatus === 'PENDING').length;
-  const acceptedOrg  = orgAssignments.filter(p => p.inviteStatus === 'ACCEPTED');
+  const pendingCount = pendingInvitations.length;
 
   // Tab filtering
   const displayPersonal = activeTab === 'ALL_ACCESS' || activeTab === 'LOCAL_LABS';
   const displayOrg      = activeTab === 'ALL_ACCESS' || activeTab === 'MISSIONS';
   const displayPending  = activeTab === 'ALL_ACCESS' || activeTab === 'INBOUND_REQS';
 
-  const handleAccept  = id => setOrgAssignments(prev => prev.map(p => p.id === id ? { ...p, inviteStatus: 'ACCEPTED' } : p));
-  const handleDecline = id => setOrgAssignments(prev => prev.filter(p => p.id !== id));
+  const handleAccept = async (id) => {
+    try {
+      await invitationService.respondToInvitation(id, 'ACCEPTED');
+      toast.success("Assignment accepted. Target nodes acquired.");
+      loadData();
+    } catch (err) {
+      toast.error("Failed to accept assignment");
+    }
+  };
+
+  const handleDecline = async (id) => {
+    if (!window.confirm("Are you sure you want to decline this invitation?")) return;
+    try {
+      await invitationService.respondToInvitation(id, 'REJECTED');
+      toast.success("Invitation declined.");
+      loadData();
+    } catch (err) {
+      toast.error("Failed to decline invitation");
+    }
+  };
   const handlePersonalCreated = p => {
     setPersonalProjects(prev => [p, ...prev]);
     navigate(`/projects/${p.id}`);
@@ -458,14 +452,27 @@ const Projects = () => {
         </AnimatePresence>
 
         {/* Pending Invites Grid */}
-        {displayPending && orgAssignments.filter(p => p.inviteStatus === 'PENDING').length > 0 && (
+        {displayPending && pendingInvitations.length > 0 && (
           <section className="space-y-5">
             <h2 className="text-sm font-bold text-gray-400 tracking-wider uppercase flex items-center gap-3">
               <span className="w-2 h-2 rounded-full bg-amber-500" /> Pending Invitations
             </h2>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
-              {orgAssignments.filter(p => p.inviteStatus === 'PENDING').map((p, i) => (
-                <OrgProjectCard key={p.id} project={p} index={i} onOpen={id => navigate(`/projects/${id}`)} onAccept={handleAccept} onDecline={handleDecline} />
+              {pendingInvitations.map((inv, i) => (
+                <OrgProjectCard 
+                  key={inv.id} 
+                  project={{
+                    ...inv.pentest,
+                    id: inv.id, // We use invitation ID for the response call
+                    inviteStatus: 'PENDING',
+                    orgName: inv.pentest?.organization?.name || "Enterprise Org",
+                    orgAvatar: inv.pentest?.organization?.avatar
+                  }} 
+                  index={i} 
+                  onOpen={id => navigate(`/projects/${inv.pentestId}`)} 
+                  onAccept={handleAccept} 
+                  onDecline={handleDecline} 
+                />
               ))}
             </div>
           </section>
@@ -503,15 +510,24 @@ const Projects = () => {
               <span className="w-2 h-2 rounded-full bg-[#00c477]" /> Active Organization Nodes
             </h2>
 
-            {acceptedOrg.length === 0 ? (
+            {orgProjects.length === 0 ? (
               <div className="py-16 flex flex-col items-center justify-center gap-4 border-2 border-dashed border-white/5 bg-[#0a0a0a] rounded-3xl text-gray-500 text-sm">
                 <FiActivity size={32} className="opacity-30 mb-2" />
                 <p>No active organizational engagements currently underway.</p>
               </div>
             ) : (
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
-                {acceptedOrg.map((p, i) => (
-                   <OrgProjectCard key={p.id} project={p} index={i} onOpen={id => navigate(`/projects/${id}`)} onAccept={handleAccept} onDecline={handleDecline} />
+                {orgProjects.map((p, i) => (
+                   <OrgProjectCard 
+                    key={p.id} 
+                    project={{
+                      ...p,
+                      orgName: p.organization?.name,
+                      orgAvatar: p.organization?.avatar
+                    }} 
+                    index={i} 
+                    onOpen={id => navigate(`/projects/${p.id}`)} 
+                   />
                 ))}
               </div>
             )}

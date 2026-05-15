@@ -46,7 +46,7 @@ const ensureHackerApproved = async (hackerId) => {
 export const sendInvitation = async (invitedById, { pentestId, hackerId, message, expiresAt }, req) => {
     await ensurePentestExists(pentestId);
     await ensureHackerExists(hackerId);
-    await ensureHackerApproved(hackerId);
+    // await ensureHackerApproved(hackerId); // Disabled per user request
 
     // Block duplicate PENDING invitation
     const existing = await invitationRepository.findPending(pentestId, hackerId);
