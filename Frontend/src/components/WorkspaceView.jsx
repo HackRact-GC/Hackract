@@ -7,6 +7,7 @@ import ProjectActivity from "./ProjectActivity.jsx";
 import KickoffChecklist from "./KickoffChecklist.jsx";
 import { useAuth } from "../context/authContext.jsx";
 import { FiDownload, FiExternalLink, FiFileText, FiArrowLeft, FiCode, FiPrinter, FiGlobe, FiServer, FiFileMinus, FiCalendar, FiPlus, FiUserPlus, FiTrash2, FiSearch, FiX, FiSend, FiEdit2, FiStar, FiSettings } from "react-icons/fi";
+import SystemAdminDashboard from "../pages/Admin/SystemAdminDashboard.jsx";
 
 const InviteMemberModal = ({ projectId, onClose, onInvited }) => {
   const [search, setSearch] = useState("");
@@ -159,15 +160,26 @@ const WorkspaceView = ({ projectId, onBack }) => {
   const [showInvite, setShowInvite] = useState(false);
   const workspaceName = project?.name || "Project Workspace";
 
+  const isProjectAdmin = useMemo(() => {
+    return project?.collaborators?.some(
+      (c) => c.userId === user?.id && c.role === "PROJECT_ADMIN"
+    );
+  }, [user, project]);
+
   const tabs = useMemo(() => {
     if (!project) return [];
     if (project.isPersonal) {
       // Local Lab: Only Workflow and Findings. Deletion moved to header.
       return ["workflow", "findings"];
     }
-    // Org Project (Hacker Side): Overview, Workflow, Findings, Team.
-    return ["overview", "workflow", "findings", "team"];
-  }, [project]);
+    // Org Project (Hacker Side): Overview, Workflow, Findings, [Admin Dashboard], Team.
+    const baseTabs = ["overview", "workflow", "findings"];
+    if (isProjectAdmin) {
+      baseTabs.push("admin-dashboard");
+    }
+    baseTabs.push("team");
+    return baseTabs;
+  }, [project, isProjectAdmin]);
 
   const [activeTab, setActiveTab] = useState(() => {
     const queryTab = searchParams.get("tab");
@@ -331,7 +343,7 @@ const WorkspaceView = ({ projectId, onBack }) => {
               className={`px-6 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all whitespace-nowrap ${activeTab === tab ? "bg-[#00ff88] text-black shadow-lg shadow-black/30" : "text-white/60 hover:text-white"
                 }`}
             >
-              {tab}
+              {tab.replace('-', ' ')}
             </button>
           ))}
         </div>
@@ -492,6 +504,12 @@ const WorkspaceView = ({ projectId, onBack }) => {
                   </div>
                 )}
               </div>
+            </div>
+          )}
+
+          {activeTab === "admin-dashboard" && isProjectAdmin && (
+            <div className="bg-black/70 backdrop-blur-md border border-white/10 rounded-4xl overflow-hidden h-[800px]">
+              <SystemAdminDashboard />
             </div>
           )}
 
