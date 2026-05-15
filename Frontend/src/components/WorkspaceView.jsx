@@ -5,7 +5,6 @@ import toast from "react-hot-toast";
 import api from "../api/axiosConfig";
 import ProjectActivity from "./ProjectActivity.jsx";
 import KickoffChecklist from "./KickoffChecklist.jsx";
-import NdaGate from "./NdaGate.jsx";
 import { useAuth } from "../context/authContext.jsx";
 import { FiDownload, FiExternalLink, FiFileText, FiArrowLeft, FiCode, FiPrinter, FiGlobe, FiServer, FiFileMinus, FiCalendar, FiPlus, FiUserPlus, FiTrash2, FiSearch, FiX, FiSend, FiEdit2, FiStar, FiSettings } from "react-icons/fi";
 
@@ -66,7 +65,7 @@ const InviteMemberModal = ({ projectId, onClose, onInvited }) => {
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      className="fixed inset-0 bg-black/80 backdrop-blur-md z-[100] flex items-center justify-center p-6"
+      className="fixed inset-0 bg-black/80 backdrop-blur-md z-100 flex items-center justify-center p-6"
       onClick={onClose}
     >
       <motion.div
@@ -156,10 +155,34 @@ const WorkspaceView = ({ projectId, onBack }) => {
   const { user } = useAuth();
   const [project, setProject] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState(searchParams.get("tab") || "workflow");
+  //const [activeTab, setActiveTab] = useState(searchParams.get("tab") || "workflow");
   const [showInvite, setShowInvite] = useState(false);
-
   const workspaceName = project?.name || "Project Workspace";
+
+  const tabs = useMemo(() => {
+    if (!project) return [];
+    if (project.isPersonal) {
+      // Local Lab: Only Workflow and Findings. Deletion moved to header.
+      return ["workflow", "findings"];
+    }
+    // Org Project (Hacker Side): Overview, Workflow, Findings, Team.
+    return ["overview", "workflow", "findings", "team"];
+  }, [project]);
+
+  const [activeTab, setActiveTab] = useState(() => {
+    const queryTab = searchParams.get("tab");
+    if (queryTab && tabs.includes(queryTab)) return queryTab;
+    return project?.isPersonal ? "workflow" : "overview";
+  });
+
+  useEffect(() => {
+    if (project) {
+      const currentTabs = project.isPersonal ? ["workflow", "findings"] : ["overview", "workflow", "findings", "team"];
+      if (!currentTabs.includes(activeTab)) {
+        setActiveTab(project.isPersonal ? "workflow" : "overview");
+      }
+    }
+  }, [project]);
 
   const loadProject = async () => {
     setLoading(true);
@@ -264,7 +287,7 @@ const WorkspaceView = ({ projectId, onBack }) => {
   }
 
   return (
-    <NdaGate projectId={projectId}>
+    <>
       <motion.div
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
@@ -289,17 +312,24 @@ const WorkspaceView = ({ projectId, onBack }) => {
               <span className="text-[#00ff88]">Status: {project.status}</span>
             </div>
           </div>
+
+          {project.isPersonal && (
+            <button
+              onClick={handleDeleteProject}
+              className="flex items-center gap-2 px-5 py-2.5 bg-rose-500/10 hover:bg-rose-500 text-rose-500 hover:text-white border border-rose-500/20 hover:border-rose-500 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all"
+            >
+              <FiTrash2 size={14} /> Deconstruct Lab
+            </button>
+          )}
         </div>
 
-        {/* Tabs */}
-        <div className="flex bg-black/60 p-1.5 rounded-2xl border border-white/10 w-fit">
-          {["workflow", "findings", ...(project?.isPersonal ? [] : ["team"]), ...(canManage ? ["hiring", "settings"] : [])].map((tab) => (
+        <div className="flex bg-black/60 p-1.5 rounded-2xl border border-white/10 w-fit overflow-x-auto max-w-full">
+          {tabs.map((tab) => (
             <button
               key={tab}
               onClick={() => setActiveTab(tab)}
-              className={`px-6 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${
-                activeTab === tab ? "bg-[#00ff88] text-black shadow-lg shadow-black/30" : "text-white/60 hover:text-white"
-              }`}
+              className={`px-6 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all whitespace-nowrap ${activeTab === tab ? "bg-[#00ff88] text-black shadow-lg shadow-black/30" : "text-white/60 hover:text-white"
+                }`}
             >
               {tab}
             </button>
@@ -333,7 +363,7 @@ const WorkspaceView = ({ projectId, onBack }) => {
                 <button
                   onClick={async () => {
                     try {
-                      const res = await api.post('/workflows', { 
+                      const res = await api.post('/workflows', {
                         pentestId: projectId,
                         name: `${project.name} — Operational Workflow`
                       });
@@ -416,8 +446,8 @@ const WorkspaceView = ({ projectId, onBack }) => {
                             newWindow.document.close();
                             newWindow.focus();
                             setTimeout(() => {
-                                newWindow.print();
-                                newWindow.close();
+                              newWindow.print();
+                              newWindow.close();
                             }, 500);
                           } catch (e) { toast.error("Export failed."); }
                         }}
@@ -444,11 +474,10 @@ const WorkspaceView = ({ projectId, onBack }) => {
                         <div className="space-y-2">
                           <div className="text-sm font-bold group-hover:text-[#00ff88] transition-colors">{f.title}</div>
                           <div className="flex items-center gap-3 text-[9px] font-black uppercase tracking-widest">
-                            <span className={`px-2 py-1 rounded-md border ${
-                              f.severity === 'CRITICAL' ? 'text-red-500 border-red-500/20 bg-red-500/5' :
+                            <span className={`px-2 py-1 rounded-md border ${f.severity === 'CRITICAL' ? 'text-red-500 border-red-500/20 bg-red-500/5' :
                               f.severity === 'HIGH' ? 'text-orange-500 border-orange-500/20 bg-orange-500/5' :
-                              'text-white/40 border-white/10'
-                            }`}>
+                                'text-white/40 border-white/10'
+                              }`}>
                               {f.severity}
                             </span>
                             <span className="text-white/20">•</span>
@@ -473,14 +502,6 @@ const WorkspaceView = ({ projectId, onBack }) => {
                   <h3 className="text-xs font-black text-white/40 uppercase tracking-[0.2em] mb-1">Personnel Management</h3>
                   <p className="text-[10px] text-white/20 font-mono tracking-widest">AUTHORIZED PROJECT STAFF</p>
                 </div>
-                {canManage && (
-                  <button 
-                    onClick={() => setShowInvite(true)}
-                    className="flex items-center gap-2 px-4 py-2 bg-[#00ff88] text-black rounded-xl text-[10px] font-black uppercase tracking-widest hover:scale-105 transition-all shadow-lg shadow-[#00ff88]/10"
-                  >
-                    <FiUserPlus size={14} /> Invite Member
-                  </button>
-                )}
               </div>
 
               <div className="grid gap-4">
@@ -493,9 +514,8 @@ const WorkspaceView = ({ projectId, onBack }) => {
                       <div>
                         <div className="font-bold text-sm tracking-tight text-white">{member.user?.fullName || "Anonymous"}</div>
                         <div className="flex items-center gap-2 mt-1">
-                          <span className={`text-[9px] px-2 py-0.5 rounded-full font-black uppercase tracking-widest ${
-                            member.role === 'PROJECT_ADMIN' ? 'bg-purple-500/20 text-purple-400' : 'bg-[#00ff88]/20 text-[#00ff88]'
-                          }`}>
+                          <span className={`text-[9px] px-2 py-0.5 rounded-full font-black uppercase tracking-widest ${member.role === 'PROJECT_ADMIN' ? 'bg-purple-500/20 text-purple-400' : 'bg-[#00ff88]/20 text-[#00ff88]'
+                            }`}>
                             {member.role}
                           </span>
                           <span className="text-[10px] text-white/20 font-mono tracking-tighter">
@@ -504,11 +524,11 @@ const WorkspaceView = ({ projectId, onBack }) => {
                         </div>
                       </div>
                     </div>
-                    
+
                     {canManage && member.userId !== user?.id && (
                       <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
                         {member.role !== 'PROJECT_ADMIN' && (
-                          <button 
+                          <button
                             onClick={() => handleMakeAdmin(member.userId)}
                             title="Make Lead Pentester"
                             className="p-2.5 rounded-xl bg-purple-500/5 hover:bg-purple-500/10 text-purple-400/40 hover:text-purple-400 transition-all border border-white/5"
@@ -519,7 +539,7 @@ const WorkspaceView = ({ projectId, onBack }) => {
                         <button className="p-2.5 rounded-xl bg-white/5 hover:bg-white/10 text-white/40 hover:text-white transition-all border border-white/5">
                           <FiEdit2 size={14} />
                         </button>
-                        <button 
+                        <button
                           onClick={() => handleRemoveMember(member.userId)}
                           className="p-2.5 rounded-xl bg-rose-500/5 hover:bg-rose-500/10 text-rose-500/40 hover:text-rose-500 transition-all border border-white/5"
                         >
@@ -550,16 +570,16 @@ const WorkspaceView = ({ projectId, onBack }) => {
                   <div className="space-y-6">
                     <div>
                       <label className="block text-[10px] font-black text-white/30 uppercase tracking-[0.2em] mb-2">Project Identity</label>
-                      <input 
-                        type="text" 
-                        defaultValue={project.name} 
+                      <input
+                        type="text"
+                        defaultValue={project.name}
                         onBlur={(e) => api.patch(`/projects/${projectId}`, { name: e.target.value }).then(() => toast.success("Name updated"))}
                         className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:border-[#00ff88]/50 transition-all outline-none"
                       />
                     </div>
                     <div>
                       <label className="block text-[10px] font-black text-white/30 uppercase tracking-[0.2em] mb-2">Operational Status</label>
-                      <select 
+                      <select
                         defaultValue={project.status}
                         onChange={(e) => api.patch(`/projects/${projectId}`, { status: e.target.value }).then(() => toast.success("Status updated"))}
                         className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:border-[#00ff88]/50 transition-all outline-none appearance-none"
@@ -575,7 +595,7 @@ const WorkspaceView = ({ projectId, onBack }) => {
                   <div className="space-y-6">
                     <div>
                       <label className="block text-[10px] font-black text-white/30 uppercase tracking-[0.2em] mb-2">Primary Scope</label>
-                      <textarea 
+                      <textarea
                         defaultValue={project.targetDomains?.join('\n')}
                         placeholder="one domain per line"
                         onBlur={(e) => api.patch(`/projects/${projectId}`, { targetDomains: e.target.value.split('\n').filter(Boolean) }).then(() => toast.success("Scope updated"))}
@@ -591,7 +611,7 @@ const WorkspaceView = ({ projectId, onBack }) => {
                       <h4 className="text-rose-500 font-bold mb-1">Danger Zone</h4>
                       <p className="text-[11px] text-white/40">Permanently delete this project and all associated data.</p>
                     </div>
-                    <button 
+                    <button
                       onClick={handleDeleteProject}
                       className="px-6 py-2.5 rounded-xl bg-rose-500 hover:bg-rose-600 text-white text-[11px] font-black uppercase tracking-widest transition-all shadow-lg shadow-rose-500/20"
                     >
@@ -649,7 +669,7 @@ const WorkspaceView = ({ projectId, onBack }) => {
           />
         )}
       </AnimatePresence>
-    </NdaGate>
+    </>
   );
 };
 

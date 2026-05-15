@@ -169,7 +169,7 @@ export const submitMyProfile = async (userId) => {
 export const discoverHackers = async ({ page = 1, limit = 12, search, skills, certs }) => {
   const skip = (page - 1) * limit;
 
-  // Build the `where` clause
+  // Build the `where` clause - show ALL profiles (removed APPROVED filter per user request)
   const where = {};
 
   // Skills filter: profile must have at least one of the selected skills

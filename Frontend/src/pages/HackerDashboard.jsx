@@ -82,27 +82,23 @@ const HackerDashboard = () => {
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
   const [pendingCount, setPendingCount] = useState(0);
+  const [realProjects, setRealProjects] = useState([]);
 
   useEffect(() => {
     (async () => {
       try {
-        const { data } = await api.get("/hacker-profiles/me");
-        setProfile(data?.data?.profile);
+        const [profileRes, countRes, projRes] = await Promise.all([
+          api.get("/hacker-profiles/me"),
+          api.get("/invitations/mine/count"),
+          api.get("/projects")
+        ]);
+        setProfile(profileRes.data?.data?.profile);
+        setPendingCount(countRes.data?.data?.pendingCount || 0);
+        setRealProjects(projRes.data?.data || []);
       } catch (err) {
-        console.error("Profile fetch error", err);
+        console.error("Dashboard data fetch error", err);
       } finally {
         setLoading(false);
-      }
-    })();
-  }, []);
-
-  useEffect(() => {
-    (async () => {
-      try {
-        const { data } = await api.get("/invitations/mine/count");
-        setPendingCount(data?.data?.pendingCount || 0);
-      } catch (err) {
-        // Non-critical
       }
     })();
   }, []);
@@ -123,10 +119,10 @@ const HackerDashboard = () => {
     <div className="space-y-10">
       {/* High-Level Stats */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <StatCard label="Critical Found" value="14" trend="+8%" icon={Icons.Target} color="rose" />
-        <StatCard label="Lifetime Rewards" value="$42.5k" trend="+12%" icon={Icons.Dollar} color="emerald" />
-        <StatCard label="Global Rank" value="#128" trend="Top 1%" icon={Icons.Trophy} color="amber" />
-        <StatCard label="Impact Score" value="982" trend="+45" icon={Icons.Zap} color="indigo" />
+        <StatCard label="Active Missions" value={realProjects.filter(p => !p.isPersonal).length} trend={realProjects.length > 0 ? "Live" : "Idle"} icon={Icons.Target} color="rose" />
+        <StatCard label="Rewards" value="$0.0k" trend="0%" icon={Icons.Dollar} color="emerald" />
+        <StatCard label="Global Rank" value="Unranked" trend="N/A" icon={Icons.Trophy} color="amber" />
+        <StatCard label="Local Labs" value={realProjects.filter(p => p.isPersonal).length} trend="Private" icon={Icons.Zap} color="indigo" />
       </div>
 
       <div className="grid grid-cols-1 xl:grid-cols-[1.2fr_0.8fr] gap-8">
@@ -137,32 +133,34 @@ const HackerDashboard = () => {
             <h3 className="text-xs font-mono font-black text-[#00c477] uppercase tracking-[0.3em] flex items-center gap-3">
               <Icons.Shield /> Live Missions
             </h3>
-            <button onClick={() => setActiveTab("engagements")} className="text-[10px] font-mono font-bold text-gray-500 hover:text-[#00c477] uppercase tracking-widest transition-colors">Operational View [+]</button>
+            <button onClick={() => navigate("/projects")} className="text-[10px] font-mono font-bold text-gray-500 hover:text-[#00c477] uppercase tracking-widest transition-colors">Operational View [+]</button>
           </div>
           <div className="p-6 space-y-4">
-            {[
-              { id: 1, name: "Project Nightingale", org: "Nebula Systems", status: "Ongoing", severity: "High", due: "2d left" },
-              { id: 2, name: "Core Ledger Audit", org: "FinBank Int", status: "Reporting", severity: "Critical", due: "14h left" },
-              { id: 3, name: "Edge Network Scan", org: "Global Logistics", status: "Pending Fix", severity: "Medium", due: "3d left" },
-            ].map(m => (
-              <div key={m.id} className="p-6 rounded-[28px] bg-white/[0.02] border border-transparent hover:border-[#00c477]/20 hover:bg-white/[0.04] transition-all cursor-pointer group">
-                <div className="flex items-center justify-between mb-4">
-                   <div>
-                     <p className="text-base font-black text-white group-hover:text-[#00c477] transition-colors uppercase tracking-tight mb-1">{m.name}</p>
-                     <p className="text-[10px] font-mono font-bold text-gray-500 uppercase tracking-widest">{m.org}</p>
-                   </div>
-                   <Badge text={m.status} type={m.status === "Ongoing" ? "success" : "info"} />
+            {realProjects.filter(p => !p.isPersonal).length === 0 ? (
+               <div className="py-20 flex flex-col items-center justify-center text-gray-600 text-[10px] font-mono font-black uppercase tracking-[0.3em]">
+                  No active missions found
+               </div>
+            ) : (
+              realProjects.filter(p => !p.isPersonal).slice(0, 3).map(m => (
+                <div key={m.id} onClick={() => navigate(`/projects/${m.id}`)} className="p-6 rounded-[28px] bg-white/[0.02] border border-transparent hover:border-[#00c477]/20 hover:bg-white/[0.04] transition-all cursor-pointer group">
+                  <div className="flex items-center justify-between mb-4">
+                     <div>
+                       <p className="text-base font-black text-white group-hover:text-[#00c477] transition-colors uppercase tracking-tight mb-1">{m.name}</p>
+                       <p className="text-[10px] font-mono font-bold text-gray-500 uppercase tracking-widest">{m.organization?.name || "Private Org"}</p>
+                     </div>
+                     <Badge text={m.status || "PLANNING"} type={m.status === "IN_PROGRESS" ? "success" : "info"} />
+                  </div>
+                  <div className="flex items-center gap-6 pt-4 border-t border-white/5">
+                     <div className="flex items-center gap-2 text-[10px] font-mono font-bold text-gray-400 uppercase tracking-widest">
+                       <span className="text-[#00c477]"><Icons.Zap /></span> Scope: {m.isPersonal ? "Local" : "Org"}
+                     </div>
+                     <div className="flex items-center gap-2 text-[10px] font-mono font-bold text-gray-500 uppercase tracking-widest ml-auto">
+                       <Icons.Clock /> {m.endDate ? new Date(m.endDate).toLocaleDateString() : "No Deadline"}
+                     </div>
+                  </div>
                 </div>
-                <div className="flex items-center gap-6 pt-4 border-t border-white/5">
-                   <div className="flex items-center gap-2 text-[10px] font-mono font-bold text-gray-400 uppercase tracking-widest">
-                     <span className="text-[#00c477]"><Icons.Zap /></span> {m.severity} Risk
-                   </div>
-                   <div className="flex items-center gap-2 text-[10px] font-mono font-bold text-gray-500 uppercase tracking-widest ml-auto">
-                     <Icons.Clock /> {m.due}
-                   </div>
-                </div>
-              </div>
-            ))}
+              ))
+            )}
           </div>
         </div>
 
@@ -175,24 +173,9 @@ const HackerDashboard = () => {
             </h3>
             <Badge text="Encrypted" type="success" />
           </div>
-          <div className="p-10 space-y-10">
-            {[
-              { id: 1, action: "Exploit Validated", target: "SQLi in AuthService", time: "2h ago", icon: Icons.Target, color: "text-rose-500 bg-rose-500/10" },
-              { id: 2, action: "Mission Activated", target: "Project Nightingale", time: "5h ago", icon: Icons.Shield, color: "text-[#00c477] bg-[#00c477]/10" },
-              { id: 3, action: "Reward Dispatched", target: "$2,500.00 Bounty", time: "1d ago", icon: Icons.Dollar, color: "text-emerald-400 bg-emerald-400/10" },
-              { id: 4, action: "Rank Calibrated", target: "Global Rank Incr. +12", time: "3d ago", icon: Icons.Trophy, color: "text-amber-500 bg-amber-500/10" },
-            ].map(a => (
-              <div key={a.id} className="flex gap-6 items-start relative before:absolute before:left-[17px] before:top-12 before:bottom-[-24px] before:w-[1px] before:bg-white/5 last:before:hidden group cursor-pointer">
-                <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 border border-white/5 shadow-lg group-hover:scale-110 transition-transform ${a.color}`}>
-                   <a.icon />
-                </div>
-                <div className="flex-1">
-                   <p className="text-[11px] font-mono font-black text-white uppercase tracking-widest mb-1 group-hover:text-[#00c477] transition-colors">{a.action}</p>
-                   <p className="text-[11px] font-mono font-bold text-gray-500 group-hover:text-gray-400 transition-colors uppercase tracking-widest">{a.target}</p>
-                   <p className="text-[9px] font-mono font-bold text-gray-700 mt-2 uppercase tracking-widest flex items-center gap-2 group-hover:text-gray-600"><Icons.Clock/>{a.time}</p>
-                </div>
-              </div>
-            ))}
+          <div className="p-10 flex flex-col items-center justify-center text-gray-600 text-[10px] font-mono font-black uppercase tracking-[0.3em] py-32">
+             <Icons.Activity className="w-12 h-12 mb-4 opacity-10" />
+             No activity logs available
           </div>
         </div>
       </div>
@@ -212,28 +195,10 @@ const HackerDashboard = () => {
        </div>
 
        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-         {[
-           { id: 1, title: "FinBank iOS Hardening", bounty: "$10,000", org: "FinBank Int", icon: "📱", tags: ["Mobile", "iOS", "API"] },
-           { id: 2, title: "Nebula Core P2P Audit", bounty: "$25,000", org: "Nebula Systems", icon: "📡", tags: ["Crypto", "Network", "Rust"] },
-           { id: 3, title: "SafeGuard E-Commerce", bounty: "$5,000", org: "SafeGuard LLC", icon: "🛒", tags: ["Web", "SQLi", "Logic"] },
-           { id: 4, title: "CryptoVault HotWallet", bounty: "$50,000", org: "BlockSec", icon: "🔐", tags: ["Solidity", "Node.js"] },
-           { id: 5, title: "HealthNet PII Leak", bounty: "$12,000", org: "National Health", icon: "🏥", tags: ["AWS", "Privacy", "IAM"] },
-           { id: 6, title: "Global Nexus Auth Bypass", bounty: "$18,000", org: "Nexus Labs", icon: "⚡", tags: ["OAuth", "JWT", "Sec"] },
-         ].map(mission => (
-           <div key={mission.id} className="relative bg-white/[0.02] backdrop-blur-3xl p-10 rounded-[48px] border border-white/5 hover:border-[#00c477]/30 hover:bg-white/[0.04] transition-all group flex flex-col items-center text-center shadow-2xl overflow-hidden">
-              <div className="absolute top-0 left-0 w-full h-[2px] bg-gradient-to-r from-transparent via-[#00c477]/20 to-transparent scale-x-0 group-hover:scale-x-100 transition-transform duration-700" />
-              <div className="text-6xl mb-8 group-hover:scale-125 transition-transform duration-1000 filter drop-shadow-[0_0_15px_rgba(255,255,255,0.1)]">{mission.icon}</div>
-              <p className="text-[10px] font-mono font-black text-[#00c477] uppercase tracking-[0.3em] mb-2 scale-90 group-hover:scale-100 transition-transform">{mission.org}</p>
-              <h4 className="text-xl font-black text-white leading-tight mb-6 uppercase tracking-tight px-4">{mission.title}</h4>
-              <div className="text-3xl font-black text-white mb-8 bg-black/40 px-8 py-3 rounded-2xl border border-white/5 group-hover:border-[#00c477]/30 transition-colors tracking-tight font-mono">{mission.bounty}</div>
-              
-              <div className="flex flex-wrap justify-center gap-2 mb-10">
-                 {mission.tags.map(t => <span key={t} className="px-3 py-1.5 bg-white/5 text-[9px] font-mono font-bold text-gray-500 uppercase tracking-widest rounded-lg border border-white/5 group-hover:text-gray-400 group-hover:border-white/10 transition-colors">{t}</span>)}
-              </div>
-              
-              <button className="w-full py-5 bg-white/5 border border-white/10 group-hover:bg-[#00c477] group-hover:text-black group-hover:border-transparent text-gray-300 text-[11px] font-mono font-black uppercase tracking-[0.25em] rounded-2xl shadow-xl transition-all active:scale-95">Accept Mission</button>
-           </div>
-         ))}
+          <div className="col-span-full py-32 flex flex-col items-center justify-center text-gray-600 text-[10px] font-mono font-black uppercase tracking-[0.3em] border-2 border-dashed border-white/5 rounded-[48px] bg-black/20">
+             <Icons.ShoppingBag className="w-16 h-16 mb-6 opacity-10" />
+             Mission Archive Offline — No Public Contracts Available
+          </div>
        </div>
      </div>
   );

@@ -4,6 +4,7 @@ import { FiSearch, FiStar, FiChevronLeft, FiChevronRight, FiCheck, FiSend, FiX, 
 import { motion, AnimatePresence } from 'framer-motion';
 import api from '../api/axiosConfig';
 import toast from 'react-hot-toast';
+import { useAuth } from '../context/authContext';
 
 // ─── STATUS BADGE ─────────────────────────────────────────────────────────────
 const RankBadge = ({ rank }) => {
@@ -59,7 +60,7 @@ const InviteModal = ({ hacker, onClose }) => {
       toast.success(`Invitation sent to ${hacker.user?.handle || hacker.handle || hacker.name}!`);
       onClose();
     } catch (err) {
-      const msg = err?.response?.data?.message || 'Failed to send invitation';
+      const msg = err?.response?.data?.error || err?.response?.data?.message || 'Failed to send invitation';
       toast.error(msg);
     } finally {
       setLoading(false);
@@ -136,7 +137,7 @@ const InviteModal = ({ hacker, onClose }) => {
 
           {/* Message */}
           <div>
-            <label className="text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-2 block flex items-center gap-1.5">
+            <label className="text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-2 flex items-center gap-1.5">
               <FiMessageSquare className="text-[#00c477]" /> Personal Message <span className="text-gray-600 normal-case tracking-normal font-normal">(optional)</span>
             </label>
             <textarea
@@ -174,7 +175,7 @@ const InviteModal = ({ hacker, onClose }) => {
 };
 
 // ─── HACKER CARD ──────────────────────────────────────────────────────────────
-const HackerCard = ({ hacker, index, onInvite, onViewProfile }) => {
+const HackerCard = ({ hacker, index, onInvite, onViewProfile, authUser }) => {
   const name = hacker.user?.fullName || hacker.name || 'Unknown';
   const handle = hacker.user?.handle || hacker.tag || '';
   const avatar = hacker.user?.avatar || `https://api.dicebear.com/7.x/bottts/svg?seed=${handle}&baseColor=00ff88`;
@@ -207,7 +208,7 @@ const HackerCard = ({ hacker, index, onInvite, onViewProfile }) => {
     >
       {/* Top: avatar + rating */}
       <div className="flex items-start justify-between mb-5">
-        <div className="relative w-16 h-16 rounded-xl bg-gradient-to-br from-[#00c477]/20 to-emerald-900/40 p-0.5 border border-white/10 group-hover:border-[#00c477]/50 transition-colors">
+        <div className="relative w-16 h-16 rounded-xl bg-linear-to-br from-[#00c477]/20 to-emerald-900/40 p-0.5 border border-white/10 group-hover:border-[#00c477]/50 transition-colors">
           <img src={avatar} alt={name} className="w-full h-full rounded-[10px] object-cover bg-black/50" />
           <div className="absolute -bottom-1 -right-1 w-3 h-3 rounded-full bg-[#00c477] border-2 border-[#050505] shadow-[0_0_5px_#00c477]" />
         </div>
@@ -235,7 +236,7 @@ const HackerCard = ({ hacker, index, onInvite, onViewProfile }) => {
           <span key={c} className="px-2.5 py-1 rounded border border-[#00c477]/20 bg-[#00c477]/5 text-[10px] text-[#00c477] font-mono">{c}</span>
         ))}
         {skills.length + certs.length > 5 && (
-          <span className="px-2.5 py-1 rounded border border-white/5 bg-white/[0.02] text-[10px] text-gray-600 font-mono">+{skills.length + certs.length - 5} more</span>
+          <span className="px-2.5 py-1 rounded border border-white/5 bg-white/2 text-[10px] text-gray-600 font-mono">+{skills.length + certs.length - 5} more</span>
         )}
       </div>
 
@@ -244,7 +245,7 @@ const HackerCard = ({ hacker, index, onInvite, onViewProfile }) => {
         <div className="mb-4 flex items-center gap-2">
           <div className="h-1.5 flex-1 bg-white/5 rounded-full overflow-hidden">
             <div
-              className="h-full bg-gradient-to-r from-[#00c477] to-emerald-400 rounded-full transition-all"
+              className="h-full bg-linear-to-r from-[#00c477] to-emerald-400 rounded-full transition-all"
               style={{ width: `${Math.min(100, trustScore)}%` }}
             />
           </div>
@@ -260,12 +261,14 @@ const HackerCard = ({ hacker, index, onInvite, onViewProfile }) => {
         >
           <FiUser className="text-xs" /> Profile
         </button>
-        <button
-          onClick={() => onInvite(hacker)}
-          className="flex-1 py-2.5 rounded-lg bg-[#00c477] hover:bg-[#009a5e] text-black font-bold text-sm transition-all shadow-[0_0_15px_rgba(0,255,136,0.15)] hover:shadow-[0_0_25px_rgba(0,255,136,0.3)] flex items-center justify-center gap-2"
-        >
-          <FiSend className="text-xs" /> Invite
-        </button>
+        {(authUser?.roles?.some(r => r.type === 'ORG_ADMIN' || r.type === 'PROJECT_ADMIN')) && (
+          <button
+            onClick={() => onInvite(hacker)}
+            className="flex-1 py-2.5 rounded-lg bg-[#00c477] hover:bg-[#009a5e] text-black font-bold text-sm transition-all shadow-[0_0_15px_rgba(0,255,136,0.15)] hover:shadow-[0_0_25px_rgba(0,255,136,0.3)] flex items-center justify-center gap-2"
+          >
+            <FiSend className="text-xs" /> Invite
+          </button>
+        )}
       </div>
     </motion.div>
   );
@@ -274,6 +277,7 @@ const HackerCard = ({ hacker, index, onInvite, onViewProfile }) => {
 // ─── MAIN ─────────────────────────────────────────────────────────────────────
 const OrganizationDiscover = () => {
   const navigate = useNavigate();
+  const { user: authUser } = useAuth();
   const [hackers, setHackers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
@@ -475,6 +479,7 @@ const OrganizationDiscover = () => {
                   index={i}
                   onInvite={setInviteTarget}
                   onViewProfile={handleViewProfile}
+                  authUser={authUser}
                 />
               ))}
             </div>

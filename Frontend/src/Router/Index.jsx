@@ -301,7 +301,7 @@ const router = createBrowserRouter([
         path: "workflows/:workflowId",
         element: (
           <OnboardingGuard>
-            <RoleGuard allowed={['PENTESTER', 'PROJECT_ADMIN']}>
+            <RoleGuard allowed={['PENTESTER', 'PROJECT_ADMIN', 'ORG_ADMIN']}>
               <WorkflowEditor />
             </RoleGuard>
           </OnboardingGuard>
