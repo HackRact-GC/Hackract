@@ -1,5 +1,6 @@
 // src/modules/organization/organization.controller.js
 import organizationService from './Organization.service.js';
+import organizationRepository from './Organization.repository.js';
 import * as memberService from '../OrgMembers/member.service.js';
 import {
   createOrganizationSchema,

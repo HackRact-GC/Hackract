@@ -4,10 +4,12 @@ import { OrganizationErrorCodes, VerificationStatus } from './Organization.const
 import AppError from '../../utils/AppError.js';
 import prisma from '../../database/prismaClient.js';
 
-const isSuperAdmin = (user) => {
+const isOrgAdmin = (user) => {
   const roles = user?.roles?.map((r) => r.type) || [];
   return roles.includes('ORG_ADMIN');
 };
+
+const isSuperAdmin = isOrgAdmin; // Alias for broader system admin checks
 
 const toPagination = ({ page = 1, limit = 20 } = {}) => {
   const safePage = Math.max(1, Number(page) || 1);
