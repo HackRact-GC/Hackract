@@ -14,7 +14,7 @@ import { hasAnyRole, getDashboardPath } from '../utils/roles.js';
  * If the user is unauthenticated → redirect to /login
  * If the user lacks the required role → redirect to their own dashboard
  */
-const RoleGuard = ({ allowed = [], children }) => {
+const RoleGuard = ({ allowed = [], customCheck, children }) => {
   const { user, loading } = useAuth();
   const location = useLocation();
 
@@ -32,6 +32,11 @@ const RoleGuard = ({ allowed = [], children }) => {
   // Not logged in at all
   if (!user) {
     return <Navigate to="/login" replace state={{ from: location }} />;
+  }
+
+  // Check custom validation if provided
+  if (customCheck && customCheck(user)) {
+    return <>{children}</>;
   }
 
   // Check role match
