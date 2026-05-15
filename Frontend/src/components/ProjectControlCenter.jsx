@@ -3,32 +3,47 @@ import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import toast from "react-hot-toast";
 import api from "../api/axiosConfig";
+import { useAuth } from "../context/authContext";
+import invitationService from "../services/invitation.service";
 import ProjectActivity from "./ProjectActivity.jsx";
-import { FiPlus, FiArrowLeft, FiBell, FiTerminal, FiActivity, FiUserPlus, FiX, FiSearch, FiSend } from "react-icons/fi";
+import { FiPlus, FiArrowLeft, FiBell, FiTerminal, FiActivity, FiUserPlus, FiX, FiSearch, FiSend, FiTrash2 } from "react-icons/fi";
 
-const InviteMemberModal = ({ projectId, onClose, onInvited }) => {
+const HackerDiscoveryModal = ({ projectId, onClose, onInvited }) => {
   const [search, setSearch] = useState("");
   const [results, setResults] = useState([]);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(null);
 
-  const handleSearch = async () => {
-    if (!search.trim()) return;
+  const fetchHackers = async (query = "") => {
     setLoading(true);
     try {
-      const { data } = await api.get(`/users?search=${search}`);
-      setResults(data.data || []);
+      const params = new URLSearchParams();
+      params.set('limit', 12);
+      params.set('page', 1);
+      if (query.trim()) params.set('search', query.trim());
+
+      const { data } = await api.get(`/hacker-profiles/discover?${params.toString()}`);
+      const list = data?.data?.profiles || data?.profiles || [];
+      setResults(Array.isArray(list) ? list : []);
     } catch (e) {
-      toast.error("Failed to find users");
+      toast.error("Failed to fetch operators");
     } finally {
       setLoading(false);
     }
   };
 
+  useEffect(() => {
+    fetchHackers();
+  }, []);
+
+  const handleSearch = () => {
+    fetchHackers(search);
+  };
+
   const sendInvite = async (hackerId) => {
     setSending(hackerId);
     try {
-      await api.post(`/invitations`, {
+      await invitationService.sendInvitation({
         pentestId: projectId,
         hackerId,
         message: "You have been invited to collaborate on this security program.",
@@ -58,25 +73,38 @@ const InviteMemberModal = ({ projectId, onClose, onInvited }) => {
     }
   };
 
+  // Helper to parse skills/certs safely if they're stored as JSON strings
+  const parseItems = (items) => {
+    if (!items) return [];
+    return items.map(item => {
+      try {
+        const parsed = JSON.parse(item);
+        return parsed.title || parsed.name || item;
+      } catch {
+        return item;
+      }
+    });
+  };
+
   return (
     <motion.div
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      className="fixed inset-0 bg-black/80 backdrop-blur-md z-[100] flex items-center justify-center p-6"
+      className="fixed inset-0 bg-black/80 backdrop-blur-md z-100 flex items-center justify-center p-6"
       onClick={onClose}
     >
       <motion.div
         initial={{ opacity: 0, scale: 0.95 }}
         animate={{ opacity: 1, scale: 1 }}
-        className="bg-[#0a0a0a] border border-[#00c477]/20 rounded-2xl w-full max-w-lg overflow-hidden shadow-[0_0_50px_rgba(0,196,119,0.1)]"
+        className="bg-[#0a0a0a] border border-[#00c477]/20 rounded-2xl w-full max-w-4xl max-h-[90vh] flex flex-col overflow-hidden shadow-[0_0_50px_rgba(0,196,119,0.1)]"
         onClick={e => e.stopPropagation()}
       >
-        <div className="p-8 space-y-6">
-          <div className="flex items-center justify-between">
+        <div className="p-8 border-b border-gray-800 shrink-0">
+          <div className="flex items-center justify-between mb-6">
             <div>
-              <h3 className="text-xl font-black text-[#00c477] tracking-widest uppercase">Deploy Personnel</h3>
-              <p className="text-[10px] text-gray-500 font-mono tracking-[0.2em] mt-1 uppercase">SEARCH & AUTHORIZE OPERATORS</p>
+              <h3 className="text-xl font-black text-[#00c477] tracking-widest uppercase">Operator Discovery</h3>
+              <p className="text-[10px] text-gray-500 font-mono tracking-[0.2em] mt-1 uppercase">RECRUIT TOP PENETRATION EXPERTS</p>
             </div>
             <button onClick={onClose} className="p-2 rounded-xl hover:bg-white/5 text-white/20 hover:text-[#00c477] transition-all">
               <FiX size={20} />
@@ -89,7 +117,7 @@ const InviteMemberModal = ({ projectId, onClose, onInvited }) => {
               value={search}
               onChange={e => setSearch(e.target.value)}
               onKeyDown={e => e.key === 'Enter' && handleSearch()}
-              placeholder="Search by handle or email..."
+              placeholder="Search by name, handle, or specialization..."
               className="w-full bg-[#15181e] border border-gray-800 rounded-xl px-5 py-4 text-sm text-gray-300 outline-none focus:border-[#00c477]/50 transition-all font-mono"
             />
             <button
@@ -99,48 +127,71 @@ const InviteMemberModal = ({ projectId, onClose, onInvited }) => {
               <FiSearch size={16} />
             </button>
           </div>
+        </div>
 
-          <div className="max-h-[300px] overflow-y-auto space-y-3 pr-2 custom-scrollbar">
-            {loading ? (
-              <div className="py-12 flex justify-center"><div className="w-6 h-6 border-2 border-transparent border-t-[#00c477] rounded-full animate-spin" /></div>
-            ) : results.length > 0 ? (
-              results.map(u => (
-                <div key={u.id} className="flex items-center justify-between p-4 bg-[#1a1d24] rounded-xl border border-gray-800 group hover:border-[#00c477]/30 transition-all">
-                  <div className="flex items-center gap-4">
-                    <div className="w-10 h-10 rounded-lg bg-black border border-gray-700 flex items-center justify-center font-black text-[#00c477]">
-                      {u.fullName?.[0] || "?"}
-                    </div>
+        <div className="flex-1 overflow-y-auto p-8 custom-scrollbar bg-[#050505]">
+          {loading ? (
+            <div className="py-20 flex justify-center"><div className="w-8 h-8 border-2 border-transparent border-t-[#00c477] rounded-full animate-spin" /></div>
+          ) : results.length > 0 ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {results.map(hacker => {
+                const name = hacker.user?.fullName || hacker.name || "Unknown";
+                const handle = hacker.user?.handle || hacker.tag || "";
+                const skills = parseItems(hacker.primarySkills || hacker.skills).slice(0, 3);
+                const rank = hacker.rank || 'SILVER';
+
+                return (
+                  <div key={hacker.id} className="flex flex-col justify-between p-5 bg-[#1a1d24] rounded-xl border border-gray-800 hover:border-[#00c477]/30 transition-all group">
                     <div>
-                      <p className="text-sm font-bold text-gray-300 tracking-wider uppercase">{u.fullName}</p>
-                      <p className="text-[10px] text-gray-500 font-mono tracking-widest">{u.handle} • {u.email}</p>
+                      <div className="flex items-start justify-between mb-3">
+                        <div className="flex items-center gap-3">
+                          <div className="w-12 h-12 rounded-lg bg-black border border-gray-700 flex items-center justify-center font-black text-[#00c477] text-xl">
+                            {name[0] || "?"}
+                          </div>
+                          <div>
+                            <p className="text-sm font-bold text-gray-200 tracking-wider uppercase truncate max-w-[150px]">{name}</p>
+                            <p className="text-[10px] text-[#00c477] font-mono tracking-widest">{handle ? `@${handle}` : 'OPERATOR'}</p>
+                          </div>
+                        </div>
+                        <span className="text-[9px] px-2 py-0.5 rounded border border-gray-600 bg-gray-800 font-mono text-gray-300">{rank}</span>
+                      </div>
+                      
+                      <div className="flex flex-wrap gap-1.5 mb-5">
+                        {skills.length > 0 ? skills.map(s => (
+                          <span key={s} className="px-2 py-0.5 bg-black/50 border border-gray-700 rounded text-[9px] text-gray-400 font-mono">
+                            {s}
+                          </span>
+                        )) : (
+                          <span className="text-[9px] text-gray-600 font-mono italic">No specialized skills listed</span>
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-2 pt-3 border-t border-gray-800">
+                      <button
+                        disabled={sending === hacker.id || sending === hacker.userId}
+                        onClick={() => sendInvite(hacker.userId || hacker.id)}
+                        className="flex-1 py-2 bg-transparent hover:bg-[#00c477]/10 text-gray-400 hover:text-[#00c477] rounded-lg transition-all border border-gray-700 hover:border-[#00c477]/30 disabled:opacity-50 text-[10px] font-bold uppercase tracking-widest flex items-center justify-center gap-2"
+                      >
+                        {sending === (hacker.userId || hacker.id) ? <div className="w-3 h-3 border-2 border-transparent border-t-[#00c477] rounded-full animate-spin" /> : <FiSend />}
+                        Invite
+                      </button>
+                      <button
+                        disabled={sending === hacker.id || sending === hacker.userId}
+                        onClick={() => addDirectly(hacker.userId || hacker.id)}
+                        className="flex-1 py-2 bg-[#00c477]/10 hover:bg-[#00c477] text-[#00c477] hover:text-black rounded-lg transition-all border border-[#00c477]/20 hover:border-[#00c477] disabled:opacity-50 text-[10px] font-bold uppercase tracking-widest flex items-center justify-center gap-2"
+                      >
+                        {sending === (hacker.userId || hacker.id) ? <div className="w-3 h-3 border-2 border-transparent border-t-black rounded-full animate-spin" /> : <FiUserPlus />}
+                        Direct Add
+                      </button>
                     </div>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <button
-                      disabled={sending === u.id}
-                      onClick={() => sendInvite(u.id)}
-                      className="p-3 bg-transparent hover:bg-[#00c477]/10 text-gray-500 hover:text-[#00c477] rounded-lg transition-all border border-gray-700 hover:border-[#00c477]/30 disabled:opacity-50"
-                      title="Send Invitation"
-                    >
-                      {sending === u.id ? <div className="w-4 h-4 border-2 border-transparent border-t-[#00c477] rounded-full animate-spin" /> : <FiSend size={14} />}
-                    </button>
-                    <button
-                      disabled={sending === u.id}
-                      onClick={() => addDirectly(u.id)}
-                      className="p-3 bg-[#00c477]/10 hover:bg-[#00c477] text-[#00c477] hover:text-black rounded-lg transition-all border border-[#00c477]/20 hover:border-[#00c477] disabled:opacity-50"
-                      title="Direct Add"
-                    >
-                      {sending === u.id ? <div className="w-4 h-4 border-2 border-transparent border-t-black rounded-full animate-spin" /> : <FiUserPlus size={14} />}
-                    </button>
-                  </div>
-                </div>
-              ))
-            ) : search && !loading ? (
-              <p className="text-center py-10 text-[10px] text-gray-600 uppercase tracking-widest font-mono">No operators found matching criteria</p>
-            ) : (
-              <p className="text-center py-10 text-[10px] text-gray-600 uppercase tracking-widest font-mono italic">Enter credentials to begin search</p>
-            )}
-          </div>
+                );
+              })}
+            </div>
+          ) : (
+            <p className="text-center py-20 text-[10px] text-gray-600 uppercase tracking-widest font-mono">No operators found matching criteria</p>
+          )}
         </div>
       </motion.div>
     </motion.div>
@@ -149,17 +200,23 @@ const InviteMemberModal = ({ projectId, onClose, onInvited }) => {
 
 const ProjectControlCenter = ({ projectId, onBack }) => {
   const navigate = useNavigate();
+  const { user: authUser } = useAuth();
   const [project, setProject] = useState(null);
+  const [invitations, setInvitations] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showInviteModal, setShowInviteModal] = useState(false);
 
   const loadProject = async () => {
     setLoading(true);
     try {
-      const { data } = await api.get(`/projects/${projectId}`);
-      setProject(data?.data || null);
+      const [projRes, invRes] = await Promise.all([
+        api.get(`/projects/${projectId}`),
+        invitationService.getInvitationsByProject(projectId)
+      ]);
+      setProject(projRes.data?.data || null);
+      setInvitations(invRes.data || []);
     } catch (error) {
-      toast.error("Unable to load project");
+      toast.error("Unable to load project data");
     } finally {
       setLoading(false);
     }
@@ -170,17 +227,7 @@ const ProjectControlCenter = ({ projectId, onBack }) => {
   }, [projectId]);
 
   const hackers = useMemo(() => {
-    const realHackers = project?.collaborators?.filter((c) => c.role === "HACKER" || c.role === "PROJECT_ADMIN" || c.role === "PENTESTER") || [];
-
-    // Mix in some mock hackers if we want the dashboard to look populated
-    const mockHackers = [
-      { id: "mock-1", userId: "u1", role: "HACKER", user: { fullName: "X_RAY_ZERO", email: "xray@darkweb.net" } },
-      { id: "mock-2", userId: "u2", role: "HACKER", user: { fullName: "CYBER_PHOENIX", email: "phoenix@sec.org" } },
-      { id: "mock-3", userId: "u3", role: "PROJECT_ADMIN", user: { fullName: "NEO_DRE", email: "dre@matrix.io" } }
-    ];
-
-    // If real hackers exist, use them, otherwise use mock data for showcase
-    return realHackers.length > 0 ? realHackers : mockHackers;
+    return project?.collaborators?.filter((c) => c.role === "HACKER" || c.role === "PROJECT_ADMIN" || c.role === "PENTESTER") || [];
   }, [project]);
 
   const handleMakeAdmin = async (userId) => {
@@ -190,6 +237,17 @@ const ProjectControlCenter = ({ projectId, onBack }) => {
       loadProject();
     } catch (err) {
       toast.error(err.response?.data?.message || "Failed to make lead pentester");
+    }
+  };
+
+  const handleRemoveHacker = async (userId) => {
+    if (!window.confirm("Are you sure you want to remove this operator from the project?")) return;
+    try {
+      await api.delete(`/projects/${projectId}/collaborators/${userId}`);
+      toast.success("Operator removed from mission");
+      loadProject();
+    } catch (err) {
+      toast.error(err.response?.data?.message || "Failed to remove operator");
     }
   };
 
@@ -212,6 +270,17 @@ const ProjectControlCenter = ({ projectId, onBack }) => {
       }
     } catch (err) {
       toast.error("Failed to initialize workflow.");
+    }
+  };
+
+  const handleRevokeInvitation = async (invitationId) => {
+    if (!window.confirm("Are you sure you want to revoke this invitation?")) return;
+    try {
+      await invitationService.revokeInvitation(invitationId);
+      toast.success("Invitation revoked");
+      loadProject();
+    } catch (err) {
+      toast.error("Failed to revoke invitation");
     }
   };
 
@@ -288,7 +357,7 @@ const ProjectControlCenter = ({ projectId, onBack }) => {
                   initial={{ width: 0 }}
                   animate={{ width: `${phasePercentage}%` }}
                   transition={{ duration: 1, ease: "easeOut" }}
-                  className="h-full bg-gradient-to-r from-[#1a3a2d] to-[#00c477] relative"
+                  className="h-full bg-linear-to-r from-[#1a3a2d] to-[#00c477] relative"
                 >
                   <div className="absolute right-0 top-0 bottom-0 w-1 bg-white" />
                 </motion.div>
@@ -359,19 +428,59 @@ const ProjectControlCenter = ({ projectId, onBack }) => {
                           <div className="text-[#00c477] border border-[#00c477]/30 px-4 py-2 rounded text-[10px] font-black uppercase tracking-widest bg-[#00c477]/5 whitespace-nowrap">
                             LEAD_ADMIN
                           </div>
-                        ) : (
-                          <button
-                            onClick={() => handleMakeAdmin(hacker.userId)}
-                            className="text-gray-400 border border-gray-700 px-4 py-2 rounded text-[10px] font-black uppercase tracking-widest hover:text-[#00c477] hover:border-[#00c477] transition-all bg-transparent whitespace-nowrap"
-                          >
-                            ASSIGN_ADMIN
-                          </button>
+                         ) : (
+                          <div className="flex items-center gap-2">
+                            <button
+                              onClick={() => handleMakeAdmin(hacker.userId)}
+                              className="text-gray-400 border border-gray-700 px-4 py-2 rounded text-[10px] font-black uppercase tracking-widest hover:text-[#00c477] hover:border-[#00c477] transition-all bg-transparent whitespace-nowrap"
+                            >
+                              ASSIGN_ADMIN
+                            </button>
+                            <button
+                              onClick={() => handleRemoveHacker(hacker.userId)}
+                              className="text-gray-600 hover:text-rose-500 p-2 rounded hover:bg-rose-500/10 transition-all"
+                              title="Remove Operator"
+                            >
+                              <FiTrash2 size={16} />
+                            </button>
+                          </div>
                         )}
                       </div>
                     </div>
                   );
                 })}
-                {hackers.length === 0 && (
+
+                {/* Pending Invitations */}
+                {invitations.filter(i => i.status === 'PENDING').map((inv) => (
+                  <div key={inv.id} className="flex flex-col sm:flex-row sm:items-center justify-between p-4 bg-[#1a1d24]/40 border border-dashed border-gray-700 rounded hover:border-amber-500/30 transition-colors group gap-4">
+                    <div className="flex items-center gap-4">
+                      <div className="relative shrink-0">
+                        <div className="w-12 h-12 bg-black border border-gray-800 flex items-center justify-center overflow-hidden text-gray-600 font-black text-xl opacity-50">
+                          {inv.hacker?.fullName?.[0]?.toUpperCase() || "?"}
+                        </div>
+                      </div>
+                      <div className="overflow-hidden">
+                        <div className="text-sm font-bold text-gray-500 tracking-wider uppercase truncate">{inv.hacker?.fullName || inv.hacker?.handle}</div>
+                        <div className="flex items-center gap-3 mt-1 flex-wrap">
+                          <span className="text-[9px] bg-amber-500/10 text-amber-500 px-1.5 py-0.5 uppercase tracking-widest border border-amber-500/20">PENDING_INVITE</span>
+                          <span className="text-[9px] text-gray-700 uppercase tracking-widest">SENT: {new Date(inv.createdAt).toLocaleDateString()}</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center justify-between sm:justify-end gap-8">
+                      <button
+                        onClick={() => handleRevokeInvitation(inv.id)}
+                        className="text-gray-600 hover:text-rose-500 p-2 rounded hover:bg-rose-500/10 transition-all"
+                        title="Revoke Invitation"
+                      >
+                        <FiTrash2 size={16} />
+                      </button>
+                    </div>
+                  </div>
+                ))}
+
+                {hackers.length === 0 && invitations.filter(i => i.status === 'PENDING').length === 0 && (
                   <div className="text-center py-8 text-gray-600 text-xs uppercase tracking-widest">
                     No operatives assigned to this sector.
                   </div>
@@ -400,7 +509,7 @@ const ProjectControlCenter = ({ projectId, onBack }) => {
 
       <AnimatePresence>
         {showInviteModal && (
-          <InviteMemberModal
+          <HackerDiscoveryModal
             projectId={projectId}
             onClose={() => setShowInviteModal(false)}
             onInvited={() => {

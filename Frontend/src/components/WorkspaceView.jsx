@@ -65,7 +65,7 @@ const InviteMemberModal = ({ projectId, onClose, onInvited }) => {
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      className="fixed inset-0 bg-black/80 backdrop-blur-md z-[100] flex items-center justify-center p-6"
+      className="fixed inset-0 bg-black/80 backdrop-blur-md z-100 flex items-center justify-center p-6"
       onClick={onClose}
     >
       <motion.div
@@ -155,10 +155,33 @@ const WorkspaceView = ({ projectId, onBack }) => {
   const { user } = useAuth();
   const [project, setProject] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState(searchParams.get("tab") || "overview");
   const [showInvite, setShowInvite] = useState(false);
-
   const workspaceName = project?.name || "Project Workspace";
+
+  const tabs = useMemo(() => {
+    if (!project) return [];
+    if (project.isPersonal) {
+      // Local Lab: Only Workflow and Findings. Deletion moved to header.
+      return ["workflow", "findings"];
+    }
+    // Org Project (Hacker Side): Overview, Workflow, Findings, Team.
+    return ["overview", "workflow", "findings", "team"];
+  }, [project]);
+
+  const [activeTab, setActiveTab] = useState(() => {
+    const queryTab = searchParams.get("tab");
+    if (queryTab && tabs.includes(queryTab)) return queryTab;
+    return project?.isPersonal ? "workflow" : "overview";
+  });
+
+  useEffect(() => {
+    if (project) {
+        const currentTabs = project.isPersonal ? ["workflow", "findings"] : ["overview", "workflow", "findings", "team"];
+        if (!currentTabs.includes(activeTab)) {
+          setActiveTab(project.isPersonal ? "workflow" : "overview");
+        }
+    }
+  }, [project]);
 
   const loadProject = async () => {
     setLoading(true);
@@ -288,15 +311,23 @@ const WorkspaceView = ({ projectId, onBack }) => {
               <span className="text-[#00ff88]">Status: {project.status}</span>
             </div>
           </div>
+
+          {project.isPersonal && (
+            <button
+              onClick={handleDeleteProject}
+              className="flex items-center gap-2 px-5 py-2.5 bg-rose-500/10 hover:bg-rose-500 text-rose-500 hover:text-white border border-rose-500/20 hover:border-rose-500 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all"
+            >
+              <FiTrash2 size={14} /> Deconstruct Lab
+            </button>
+          )}
         </div>
 
-        {/* Tabs */}
-        <div className="flex bg-black/60 p-1.5 rounded-2xl border border-white/10 w-fit">
-          {["overview", "workflow", "findings", "team", ...(canManage ? ["hiring", "settings"] : [])].map((tab) => (
+        <div className="flex bg-black/60 p-1.5 rounded-2xl border border-white/10 w-fit overflow-x-auto max-w-full">
+          {tabs.map((tab) => (
             <button
               key={tab}
               onClick={() => setActiveTab(tab)}
-              className={`px-6 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${
+              className={`px-6 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all whitespace-nowrap ${
                 activeTab === tab ? "bg-[#00ff88] text-black shadow-lg shadow-black/30" : "text-white/60 hover:text-white"
               }`}
             >
@@ -577,14 +608,6 @@ const WorkspaceView = ({ projectId, onBack }) => {
                   <h3 className="text-xs font-black text-white/40 uppercase tracking-[0.2em] mb-1">Personnel Management</h3>
                   <p className="text-[10px] text-white/20 font-mono tracking-widest">AUTHORIZED PROJECT STAFF</p>
                 </div>
-                {canManage && (
-                  <button 
-                    onClick={() => setShowInvite(true)}
-                    className="flex items-center gap-2 px-4 py-2 bg-[#00ff88] text-black rounded-xl text-[10px] font-black uppercase tracking-widest hover:scale-105 transition-all shadow-lg shadow-[#00ff88]/10"
-                  >
-                    <FiUserPlus size={14} /> Invite Member
-                  </button>
-                )}
               </div>
 
               <div className="grid gap-4">
