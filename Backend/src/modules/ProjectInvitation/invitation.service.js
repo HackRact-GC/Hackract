@@ -3,6 +3,7 @@ import AppError from '../../utils/AppError.js';
 import invitationRepository from './invitation.repository.js';
 import { InvitationErrorCodes, InvitationActions } from './invitation.constants.js';
 import { logAction } from '../AuditLogs/auditLog.service.js';
+import * as notificationService from '../Notification/notification.service.js';
 
 // ─── Guards ──────────────────────────────────────────────────────────────────
 
@@ -46,7 +47,7 @@ const ensureHackerApproved = async (hackerId) => {
 export const sendInvitation = async (invitedById, { pentestId, hackerId, message, expiresAt }, req) => {
     await ensurePentestExists(pentestId);
     await ensureHackerExists(hackerId);
-    await ensureHackerApproved(hackerId);
+    // await ensureHackerApproved(hackerId); // Disabled per user request
 
     // Block duplicate PENDING invitation
     const existing = await invitationRepository.findPending(pentestId, hackerId);
@@ -73,6 +74,15 @@ export const sendInvitation = async (invitedById, { pentestId, hackerId, message
         hackerId,
         organizationId: invitation.pentest?.organization?.id,
     }, req);
+
+    // Notify Hacker
+    await notificationService.notifyUser(hackerId, {
+        title: "New Project Mission",
+        message: `You have been invited to join "${invitation.pentest?.name || 'a new project'}".`,
+        type: "INVITATION",
+        link: "/hacker-dashboard?tab=invitations",
+        metadata: { pentestId, invitationId: invitation.id }
+    });
 
     return invitation;
 };
@@ -157,6 +167,15 @@ export const respondToInvitation = async (invitationId, hackerId, status, req) =
         invitationId,
         pentestId: invitation.pentestId,
     }, req);
+
+    // Notify the inviter
+    await notificationService.notifyUser(invitation.invitedById, {
+        title: `Invitation ${status.charAt(0) + status.slice(1).toLowerCase()}`,
+        message: `An operator has ${status.toLowerCase()} the mission invitation for "${invitation.pentest?.name}".`,
+        type: "INVITATION_RESPONSE",
+        link: `/org-projects/${invitation.pentestId}`,
+        metadata: { pentestId: invitation.pentestId, invitationId, status }
+    });
 
     return updated;
 };
