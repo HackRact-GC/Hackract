@@ -216,6 +216,10 @@ const startServer = async () => {
     io.to(`conv:${conversationId}`).emit("chat:message-deleted", { conversationId, messageId });
   };
 
+  app.locals.sendNotification = (userId, notification) => {
+    io.to(`user:${userId}`).emit("notification:new", notification);
+  };
+
   const maxRetries = 5;
   const listenWithRetry = (port, attempt = 0) => {
     server.once('error', (err) => {
