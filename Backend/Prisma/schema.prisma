@@ -52,6 +52,7 @@ model User {
   userSignatures              UserSignature[]
   wallet                      Wallet?
   workflowHistories           WorkflowHistory[]
+  notifications               Notification[]
   roles                       Role[]                       @relation("RoleToUser")
 
   @@unique([provider, providerId])
@@ -713,4 +714,20 @@ enum ProjectInvitationStatus {
   REJECTED
   REVOKED
   EXPIRED
+}
+
+model Notification {
+  id        String   @id @default(uuid())
+  userId    String
+  title     String
+  message   String
+  type      String   // INVITATION, PROJECT_UPDATE, FINDING, SYSTEM
+  isRead    Boolean  @default(false)
+  link      String?  // Optional URL to redirect
+  metadata  Json?    // Extra data (e.g. pentestId, invitationId)
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([createdAt])
 }
