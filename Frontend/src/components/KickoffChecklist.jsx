@@ -49,19 +49,17 @@ const KickoffChecklist = ({ projectId, onComplete }) => {
           <button
             key={item.id}
             onClick={() => toggleItem(item.id)}
-            className={`w-full flex items-center justify-between p-4 rounded-xl border transition-all ${
-              item.checked 
-                ? "bg-[#00c477]/10 border-[#00c477]/40 text-[#00c477]" 
+            className={`w-full flex items-center justify-between p-4 rounded-xl border transition-all ${item.checked
+                ? "bg-[#00c477]/10 border-[#00c477]/40 text-[#00c477]"
                 : "bg-white/5 border-white/10 text-gray-400 hover:border-white/20"
-            }`}
+              }`}
           >
             <div className="flex items-center gap-4">
               <span className="text-lg">{item.icon}</span>
               <span className="text-sm font-medium">{item.text}</span>
             </div>
-            <div className={`h-5 w-5 rounded-md border flex items-center justify-center ${
-              item.checked ? "bg-[#00c477] border-[#00c477] text-black" : "border-white/20"
-            }`}>
+            <div className={`h-5 w-5 rounded-md border flex items-center justify-center ${item.checked ? "bg-[#00c477] border-[#00c477] text-black" : "border-white/20"
+              }`}>
               {item.checked && <FiCheckCircle size={14} />}
             </div>
           </button>

@@ -15,16 +15,16 @@ import invitationService from "../services/invitation.service";
 
 // ─── CONSTANTS & CONFIG ────────────────────────────────────────────────
 const STATUS_CONFIG = {
-  PLANNING:    { label: "Planning",    color: "text-amber-400",  bg: "bg-amber-400/10",  border: "border-amber-400/30" },
-  IN_PROGRESS: { label: "In Progress", color: "text-[#00c477]", bg: "bg-[#00c477]/10", border: "border-[#00c477]/30"  },
-  REPORTING:   { label: "Reporting",   color: "text-purple-400", bg: "bg-purple-400/10", border: "border-purple-400/30"},
-  CLOSED:      { label: "Closed",      color: "text-gray-500",   bg: "bg-gray-500/10",   border: "border-gray-500/30"  },
+  PLANNING: { label: "Planning", color: "text-amber-400", bg: "bg-amber-400/10", border: "border-amber-400/30" },
+  IN_PROGRESS: { label: "In Progress", color: "text-[#00c477]", bg: "bg-[#00c477]/10", border: "border-[#00c477]/30" },
+  REPORTING: { label: "Reporting", color: "text-purple-400", bg: "bg-purple-400/10", border: "border-purple-400/30" },
+  CLOSED: { label: "Closed", color: "text-gray-500", bg: "bg-gray-500/10", border: "border-gray-500/30" },
 };
 
 const TABS = [
   { id: "ALL_ACCESS", label: "All Projects" },
-  { id: "LOCAL_LABS", label: "Local Labs" },
-  { id: "MISSIONS", label: "Active Engagements" },
+  { id: "LOCAL_LABS", label: "Personal Labs" },
+  { id: "MISSIONS", label: "Organization Projects" },
   { id: "INBOUND_REQS", label: "Pending Invitations" }
 ];
 
@@ -46,11 +46,10 @@ const StatusBadge = ({ status }) => {
 };
 
 const RoleBadge = ({ role }) => (
-  <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-[10px] font-bold tracking-wider uppercase border ${
-    role === 'LEAD'
-      ? 'text-[#00c477] bg-[#00c477]/10 border-[#00c477]/30'
-      : 'text-cyan-400 bg-cyan-400/10 border-cyan-400/30'
-  }`}>
+  <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-[10px] font-bold tracking-wider uppercase border ${role === 'LEAD'
+    ? 'text-[#00c477] bg-[#00c477]/10 border-[#00c477]/30'
+    : 'text-cyan-400 bg-cyan-400/10 border-cyan-400/30'
+    }`}>
     {role === 'LEAD' ? 'Lead' : 'Contributor'}
   </span>
 );
@@ -68,7 +67,7 @@ const PersonalProjectCard = ({ project, onOpen, onDelete, index }) => (
       <div className="flex items-center gap-2 flex-wrap">
         <StatusBadge status={project.status} />
         <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-[10px] font-bold border text-gray-400 bg-white/5 border-white/10 uppercase tracking-wider">
-          Local Lab
+          Personal Lab
         </span>
       </div>
       <div className="flex items-center gap-2">
@@ -115,11 +114,10 @@ const OrgProjectCard = ({ project, onOpen, onAccept, onDecline, index }) => {
       initial={{ opacity: 0, scale: 0.98 }}
       animate={{ opacity: 1, scale: 1 }}
       transition={{ delay: index * 0.05, duration: 0.3 }}
-      className={`bg-[#050505] border rounded-2xl p-6 group transition-all relative flex flex-col font-sans hover:shadow-lg ${
-        isPending
-          ? 'border-amber-500/30 hover:border-amber-400/60 shadow-[0_4px_20px_rgba(245,158,11,0.05)]'
-          : 'border-white/5 hover:border-white/20 cursor-pointer'
-      }`}
+      className={`bg-[#050505] border rounded-2xl p-6 group transition-all relative flex flex-col font-sans hover:shadow-lg ${isPending
+        ? 'border-amber-500/30 hover:border-amber-400/60 shadow-[0_4px_20px_rgba(245,158,11,0.05)]'
+        : 'border-white/5 hover:border-white/20 cursor-pointer'
+        }`}
       onClick={() => { if (!isPending) onOpen(project.id); }}
     >
       {/* Status + Role row */}
@@ -136,15 +134,15 @@ const OrgProjectCard = ({ project, onOpen, onAccept, onDecline, index }) => {
       <div className="flex items-start gap-4 mb-4">
         <div className="w-10 h-10 rounded-xl border border-white/10 bg-white/5 shrink-0 overflow-hidden flex items-center justify-center">
           {project.organization?.avatar ? (
-             <img
-               src={project.organization.avatar}
-               alt={project.organization?.name || "Org"}
-               className={`w-10 h-10 object-cover ${!isPending ? 'group-hover:scale-110 transition-transform' : ''}`}
-             />
+            <img
+              src={project.organization.avatar}
+              alt={project.organization?.name || "Org"}
+              className={`w-10 h-10 object-cover ${!isPending ? 'group-hover:scale-110 transition-transform' : ''}`}
+            />
           ) : (
-             <div className="text-[#00c477] font-black text-sm">
-                {(project.organization?.name || project.orgName || "H")?.[0]?.toUpperCase()}
-             </div>
+            <div className="text-[#00c477] font-black text-sm">
+              {(project.organization?.name || project.orgName || "H")?.[0]?.toUpperCase()}
+            </div>
           )}
         </div>
         <div>
@@ -163,7 +161,7 @@ const OrgProjectCard = ({ project, onOpen, onAccept, onDecline, index }) => {
       <div className="mt-auto pt-4 border-t border-white/5 flex items-center justify-between mb-5">
         <div className="flex items-center gap-2">
           <div className="w-6 h-6 rounded-md bg-white/5 flex items-center justify-center text-gray-400">
-             <FiTarget size={12} />
+            <FiTarget size={12} />
           </div>
           <span className="text-[12px] text-gray-300 font-bold">{project.findings || project._count?.findings || 0} <span className="font-normal text-gray-500">Vulns</span></span>
         </div>
@@ -192,7 +190,7 @@ const OrgProjectCard = ({ project, onOpen, onAccept, onDecline, index }) => {
           </div>
         ) : (
           <div className="pt-2 text-[13px] font-bold text-gray-400 group-hover:text-[#00c477] transition-colors flex items-center gap-1">
-             Enter Workspace <FiChevronRight className="group-hover:translate-x-1 transition-transform" />
+            Enter Workspace <FiChevronRight className="group-hover:translate-x-1 transition-transform" />
           </div>
         )}
       </div>
@@ -231,20 +229,18 @@ const PersonalWorkspaceCard = ({ onCreate }) => {
         </div>
         <div className="flex-1 min-w-0">
           <h3 className="font-bold text-white text-lg flex items-center gap-3">
-            Initialize Local Lab
-            <span className="text-[10px] bg-white/10 px-2 py-0.5 rounded-md text-gray-400 uppercase tracking-widest font-bold">Offline Sandbox</span>
+            Initialize Personal Lab
           </h3>
           <p className="text-sm text-gray-500 mt-1">
-            Create an isolated local sandbox for independent exploitation testing, research, and personal tooling.
+            Create personal workflow for independent exploitation testing, research, and personal tooling.
           </p>
         </div>
         <button
           onClick={() => setExpanded(v => !v)}
-          className={`w-full md:w-auto px-6 py-3 rounded-xl flex items-center justify-center transition-all text-sm font-bold gap-2 ${
-            expanded
-              ? "bg-white/10 text-white hover:bg-white/20"
-              : "bg-[#00c477] text-black hover:bg-[#00a665] shadow-[0_4px_20px_rgba(0,196,119,0.2)]"
-          }`}
+          className={`w-full md:w-auto px-6 py-3 rounded-xl flex items-center justify-center transition-all text-sm font-bold gap-2 ${expanded
+            ? "bg-white/10 text-white hover:bg-white/20"
+            : "bg-[#00c477] text-black hover:bg-[#00a665] shadow-[0_4px_20px_rgba(0,196,119,0.2)]"
+            }`}
         >
           {expanded ? <><FiX /> Cancel</> : <><FiTerminal /> Create Project</>}
         </button>
@@ -260,25 +256,25 @@ const PersonalWorkspaceCard = ({ onCreate }) => {
           >
             <div className="p-6 md:p-8 space-y-6">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                 <div>
-                   <label className="text-[11px] font-bold text-gray-400 uppercase tracking-wider block mb-2">Project Name</label>
-                   <input
-                     value={name}
-                     onChange={e => setName(e.target.value)}
-                     onKeyDown={e => e.key === "Enter" && handleCreate()}
-                     className="w-full bg-[#111] border border-white/10 focus:border-[#00c477] rounded-xl px-4 py-3 text-sm text-white outline-none transition-colors"
-                     placeholder="e.g. Android Root Detection Bypass Lab"
-                   />
+                <div>
+                  <label className="text-[11px] font-bold text-gray-400 uppercase tracking-wider block mb-2">Project Name</label>
+                  <input
+                    value={name}
+                    onChange={e => setName(e.target.value)}
+                    onKeyDown={e => e.key === "Enter" && handleCreate()}
+                    className="w-full bg-[#111] border border-white/10 focus:border-[#00c477] rounded-xl px-4 py-3 text-sm text-white outline-none transition-colors"
+                    placeholder="e.g. Android Root Detection Bypass Lab"
+                  />
                 </div>
 
                 <div>
-                   <label className="text-[11px] font-bold text-gray-400 uppercase tracking-wider block mb-2">Scope / Objective</label>
-                   <input
-                     value={description}
-                     onChange={e => setDescription(e.target.value)}
-                     className="w-full bg-[#111] border border-white/10 focus:border-[#00c477] rounded-xl px-4 py-3 text-sm text-white outline-none transition-colors"
-                     placeholder="Define attack vectors or testing goals..."
-                   />
+                  <label className="text-[11px] font-bold text-gray-400 uppercase tracking-wider block mb-2">Scope / Objective</label>
+                  <input
+                    value={description}
+                    onChange={e => setDescription(e.target.value)}
+                    className="w-full bg-[#111] border border-white/10 focus:border-[#00c477] rounded-xl px-4 py-3 text-sm text-white outline-none transition-colors"
+                    placeholder="Define attack vectors or testing goals..."
+                  />
                 </div>
               </div>
 
@@ -346,8 +342,8 @@ const Projects = () => {
 
   // Tab filtering
   const displayPersonal = activeTab === 'ALL_ACCESS' || activeTab === 'LOCAL_LABS';
-  const displayOrg      = activeTab === 'ALL_ACCESS' || activeTab === 'MISSIONS';
-  const displayPending  = activeTab === 'ALL_ACCESS' || activeTab === 'INBOUND_REQS';
+  const displayOrg = activeTab === 'ALL_ACCESS' || activeTab === 'MISSIONS';
+  const displayPending = activeTab === 'ALL_ACCESS' || activeTab === 'INBOUND_REQS';
 
   const handleAccept = async (id) => {
     try {
@@ -402,11 +398,10 @@ const Projects = () => {
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
-              className={`px-4 py-2 rounded-lg text-xs font-bold transition-all whitespace-nowrap flex items-center justify-center gap-2 ${
-                activeTab === tab.id
-                  ? 'bg-white/10 text-white shadow-sm'
-                  : 'text-gray-500 hover:text-white hover:bg-white/5'
-              }`}
+              className={`px-4 py-2 rounded-lg text-xs font-bold transition-all whitespace-nowrap flex items-center justify-center gap-2 ${activeTab === tab.id
+                ? 'bg-white/10 text-white shadow-sm'
+                : 'text-gray-500 hover:text-white hover:bg-white/5'
+                }`}
             >
               {tab.label}
               {tab.id === 'INBOUND_REQS' && pendingCount > 0 && (
@@ -459,19 +454,19 @@ const Projects = () => {
             </h2>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
               {pendingInvitations.map((inv, i) => (
-                <OrgProjectCard 
-                  key={inv.id} 
+                <OrgProjectCard
+                  key={inv.id}
                   project={{
                     ...inv.pentest,
                     id: inv.id, // We use invitation ID for the response call
                     inviteStatus: 'PENDING',
                     orgName: inv.pentest?.organization?.name || "Enterprise Org",
                     orgAvatar: inv.pentest?.organization?.avatar
-                  }} 
-                  index={i} 
-                  onOpen={id => navigate(`/projects/${inv.pentestId}`)} 
-                  onAccept={handleAccept} 
-                  onDecline={handleDecline} 
+                  }}
+                  index={i}
+                  onOpen={id => navigate(`/projects/${inv.pentestId}`)}
+                  onAccept={handleAccept}
+                  onDecline={handleDecline}
                 />
               ))}
             </div>
@@ -488,9 +483,9 @@ const Projects = () => {
             <PersonalWorkspaceCard onCreate={handlePersonalCreated} />
 
             {loading ? (
-               <div className="py-12 flex justify-center">
-                 <div className="w-8 h-8 border-2 border-white/10 border-t-[#00c477] rounded-full animate-spin" />
-               </div>
+              <div className="py-12 flex justify-center">
+                <div className="w-8 h-8 border-2 border-white/10 border-t-[#00c477] rounded-full animate-spin" />
+              </div>
             ) : personalProjects.length > 0 ? (
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5 mt-6">
                 {personalProjects.map((p, i) => (
@@ -498,7 +493,7 @@ const Projects = () => {
                 ))}
               </div>
             ) : (
-                null // we already show the creation card, no need for redundant empty state
+              null // we already show the creation card, no need for redundant empty state
             )}
           </section>
         )}
@@ -507,27 +502,27 @@ const Projects = () => {
         {displayOrg && (
           <section className="space-y-5">
             <h2 className="text-sm font-bold text-gray-400 tracking-wider uppercase flex items-center gap-3">
-              <span className="w-2 h-2 rounded-full bg-[#00c477]" /> Active Organization Nodes
+              <span className="w-2 h-2 rounded-full bg-[#00c477]" /> Active Organization Projects
             </h2>
 
             {orgProjects.length === 0 ? (
               <div className="py-16 flex flex-col items-center justify-center gap-4 border-2 border-dashed border-white/5 bg-[#0a0a0a] rounded-3xl text-gray-500 text-sm">
                 <FiActivity size={32} className="opacity-30 mb-2" />
-                <p>No active organizational engagements currently underway.</p>
+                <p>No active organizational Projects currently underway.</p>
               </div>
             ) : (
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
                 {orgProjects.map((p, i) => (
-                   <OrgProjectCard 
-                    key={p.id} 
+                  <OrgProjectCard
+                    key={p.id}
                     project={{
                       ...p,
                       orgName: p.organization?.name,
                       orgAvatar: p.organization?.avatar
-                    }} 
-                    index={i} 
-                    onOpen={id => navigate(`/projects/${p.id}`)} 
-                   />
+                    }}
+                    index={i}
+                    onOpen={id => navigate(`/projects/${p.id}`)}
+                  />
                 ))}
               </div>
             )}

@@ -40,6 +40,7 @@ import MyApplications from "../pages/MyApplications.jsx";
 // Phase 17 Onboarding Imports
 import OnboardingGuard from "../components/OnboardingGuard.jsx";
 import RoleGuard from "../components/RoleGuard.jsx";
+import { isOrgAdminMember } from "../utils/roles.js";
 import OnboardingLayout from "../layouts/OnboardingLayout.jsx";
 import HackerOnboarding from "../pages/Onboarding/HackerOnboarding.jsx";
 import OrgOnboarding from "../pages/Onboarding/OrgOnboarding.jsx";
@@ -152,7 +153,7 @@ const router = createBrowserRouter([
       {
         element: (
           <OnboardingGuard>
-            <RoleGuard allowed={['PROJECT_ADMIN']}>
+            <RoleGuard allowed={['PROJECT_ADMIN']} customCheck={isOrgAdminMember}>
               <ProjectAdminLayout />
             </RoleGuard>
           </OnboardingGuard>

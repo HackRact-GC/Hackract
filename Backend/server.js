@@ -6,6 +6,7 @@ import jwt from "jsonwebtoken";
 import prisma from "./src/database/prismaClient.js";
 import { upsertUserPresence } from "./src/modules/Chat/chat.repository.js";
 import { setupTerminalSocket } from "./src/modules/Terminal/terminal.socket.js";
+import { initializeStorage } from "./src/utils/s3Upload.js";
 
 const PORT = process.env.PORT || 3000;
 const HOST = process.env.HOST || "127.0.0.1";
@@ -59,6 +60,7 @@ const decodeSocketUser = async (socket) => {
 
 const startServer = async () => {
   await connectDatabase();
+  await initializeStorage();
 
   const server = http.createServer(app);
 
