@@ -104,6 +104,20 @@ export const sendInvitation = async (inviterId, { pentestId, hackerId, message, 
         organizationId: invitation.pentest?.organization?.id,
     }, req);
 
+    if (req?.app?.locals?.sendNotification) {
+        console.log(`📡 Service: Dispatching INVITE_RECEIVED to ${hackerId}`);
+        const projectName = invitation.pentest?.name || 'a new project';
+        req.app.locals.sendNotification(hackerId, {
+            type: 'INVITE_RECEIVED',
+            title: 'New Mission Directive',
+            message: `You have been assigned to project: ${projectName}.`,
+            pentestId,
+            timestamp: new Date().toISOString()
+        });
+    } else {
+        console.warn('⚠️ Service: req.app.locals.sendNotification is NOT defined!');
+    }
+
     return invitation;
 };
 
@@ -187,6 +201,20 @@ export const respondToInvitation = async (invitationId, hackerId, status, req) =
         invitationId,
         pentestId: invitation.pentestId,
     }, req);
+
+    if (req?.app?.locals?.sendNotification && invitation.invitedById) {
+        console.log(`📡 Service: Dispatching response notification to ${invitation.invitedById}`);
+        const hackerName = invitation.hacker?.fullName || 'An operative';
+        req.app.locals.sendNotification(invitation.invitedById, {
+            type: status === 'ACCEPTED' ? 'INVITE_ACCEPTED' : 'INVITE_REJECTED',
+            title: status === 'ACCEPTED' ? 'Mission Accepted' : 'Mission Declined',
+            message: `${hackerName} has ${status.toLowerCase()} the invitation for project ${invitation.pentest?.name || 'Assigned'}.`,
+            pentestId: invitation.pentestId,
+            timestamp: new Date().toISOString()
+        });
+    } else {
+        console.warn('⚠️ Service: Notification skipped (missing helper or invitedById)');
+    }
 
     return updated;
 };
