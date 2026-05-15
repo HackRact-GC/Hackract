@@ -264,23 +264,6 @@ const OrganizationDashboard = () => {
         <VulnerabilityTrend />
       </div>
 
-      {/* Secondary Row if needed */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-         {[
-           { label: 'Network nodes', val: '256', icon: FiActivity },
-           { label: 'Authorized links', val: '12', icon: FiTarget },
-           { label: 'Scans complete', val: '4.2k', icon: FiClock },
-           { label: 'Threat score', val: '0.04', icon: FiShield },
-         ].map((item, i) => (
-            <div key={i} className="p-6 rounded-2xl bg-white/[0.01] border border-white/5 flex items-center gap-4 group hover:bg-white/[0.03] transition-all">
-               <div className="p-2 border border-white/5 rounded-lg text-gray-600 group-hover:text-[#00c477] transition-colors"><item.icon size={16} /></div>
-               <div>
-                  <div className="text-[11px] font-black text-white uppercase tracking-tight">{item.val}</div>
-                  <div className="text-[8px] font-mono text-gray-600 uppercase tracking-widest font-bold">{item.label}</div>
-               </div>
-            </div>
-         ))}
-      </div>
     </div>
   );
 };
