@@ -56,3 +56,11 @@ export const getDashboardPath = (user) => {
   const primary = getPrimaryRole(user);
   return DASHBOARD_BY_ROLE[primary] || '/';
 };
+
+/**
+ * Check whether a user is assigned as an admin or owner in any organization.
+ */
+export const isOrgAdminMember = (user) => {
+  if (!user?.organizations || !Array.isArray(user.organizations)) return false;
+  return user.organizations.some(org => org.role === 'admin' || org.role === 'owner');
+};
