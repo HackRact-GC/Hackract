@@ -1,7 +1,8 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { FiChevronDown, FiBell, FiSettings, FiCheck, FiMoreVertical, FiClock, FiSend, FiUser, FiFileText } from 'react-icons/fi';
+import api from "../../api/axiosConfig";
 
-const SystemAdminDashboard = () => {
+const SystemAdminDashboard = ({ project }) => {
   const [chatInput, setChatInput] = useState('');
   const [timelinePhases, setTimelinePhases] = useState([
     { id: 'recon', label: 'Recon', status: 'not-started' },
@@ -13,6 +14,41 @@ const SystemAdminDashboard = () => {
   const [chatMessages, setChatMessages] = useState([
     { sender: 'AI', text: 'Hello Admin. System is ready. How can I assist you with the Project ?' }
   ]);
+
+  const [history, setHistory] = useState([]);
+  const [loadingHistory, setLoadingHistory] = useState(false);
+
+  const fetchHistory = useCallback(async () => {
+    if (!project?.workflows || project.workflows.length === 0) return;
+    setLoadingHistory(true);
+    try {
+      const historyPromises = project.workflows.map(w =>
+        api.get(`/workflows/${w.id}/history`)
+      );
+      const results = await Promise.all(historyPromises);
+
+      let allHistory = [];
+      results.forEach((res, index) => {
+        const workflowName = project.workflows[index].name;
+        const workflowHistory = (res.data || []).map(item => ({
+          ...item,
+          workflow: { name: workflowName }
+        }));
+        allHistory = [...allHistory, ...workflowHistory];
+      });
+
+      allHistory.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+      setHistory(allHistory);
+    } catch (err) {
+      console.error("Failed to fetch history", err);
+    } finally {
+      setLoadingHistory(false);
+    }
+  }, [project]);
+
+  useEffect(() => {
+    fetchHistory();
+  }, [fetchHistory]);
 
   const containerRef = useRef(null);
   const [leftWidth, setLeftWidth] = useState(50); // percentage
@@ -103,13 +139,13 @@ const SystemAdminDashboard = () => {
       </div>
 
       {/* Main Content Area */}
-      <div 
+      <div
         ref={containerRef}
         className="flex flex-col lg:flex-row gap-0 items-start select-none relative"
       >
-        
+
         {/* Activity Feed */}
-        <div 
+        <div
           style={{ width: `calc(${leftWidth}% - 12px)` }}
           className="flex flex-col h-[600px] min-w-[300px]"
         >
@@ -119,31 +155,37 @@ const SystemAdminDashboard = () => {
           <div className="bg-[#1c1f24] border border-[#2a3036] rounded-xl p-4 font-mono text-sm overflow-y-auto flex-1 shadow-inner">
             <div className="flex items-center space-x-2 text-gray-500 mb-6 pb-4 border-b border-[#2a3036]">
               <div className="w-2 h-2 rounded-full bg-red-500 animate-pulse"></div>
-              <span>terminal@alpha:~/logs$ tail -f project_activity.log</span>
+              <span>terminal@project:~/logs$ head -f project_activity.log</span>
             </div>
-            
+
             <div className="space-y-4">
-              <div className="text-gray-400">
-                <span className="text-gray-500">[14:32:11]</span> <span className="text-[#38bdf8]">User_01</span> ran <span className="text-[#4ade80]">Nmap -sV</span> against subnet <span className="text-[#38bdf8]">192.168.1.0/24</span>
-              </div>
-              <div className="text-gray-400">
-                <span className="text-gray-500">[14:45:02]</span> <span className="text-[#38bdf8]">AI_Agent</span> detected <span className="text-red-400">Vulnerability CVE-2023-1402</span> on host .42
-              </div>
-              <div className="text-gray-400">
-                <span className="text-gray-500">[15:10:55]</span> <span className="text-[#38bdf8]">User_03</span> initiated <span className="text-[#4ade80]">Metasploit</span> session handler
-              </div>
-              <div className="text-gray-400">
-                <span className="text-gray-500">[15:12:20]</span> <span className="text-[#38bdf8]">User_02</span> uploaded <span className="text-gray-300">recon_results_v4.json</span> to project scope
-              </div>
-              <div className="text-gray-400">
-                <span className="text-gray-500">[15:30:11]</span> <span className="text-[#38bdf8]">AI_Agent</span> auto-assigned severity <span className="text-red-500 font-bold">CRITICAL</span> to asset .105
-              </div>
+              {loadingHistory ? (
+                <div className="text-gray-500 animate-pulse">Initializing terminal connection...</div>
+              ) : history.length === 0 ? (
+                <div className="text-gray-600 italic text-xs">NO WORKFLOW DATA CAPTURED. STANDBY...</div>
+              ) : (
+                history.map((item) => (
+                  <div key={item.id} className="text-gray-400 text-xs leading-relaxed border-l border-[#2a3036] pl-3 py-1 hover:bg-white/5 transition-colors">
+                    <div className="flex items-center gap-2 mb-1">
+                      <span className="text-gray-600 font-bold">[{new Date(item.createdAt).toLocaleTimeString()}]</span>
+                      <span className="text-[#38bdf8] font-black uppercase tracking-tighter">{item.user?.handle || "SYS"}</span>
+                      <span className="bg-[#4ade80]/10 text-[#4ade80] px-1.5 rounded text-[8px] font-black uppercase">{item.action}</span>
+                    </div>
+                    <div className="text-gray-300">
+                      {item.message}
+                      {item.workflow?.name && (
+                        <span className="text-gray-600 ml-2 italic">— {item.workflow.name}</span>
+                      )}
+                    </div>
+                  </div>
+                ))
+              )}
             </div>
           </div>
         </div>
 
         {/* Resizer Divider */}
-        <div 
+        <div
           onMouseDown={startResizing}
           className={`hidden lg:flex w-6 h-[600px] items-center justify-center cursor-col-resize group self-center px-1 transition-colors ${isResizing ? 'bg-[#00c477]/10' : 'hover:bg-white/5'}`}
         >
@@ -151,7 +193,7 @@ const SystemAdminDashboard = () => {
         </div>
 
         {/* AI Security Assistant */}
-        <div 
+        <div
           style={{ width: `calc(${100 - leftWidth}% - 12px)` }}
           className="flex flex-col h-[600px] min-w-[300px]"
         >
@@ -174,7 +216,7 @@ const SystemAdminDashboard = () => {
                 </div>
               ))}
             </div>
-            
+
             {/* Input Area */}
             <div className="p-3 bg-[#16191d] border-t border-[#2a3036]">
               <form onSubmit={handleSendMessage} className="relative flex items-center">
@@ -185,8 +227,8 @@ const SystemAdminDashboard = () => {
                   placeholder="Ask AI to analyze logs..."
                   className="w-full bg-[#111316] border border-[#2a3036] rounded-xl py-3 pl-4 pr-12 text-sm text-white focus:outline-none focus:border-[#38bdf8] transition-colors shadow-inner"
                 />
-                <button 
-                  type="submit" 
+                <button
+                  type="submit"
                   className="absolute right-2 p-2 rounded-lg bg-[#38bdf8] text-black hover:bg-[#38bdf8]/80 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                   disabled={!chatInput.trim()}
                 >

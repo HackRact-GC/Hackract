@@ -509,7 +509,7 @@ const WorkspaceView = ({ projectId, onBack }) => {
 
           {activeTab === "admin-dashboard" && isProjectAdmin && (
             <div className="bg-black/70 backdrop-blur-md border border-white/10 rounded-4xl overflow-hidden h-[800px]">
-              <SystemAdminDashboard />
+              <SystemAdminDashboard project={project} />
             </div>
           )}
 
