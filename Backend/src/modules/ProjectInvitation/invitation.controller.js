@@ -21,7 +21,7 @@ export const listForProject = async (req, res, next) => {
     try {
         const { pentestId } = req.params;
         const { page, limit, status } = req.query;
-        const result = await service.listProjectInvitations(pentestId, { page, limit, status });
+        const result = await service.listProjectInvitations(pentestId, { page, limit, status }, req.user);
         res.json({ success: true, ...result });
     } catch (e) { next(e); }
 };
