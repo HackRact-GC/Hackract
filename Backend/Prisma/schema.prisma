@@ -202,12 +202,14 @@ model Finding {
   id          String           @id @default(uuid())
   title       String
   description String?
-  severity    FindingSeverity  @default(LOW)
-  status      FindingStatus    @default(OPEN)
-  remediation String?
-  proof       String?
-  pentestId   String
-  reporterId  String?
+  severity      FindingSeverity  @default(LOW)
+  status        FindingStatus    @default(OPEN)
+  remediation   String?
+  proof         String?
+  affectedAsset String?
+  cvssScore     Float?
+  pentestId     String
+  reporterId    String?
   createdAt   DateTime         @default(now())
   updatedAt   DateTime         @updatedAt
   pentest     Pentest          @relation(fields: [pentestId], references: [id], onDelete: Cascade)

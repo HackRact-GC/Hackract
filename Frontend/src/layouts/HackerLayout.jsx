@@ -16,13 +16,15 @@ import {
   FiLogOut,
   FiShield,
   FiPenTool,
+  FiMonitor,
 } from 'react-icons/fi';
+import { ROLES, isOrgAdminMember } from '../utils/roles.js';
 
 const HackerLayout = () => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
-  const { user, logout } = useAuth();
+  const { user, logout, hasAnyRole } = useAuth();
 
   const handleLogout = async () => {
     await logout();
@@ -36,11 +38,16 @@ const HackerLayout = () => {
     { icon: FiGrid,          label: 'Dashboard',   route: '/hacker-dashboard' },
     { icon: FiFolder,        label: 'Projects',    route: '/projects' },
     { icon: FiShoppingBag,   label: 'Engagements', route: '/engagements' },
+    { icon: FiShield,        label: 'Findings',    route: '/findings' },
     { icon: FiMessageSquare, label: 'Messages',    route: '/messages' },
     { icon: FiFileText,      label: 'Reports',     route: '/my-applications' },
     { icon: FiSettings,      label: 'Settings',    route: '/hacker-profile' },
     { icon: FiPenTool,       label: 'Legal Agreement', route: '/execute-agreement' },
   ];
+
+  if (hasAnyRole(ROLES.ORG_ADMIN)) {
+    navItems.push({ icon: FiMonitor, label: 'Org Dashboard', route: '/dashboard' });
+  }
 
   const isActive = (route) => {
     if (route === '/hacker-dashboard') return location.pathname === '/hacker-dashboard';

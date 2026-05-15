@@ -29,6 +29,27 @@ export const upsertHackerProfileSchema = Joi.object({
     )
     .optional()
     .default([]),
+  education: Joi.alternatives()
+    .try(
+      Joi.array().items(Joi.string()),
+      Joi.string().allow('', null),
+    )
+    .optional()
+    .default([]),
+  employment: Joi.alternatives()
+    .try(
+      Joi.array().items(Joi.string()),
+      Joi.string().allow('', null),
+    )
+    .optional()
+    .default([]),
+  otherExperiences: Joi.alternatives()
+    .try(
+      Joi.array().items(Joi.string()),
+      Joi.string().allow('', null),
+    )
+    .optional()
+    .default([]),
 
   // Professional fields
   specialization: Joi.string().max(150).optional().allow('', null),
