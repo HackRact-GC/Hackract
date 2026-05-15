@@ -76,8 +76,6 @@ const Badge = ({ text, type = "default" }) => {
   );
 };
 
-import NotificationCenter from "../components/NotificationCenter";
-
 const HackerDashboard = () => {
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState("overview");
@@ -389,7 +387,10 @@ const HackerDashboard = () => {
 
         <div className="ml-auto flex items-center gap-10">
           <div className="flex items-center gap-8 pl-10">
-             <NotificationCenter />
+             <button className="relative p-3.5 rounded-2xl bg-white/[0.02] border border-white/5 text-gray-500 hover:text-[#00c477] hover:border-[#00c477]/30 transition-all group">
+                <Icons.Bell />
+                <span className="absolute top-3.5 right-3.5 w-2 h-2 bg-rose-500 rounded-full ring-[4px] ring-black animate-pulse" />
+             </button>
              
              <button onClick={() => navigate("/hacker-profile")} className="flex items-center gap-5 bg-white/[0.02] border border-white/5 rounded-2xl pl-5 pr-4 py-2 hover:border-[#00c477]/40 hover:bg-white/[0.04] transition-all group shadow-xl">
                 <div className="text-right hidden sm:block">

@@ -17,7 +17,6 @@ import {
   FiShield,
   FiPenTool,
 } from 'react-icons/fi';
-import NotificationCenter from '../components/NotificationCenter';
 
 const HackerLayout = () => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -150,7 +149,10 @@ const HackerLayout = () => {
           </div>
 
           <div className="flex items-center space-x-4">
-            <NotificationCenter />
+            <button className="relative text-gray-400 hover:text-white transition-colors hidden sm:block">
+              <FiBell size={20} />
+              <span className="absolute -top-1 -right-1 w-2 h-2 bg-[#00c477] rounded-full" />
+            </button>
             <div
               className="flex items-center space-x-2 border-l border-white/10 pl-4 cursor-pointer"
               onClick={() => navigate('/hacker-profile')}

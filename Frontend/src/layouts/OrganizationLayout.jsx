@@ -4,10 +4,9 @@ import { useAuth } from '../context/authContext.jsx';
 import {
   FiGrid, FiBriefcase, FiGlobe, FiShield, FiSettings,
   FiFileText, FiBell, FiChevronDown, FiPlus, FiCpu,
-  FiActivity, FiTarget, FiZap, FiLogOut, FiMessageSquare, FiPenTool
+  FiActivity, FiTarget, FiZap, FiLogOut, FiMessageSquare
 } from 'react-icons/fi';
 import { motion, AnimatePresence } from 'framer-motion';
-import NotificationCenter from '../components/NotificationCenter';
 
 const OrganizationLayout = () => {
   const navigate = useNavigate();
@@ -97,7 +96,13 @@ const OrganizationLayout = () => {
           </div>
 
           <div className="flex items-center gap-6">
-            <NotificationCenter />
+            <button 
+              className="relative p-2 rounded-lg bg-white/2 border border-white/5 text-gray-400 hover:text-[#00c477] transition-all"
+              onClick={() => setIsNotificationsOpen(!isNotificationsOpen)}
+            >
+              <FiBell />
+              <span className="absolute -top-1 -right-1 w-4 h-4 bg-[#ff3366] text-white text-[9px] flex items-center justify-center rounded-full font-black border-2 border-[#050505]">3</span>
+            </button>
             
             <div className="flex items-center gap-3 pl-6 border-l border-white/10">
                 <div className="w-9 h-9 rounded-full bg-linear-to-br from-[#00c477]/20 to-emerald-500/10 border border-[#00c477]/30 flex items-center justify-center font-black text-[#00c477] shadow-[0_0_10px_rgba(0,255,136,0.1)]">
