@@ -206,16 +206,33 @@ const ProjectControlCenter = ({ projectId, onBack }) => {
   const [loading, setLoading] = useState(true);
   const [showInviteModal, setShowInviteModal] = useState(false);
 
+  // Check if current user can manage invitations (org-admin or project-admin)
+  const canManageInvitations = authUser?.roles?.some(
+    (r) => r.type === "ORG_ADMIN" || r.type === "PROJECT_ADMIN"
+  );
+
   const loadProject = async () => {
     setLoading(true);
     try {
-      const [projRes, invRes] = await Promise.all([
-        api.get(`/projects/${projectId}`),
-        invitationService.getInvitationsByProject(projectId)
-      ]);
+      // 1. Load the main project data (Critical)
+      const projRes = await api.get(`/projects/${projectId}`);
       setProject(projRes.data?.data || null);
-      setInvitations(invRes.data || []);
+
+      // 2. Load invitations (Non-critical, handle 403 gracefully)
+      if (canManageInvitations) {
+        try {
+          const invRes = await invitationService.getInvitationsByProject(projectId);
+          setInvitations(invRes.data || []);
+        } catch (invError) {
+          console.warn("Could not load invitations:", invError.response?.status);
+          // Don't toast for 403, just keep invitations empty
+          if (invError.response?.status !== 403) {
+             toast.error("Unable to load project invitations");
+          }
+        }
+      }
     } catch (error) {
+      console.error("Load project error:", error);
       toast.error("Unable to load project data");
     } finally {
       setLoading(false);
@@ -223,8 +240,8 @@ const ProjectControlCenter = ({ projectId, onBack }) => {
   };
 
   useEffect(() => {
-    if (projectId) loadProject();
-  }, [projectId]);
+    if (projectId && authUser) loadProject();
+  }, [projectId, authUser, canManageInvitations]);
 
   const hackers = useMemo(() => {
     return project?.collaborators?.filter((c) => c.role === "HACKER" || c.role === "PROJECT_ADMIN" || c.role === "PENTESTER") || [];
@@ -253,7 +270,7 @@ const ProjectControlCenter = ({ projectId, onBack }) => {
 
   const handleCreateWorkflow = async () => {
     if (project?.workflows?.[0]) {
-      window.open(`/workflows/${project.workflows[0].id}`, '_blank');
+      window.open(`/org-workflows/${project.workflows[0].id}`, '_blank');
       return;
     }
 
@@ -266,7 +283,7 @@ const ProjectControlCenter = ({ projectId, onBack }) => {
         toast.success("Workflow board initialized!");
         loadProject();
         const newWorkflowId = res.data?.id || res.data?.data?.id; // Check response structure
-        if(newWorkflowId) window.open(`/workflows/${newWorkflowId}`, '_blank');
+        if(newWorkflowId) window.open(`/org-workflows/${newWorkflowId}`, '_blank');
       }
     } catch (err) {
       toast.error("Failed to initialize workflow.");
@@ -307,7 +324,7 @@ const ProjectControlCenter = ({ projectId, onBack }) => {
           <button onClick={onBack} className="hover:text-[#00c477] transition-colors flex items-center gap-1">
             <FiArrowLeft /> BACK
           </button>
-          <span>/ PROJECTS / {project.name?.replace(/\s+/g, '_').toUpperCase() || 'NEXUS_CORE'} / <span className="text-[#00c477]">CONTROL</span></span>
+          <span>/ PROJECTS / {project.name?.replace(/\s+/g, '_')?.toUpperCase() || 'NEXUS_CORE'} / <span className="text-[#00c477]">CONTROL</span></span>
         </div>
 
         {/* Main Header */}
@@ -320,7 +337,7 @@ const ProjectControlCenter = ({ projectId, onBack }) => {
                 SYSTEM ONLINE: LIVE UPLINK
               </div>
               <div className="text-gray-600 hidden sm:block">|</div>
-              <div className="text-gray-500">ID: {project.id?.substring(0, 8).toUpperCase()}-ALPHA</div>
+              <div className="text-gray-500">ID: {project.id?.substring(0, 8)?.toUpperCase()}-ALPHA</div>
             </div>
           </div>
 
@@ -340,10 +357,10 @@ const ProjectControlCenter = ({ projectId, onBack }) => {
 
             {/* Mission Timeline Card */}
             <div className="bg-[#15181e] border border-gray-800 rounded-lg p-6 relative overflow-hidden">
-              <div className="flex justify-between items-start mb-6">
+                <div className="flex justify-between items-start mb-6">
                 <div>
                   <h3 className="text-[#00c477] text-xs font-black uppercase tracking-widest mb-2">MISSION_TIMELINE</h3>
-                  <div className="text-2xl text-gray-300">Phase 0{currentPhaseIndex + 1}/04 - {project.status.replace('_', ' ')}</div>
+                  <div className="text-2xl text-gray-300">Phase 0{currentPhaseIndex + 1}/04 - {project.status?.replace('_', ' ') || 'PLANNING'}</div>
                 </div>
                 <div className="text-right">
                   <div className="text-[10px] text-gray-500 uppercase tracking-widest mb-1">OVERALL COMPLETION</div>
@@ -451,7 +468,7 @@ const ProjectControlCenter = ({ projectId, onBack }) => {
                 })}
 
                 {/* Pending Invitations */}
-                {invitations.filter(i => i.status === 'PENDING').map((inv) => (
+                {(Array.isArray(invitations) ? invitations : []).filter(i => i.status === 'PENDING').map((inv) => (
                   <div key={inv.id} className="flex flex-col sm:flex-row sm:items-center justify-between p-4 bg-[#1a1d24]/40 border border-dashed border-gray-700 rounded hover:border-amber-500/30 transition-colors group gap-4">
                     <div className="flex items-center gap-4">
                       <div className="relative shrink-0">
@@ -480,7 +497,7 @@ const ProjectControlCenter = ({ projectId, onBack }) => {
                   </div>
                 ))}
 
-                {hackers.length === 0 && invitations.filter(i => i.status === 'PENDING').length === 0 && (
+                {hackers.length === 0 && (Array.isArray(invitations) ? invitations : []).filter(i => i.status === 'PENDING').length === 0 && (
                   <div className="text-center py-8 text-gray-600 text-xs uppercase tracking-widest">
                     No operatives assigned to this sector.
                   </div>

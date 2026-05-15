@@ -309,6 +309,16 @@ const router = createBrowserRouter([
         ),
       },
       {
+        path: "org-workflows/:workflowId",
+        element: (
+          <OnboardingGuard>
+            <RoleGuard allowed={['ORG_ADMIN']}>
+              <WorkflowEditor isOrgView={true} />
+            </RoleGuard>
+          </OnboardingGuard>
+        ),
+      },
+      {
         element: <AuthLayout />,
         children: [
           {

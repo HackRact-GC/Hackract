@@ -110,7 +110,7 @@ const InteractiveBackground = () => {
   );
 };
 
-const WorkflowEditor = ({ workflowId: propWorkflowId }) => {
+const WorkflowEditor = ({ workflowId: propWorkflowId, isOrgView = false }) => {
   const params = useParams();
   const navigate = useNavigate();
   const workflowId = propWorkflowId || params.workflowId || "mock-id-123";
@@ -727,11 +727,10 @@ const WorkflowEditor = ({ workflowId: propWorkflowId }) => {
         <div className="flex items-center gap-4">
           <button
             onClick={() => {
-              const isOrg = authUser?.roles?.some(r => ['ORG_ADMIN', 'ORGANIZATION'].includes(r.type));
-              navigate(isOrg ? '/dashboard' : '/hacker-dashboard');
+              navigate(isOrgView ? '/dashboard' : '/hacker-dashboard');
             }}
             className="w-9 h-9 flex items-center justify-center rounded-xl bg-white/5 border border-white/10 text-gray-400 hover:text-[#00ff41] hover:border-[#00ff41]/30 transition-all shadow-sm"
-            title="Back to Dashboard"
+            title={isOrgView ? "Back to Organization Dashboard" : "Back to Hacker Dashboard"}
           >
             <FiHome size={18} />
           </button>

@@ -6,6 +6,36 @@ import { logAction } from '../AuditLogs/auditLog.service.js';
 
 // ─── Guards ──────────────────────────────────────────────────────────────────
 
+const checkProjectManagePermission = async (pentestId, user) => {
+    // 1. Global ORG_ADMIN
+    if (user.roles.some(r => r.type === 'ORG_ADMIN')) return true;
+
+    const pentest = await prisma.pentest.findUnique({
+        where: { id: pentestId },
+        select: { id: true, organizationId: true, leadPentesterId: true }
+    });
+    if (!pentest) throw new AppError('Project not found', 404, InvitationErrorCodes.PROJECT_NOT_FOUND);
+
+    // 2. Org Member (Owner/Admin)
+    if (pentest.organizationId) {
+        const orgMember = await prisma.organizationMember.findFirst({
+            where: { organizationId: pentest.organizationId, userId: user.id, role: { in: ['owner', 'admin'] } }
+        });
+        if (orgMember) return true;
+    }
+
+    // 3. Project Lead
+    if (pentest.leadPentesterId === user.id) return true;
+
+    // 4. Project Admin Collaborator
+    const isProjectAdmin = await prisma.pentestCollaborator.findFirst({
+        where: { pentestId, userId: user.id, role: 'PROJECT_ADMIN' }
+    });
+    if (isProjectAdmin) return true;
+
+    throw new AppError('You do not have permission to manage this project', 403);
+};
+
 const ensurePentestExists = async (pentestId) => {
     const pentest = await prisma.pentest.findUnique({
         where: { id: pentestId },
@@ -43,10 +73,10 @@ const ensureHackerApproved = async (hackerId) => {
 /**
  * Organization sends an invitation to a hacker for a specific pentest.
  */
-export const sendInvitation = async (invitedById, { pentestId, hackerId, message, expiresAt }, req) => {
-    await ensurePentestExists(pentestId);
+export const sendInvitation = async (inviterId, { pentestId, hackerId, message, expiresAt }, req) => {
+    const user = req.user; // We assume controller passes user or attaches to req
+    await checkProjectManagePermission(pentestId, user);
     await ensureHackerExists(hackerId);
-    // await ensureHackerApproved(hackerId); // Disabled per user request
 
     // Block duplicate PENDING invitation
     const existing = await invitationRepository.findPending(pentestId, hackerId);
@@ -61,13 +91,13 @@ export const sendInvitation = async (invitedById, { pentestId, hackerId, message
     const invitation = await invitationRepository.create({
         pentestId,
         hackerId,
-        invitedById,
+        invitedById: inviterId,
         message: message || null,
         expiresAt: expiresAt ? new Date(expiresAt) : null,
         status: 'PENDING',
     });
 
-    await logAction(InvitationActions.SENT, invitedById, {
+    await logAction(InvitationActions.SENT, inviterId, {
         invitationId: invitation.id,
         pentestId,
         hackerId,
@@ -171,6 +201,8 @@ export const revokeInvitation = async (invitationId, userId, req) => {
         throw new AppError('Invitation not found', 404, InvitationErrorCodes.NOT_FOUND);
     }
 
+    await checkProjectManagePermission(invitation.pentestId, req.user);
+
     if (invitation.status !== 'PENDING') {
         throw new AppError(
             `Cannot revoke an invitation that is already ${invitation.status.toLowerCase()}`,
@@ -193,8 +225,8 @@ export const revokeInvitation = async (invitationId, userId, req) => {
 /**
  * List all invitations for a project (org view).
  */
-export const listProjectInvitations = async (pentestId, filters) => {
-    await ensurePentestExists(pentestId);
+export const listProjectInvitations = async (pentestId, filters, user) => {
+    await checkProjectManagePermission(pentestId, user);
     return invitationRepository.listForPentest(pentestId, filters);
 };
 

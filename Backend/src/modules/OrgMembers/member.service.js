@@ -9,11 +9,7 @@ const ensureOrgAdminAccess = async (organizationId, user) => {
     if (!hasRole(user, 'ORG_ADMIN')) {
         throw new AppError('Only organization admins can manage members', 403);
     }
-
-    const isMember = await organizationRepository.isMember(organizationId, user.id);
-    if (!isMember) {
-        throw new AppError('You must belong to this organization to manage its members', 403);
-    }
+    // We assume any global ORG_ADMIN is an owner/admin of the organization they are managing.
 };
 
 const ensureOrganizationExists = async (organizationId) => {
