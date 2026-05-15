@@ -6,7 +6,7 @@ import api from "../api/axiosConfig";
 import ProjectActivity from "./ProjectActivity.jsx";
 import KickoffChecklist from "./KickoffChecklist.jsx";
 import { useAuth } from "../context/authContext.jsx";
-import { FiDownload, FiExternalLink, FiFileText, FiArrowLeft, FiCode, FiPrinter, FiGlobe, FiServer, FiFileMinus, FiCalendar, FiPlus, FiUserPlus, FiTrash2, FiSearch, FiX, FiSend, FiEdit2, FiStar, FiSettings } from "react-icons/fi";
+import { FiDownload, FiExternalLink, FiFileText, FiArrowLeft, FiCode, FiPrinter, FiGlobe, FiServer, FiFileMinus, FiCalendar, FiPlus, FiUserPlus, FiTrash2, FiSearch, FiX, FiSend, FiEdit2, FiStar, FiSettings, FiUsers } from "react-icons/fi";
 import SystemAdminDashboard from "../pages/Admin/SystemAdminDashboard.jsx";
 
 const InviteMemberModal = ({ projectId, onClose, onInvited }) => {
@@ -166,20 +166,28 @@ const WorkspaceView = ({ projectId, onBack }) => {
     );
   }, [user, project]);
 
+  const canManage = useMemo(() => {
+    return (
+      user?.roles?.some((r) => r.type === "ORG_ADMIN") ||
+      project?.collaborators?.some((c) => c.userId === user?.id && (c.role === "PROJECT_ADMIN" || c.role === "PROJECT_LEAD"))
+    );
+  }, [user, project]);
+
   const tabs = useMemo(() => {
     if (!project) return [];
     if (project.isPersonal) {
-      // Local Lab: Only Workflow and Findings. Deletion moved to header.
       return ["workflow", "findings"];
     }
-    // Org Project (Hacker Side): Overview, Workflow, Findings, [Admin Dashboard], Team.
     const baseTabs = ["overview", "workflow", "findings"];
     if (isProjectAdmin) {
       baseTabs.push("admin-dashboard");
     }
     baseTabs.push("team");
+    if (canManage) {
+      baseTabs.push("settings");
+    }
     return baseTabs;
-  }, [project, isProjectAdmin]);
+  }, [project, isProjectAdmin, canManage]);
 
   const [activeTab, setActiveTab] = useState(() => {
     const queryTab = searchParams.get("tab");
@@ -226,13 +234,6 @@ const WorkspaceView = ({ projectId, onBack }) => {
     () => project?.collaborators?.filter((c) => c.role === "APPLICANT") || [],
     [project]
   );
-
-  const canManage = useMemo(() => {
-    return (
-      user?.roles?.some((r) => r.type === "ORG_ADMIN" || r.type === "ORG_ADMIN") ||
-      project?.collaborators?.some((c) => c.userId === user?.id && c.role === "PROJECT_ADMIN")
-    );
-  }, [user, project]);
 
   const handleHire = async (userId) => {
     try {
@@ -350,6 +351,55 @@ const WorkspaceView = ({ projectId, onBack }) => {
 
         {/* Content Area */}
         <div className="min-h-[400px]">
+          {activeTab === "overview" && (
+            <div className="space-y-8 max-w-4xl">
+              <div className="bg-black/70 backdrop-blur-md border border-white/10 p-8 rounded-4xl space-y-6">
+                <div className="flex items-center justify-between">
+                   <h3 className="text-xs font-black text-white/40 uppercase tracking-[0.2em] flex items-center gap-3">
+                    <FiFileText className="text-[#00ff88]" /> Operational Briefing
+                  </h3>
+                  <div className="text-[10px] text-white/30 font-mono uppercase tracking-widest">
+                    {project.status} • {project.startDate ? new Date(project.startDate).toLocaleDateString() : "TBD"}
+                  </div>
+                </div>
+                <p className="text-white/70 leading-relaxed text-sm">
+                  {project.description || "No tactical description provided for this engagement."}
+                </p>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                <div className="bg-black/70 backdrop-blur-md border border-white/10 p-8 rounded-4xl space-y-4">
+                  <h3 className="text-xs font-black text-white/40 uppercase tracking-[0.2em] flex items-center gap-3">
+                    <FiGlobe className="text-[#00ff88]" /> Engagement Scope
+                  </h3>
+                  <div className="space-y-2">
+                    {project.targetDomains?.length > 0 ? (
+                      <div className="text-[11px] text-white/50 font-mono">
+                         <span className="text-white/20 mr-2">DOMAINS:</span> {project.targetDomains.join(", ")}
+                      </div>
+                    ) : null}
+                    {project.ipRanges?.length > 0 ? (
+                      <div className="text-[11px] text-white/50 font-mono">
+                         <span className="text-white/20 mr-2">NETWORKS:</span> {project.ipRanges.join(", ")}
+                      </div>
+                    ) : null}
+                    {!project.targetDomains?.length && !project.ipRanges?.length && (
+                      <div className="text-[10px] text-white/20 uppercase tracking-widest font-mono">No scope defined</div>
+                    )}
+                  </div>
+                </div>
+
+                <div className="bg-black/70 backdrop-blur-md border border-rose-500/10 p-8 rounded-4xl space-y-4">
+                  <h3 className="text-xs font-black text-rose-500/60 uppercase tracking-[0.2em] flex items-center gap-3">
+                    <FiUsers /> Assets & Exclusions
+                  </h3>
+                   <div className="text-[11px] text-white/50 font-mono truncate">
+                      {project.excludedAssets || "No restricted assets defined."}
+                   </div>
+                </div>
+              </div>
+            </div>
+          )}
           {activeTab === "workflow" && (
             <div className="bg-black/70 backdrop-blur-md border border-white/10 p-12 rounded-4xl text-center space-y-6">
               <div className="w-20 h-20 bg-[#00ff88]/10 border border-[#00ff88]/20 rounded-3xl flex items-center justify-center text-[#00ff88] mx-auto shadow-inner">
@@ -399,9 +449,17 @@ const WorkspaceView = ({ projectId, onBack }) => {
             <div className="space-y-6">
               <div className="bg-black/70 backdrop-blur-md border border-white/10 p-8 rounded-4xl space-y-8">
                 <div className="flex items-center justify-between">
-                  <h3 className="text-xs font-black text-white/40 uppercase tracking-[0.2em] flex items-center gap-3">
-                    <FiFileText className="text-[#00ff88]" /> Operative Discoveries
-                  </h3>
+                  <div className="flex items-center gap-3">
+                    <h3 className="text-xs font-black text-white/40 uppercase tracking-[0.2em] flex items-center gap-3">
+                      <FiFileText className="text-[#00ff88]" /> Operative Discoveries
+                    </h3>
+                    <button
+                      onClick={() => navigate(`/findings/new?pentestId=${projectId}`)}
+                      className="px-4 py-1.5 bg-[#00ff88]/10 hover:bg-[#00ff88] text-[#00ff88] hover:text-black border border-[#00ff88]/20 hover:border-[#00ff88] rounded-xl text-[9px] font-black uppercase tracking-widest transition-all flex items-center gap-2"
+                    >
+                      <FiPlus /> Report Discovery
+                    </button>
+                  </div>
                   {canManage && project.findings?.length > 0 && (
                     <div className="flex items-center gap-2">
                       <button
@@ -512,7 +570,6 @@ const WorkspaceView = ({ projectId, onBack }) => {
               <SystemAdminDashboard />
             </div>
           )}
-
           {activeTab === "team" && (
             <div className="bg-black/70 backdrop-blur-md border border-white/10 p-8 rounded-4xl space-y-8">
               <div className="flex items-center justify-between">
@@ -520,53 +577,70 @@ const WorkspaceView = ({ projectId, onBack }) => {
                   <h3 className="text-xs font-black text-white/40 uppercase tracking-[0.2em] mb-1">Personnel Management</h3>
                   <p className="text-[10px] text-white/20 font-mono tracking-widest">AUTHORIZED PROJECT STAFF</p>
                 </div>
+                {canManage && (
+                  <button
+                    onClick={() => setShowInvite(true)}
+                    className="px-4 py-2 bg-[#00ff88]/10 hover:bg-[#00ff88] text-[#00ff88] hover:text-black border border-[#00ff88]/20 hover:border-[#00ff88] rounded-xl text-[9px] font-black uppercase tracking-widest transition-all flex items-center gap-2"
+                  >
+                    <FiUserPlus size={14} /> Invite Operative
+                  </button>
+                )}
               </div>
 
-              <div className="grid gap-4">
-                {project.collaborators?.filter(c => c.role !== 'APPLICANT').map((member) => (
-                  <div key={member.id} className="bg-black border border-white/5 p-6 rounded-3xl flex items-center justify-between group hover:border-[#00ff88]/30 transition-all">
-                    <div className="flex items-center gap-4">
-                      <div className="w-12 h-12 rounded-2xl bg-white/5 border border-white/5 flex items-center justify-center font-bold text-[#00ff88] shadow-inner text-xl">
-                        {member.user?.fullName?.[0] || "?"}
-                      </div>
-                      <div>
-                        <div className="font-bold text-sm tracking-tight text-white">{member.user?.fullName || "Anonymous"}</div>
-                        <div className="flex items-center gap-2 mt-1">
-                          <span className={`text-[9px] px-2 py-0.5 rounded-full font-black uppercase tracking-widest ${member.role === 'PROJECT_ADMIN' ? 'bg-purple-500/20 text-purple-400' : 'bg-[#00ff88]/20 text-[#00ff88]'
-                            }`}>
-                            {member.role}
-                          </span>
-                          <span className="text-[10px] text-white/20 font-mono tracking-tighter">
-                            {member.user?.email}
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-
-                    {canManage && member.userId !== user?.id && (
-                      <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                        {member.role !== 'PROJECT_ADMIN' && (
-                          <button
-                            onClick={() => handleMakeAdmin(member.userId)}
-                            title="Make Lead Pentester"
-                            className="p-2.5 rounded-xl bg-purple-500/5 hover:bg-purple-500/10 text-purple-400/40 hover:text-purple-400 transition-all border border-white/5"
-                          >
-                            <FiStar size={14} />
-                          </button>
-                        )}
-                        <button className="p-2.5 rounded-xl bg-white/5 hover:bg-white/10 text-white/40 hover:text-white transition-all border border-white/5">
-                          <FiEdit2 size={14} />
-                        </button>
-                        <button
-                          onClick={() => handleRemoveMember(member.userId)}
-                          className="p-2.5 rounded-xl bg-rose-500/5 hover:bg-rose-500/10 text-rose-500/40 hover:text-rose-500 transition-all border border-white/5"
-                        >
-                          <FiTrash2 size={14} />
-                        </button>
-                      </div>
-                    )}
+              <div className="space-y-6">
+                {project.collaborators?.filter(c => c.role !== 'APPLICANT').length === 0 ? (
+                  <div className="py-20 text-center border border-dashed border-white/5 bg-black/30 rounded-3xl">
+                    <p className="text-[10px] text-white/30 uppercase tracking-[0.3em]">No operatives assigned to this mission.</p>
                   </div>
-                ))}
+                ) : (
+                  <div className="grid gap-4">
+                    {project.collaborators?.filter(c => c.role !== 'APPLICANT').map((member) => (
+                      <div key={member.id} className="bg-black border border-white/5 p-6 rounded-3xl flex items-center justify-between group hover:border-[#00ff88]/30 transition-all">
+                        <div className="flex items-center gap-4">
+                          <div className={`w-12 h-12 rounded-2xl border flex items-center justify-center font-bold shadow-inner text-xl ${
+                            member.role === 'PROJECT_ADMIN' ? 'bg-purple-500/10 border-purple-500/20 text-purple-400' : 'bg-white/5 border-white/5 text-[#00ff88]'
+                          }`}>
+                            {member.user?.fullName?.[0] || "?"}
+                          </div>
+                          <div>
+                            <div className="font-bold text-sm tracking-tight text-white">{member.user?.fullName || "Anonymous"}</div>
+                            <div className="flex items-center gap-2 mt-1">
+                              <span className={`text-[9px] px-2 py-0.5 rounded-full font-black uppercase tracking-widest ${
+                                member.role === 'PROJECT_ADMIN' ? 'bg-purple-500/20 text-purple-400' : 'bg-[#00ff88]/20 text-[#00ff88]'
+                              }`}>
+                                {member.role === 'PROJECT_ADMIN' ? 'Admin' : 'Operative'}
+                              </span>
+                              <span className="text-[10px] text-white/20 font-mono tracking-tighter">
+                                {member.user?.handle ? `@${member.user.handle}` : member.user?.email}
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+
+                        {canManage && member.userId !== user?.id && (
+                          <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                            {member.role !== 'PROJECT_ADMIN' && (
+                              <button
+                                onClick={() => handleMakeAdmin(member.userId)}
+                                title="Promote to Admin"
+                                className="p-2.5 rounded-xl bg-purple-500/5 hover:bg-purple-500/10 text-purple-400/40 hover:text-purple-400 transition-all border border-white/5"
+                              >
+                                <FiStar size={14} />
+                              </button>
+                            )}
+                            <button
+                              onClick={() => handleRemoveMember(member.userId)}
+                              title="Remove from Project"
+                              className="p-2.5 rounded-xl bg-rose-500/5 hover:bg-rose-500/10 text-rose-500/40 hover:text-rose-500 transition-all border border-white/5"
+                            >
+                              <FiTrash2 size={14} />
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
             </div>
           )}
