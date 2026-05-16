@@ -164,21 +164,32 @@ const SystemAdminDashboard = ({ project }) => {
               ) : history.length === 0 ? (
                 <div className="text-gray-600 italic text-xs">NO WORKFLOW DATA CAPTURED. STANDBY...</div>
               ) : (
-                history.map((item) => (
-                  <div key={item.id} className="text-gray-400 text-xs leading-relaxed border-l border-[#2a3036] pl-3 py-1 hover:bg-white/5 transition-colors">
-                    <div className="flex items-center gap-2 mb-1">
-                      <span className="text-gray-600 font-bold">[{new Date(item.createdAt).toLocaleTimeString()}]</span>
-                      <span className="text-[#38bdf8] font-black uppercase tracking-tighter">{item.user?.handle || "SYS"}</span>
-                      <span className="bg-[#4ade80]/10 text-[#4ade80] px-1.5 rounded text-[8px] font-black uppercase">{item.action}</span>
+                history.map((item) => {
+                  const isFinding = item.action === 'LINK_FINDING' || item.message?.toLowerCase().includes('finding');
+                  const actionColor = isFinding 
+                    ? 'bg-red-500/10 text-red-500 border-red-500/20' 
+                    : item.action?.includes('DELETE') 
+                      ? 'bg-orange-500/10 text-orange-500 border-orange-500/20'
+                      : 'bg-[#4ade80]/10 text-[#4ade80] border-[#4ade80]/20';
+
+                  return (
+                    <div key={item.id} className={`text-gray-400 text-xs leading-relaxed border-l pl-3 py-1 hover:bg-white/5 transition-colors ${isFinding ? 'border-red-500/30' : 'border-[#2a3036]'}`}>
+                      <div className="flex items-center gap-2 mb-1">
+                        <span className="text-gray-600 font-bold">[{new Date(item.createdAt).toLocaleTimeString()}]</span>
+                        <span className="text-[#38bdf8] font-black uppercase tracking-tighter">{item.user?.handle || "SYS"}</span>
+                        <span className={`${actionColor} px-1.5 rounded text-[8px] font-black uppercase border`}>
+                          {isFinding ? 'VULNERABILITY' : item.action}
+                        </span>
+                      </div>
+                      <div className={`${isFinding ? 'text-red-400' : 'text-gray-300'}`}>
+                        {item.message}
+                        {item.workflow?.name && (
+                          <span className="text-gray-600 ml-2 italic">— {item.workflow.name}</span>
+                        )}
+                      </div>
                     </div>
-                    <div className="text-gray-300">
-                      {item.message}
-                      {item.workflow?.name && (
-                        <span className="text-gray-600 ml-2 italic">— {item.workflow.name}</span>
-                      )}
-                    </div>
-                  </div>
-                ))
+                  );
+                })
               )}
             </div>
           </div>
