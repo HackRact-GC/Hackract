@@ -52,6 +52,23 @@ export const NotificationProvider = ({ children }) => {
         setUnreadCount(0);
     }, []);
 
+    const markChatAsRead = useCallback((conversationId) => {
+        setNotifications(prev => {
+            const updated = prev.map(n => 
+                n.type === 'CHAT_MESSAGE' && n.conversationId === conversationId && !n.isRead 
+                ? { ...n, isRead: true } 
+                : n
+            );
+            saveToStorage(updated);
+            
+            // Recalculate unread count
+            const newUnread = updated.filter(n => !n.isRead).length;
+            setUnreadCount(newUnread);
+            
+            return updated;
+        });
+    }, []);
+
     const clearNotifications = useCallback(() => {
         setNotifications([]);
         setUnreadCount(0);
@@ -64,6 +81,7 @@ export const NotificationProvider = ({ children }) => {
             unreadCount,
             addNotification,
             markAsRead,
+            markChatAsRead,
             markAllAsRead,
             clearNotifications
         }}>
