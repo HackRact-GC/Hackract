@@ -6,8 +6,9 @@ import api from "../api/axiosConfig";
 import ProjectActivity from "./ProjectActivity.jsx";
 import KickoffChecklist from "./KickoffChecklist.jsx";
 import { useAuth } from "../context/authContext.jsx";
-import { FiDownload, FiExternalLink, FiFileText, FiArrowLeft, FiCode, FiPrinter, FiGlobe, FiServer, FiFileMinus, FiCalendar, FiPlus, FiUserPlus, FiTrash2, FiSearch, FiX, FiSend, FiEdit2, FiStar, FiSettings, FiUsers } from "react-icons/fi";
+import { FiDownload, FiExternalLink, FiFileText, FiArrowLeft, FiCode, FiPrinter, FiGlobe, FiServer, FiFileMinus, FiCalendar, FiPlus, FiUserPlus, FiTrash2, FiSearch, FiX, FiSend, FiEdit2, FiStar, FiSettings, FiUsers, FiFile } from "react-icons/fi";
 import SystemAdminDashboard from "../pages/Admin/SystemAdminDashboard.jsx";
+import { getPrimaryRole, ROLES } from "../utils/roles.js";
 
 const InviteMemberModal = ({ projectId, onClose, onInvited }) => {
   const [search, setSearch] = useState("");
@@ -491,39 +492,16 @@ const WorkspaceView = ({ projectId, onBack }) => {
                         <FiCode /> JSON
                       </button>
                       <button
-                        onClick={async () => {
-                          try {
-                            const { data } = await api.get(`/findings/project/${projectId}/report`);
-                            const newWindow = window.open('', '_blank');
-                            newWindow.document.write(`
-                              <html>
-                                <head>
-                                  <title>Security Assessment Report</title>
-                                  <style>
-                                    body { font-family: sans-serif; line-height: 1.6; color: #333; padding: 2rem; max-width: 800px; margin: 0 auto; }
-                                    pre { background: #f4f4f4; padding: 1rem; border-radius: 4px; white-space: pre-wrap; font-family: monospace; }
-                                    h1, h2, h3 { color: #111; }
-                                    table { width: 100%; border-collapse: collapse; margin-bottom: 1rem; }
-                                    th, td { padding: 8px; border: 1px solid #ddd; text-align: left; }
-                                    th { background: #f4f4f4; }
-                                  </style>
-                                </head>
-                                <body>
-                                  <pre>${data.data}</pre>
-                                </body>
-                              </html>
-                            `);
-                            newWindow.document.close();
-                            newWindow.focus();
-                            setTimeout(() => {
-                              newWindow.print();
-                              newWindow.close();
-                            }, 500);
-                          } catch (e) { toast.error("Export failed."); }
+                        onClick={() => {
+                          const role = getPrimaryRole(user);
+                          let path = "/reports";
+                          if (role === ROLES.PROJECT_ADMIN) path = "/pa-reports";
+                          if (role === ROLES.PENTESTER) path = "/hacker-reports";
+                          navigate(`${path}?projectId=${projectId}`);
                         }}
                         className="px-4 py-2 bg-white/10 hover:bg-[#00ff88] text-white/60 hover:text-black border border-white/10 hover:border-[#00ff88] rounded-xl text-[9px] font-black uppercase tracking-widest transition-all flex items-center gap-2"
                       >
-                        <FiPrinter /> PDF
+                        <FiFile /> Build Report
                       </button>
                     </div>
                   )}

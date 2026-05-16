@@ -17,6 +17,10 @@ const OrganizationLayout = () => {
   const { unreadCount } = useNotifications();
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
 
+  // Chat-specific unread count for the Messages nav badge
+  const { notifications } = useNotifications();
+  const unreadChatCount = notifications.filter(n => n.type === 'CHAT_MESSAGE' && !n.isRead).length;
+
   const orgName = user?.organization?.name || "Cyberdyne Systems";
   const userInitial = user?.fullName?.[0]?.toUpperCase() || user?.email?.[0]?.toUpperCase() || "O";
 
@@ -24,7 +28,7 @@ const OrganizationLayout = () => {
     { icon: FiGrid,           label: 'DASHBOARD', route: '/dashboard' },
     { icon: FiBriefcase,      label: 'PROJECTS',  route: '/org-projects' },
     { icon: FiGlobe,          label: 'DISCOVER',  route: '/discover' },
-    { icon: FiMessageSquare,  label: 'MESSAGES',  route: '/org-messages' },
+    { icon: FiMessageSquare,  label: 'MESSAGES',  route: '/org-messages', badge: unreadChatCount },
     { icon: FiShield,         label: 'LEGAL AGREEMENTS', route: '/legal' },
     { icon: FiSettings,       label: 'SETTINGS',  route: '/organization-profile' },
     { icon: FiFileText,       label: 'REPORTS',   route: '/reports' },
@@ -68,7 +72,12 @@ const OrganizationLayout = () => {
                 />
               )}
               <item.icon className={`text-lg transition-colors ${isActive(item.route) ? 'text-[#00c477]' : 'group-hover:text-white'}`} />
-              <span className="text-[11px] font-black tracking-[0.2em] font-mono">{item.label}</span>
+              <span className="text-[11px] font-black tracking-[0.2em] font-mono flex-1 text-left">{item.label}</span>
+              {item.badge > 0 && (
+                <span className="w-4 h-4 rounded-full bg-[#00c477] text-black text-[9px] font-black flex items-center justify-center">
+                  {item.badge > 9 ? '9+' : item.badge}
+                </span>
+              )}
             </button>
           ))}
         </nav>
