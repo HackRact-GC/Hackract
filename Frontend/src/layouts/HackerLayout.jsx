@@ -22,7 +22,6 @@ import {
   FiMonitor,
 } from 'react-icons/fi';
 import { ROLES, isOrgAdminMember } from '../utils/roles.js';
-import { useNotifications } from '../context/NotificationContext.jsx';
 
 const HackerLayout = () => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
