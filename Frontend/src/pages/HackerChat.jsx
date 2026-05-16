@@ -38,8 +38,11 @@ const playNotificationSound = () => {
   }
 };
 
+import { useNotifications } from '../context/NotificationContext';
+
 export default function HackerChat() {
   const { user, accessToken } = useAuth();
+  const { markChatAsRead } = useNotifications();
   const [conversations, setConversations] = useState([]);
   const [active, setActive] = useState(null);
   const [messages, setMessages] = useState([]);
@@ -61,8 +64,13 @@ export default function HackerChat() {
         ? { ...c, lastMessageAt: msg.createdAt, lastMessagePreview: msg.content?.slice(0, 80) || '📎' }
         : c).sort((a, b) => new Date(b.lastMessageAt) - new Date(a.lastMessageAt))
     );
-    if (msg.senderId !== user?.id) playNotificationSound();
-  }, [user?.id]);
+    if (msg.senderId !== user?.id) {
+      playNotificationSound();
+      if (active && msg.conversationId === active.id) {
+        markChatAsRead(active.id);
+      }
+    }
+  }, [user?.id, active, markChatAsRead]);
 
   const handlePresenceUpdate = useCallback((userId, isOnline, lastSeenAt) => {
     setPresenceMap((prev) => ({ ...prev, [userId]: { isOnline, lastSeenAt } }));
@@ -107,6 +115,7 @@ export default function HackerChat() {
     setActive(conv); prevConvId.current = conv.id;
     setMessages([]); setNextCursor(null); setHasMore(false); setReplyTo(null); setEditing(null);
     joinConversation(conv.id); setLoadingMsgs(true);
+    markChatAsRead(conv.id);
     try {
       const result = await chatApi.getMessages(conv.id);
       setMessages(result.messages); setNextCursor(result.nextCursor); setHasMore(result.hasMore);
@@ -174,10 +183,10 @@ export default function HackerChat() {
       {active ? (
         <div className="flex-1 flex flex-col min-w-0 bg-[#0d0d0d]">
           {/* Header */}
-          <div className="px-6 py-3.5 border-b border-white/[0.05] flex items-center justify-between bg-[#0d0d0d]/80 backdrop-blur-xl shrink-0">
+          <div className="px-6 py-3.5 border-b border-white/5 flex items-center justify-between bg-[#0d0d0d]/80 backdrop-blur-xl shrink-0">
             <div className="flex items-center gap-3">
               {active.type === 'GROUP' ? (
-                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#00c477]/20 to-purple-500/20 border border-white/10 flex items-center justify-center text-white font-bold text-sm">{getInitials(active.name || 'G')}</div>
+                <div className="w-10 h-10 rounded-xl bg-linear-to-br from-[#00c477]/20 to-purple-500/20 border border-white/10 flex items-center justify-center text-white font-bold text-sm">{getInitials(active.name || 'G')}</div>
               ) : (<Avatar user={activeOther} size={40} showStatus isOnline={isOtherOnline} />)}
               <div>
                 <div className="flex items-center gap-2">
@@ -211,11 +220,11 @@ export default function HackerChat() {
                   <div key={msg.id}>
                     {showDate && (
                       <div className="flex items-center gap-3 my-5">
-                        <div className="flex-1 h-px bg-white/[0.05]" />
-                        <span className="text-[10px] font-mono text-gray-600 bg-[#161616] border border-white/[0.05] px-3 py-1 rounded-full">
+                        <div className="flex-1 h-px bg-white/5" />
+                        <span className="text-[10px] font-mono text-gray-600 bg-[#161616] border border-white/5 px-3 py-1 rounded-full">
                           {new Date(msg.createdAt).toLocaleDateString([], { weekday: 'long', month: 'short', day: 'numeric' })}
                         </span>
-                        <div className="flex-1 h-px bg-white/[0.05]" />
+                        <div className="flex-1 h-px bg-white/5" />
                       </div>
                     )}
                     <MessageBubble message={msg} isOwn={msg.senderId === user?.id} onReply={setReplyTo} onEdit={startEdit} onDelete={handleDelete} />
@@ -225,7 +234,7 @@ export default function HackerChat() {
               {typingIds.length > 0 && (
                 <div className="flex items-end gap-2.5">
                   <Avatar user={active.participants?.find((p) => p.userId === typingIds[0])?.user} size={32} />
-                  <div className="bg-[#1c1c1c] border border-white/[0.06] rounded-2xl rounded-bl-[6px] px-4 py-2"><TypingDots /></div>
+                  <div className="bg-[#1c1c1c] border border-white/6 rounded-2xl rounded-bl-[6px] px-4 py-2"><TypingDots /></div>
                 </div>
               )}
             </>)}
@@ -238,7 +247,7 @@ export default function HackerChat() {
       ) : (
         <div className="flex-1 flex flex-col items-center justify-center p-8 bg-[#0d0d0d]">
           <motion.div initial={{ opacity: 0, scale: 0.92 }} animate={{ opacity: 1, scale: 1 }} className="flex flex-col items-center gap-6 text-center max-w-xs">
-            <div className="w-20 h-20 rounded-[24px] bg-[#00c477]/[0.08] border border-[#00c477]/20 flex items-center justify-center shadow-[0_0_50px_rgba(0,196,119,0.08)]">
+            <div className="w-20 h-20 rounded-[24px] bg-[#00c477]/8 border border-[#00c477]/20 flex items-center justify-center shadow-[0_0_50px_rgba(0,196,119,0.08)]">
               <svg className="w-9 h-9 text-[#00c477]" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" /></svg>
             </div>
             <div>
