@@ -22,6 +22,7 @@ import {
   FiMonitor,
 } from 'react-icons/fi';
 import { ROLES, isOrgAdminMember } from '../utils/roles.js';
+import { useNotifications } from '../context/NotificationContext.jsx';
 
 const HackerLayout = () => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -30,6 +31,10 @@ const HackerLayout = () => {
   const { user, logout, hasAnyRole } = useAuth();
   const { unreadCount } = useNotifications();
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
+
+  // Count unread chat notifications specifically for badge on Messages nav
+  const { notifications } = useNotifications();
+  const unreadChatCount = notifications.filter(n => n.type === 'CHAT_MESSAGE' && !n.isRead).length;
 
   const handleLogout = async () => {
     await logout();
@@ -44,7 +49,7 @@ const HackerLayout = () => {
     { icon: FiFolder,        label: 'Projects',    route: '/projects' },
     { icon: FiShoppingBag,   label: 'Engagements', route: '/engagements' },
     { icon: FiShield,        label: 'Findings',    route: '/findings' },
-    { icon: FiMessageSquare, label: 'Messages',    route: '/messages' },
+    { icon: FiMessageSquare, label: 'Messages',    route: '/messages', badge: unreadChatCount },
     { icon: FiFileText,      label: 'Reports',     route: '/my-applications' },
     { icon: FiSettings,      label: 'Settings',    route: '/hacker-profile' },
     { icon: FiPenTool,       label: 'Legal Agreement', route: '/execute-agreement' },
@@ -118,7 +123,12 @@ const HackerLayout = () => {
                   }`}
               >
                 <item.icon className={isActive(item.route) ? 'text-[#00c477]' : ''} />
-                <span className="font-medium">{item.label}</span>
+                <span className="font-medium flex-1">{item.label}</span>
+                {item.badge > 0 && (
+                  <span className="ml-auto w-4 h-4 rounded-full bg-[#00c477] text-black text-[9px] font-black flex items-center justify-center">
+                    {item.badge > 9 ? '9+' : item.badge}
+                  </span>
+                )}
               </button>
             ))}
           </nav>
