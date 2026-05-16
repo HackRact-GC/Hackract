@@ -65,12 +65,12 @@ const StatCard = ({ label, value, sub, icon: Icon, color, trend, progress, avata
 
 // ─── Project Table Component ──────────────────────────────────────────────────
 const ActiveProjects = ({ projects, onNavigate }) => {
-  const displayProjects = (projects || []).filter(p => p.status === 'IN_PROGRESS').slice(0, 5);
+  const displayProjects = (projects || []).slice(0, 5);
 
   return (
     <div className="bg-[#050505] border border-white/5 rounded-[32px] overflow-hidden flex flex-col shadow-2xl h-full">
       <div className="px-10 py-8 border-b border-white/5 flex items-center justify-between">
-        <h3 className="text-sm font-black text-white tracking-widest uppercase font-mono">Active Projects</h3>
+        <h3 className="text-sm font-black text-white tracking-widest uppercase font-mono">Recent Projects</h3>
         <button 
           onClick={onNavigate}
           className="text-[9px] font-black text-gray-500 hover:text-[#00c477] transition-colors uppercase tracking-[0.2em]"
@@ -131,53 +131,66 @@ const ActiveProjects = ({ projects, onNavigate }) => {
 };
 
 // ─── Chart Component ──────────────────────────────────────────────────────────
-const VulnerabilityTrend = () => {
-  const days = ['MON', '', '', '', '', '', 'SUN'];
-  const values = [40, 65, 50, 85, 100, 60, 30];
+const VulnerabilityTrend = ({ projects = [] }) => {
+  // Extract all findings and attach project name
+  const allFindings = projects.flatMap(p => 
+    (p.findings || []).map(f => ({ ...f, projectName: p.name }))
+  );
+
+  // Sort by newest first and take top 5
+  const recentFindings = allFindings.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt)).slice(0, 5);
+
+  const getSeverityColor = (sev) => {
+    switch (sev) {
+      case 'CRITICAL': return 'text-purple-500 bg-purple-500/10 border-purple-500/20';
+      case 'HIGH': return 'text-[#ff3366] bg-[#ff3366]/10 border-[#ff3366]/20';
+      case 'MEDIUM': return 'text-amber-500 bg-amber-500/10 border-amber-500/20';
+      case 'LOW': return 'text-blue-400 bg-blue-400/10 border-blue-400/20';
+      default: return 'text-gray-400 bg-gray-400/10 border-gray-400/20';
+    }
+  };
 
   return (
     <div className="bg-[#050505] border border-white/5 rounded-[32px] p-10 flex flex-col h-full shadow-2xl relative overflow-hidden group">
-      <div className="flex items-center gap-3 mb-10">
-        <div className="p-2 bg-[#00c477]/10 text-[#00c477] rounded-lg"><FiBarChart2 /></div>
-        <h3 className="text-sm font-black text-white tracking-widest uppercase font-mono">Vulnerability Trend</h3>
+      <div className="flex items-center justify-between mb-8">
+        <div className="flex items-center gap-3">
+          <div className="p-2 bg-[#ff3366]/10 text-[#ff3366] rounded-lg"><FiAlertCircle /></div>
+          <h3 className="text-sm font-black text-white tracking-widest uppercase font-mono">Recent Findings</h3>
+        </div>
+        <span className="text-[10px] font-mono text-gray-500 uppercase tracking-widest">{allFindings.length} Total</span>
       </div>
 
-      <div className="flex-1 flex items-end justify-between gap-3 mb-6 min-h-[160px]">
-        {values.map((val, i) => (
-          <div key={i} className="flex-1 flex flex-col items-center gap-2 group/bar">
-             <div className="w-full relative">
-                <motion.div 
-                  initial={{ height: 0 }}
-                  animate={{ height: `${val}%` }}
-                  transition={{ duration: 1, delay: i * 0.1, ease: [0.33, 1, 0.68, 1] }}
-                  className={`w-full rounded-t-lg transition-all duration-500 shadow-lg ${
-                    val === 100 
-                      ? 'bg-[#00c477] shadow-[0_0_20px_#00c477]' 
-                      : 'bg-white/10 group-hover/bar:bg-white/20'
-                  }`}
-                />
-             </div>
+      <div className="flex-1 space-y-3 overflow-y-auto pr-2 custom-scrollbar relative z-10">
+        {recentFindings.length === 0 ? (
+          <div className="h-full flex flex-col items-center justify-center text-center opacity-40">
+             <FiShield size={32} className="mb-3 text-[#00c477]" />
+             <p className="text-[10px] font-mono tracking-[0.2em] uppercase">No vulnerabilities detected</p>
           </div>
-        ))}
-      </div>
-
-      <div className="flex justify-between text-[9px] font-mono font-black text-gray-700 uppercase tracking-widest border-t border-white/5 pt-4">
-        <span>MON</span>
-        <span>SUN</span>
-      </div>
-
-      <div className="mt-8 space-y-4">
-        <div className="flex justify-between items-center py-2">
-          <span className="text-[10px] font-mono text-gray-500 uppercase tracking-widest">Detection Rate</span>
-          <span className="text-[13px] font-black text-[#00c477]">99.4%</span>
-        </div>
-        <div className="flex justify-between items-center py-2 border-t border-white/[0.03]">
-          <span className="text-[10px] font-mono text-gray-500 uppercase tracking-widest">Response Time</span>
-          <span className="text-[13px] font-black text-blue-400 flex items-baseline gap-1">2.4<span className="text-[9px] text-gray-600">h</span></span>
-        </div>
+        ) : (
+          recentFindings.map((finding) => (
+            <div key={finding.id} className="p-4 rounded-2xl border border-white/5 bg-white/[0.02] hover:bg-white/[0.04] transition-colors flex items-center justify-between">
+              <div className="flex flex-col gap-1.5">
+                <p className="text-sm font-bold text-white tracking-tight">{finding.title || 'Unnamed Vulnerability'}</p>
+                <p className="text-[10px] font-mono text-gray-500 tracking-widest uppercase">{finding.projectName}</p>
+              </div>
+              <div className="flex items-center gap-3">
+                <span className={`text-[9px] font-black px-2 py-1 rounded-md border tracking-widest ${getSeverityColor(finding.severity)}`}>
+                  {finding.severity}
+                </span>
+                <span className={`text-[9px] font-black px-2 py-1 rounded-md border tracking-widest ${
+                  finding.status === 'OPEN' ? 'text-[#ff3366] bg-[#ff3366]/5 border-[#ff3366]/20' :
+                  finding.status === 'TRIAGED' ? 'text-amber-500 bg-amber-500/5 border-amber-500/20' :
+                  'text-[#00c477] bg-[#00c477]/5 border-[#00c477]/20'
+                }`}>
+                  {finding.status}
+                </span>
+              </div>
+            </div>
+          ))
+        )}
       </div>
       
-      <div className="absolute top-0 right-0 w-32 h-32 bg-[#00c477]/[0.02] rounded-full -mr-16 -mt-16 blur-3xl pointer-events-none group-hover:bg-[#00c477]/4 transition-all duration-700" />
+      <div className="absolute top-0 right-0 w-32 h-32 bg-[#ff3366]/[0.02] rounded-full -mr-16 -mt-16 blur-3xl pointer-events-none group-hover:bg-[#ff3366]/4 transition-all duration-700" />
     </div>
   );
 };
@@ -261,7 +274,7 @@ const OrganizationDashboard = () => {
       {/* MIDDLE GRID */}
       <div className="grid grid-cols-1 lg:grid-cols-[1.5fr_1fr] gap-8">
         <ActiveProjects projects={projects} onNavigate={(id) => id && typeof id === 'string' ? navigate(`/org-projects/${id}`) : navigate('/org-projects')} />
-        <VulnerabilityTrend />
+        <VulnerabilityTrend projects={projects} />
       </div>
 
     </div>
