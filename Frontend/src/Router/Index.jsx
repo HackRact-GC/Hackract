@@ -144,6 +144,10 @@ const router = createBrowserRouter([
             path: "execute-agreement/:id",
             element: <AgreementExecute />,
           },
+          {
+            path: "hacker-reports",
+            element: <Reports />,
+          },
         ],
       },
 

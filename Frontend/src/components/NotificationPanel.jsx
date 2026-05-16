@@ -1,6 +1,6 @@
 import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { FiBell, FiX, FiCheck, FiInfo, FiAlertCircle, FiTrash2 } from 'react-icons/fi';
+import { FiBell, FiX, FiCheck, FiInfo, FiAlertCircle, FiTrash2, FiMessageSquare } from 'react-icons/fi';
 import { useNotifications } from '../context/NotificationContext';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/authContext.jsx';
@@ -13,7 +13,13 @@ const NotificationPanel = ({ isOpen, onClose }) => {
     const handleNotificationClick = (notif) => {
         markAsRead(notif.id);
         
-        if (notif.pentestId) {
+        if (notif.type === 'CHAT_MESSAGE') {
+            const isOrg = user?.roles?.some(r => r.type === 'ORG_ADMIN');
+            const isPA  = user?.roles?.some(r => r.type === 'PROJECT_ADMIN');
+            if (isOrg) navigate('/org-messages');
+            else if (isPA) navigate('/pa-messages');
+            else navigate('/messages');
+        } else if (notif.pentestId) {
             const isOrg = user?.roles?.some(r => r.type === 'ORG_ADMIN');
             if (isOrg) {
                 navigate(`/org-projects/${notif.pentestId}`);
@@ -74,11 +80,13 @@ const NotificationPanel = ({ isOpen, onClose }) => {
                                 )}
                                 <div className="flex gap-3">
                                     <div className={`mt-0.5 shrink-0 w-8 h-8 rounded-lg flex items-center justify-center border ${
+                                        notif.type === 'CHAT_MESSAGE' ? 'bg-teal-500/10 border-teal-500/20 text-teal-400' :
                                         notif.type === 'INVITE_RECEIVED' ? 'bg-[#00ff88]/10 border-[#00ff88]/20 text-[#00ff88]' :
                                         notif.type === 'INVITE_REJECTED' ? 'bg-rose-500/10 border-rose-500/20 text-rose-500' :
                                         'bg-blue-500/10 border-blue-500/20 text-blue-400'
                                     }`}>
-                                        {notif.type === 'INVITE_RECEIVED' ? <FiInfo /> : 
+                                        {notif.type === 'CHAT_MESSAGE' ? <FiMessageSquare /> :
+                                         notif.type === 'INVITE_RECEIVED' ? <FiInfo /> : 
                                          notif.type === 'INVITE_REJECTED' ? <FiAlertCircle /> : <FiCheck />}
                                     </div>
                                     <div className="flex-1 min-w-0">

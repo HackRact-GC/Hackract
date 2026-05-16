@@ -18,8 +18,11 @@ const TypingDots = () => (
   </div>
 );
 
+import { useNotifications } from '../context/NotificationContext';
+
 export default function OrganizationChat() {
   const { user, accessToken } = useAuth();
+  const { markChatAsRead } = useNotifications();
   const [conversations, setConversations] = useState([]);
   const [active, setActive] = useState(null);
   const [messages, setMessages] = useState([]);
@@ -41,7 +44,10 @@ export default function OrganizationChat() {
         ? { ...c, lastMessageAt: msg.createdAt, lastMessagePreview: msg.content?.slice(0, 80) || '📎' }
         : c).sort((a, b) => new Date(b.lastMessageAt) - new Date(a.lastMessageAt))
     );
-  }, []);
+    if (active && msg.conversationId === active.id && msg.senderId !== user?.id) {
+        markChatAsRead(active.id);
+    }
+  }, [active, markChatAsRead, user?.id]);
 
   const handlePresenceUpdate = useCallback((userId, isOnline, lastSeenAt) => {
     setPresenceMap((prev) => ({ ...prev, [userId]: { isOnline, lastSeenAt } }));
@@ -86,6 +92,7 @@ export default function OrganizationChat() {
     setActive(conv); prevConvId.current = conv.id;
     setMessages([]); setNextCursor(null); setHasMore(false); setReplyTo(null); setEditing(null);
     joinConversation(conv.id); setLoadingMsgs(true);
+    markChatAsRead(conv.id);
     try {
       const result = await chatApi.getMessages(conv.id);
       setMessages(result.messages); setNextCursor(result.nextCursor); setHasMore(result.hasMore);
@@ -93,7 +100,7 @@ export default function OrganizationChat() {
       setConversations((prev) => prev.map((c) => c.id === conv.id
         ? { ...c, participants: c.participants?.map((p) => p.userId === user?.id ? { ...p, unreadCount: 0 } : p) } : c));
     } catch (e) { console.error(e); } finally { setLoadingMsgs(false); }
-  }, [joinConversation, leaveConv, emitTypingStop, emitMarkRead, user?.id]);
+  }, [joinConversation, leaveConv, emitTypingStop, emitMarkRead, user?.id, markChatAsRead]);
 
   const loadMore = useCallback(async () => {
     if (!hasMore || !nextCursor || !active || loadingMsgs) return;
@@ -183,7 +190,7 @@ export default function OrganizationChat() {
       ) : (
         <div className="flex-1 flex flex-col items-center justify-center p-12 bg-[#050505]">
           <div className="text-center space-y-4 max-w-sm">
-            <div className="inline-flex p-4 rounded-2xl bg-white/[0.02] border border-white/5 mb-4">
+            <div className="inline-flex p-4 rounded-2xl bg-white/2 border border-white/5 mb-4">
               <svg className="w-10 h-10 text-[#00c477]" fill="none" stroke="currentColor" strokeWidth="1" viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" /></svg>
             </div>
             <h2 className="text-xs font-black text-white uppercase tracking-[0.4em] font-mono">Secure_Comms_v2.0</h2>
