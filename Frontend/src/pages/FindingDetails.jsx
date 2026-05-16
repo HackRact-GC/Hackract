@@ -90,7 +90,7 @@ const FindingDetails = () => {
         <div className="grid gap-6">
           <div className="bg-black/60 border border-white/10 rounded-2xl p-8 space-y-4 backdrop-blur-md">
             <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-white/40 flex items-center gap-3">
-              <FiAlertCircle size={14} className="text-[#00c477]" /> Vulnerability Discription
+              <FiAlertCircle size={14} className="text-[#00c477]" /> Vulnerability Description
             </h3>
             <p className="text-white/80 text-sm leading-relaxed whitespace-pre-wrap font-medium">{finding.description || "No description provided."}</p>
           </div>
