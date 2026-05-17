@@ -3,6 +3,7 @@ import multer from 'multer';
 import multerS3 from 'multer-s3';
 import { v4 as uuidv4 } from 'uuid';
 import path from 'path';
+import fs from 'fs';
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -177,11 +178,16 @@ const fileFilter = (req, file, cb) => {
 
 // ─── Multer Storage ───────────────────────────────────────────────────────────
 
+// Ensure local uploads directory exists
+const localUploadsDir = path.join(process.cwd(), 'public', 'uploads');
+if (!fs.existsSync(localUploadsDir)) {
+  fs.mkdirSync(localUploadsDir, { recursive: true });
+}
+
 const storage = isStorageConfigured
   ? multerS3({
     s3:     getMinioClient(),
     bucket: getEnv('MINIO_BUCKET_NAME'),
-    // MinIO buckets can be set to public via bucket policy — no ACL needed
     contentType: multerS3.AUTO_CONTENT_TYPE,
     metadata: (req, file, cb) => {
       cb(null, { fieldName: file.fieldname });
@@ -191,7 +197,18 @@ const storage = isStorageConfigured
       cb(null, buildS3Key({ folder, originalName: file.originalname }));
     },
   })
-  : multer.memoryStorage();
+  : multer.diskStorage({
+    destination: (req, file, cb) => {
+      cb(null, localUploadsDir);
+    },
+    filename: (req, file, cb) => {
+      const folder = req.s3Folder || req.query.folder || 'general';
+      const uniqueSuffix = `${Date.now()}-${uuidv4()}`;
+      const ext = path.extname(file.originalname);
+      // We'll store the relative path in the filename so the route can build the URL
+      cb(null, `${folder}-${uniqueSuffix}${ext}`);
+    },
+  });
 
 const s3Upload = multer({
   storage,

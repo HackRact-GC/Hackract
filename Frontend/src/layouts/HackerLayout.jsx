@@ -22,8 +22,6 @@ import {
   FiMonitor,
 } from 'react-icons/fi';
 import { ROLES, isOrgAdminMember } from '../utils/roles.js';
-
-
 const HackerLayout = () => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const navigate = useNavigate();

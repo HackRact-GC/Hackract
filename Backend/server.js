@@ -1,3 +1,6 @@
+import dotenv from 'dotenv';
+dotenv.config();
+
 import http from "http";
 import app from "./app.js";
 import { connectDatabase } from "./src/database/sqlConnection.js";
@@ -10,9 +13,6 @@ import { initializeStorage } from "./src/utils/s3Upload.js";
 
 const PORT = process.env.PORT || 3000;
 const HOST = process.env.HOST || "127.0.0.1";
-
-import dotenv from 'dotenv';
-dotenv.config();
 
 // Decode socket token and return user id, or null
 const decodeSocketUser = async (socket) => {
@@ -236,20 +236,61 @@ const startServer = async () => {
 
   setupTerminalSocket(io);
 
-
   // ── Helper: broadcast a new message to all participants in a conversation ──
   // Called from chat REST API (via the io instance attached to app)
-  app.locals.broadcastChatMessage = (conversationId, message) => {
+  app.locals.broadcastChatMessage = async (conversationId, message) => {
+    // 1. Emit to the conversation room (for those who have the chat open)
     io.to(`conv:${conversationId}`).emit("chat:new-message", message);
+
+    // 2. Notify participants individually for global notifications / badges
+    try {
+      const conv = await prisma.conversation.findUnique({
+        where: { id: conversationId },
+        include: { participants: { select: { userId: true } } }
+      });
+      if (conv) {
+        conv.participants.forEach(p => {
+          io.to(`user:${p.userId}`).emit("chat:new-message", message);
+        });
+      }
+    } catch (err) {
+      console.error("Error in broadcastChatMessage:", err);
+    }
   };
 
-  app.locals.broadcastMessageEdit = (conversationId, message) => {
+  app.locals.broadcastMessageEdit = async (conversationId, message) => {
     io.to(`conv:${conversationId}`).emit("chat:message-edited", message);
+    
+    // Also notify individuals so global state can update if needed
+    try {
+      const conv = await prisma.conversation.findUnique({
+        where: { id: conversationId },
+        include: { participants: { select: { userId: true } } }
+      });
+      if (conv) {
+        conv.participants.forEach(p => {
+          io.to(`user:${p.userId}`).emit("chat:message-edited", message);
+        });
+      }
+    } catch (err) { }
   };
 
-  app.locals.broadcastMessageDelete = (conversationId, messageId) => {
+  app.locals.broadcastMessageDelete = async (conversationId, messageId) => {
     io.to(`conv:${conversationId}`).emit("chat:message-deleted", { conversationId, messageId });
+    
+    try {
+      const conv = await prisma.conversation.findUnique({
+        where: { id: conversationId },
+        include: { participants: { select: { userId: true } } }
+      });
+      if (conv) {
+        conv.participants.forEach(p => {
+          io.to(`user:${p.userId}`).emit("chat:message-deleted", { conversationId, messageId });
+        });
+      }
+    } catch (err) { }
   };
+
 
   app.locals.sendNotification = (userId, notification) => {
     console.log(`🔔 Sending notification to user:${userId}`, notification);
