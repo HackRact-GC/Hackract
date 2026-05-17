@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
-import { 
-  FiShield, FiUsers, FiAlertCircle, FiArrowRight, 
-  FiExternalLink, FiChevronDown, FiPlus, FiEye, 
+import {
+  FiShield, FiUsers, FiAlertCircle, FiArrowRight,
+  FiExternalLink, FiChevronDown, FiPlus, FiEye,
   FiBarChart2, FiActivity, FiGlobe, FiClock, FiTarget
 } from "react-icons/fi";
 import api from "../api/axiosConfig";
@@ -27,16 +27,16 @@ const StatCard = ({ label, value, sub, icon: Icon, color, trend, progress, avata
       {progress !== undefined && (
         <div className="flex-1 mr-6">
           <div className="w-full bg-white/5 h-1.5 rounded-full overflow-hidden">
-            <motion.div 
-               initial={{ width: 0 }}
-               animate={{ width: `${progress}%` }}
-               transition={{ duration: 1.5, ease: "easeOut" }}
-               className="h-full bg-linear-to-r from-[#00c477] to-emerald-400 shadow-[0_0_10px_#00c477]" 
+            <motion.div
+              initial={{ width: 0 }}
+              animate={{ width: `${progress}%` }}
+              transition={{ duration: 1.5, ease: "easeOut" }}
+              className="h-full bg-linear-to-r from-[#00c477] to-emerald-400 shadow-[0_0_10px_#00c477]"
             />
           </div>
         </div>
       )}
-      
+
       {avatars && (
         <div className="flex -space-x-2 mr-auto">
           {avatars.map((av, i) => (
@@ -58,7 +58,7 @@ const StatCard = ({ label, value, sub, icon: Icon, color, trend, progress, avata
         <span className="text-[9px] font-mono font-black text-[#ff3366] uppercase tracking-widest leading-none text-right">{sub}</span>
       )}
     </div>
-    
+
     <div className="absolute top-0 right-0 w-32 h-32 bg-white/[0.01] rounded-full -mr-16 -mt-16 blur-3xl pointer-events-none" />
   </div>
 );
@@ -71,7 +71,7 @@ const ActiveProjects = ({ projects, onNavigate }) => {
     <div className="bg-[#050505] border border-white/5 rounded-[32px] overflow-hidden flex flex-col shadow-2xl h-full">
       <div className="px-10 py-8 border-b border-white/5 flex items-center justify-between">
         <h3 className="text-sm font-black text-white tracking-widest uppercase font-mono">Recent Projects</h3>
-        <button 
+        <button
           onClick={onNavigate}
           className="text-[9px] font-black text-gray-500 hover:text-[#00c477] transition-colors uppercase tracking-[0.2em]"
         >
@@ -98,11 +98,10 @@ const ActiveProjects = ({ projects, onNavigate }) => {
                   </div>
                 </td>
                 <td className="px-10 py-6">
-                  <span className={`text-[8px] font-black px-2.5 py-1 rounded-md border tracking-widest ${
-                    p.status === 'IN_PROGRESS' 
-                      ? 'bg-[#00c477]/5 text-[#00c477] border-[#00c477]/20' 
+                  <span className={`text-[8px] font-black px-2.5 py-1 rounded-md border tracking-widest ${p.status === 'IN_PROGRESS'
+                      ? 'bg-[#00c477]/5 text-[#00c477] border-[#00c477]/20'
                       : 'bg-blue-500/5 text-blue-400 border-blue-500/20'
-                  }`}>
+                    }`}>
                     {p.status}
                   </span>
                 </td>
@@ -131,66 +130,148 @@ const ActiveProjects = ({ projects, onNavigate }) => {
 };
 
 // ─── Chart Component ──────────────────────────────────────────────────────────
-const VulnerabilityTrend = ({ projects = [] }) => {
-  // Extract all findings and attach project name
-  const allFindings = projects.flatMap(p => 
-    (p.findings || []).map(f => ({ ...f, projectName: p.name }))
-  );
+// ─── Recent Activity Widget Component ──────────────────────────────────────────
+const formatAction = (log) => {
+  const { action, user, pentest, details } = log;
+  const userName = user?.fullName || "System";
+  const projectName = pentest?.name || details?.projectName || details?.name || "Unknown Project";
 
-  // Sort by newest first and take top 5
-  const recentFindings = allFindings.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt)).slice(0, 5);
+  switch (action) {
+    case "PROJECT_CREATED":
+      return {
+        title: `${userName} initialized the project workspace for "${projectName}".`,
+        sub: "Initialization",
+        color: "text-sky-400 bg-sky-400/10 border-sky-400/20"
+      };
+    case "HACKER_HIRED":
+      return {
+        title: `${userName} assigned a new operator to the project "${projectName}".`,
+        sub: "Operator Hired",
+        color: "text-[#00c477] bg-[#00c477]/10 border-[#00c477]/20"
+      };
+    case "FINDING_CREATED":
+      return {
+        title: `${userName} reported a new vulnerability finding in "${projectName}".`,
+        sub: "Vulnerability",
+        color: "text-[#ff3366] bg-[#ff3366]/10 border-[#ff3366]/20"
+      };
+    case "PROJECT_KICKOFF":
+      return {
+        title: `${userName} completed the kickoff checklist for "${projectName}".`,
+        sub: "Kickoff Done",
+        color: "text-emerald-500 bg-emerald-500/10 border-emerald-500/20"
+      };
+    case "PERSONAL_WORKSPACE_CREATED":
+      return {
+        title: `${userName} created a personal workspace "${projectName}".`,
+        sub: "Workspace",
+        color: "text-blue-400 bg-blue-400/10 border-blue-400/20"
+      };
+    case "PROJECT_UPDATED":
+      return {
+        title: `${userName} updated operational parameters for "${projectName}".`,
+        sub: "Update",
+        color: "text-gray-400 bg-gray-400/10 border-gray-400/20"
+      };
+    default:
+      return {
+        title: `${userName} performed action: ${action.toLowerCase().replace(/_/g, " ")} on "${projectName}".`,
+        sub: action.replace(/_/g, " "),
+        color: "text-gray-450 bg-white/5 border-white/10"
+      };
+  }
+};
 
-  const getSeverityColor = (sev) => {
-    switch (sev) {
-      case 'CRITICAL': return 'text-purple-500 bg-purple-500/10 border-purple-500/20';
-      case 'HIGH': return 'text-[#ff3366] bg-[#ff3366]/10 border-[#ff3366]/20';
-      case 'MEDIUM': return 'text-amber-500 bg-amber-500/10 border-amber-500/20';
-      case 'LOW': return 'text-blue-400 bg-blue-400/10 border-blue-400/20';
-      default: return 'text-gray-400 bg-gray-400/10 border-gray-400/20';
-    }
-  };
-
+const RecentActivity = ({ activities = [], totalCount = 0 }) => {
   return (
     <div className="bg-[#050505] border border-white/5 rounded-[32px] p-10 flex flex-col h-full shadow-2xl relative overflow-hidden group">
       <div className="flex items-center justify-between mb-8">
         <div className="flex items-center gap-3">
-          <div className="p-2 bg-[#ff3366]/10 text-[#ff3366] rounded-lg"><FiAlertCircle /></div>
-          <h3 className="text-sm font-black text-white tracking-widest uppercase font-mono">Recent Findings</h3>
+          <div className="p-2 bg-[#00c477]/10 text-[#00c477] rounded-lg"><FiActivity /></div>
+          <h3 className="text-sm font-black text-white tracking-widest uppercase font-mono">Recent Activity</h3>
         </div>
-        <span className="text-[10px] font-mono text-gray-500 uppercase tracking-widest">{allFindings.length} Total</span>
+        <span className="text-[10px] font-mono text-gray-500 uppercase tracking-widest">{totalCount} Total Logs</span>
       </div>
 
-      <div className="flex-1 space-y-3 overflow-y-auto pr-2 custom-scrollbar relative z-10">
-        {recentFindings.length === 0 ? (
+      <div className="h-[280px] overflow-y-auto pr-2 custom-scrollbar relative z-10">
+        {activities.length === 0 ? (
           <div className="h-full flex flex-col items-center justify-center text-center opacity-40">
-             <FiShield size={32} className="mb-3 text-[#00c477]" />
-             <p className="text-[10px] font-mono tracking-[0.2em] uppercase">No vulnerabilities detected</p>
+            <FiClock size={32} className="mb-3 text-[#00c477]" />
+            <p className="text-[10px] font-mono tracking-[0.2em] uppercase">No activity recorded</p>
           </div>
         ) : (
-          recentFindings.map((finding) => (
-            <div key={finding.id} className="p-4 rounded-2xl border border-white/5 bg-white/[0.02] hover:bg-white/[0.04] transition-colors flex items-center justify-between">
-              <div className="flex flex-col gap-1.5">
-                <p className="text-sm font-bold text-white tracking-tight">{finding.title || 'Unnamed Vulnerability'}</p>
-                <p className="text-[10px] font-mono text-gray-500 tracking-widest uppercase">{finding.projectName}</p>
-              </div>
-              <div className="flex items-center gap-3">
-                <span className={`text-[9px] font-black px-2 py-1 rounded-md border tracking-widest ${getSeverityColor(finding.severity)}`}>
-                  {finding.severity}
-                </span>
-                <span className={`text-[9px] font-black px-2 py-1 rounded-md border tracking-widest ${
-                  finding.status === 'OPEN' ? 'text-[#ff3366] bg-[#ff3366]/5 border-[#ff3366]/20' :
-                  finding.status === 'TRIAGED' ? 'text-amber-500 bg-amber-500/5 border-amber-500/20' :
-                  'text-[#00c477] bg-[#00c477]/5 border-[#00c477]/20'
-                }`}>
-                  {finding.status}
-                </span>
-              </div>
-            </div>
-          ))
+          <div className="relative border-l border-white/10 ml-2 space-y-6 pb-2">
+            {activities.map((log) => {
+              if (log.type === 'finding') {
+                const reporterName = log.reporter?.fullName || "Operator";
+                const projectName = log.pentest?.name || "Unknown Project";
+                const severity = log.severity || "LOW";
+
+                const getSeverityColor = (sev) => {
+                  switch (sev) {
+                    case 'CRITICAL': return 'text-purple-400';
+                    case 'HIGH': return 'text-red-400';
+                    case 'MEDIUM': return 'text-amber-400';
+                    case 'LOW': return 'text-blue-400';
+                    default: return 'text-gray-400';
+                  }
+                };
+
+                return (
+                  <div key={log.id} className="relative pl-6 animate-in fade-in slide-in-from-bottom-2 duration-300">
+                    {/* Timeline dot with red border for findings */}
+                    <div className="absolute left-[-5.5px] top-1.5 h-2.5 w-2.5 rounded-full bg-[#050505] border border-red-500/50 shadow-[0_0_5px_rgba(239,68,68,0.5)]" />
+
+                    <div className="flex items-start gap-3">
+                      {/* Red activity icon for findings */}
+                      <div className="mt-0.5">
+                        <FiActivity className="text-red-500 shrink-0 text-sm animate-pulse" />
+                      </div>
+
+                      <div className="space-y-1 flex-1">
+                        <div className="text-xs text-gray-300 leading-tight">
+                          <span className="font-bold text-gray-200">{reporterName}</span> reported a new <span className={`font-black uppercase tracking-wider text-[10px] ${getSeverityColor(severity)}`}>{severity}</span> finding: <span className="text-white font-bold">"{log.title}"</span> in <span className="text-gray-400">"{projectName}"</span>.
+                        </div>
+                        <div className="flex items-center gap-1.5 text-[9px] text-gray-500 font-mono">
+                          <FiClock size={10} /> {new Date(log.createdAt).toLocaleString()}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                );
+              }
+
+              const userName = log.user?.fullName || "System";
+              const actionText = log.action?.toLowerCase().replace(/_/g, " ") || "unknown action";
+
+              return (
+                <div key={log.id} className="relative pl-6 animate-in fade-in slide-in-from-bottom-2 duration-300">
+                  {/* Timeline dot on the vertical line */}
+                  <div className="absolute left-[-5.5px] top-1.5 h-2.5 w-2.5 rounded-full bg-[#050505] border border-white/20" />
+
+                  <div className="flex items-start gap-3">
+                    {/* Activity pulse wave icon */}
+                    <div className="mt-0.5">
+                      <FiActivity className="text-gray-400 shrink-0 text-sm" />
+                    </div>
+
+                    <div className="space-y-1 flex-1">
+                      <div className="text-xs text-gray-300 leading-tight">
+                        <span className="font-bold text-gray-200">{userName}</span> performed: <span className="text-gray-300">{actionText}.</span>
+                      </div>
+                      <div className="flex items-center gap-1.5 text-[9px] text-gray-500 font-mono">
+                        <FiClock size={10} /> {new Date(log.createdAt).toLocaleString()}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
         )}
       </div>
-      
-      <div className="absolute top-0 right-0 w-32 h-32 bg-[#ff3366]/[0.02] rounded-full -mr-16 -mt-16 blur-3xl pointer-events-none group-hover:bg-[#ff3366]/4 transition-all duration-700" />
+
+      <div className="absolute top-0 right-0 w-32 h-32 bg-[#00c477]/[0.02] rounded-full -mr-16 -mt-16 blur-3xl pointer-events-none group-hover:bg-[#00c477]/4 transition-all duration-700" />
     </div>
   );
 };
@@ -200,6 +281,8 @@ const OrganizationDashboard = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
   const [projects, setProjects] = useState([]);
+  const [recentActivities, setRecentActivities] = useState([]);
+  const [totalActivities, setTotalActivities] = useState(0);
   const [loading, setLoading] = useState(true);
 
   const organization = React.useMemo(() => user?.organizations?.[0]?.organization, [user]);
@@ -207,8 +290,29 @@ const OrganizationDashboard = () => {
   const fetchDashboardData = async () => {
     if (!organization?.id) return;
     try {
-      const { data } = await api.get(`/projects?organizationId=${organization.id}`);
-      setProjects(data.data || []);
+      const [projectsRes, logsRes, findingsRes] = await Promise.all([
+        api.get(`/projects?organizationId=${organization.id}`),
+        api.get(`/audit-logs?organizationId=${organization.id}&limit=15`),
+        api.get(`/findings?limit=15`)
+      ]);
+      setProjects(projectsRes.data.data || []);
+
+      const activities = (logsRes.data.data || []).map(item => ({
+        ...item,
+        type: 'activity',
+        timestamp: new Date(item.createdAt)
+      }));
+
+      const findings = (findingsRes.data?.data || []).map(item => ({
+        ...item,
+        type: 'finding',
+        timestamp: new Date(item.createdAt)
+      }));
+
+      const merged = [...activities, ...findings].sort((a, b) => b.timestamp - a.timestamp);
+
+      setRecentActivities(merged.slice(0, 15));
+      setTotalActivities(merged.length);
     } catch (err) {
       toast.error("Telemetry link unstable. Failed to sync dashboard.");
     } finally {
@@ -222,13 +326,13 @@ const OrganizationDashboard = () => {
 
   // Calculations
   const activeCount = projects.filter(p => p.status === 'IN_PROGRESS').length;
-  
-  const allHackers = projects.flatMap(p => 
+
+  const allHackers = projects.flatMap(p =>
     (p.collaborators || []).filter(c => ['HACKER', 'PROJECT_ADMIN', 'PENTESTER'].includes(c.role)).map(c => c.userId)
   );
   const uniqueHackerCount = new Set(allHackers).size;
-  
-  const hackerAvatars = projects.flatMap(p => 
+
+  const hackerAvatars = projects.flatMap(p =>
     (p.collaborators || []).filter(c => ['HACKER', 'PROJECT_ADMIN', 'PENTESTER'].includes(c.role)).map(c => c.user?.fullName?.[0] || 'H')
   ).slice(0, 4);
 
@@ -247,26 +351,26 @@ const OrganizationDashboard = () => {
     <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
       {/* STATS GRID */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-        <StatCard 
-          label="TOTAL PROJECTS" 
-          value={projects.length.toString().padStart(2, '0')} 
-          icon={FiGlobe} 
-          color="text-[#00c477]" 
-          progress={projects.length > 0 ? (activeCount / projects.length) * 100 : 0} 
+        <StatCard
+          label="TOTAL PROJECTS"
+          value={projects.length.toString().padStart(2, '0')}
+          icon={FiGlobe}
+          color="text-[#00c477]"
+          progress={projects.length > 0 ? (activeCount / projects.length) * 100 : 0}
           trend={projects.length > 0 ? `${activeCount} ACTIVE` : "NO ACTIVE PROJECTS"}
         />
-        <StatCard 
-          label="ASSIGNED PENTESTERS" 
-          value={uniqueHackerCount.toString().padStart(2, '0')} 
-          icon={FiUsers} 
-          color="text-blue-400" 
+        <StatCard
+          label="ASSIGNED PENTESTERS"
+          value={uniqueHackerCount.toString().padStart(2, '0')}
+          icon={FiUsers}
+          color="text-blue-400"
           avatars={hackerAvatars}
         />
-        <StatCard 
-          label="TOTAL FINDINGS" 
-          value={openFindingsCount.toString().padStart(2, '0')} 
-          icon={FiAlertCircle} 
-          color="text-[#ff3366]" 
+        <StatCard
+          label="TOTAL FINDINGS"
+          value={openFindingsCount.toString().padStart(2, '0')}
+          icon={FiAlertCircle}
+          color="text-[#ff3366]"
           sub="ACROSS ALL ENGAGEMENTS"
         />
       </div>
@@ -274,7 +378,7 @@ const OrganizationDashboard = () => {
       {/* MIDDLE GRID */}
       <div className="grid grid-cols-1 lg:grid-cols-[1.5fr_1fr] gap-8">
         <ActiveProjects projects={projects} onNavigate={(id) => id && typeof id === 'string' ? navigate(`/org-projects/${id}`) : navigate('/org-projects')} />
-        <VulnerabilityTrend projects={projects} />
+        <RecentActivity activities={recentActivities} totalCount={totalActivities} />
       </div>
 
     </div>
