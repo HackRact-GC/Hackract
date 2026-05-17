@@ -155,7 +155,7 @@ const HackerDiscoveryModal = ({ projectId, onClose, onInvited }) => {
                         </div>
                         <span className="text-[9px] px-2 py-0.5 rounded border border-gray-600 bg-gray-800 font-mono text-gray-300">{rank}</span>
                       </div>
-                      
+
                       <div className="flex flex-wrap gap-1.5 mb-5">
                         {skills.length > 0 ? skills.map(s => (
                           <span key={s} className="px-2 py-0.5 bg-black/50 border border-gray-700 rounded text-[9px] text-gray-400 font-mono">
@@ -227,7 +227,7 @@ const ProjectControlCenter = ({ projectId, onBack }) => {
           console.warn("Could not load invitations:", invError.response?.status);
           // Don't toast for 403, just keep invitations empty
           if (invError.response?.status !== 403) {
-             toast.error("Unable to load project invitations");
+            toast.error("Unable to load project invitations");
           }
         }
       }
@@ -283,7 +283,7 @@ const ProjectControlCenter = ({ projectId, onBack }) => {
         toast.success("Workflow board initialized!");
         loadProject();
         const newWorkflowId = res.data?.id || res.data?.data?.id; // Check response structure
-        if(newWorkflowId) window.open(`/org-workflows/${newWorkflowId}`, '_blank');
+        if (newWorkflowId) window.open(`/org-workflows/${newWorkflowId}`, '_blank');
       }
     } catch (err) {
       toast.error("Failed to initialize workflow.");
@@ -298,6 +298,16 @@ const ProjectControlCenter = ({ projectId, onBack }) => {
       loadProject();
     } catch (err) {
       toast.error("Failed to revoke invitation");
+    }
+  };
+
+  const handleUpdateStatus = async (newStatus) => {
+    try {
+      await api.patch(`/projects/${projectId}`, { status: newStatus });
+      toast.success(`Mission status updated to ${newStatus}`);
+      loadProject();
+    } catch (err) {
+      toast.error(err.response?.data?.message || "Failed to update project status");
     }
   };
 
@@ -331,14 +341,7 @@ const ProjectControlCenter = ({ projectId, onBack }) => {
         <div className="flex flex-col md:flex-row md:items-center justify-between mb-8 gap-6">
           <div>
             <h1 className="text-2xl font-black text-white tracking-widest uppercase break-all">PROJECT_CONTROL_CENTER</h1>
-            <div className="flex items-center gap-4 mt-2 text-[10px] uppercase tracking-widest flex-wrap">
-              <div className="flex items-center gap-2 text-[#00c477]">
-                <div className="w-2 h-2 rounded-full bg-[#00c477] animate-pulse shadow-[0_0_8px_#00c477]" />
-                SYSTEM ONLINE: LIVE UPLINK
-              </div>
-              <div className="text-gray-600 hidden sm:block">|</div>
-              <div className="text-gray-500">ID: {project.id?.substring(0, 8)?.toUpperCase()}-ALPHA</div>
-            </div>
+
           </div>
 
           <button
@@ -357,7 +360,7 @@ const ProjectControlCenter = ({ projectId, onBack }) => {
 
             {/* Mission Timeline Card */}
             <div className="bg-[#15181e] border border-gray-800 rounded-lg p-6 relative overflow-hidden">
-                <div className="flex justify-between items-start mb-6">
+              <div className="flex justify-between items-start mb-6">
                 <div>
                   <h3 className="text-[#00c477] text-xs font-black uppercase tracking-widest mb-2">MISSION_TIMELINE</h3>
                   <div className="text-2xl text-gray-300">Phase 0{currentPhaseIndex + 1}/04 - {project.status?.replace('_', ' ') || 'PLANNING'}</div>
@@ -382,14 +385,26 @@ const ProjectControlCenter = ({ projectId, onBack }) => {
 
               {/* Phases */}
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-6 border-t border-gray-800 pt-6">
-                {statuses.map((status, index) => (
-                  <div key={status} className={`border-l-2 pl-3 ${index <= currentPhaseIndex ? 'border-[#00c477]' : 'border-gray-800'}`}>
-                    <div className="text-[10px] text-gray-600 mb-1">ST-0{index + 1}</div>
-                    <div className={`text-xs font-bold uppercase ${index <= currentPhaseIndex ? 'text-gray-300' : 'text-gray-700'}`}>
-                      {status.replace('_', ' ')}
-                    </div>
-                  </div>
-                ))}
+                {statuses.map((status, index) => {
+                  const isActive = index <= currentPhaseIndex;
+                  return (
+                    <button
+                      key={status}
+                      disabled={!canManageInvitations}
+                      onClick={() => handleUpdateStatus(status)}
+                      className={`text-left border-l-2 pl-3 transition-all ${isActive
+                        ? 'border-[#00c477] hover:border-[#00ff88]/80 cursor-pointer'
+                        : 'border-gray-800 hover:border-gray-700 cursor-pointer'
+                        } disabled:cursor-default disabled:opacity-80`}
+                    >
+                      <div className="text-[10px] text-gray-600 mb-1">ST-0{index + 1}</div>
+                      <div className={`text-xs font-bold uppercase transition-colors ${isActive ? 'text-gray-300 group-hover:text-[#00ff88]' : 'text-gray-700'
+                        }`}>
+                        {status.replace('_', ' ')}
+                      </div>
+                    </button>
+                  );
+                })}
               </div>
             </div>
 
@@ -445,7 +460,7 @@ const ProjectControlCenter = ({ projectId, onBack }) => {
                           <div className="text-[#00c477] border border-[#00c477]/30 px-4 py-2 rounded text-[10px] font-black uppercase tracking-widest bg-[#00c477]/5 whitespace-nowrap">
                             LEAD_ADMIN
                           </div>
-                         ) : (
+                        ) : (
                           <div className="flex items-center gap-2">
                             <button
                               onClick={() => handleMakeAdmin(hacker.userId)}
