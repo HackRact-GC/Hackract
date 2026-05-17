@@ -67,7 +67,7 @@ const buildMessage = (action, details = {}) => {
     UPDATE_TITLE: `Renamed node to "${details.newTitle || 'Untitled'}"`,
     CONNECT_NODES: details.source && details.target ? `Connected ${hasConnectionLabels ? `"${sourceLabel}" to "${targetLabel}"` : 'two nodes'}` : `Connected two nodes`,
     DELETE_EDGE: `Removed a connection`,
-    LINK_FINDING: `Linked finding to ${nodeLabel}`,
+    LINK_FINDING: `Finding  ${nodeLabel}`,
     GRAPH_CHANGED: `Updated the canvas`,
     AGENT_RAN: `Ran the "${details.agentName || 'AI'}" agent`,
     TERMINAL_EXEC: `Executed command in Terminal`,
@@ -270,7 +270,7 @@ const WorkflowEditor = ({ workflowId: propWorkflowId, isOrgView = false }) => {
         ...node,
         data: { ...node.data, findings: [...(node.data.findings || []), newFinding] }
       })));
-      saveToDatabase(nodesRef.current, edgesRef.current, "LINK_FINDING", { label: `Recorded finding: ${findingData.title}` });
+      saveToDatabase(nodesRef.current, edgesRef.current, "LINK_FINDING", { label: `Vulnerability Name: ${findingData.title}` });
     } catch (err) {
       console.error('Failed to save finding:', err);
       throw err;
