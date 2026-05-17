@@ -139,11 +139,6 @@ const OrganizationLayout = () => {
         <main className="flex-1 overflow-y-auto p-10 bg-[#050505]">
           <Outlet />
         </main>
-
-        {/* Floating Action Button */}
-        <button className="fixed bottom-16 right-10 w-14 h-14 bg-[#00c477] text-black rounded-full shadow-[0_0_25px_rgba(0,255,136,0.3)] flex items-center justify-center hover:scale-110 active:scale-95 transition-all z-50">
-          <FiPlus size={24} />
-        </button>
       </div>
     </div>
   );

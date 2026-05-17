@@ -168,7 +168,7 @@ const ProjectCard = ({ project, onManage, index }) => {
           <div className="w-6 h-6 rounded-md bg-[#00c477]/10 flex items-center justify-center text-[#00c477]">
             <FiTarget size={12} />
           </div>
-          <span className="text-gray-200 font-bold">{project.findings?.length || 0} <span className="font-normal text-gray-500">Findings</span></span>
+          <span className="text-gray-200 font-bold">{project._count?.findings || project.findings?.length || 0} <span className="font-normal text-gray-500">Findings</span></span>
         </div>
         <div className={`flex items-center gap-1.5 ${isOverdue ? 'text-rose-400 bg-rose-500/10 px-2 py-1 rounded-md' : ''}`}>
           <FiCalendar size={13} />
@@ -456,7 +456,7 @@ const OrganizationProjects = () => {
 
   const filtered = filter === 'ALL' ? projects : projects.filter(p => p.status === filter);
   const totalHackers = projects.reduce((acc, p) => acc + (p.collaborators?.filter(c => c.role === 'HACKER') || []).length, 0);
-  const totalFindings = projects.reduce((acc, p) => acc + (p.findings || []).length, 0);
+  const totalFindings = projects.reduce((acc, p) => acc + (p._count?.findings || p.findings?.length || 0), 0);
   const activeCount = projects.filter(p => p.status === 'IN_PROGRESS').length;
 
   if (loading && projects.length === 0) {
