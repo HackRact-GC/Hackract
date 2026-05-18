@@ -21,6 +21,7 @@ router.get('/discover', restrictTo('ORG_ADMIN', 'PROJECT_ADMIN', 'PENTESTER'), c
 
 // Public profile by userId — ORG_ADMIN, PROJECT_ADMIN, or PENTESTER can view any approved hacker profile
 router.get('/public/:userId', restrictTo('ORG_ADMIN', 'PROJECT_ADMIN', 'PENTESTER'), controller.getPublicHackerProfile);
+router.post('/public/:userId/reviews', restrictTo('ORG_ADMIN'), controller.createReview);
 
 // Admin review routes
 router.get('/', restrictTo('ORG_ADMIN'), controller.listForReview);
