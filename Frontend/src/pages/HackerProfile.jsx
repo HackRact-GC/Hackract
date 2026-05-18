@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { FiEdit2, FiPlus, FiCheckCircle, FiShield, FiAward, FiFolder, FiTrash2, FiCamera } from "react-icons/fi";
+import { FiEdit2, FiPlus, FiCheckCircle, FiShield, FiAward, FiFolder, FiTrash2, FiCamera, FiStar } from "react-icons/fi";
 import api from "../api/axiosConfig";
 import { useAuth } from "../context/authContext.jsx";
 import toast from "react-hot-toast";
@@ -202,6 +202,15 @@ const HackerProfile = () => {
               <h1 className="text-2xl font-bold flex items-center gap-2">
                 {displayName}
               </h1>
+              {user?.averageRating != null && user?.totalReviews > 0 && (
+                <div className="flex items-center gap-2 mt-2 px-3 py-1 rounded-lg bg-white/[0.03] border border-white/5 w-fit">
+                  <FiStar className="text-[#00c477] fill-[#00c477] text-xs" />
+                  <span className="text-white font-bold text-xs">{Number(user.averageRating).toFixed(1)}</span>
+                  <span className="text-[10px] text-gray-500 font-mono uppercase tracking-widest">
+                    Rating ({user.totalReviews} {user.totalReviews === 1 ? 'review' : 'reviews'})
+                  </span>
+                </div>
+              )}
             </div>
           </div>
         </div>
