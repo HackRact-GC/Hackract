@@ -19,6 +19,7 @@ export const createOrganizationSchema = Joi.object({
     .max(50)
     .pattern(/^[a-z0-9\-]+$/)
     .optional()
+    .allow('', null)
     .messages({
       'string.min': 'Slug must be at least 2 characters',
       'string.max': 'Slug cannot exceed 50 characters',
@@ -27,26 +28,38 @@ export const createOrganizationSchema = Joi.object({
   description: Joi.string()
     .max(500)
     .optional()
+    .allow('', null)
     .messages({
       'string.max': 'Description cannot exceed 500 characters'
     }),
-  industry: Joi.string().max(100).optional(),
-  size: Joi.string().max(50).optional(),
-  website: Joi.string().uri().optional(),
-  primaryEmail: Joi.string().email().optional(),
-  phoneNumber: Joi.string().max(20).optional(),
-  addressLine1: Joi.string().max(255).optional(),
-  addressLine2: Joi.string().max(255).optional(),
-  city: Joi.string().max(100).optional(),
-  state: Joi.string().max(100).optional(),
-  postalCode: Joi.string().max(20).optional(),
-  country: Joi.string().max(100).optional(),
-  timezone: Joi.string().max(100).optional(),
-  currency: Joi.string().max(10).optional(),
-  registrationNumber: Joi.string().max(100).optional(),
-  taxId: Joi.string().max(100).optional(),
+  industry: Joi.string().max(100).optional().allow('', null),
+  size: Joi.string().max(50).optional().allow('', null),
+  website: Joi.string().uri().optional().allow('', null),
+  primaryEmail: Joi.string().email().optional().allow('', null),
+  phoneNumber: Joi.string().max(20).optional().allow('', null),
+  addressLine1: Joi.string().max(255).optional().allow('', null),
+  addressLine2: Joi.string().max(255).optional().allow('', null),
+  city: Joi.string().max(100).optional().allow('', null),
+  state: Joi.string().max(100).optional().allow('', null),
+  postalCode: Joi.string().max(20).optional().allow('', null),
+  country: Joi.string().max(100).optional().allow('', null),
+  timezone: Joi.string().max(100).optional().allow('', null),
+  currency: Joi.string().max(10).optional().allow('', null),
+  registrationNumber: Joi.string().max(100).optional().allow('', null),
+  taxId: Joi.string().max(100).optional().allow('', null),
   signatureData: Joi.string().allow('', null).optional(),
-  logoUrl: Joi.string().uri().max(500).optional().allow('', null)
+  logoUrl: Joi.string().uri().max(500).optional().allow('', null),
+  companyType: Joi.string().max(100).optional().allow('', null),
+  foundedYear: Joi.string().max(20).optional().allow('', null),
+  subCity: Joi.string().max(100).optional().allow('', null),
+  mapsLink: Joi.string().max(500).optional().allow('', null),
+  licenseIssueDate: Joi.string().max(50).optional().allow('', null),
+  licenseExpiryDate: Joi.string().max(50).optional().allow('', null),
+  businessLicenseUrl: Joi.string().max(500).optional().allow('', null),
+  contactFirstName: Joi.string().max(100).optional().allow('', null),
+  contactLastName: Joi.string().max(100).optional().allow('', null),
+  contactJobTitle: Joi.string().max(100).optional().allow('', null),
+  contactLinkedin: Joi.string().max(500).optional().allow('', null)
 });
 
 export const updateOrganizationSchema = Joi.object({
@@ -65,6 +78,7 @@ export const updateOrganizationSchema = Joi.object({
     .max(50)
     .pattern(/^[a-z0-9\-]+$/)
     .optional()
+    .allow('', null)
     .messages({
       'string.min': 'Slug must be at least 2 characters',
       'string.max': 'Slug cannot exceed 50 characters',
@@ -73,27 +87,38 @@ export const updateOrganizationSchema = Joi.object({
   description: Joi.string()
     .max(500)
     .optional()
+    .allow('', null)
     .messages({
       'string.max': 'Description cannot exceed 500 characters'
     }),
-
-  industry: Joi.string().max(100).optional(),
-  size: Joi.string().max(50).optional(),
-  website: Joi.string().uri().optional(),
-  primaryEmail: Joi.string().email().optional(),
-  phoneNumber: Joi.string().max(20).optional(),
-  addressLine1: Joi.string().max(255).optional(),
-  addressLine2: Joi.string().max(255).optional(),
-  city: Joi.string().max(100).optional(),
-  state: Joi.string().max(100).optional(),
-  postalCode: Joi.string().max(20).optional(),
-  country: Joi.string().max(100).optional(),
-  timezone: Joi.string().max(100).optional(),
-  currency: Joi.string().max(10).optional(),
-  registrationNumber: Joi.string().max(100).optional(),
-  taxId: Joi.string().max(100).optional(),
+  industry: Joi.string().max(100).optional().allow('', null),
+  size: Joi.string().max(50).optional().allow('', null),
+  website: Joi.string().uri().optional().allow('', null),
+  primaryEmail: Joi.string().email().optional().allow('', null),
+  phoneNumber: Joi.string().max(20).optional().allow('', null),
+  addressLine1: Joi.string().max(255).optional().allow('', null),
+  addressLine2: Joi.string().max(255).optional().allow('', null),
+  city: Joi.string().max(100).optional().allow('', null),
+  state: Joi.string().max(100).optional().allow('', null),
+  postalCode: Joi.string().max(20).optional().allow('', null),
+  country: Joi.string().max(100).optional().allow('', null),
+  timezone: Joi.string().max(100).optional().allow('', null),
+  currency: Joi.string().max(10).optional().allow('', null),
+  registrationNumber: Joi.string().max(100).optional().allow('', null),
+  taxId: Joi.string().max(100).optional().allow('', null),
   signatureData: Joi.string().allow('', null).optional(),
-  logoUrl: Joi.string().uri().max(500).optional().allow('', null)
+  logoUrl: Joi.string().uri().max(500).optional().allow('', null),
+  companyType: Joi.string().max(100).optional().allow('', null),
+  foundedYear: Joi.string().max(20).optional().allow('', null),
+  subCity: Joi.string().max(100).optional().allow('', null),
+  mapsLink: Joi.string().max(500).optional().allow('', null),
+  licenseIssueDate: Joi.string().max(50).optional().allow('', null),
+  licenseExpiryDate: Joi.string().max(50).optional().allow('', null),
+  businessLicenseUrl: Joi.string().max(500).optional().allow('', null),
+  contactFirstName: Joi.string().max(100).optional().allow('', null),
+  contactLastName: Joi.string().max(100).optional().allow('', null),
+  contactJobTitle: Joi.string().max(100).optional().allow('', null),
+  contactLinkedin: Joi.string().max(500).optional().allow('', null)
 
 }).min(1).messages({
   'object.min': 'At least one field must be provided for update'
