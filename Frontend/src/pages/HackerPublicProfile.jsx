@@ -466,9 +466,7 @@ const ProjectsSection = ({ hacker }) => (
                 </div>
                 <p className="text-xs text-gray-400 mt-1">{p.title}</p>
               </div>
-              <span className="px-3 py-1.5 rounded-full text-[9px] font-black font-mono tracking-widest uppercase text-[#00c477] bg-[#00c477]/10 border border-[#00c477]/20 flex-shrink-0">
-                {p.status}
-              </span>
+
             </motion.div>
           ))}
         </div>

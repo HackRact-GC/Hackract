@@ -247,6 +247,14 @@ const router = createBrowserRouter([
             element: <OrganizationProfile />,
           },
           {
+            path: "org-findings",
+            element: <VulnerabilityFindings />,
+          },
+          {
+            path: "org-findings/:findingId",
+            element: <FindingDetails />,
+          },
+          {
             path: "legal",
             element: <LegalAgreementList />,
           },
