@@ -264,6 +264,25 @@ export const discoverHackers = async ({ page = 1, limit = 12, search, skills, ce
             handle: true,
             avatar: true,
             trustScore: true,
+            reviewsReceived: {
+              select: {
+                rating: true,
+              },
+            },
+            pentestsLed: {
+              select: {
+                status: true,
+              },
+            },
+            pentestCollaborators: {
+              select: {
+                pentest: {
+                  select: {
+                    status: true,
+                  },
+                },
+              },
+            },
           },
         },
       },
@@ -271,8 +290,49 @@ export const discoverHackers = async ({ page = 1, limit = 12, search, skills, ce
     prisma.hackerProfile.count({ where }),
   ]);
 
+  const enrichedProfiles = profiles.map(profile => {
+    const u = profile.user || {};
+    
+    // Calculate averageRating and totalReviews
+    const reviews = u.reviewsReceived || [];
+    const totalReviews = reviews.length;
+    const averageRating = totalReviews > 0
+      ? Number((reviews.reduce((acc, curr) => acc + curr.rating, 0) / totalReviews).toFixed(1))
+      : 0;
+
+    // Calculate totalProjects, completedProjects, successRate
+    const ledProjects = u.pentestsLed || [];
+    const collabProjects = (u.pentestCollaborators || []).map(c => c.pentest).filter(Boolean);
+    const allProjects = [...ledProjects, ...collabProjects];
+    const totalProjects = allProjects.length;
+    const completedProjects = allProjects.filter(p => p.status === 'COMPLETED' || p.status === 'CLOSED').length;
+    const successRate = totalProjects > 0 ? Math.round((completedProjects / totalProjects) * 100) : 100;
+
+    // Determine category / rank based on averageRating, trustScore, and successRate
+    const trustScore = u.trustScore ?? 100;
+    
+    let rank = 'BRONZE';
+    if (trustScore >= 120 && successRate >= 80 && (totalReviews === 0 || averageRating >= 4.0)) {
+      rank = 'GOLD';
+    } else if (trustScore >= 100 && successRate >= 50) {
+      rank = 'SILVER';
+    }
+
+    // Clean up internal relations to keep response payload slim
+    const { reviewsReceived, pentestsLed, pentestCollaborators, ...userWithoutRelations } = u;
+
+    return {
+      ...profile,
+      user: userWithoutRelations,
+      rating: totalReviews > 0 ? averageRating : null, // Show real rated value
+      totalReviews,
+      successRate,
+      rank,
+    };
+  });
+
   return {
-    profiles,
+    profiles: enrichedProfiles,
     pagination: {
       page,
       limit,
