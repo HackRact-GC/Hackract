@@ -52,6 +52,7 @@ const DashboardPreview = () => {
   const activeProjects = projects.filter(p => p.status === 'IN_PROGRESS' || p.status === 'PLANNING').length;
   const completedProjects = projects.filter(p => p.status === 'COMPLETED' || p.status === 'CLOSED').length;
   const criticalVulns = findings.filter(f => f.severity === 'CRITICAL').length;
+  const successRate = totalProjects > 0 ? Math.round((completedProjects / totalProjects) * 100) : 100;
 
   const activeOperativesProjects = projects.slice(0, 3);
 
@@ -189,18 +190,36 @@ const DashboardPreview = () => {
                   <div className="text-xs text-[#00ff88] font-semibold flex items-center gap-1">
                     {user?.role === 'HACKER' ? 'Hacker' : 'Operative'}
                   </div>
-                  <div className="text-yellow-500 text-xs mt-1 tracking-widest">★★★★★ <span className="text-gray-500">Unrated</span></div>
+                  {user?.totalReviews > 0 ? (
+                    <div className="flex items-center gap-1.5 mt-1">
+                      <div className="flex items-center gap-0.5 text-yellow-500 text-xs">
+                        {[...Array(5)].map((_, i) => (
+                          <span key={i}>
+                            {i < Math.round(user.averageRating) ? '★' : '☆'}
+                          </span>
+                        ))}
+                      </div>
+                      <span className="text-white font-bold text-xs">{Number(user.averageRating).toFixed(1)}</span>
+                      <span className="text-[10px] text-gray-500 font-mono">
+                        ({user.totalReviews} {user.totalReviews === 1 ? 'review' : 'reviews'})
+                      </span>
+                    </div>
+                  ) : (
+                    <div className="text-yellow-500 text-xs mt-1 tracking-widest">
+                      ★★★★★ <span className="text-gray-500">Unrated</span>
+                    </div>
+                  )}
                 </div>
               </div>
 
               <div className="grid grid-cols-2 gap-4 mb-6">
                 <div className="bg-[#161616] rounded-xl p-3 text-center border border-white/5">
                   <div className="text-xs text-gray-500 mb-1">Reputation</div>
-                  <div className="font-bold text-white text-lg">0</div>
+                  <div className="font-bold text-white text-lg">{user?.trustScore ?? 100}</div>
                 </div>
                 <div className="bg-[#161616] rounded-xl p-3 text-center border border-white/5">
                   <div className="text-xs text-gray-500 mb-1">Success Rate</div>
-                  <div className="font-bold text-white text-lg">100%</div>
+                  <div className="font-bold text-white text-lg">{loading ? '100%' : `${successRate}%`}</div>
                 </div>
               </div>
 
