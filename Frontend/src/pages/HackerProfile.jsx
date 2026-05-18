@@ -201,6 +201,12 @@ const HackerProfile = () => {
             <div>
               <h1 className="text-2xl font-bold flex items-center gap-2">
                 {displayName}
+                {(user?.isVerified || isNationalIdVerified) && (
+                  <span className="ml-2 inline-flex items-center gap-2 bg-gradient-to-r from-green-600 to-emerald-400 text-black text-xs font-bold uppercase px-3 py-1 rounded-full shadow-lg">
+                    <FiAward className="text-sm text-white" />
+                    Verified Identity
+                  </span>
+                )}
               </h1>
             </div>
           </div>

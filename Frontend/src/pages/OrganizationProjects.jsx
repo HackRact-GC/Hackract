@@ -90,14 +90,16 @@ const ProjectCard = ({ project, onManage, index }) => {
                 {[
                   { icon: FiEdit2, label: "Settings & Scope", action: () => navigate(`/org-projects/${project.id}?tab=settings`) },
                   { icon: FiExternalLink, label: "Open Workspace", action: () => onManage(project.id) },
-                  { icon: FiTrash2, label: "Archive Program", action: () => {
-                    if(window.confirm("Archive this program? This will delete all project data.")) {
-                      api.delete(`/projects/${project.id}`).then(() => {
-                        toast.success("Program archived");
-                        window.location.reload();
-                      });
-                    }
-                  }, destructive: true },
+                  {
+                    icon: FiTrash2, label: "Archive Program", action: () => {
+                      if (window.confirm("Archive this program? This will delete all project data.")) {
+                        api.delete(`/projects/${project.id}`).then(() => {
+                          toast.success("Program archived");
+                          window.location.reload();
+                        });
+                      }
+                    }, destructive: true
+                  },
                 ].map(item => (
                   <button
                     key={item.label}
@@ -166,7 +168,7 @@ const ProjectCard = ({ project, onManage, index }) => {
           <div className="w-6 h-6 rounded-md bg-[#00c477]/10 flex items-center justify-center text-[#00c477]">
             <FiTarget size={12} />
           </div>
-          <span className="text-gray-200 font-bold">{project.findings?.length || 0} <span className="font-normal text-gray-500">Findings</span></span>
+          <span className="text-gray-200 font-bold">{project._count?.findings || project.findings?.length || 0} <span className="font-normal text-gray-500">Findings</span></span>
         </div>
         <div className={`flex items-center gap-1.5 ${isOverdue ? 'text-rose-400 bg-rose-500/10 px-2 py-1 rounded-md' : ''}`}>
           <FiCalendar size={13} />
@@ -454,7 +456,7 @@ const OrganizationProjects = () => {
 
   const filtered = filter === 'ALL' ? projects : projects.filter(p => p.status === filter);
   const totalHackers = projects.reduce((acc, p) => acc + (p.collaborators?.filter(c => c.role === 'HACKER') || []).length, 0);
-  const totalFindings = projects.reduce((acc, p) => acc + (p.findings || []).length, 0);
+  const totalFindings = projects.reduce((acc, p) => acc + (p._count?.findings || p.findings?.length || 0), 0);
   const activeCount = projects.filter(p => p.status === 'IN_PROGRESS').length;
 
   if (loading && projects.length === 0) {
@@ -477,18 +479,10 @@ const OrganizationProjects = () => {
 
         <div className="relative z-10 flex flex-col md:flex-row md:items-end justify-between gap-6 max-w-7xl mx-auto">
           <div>
-            <div className="inline-flex items-center gap-2 mb-4 px-3 py-1 rounded-full bg-[#00c477]/10 border border-[#00c477]/20">
-              <span className="w-2 h-2 rounded-full bg-[#00c477] shadow-[0_0_8px_#00c477]" />
-              <span className="text-[10px] font-black text-[#00c477] uppercase tracking-widest">
-                Executive Dashboard
-              </span>
-            </div>
+
             <h1 className="text-4xl font-extrabold text-white tracking-tight leading-none mb-3">
               Security Programs
             </h1>
-            <p className="text-gray-400 text-[15px] font-medium max-w-xl">
-              Oversee active engagements, manage threat discovery, and coordinate with verified security consultants across your organization.
-            </p>
           </div>
 
           <motion.button
@@ -503,12 +497,10 @@ const OrganizationProjects = () => {
         </div>
 
         {/* Stats Strip */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-5 mt-10 max-w-7xl mx-auto">
+        <div className="grid grid-cols-2 md:grid-cols-2 gap-5 mt-10 max-w-7xl mx-auto">
           {[
             { label: "Total Initiatives", value: projects.length, icon: FiBriefcase, color: "text-[#00c477]", bg: "bg-[#00c477]/10" },
-            { label: "Active Audits", value: activeCount, icon: FiActivity, color: "text-cyan-400", bg: "bg-cyan-500/10" },
             { label: "Consultants", value: totalHackers, icon: FiUsers, color: "text-purple-400", bg: "bg-purple-500/10" },
-            { label: "Critical Findings", value: totalFindings, icon: FiAlertTriangle, color: "text-rose-400", bg: "bg-rose-500/10" },
           ].map((stat, i) => (
             <motion.div
               key={stat.label}

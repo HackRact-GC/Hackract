@@ -22,7 +22,6 @@ import {
   FiMonitor,
 } from 'react-icons/fi';
 import { ROLES, isOrgAdminMember } from '../utils/roles.js';
-
 const HackerLayout = () => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const navigate = useNavigate();
@@ -44,14 +43,14 @@ const HackerLayout = () => {
   const userInitial = displayName[0]?.toUpperCase() || 'H';
 
   const navItems = [
-    { icon: FiGrid,          label: 'Dashboard',   route: '/hacker-dashboard' },
-    { icon: FiFolder,        label: 'Projects',    route: '/projects' },
-    { icon: FiShoppingBag,   label: 'Engagements', route: '/engagements' },
-    { icon: FiShield,        label: 'Findings',    route: '/findings' },
-    { icon: FiMessageSquare, label: 'Messages',    route: '/messages', badge: unreadChatCount },
-    { icon: FiFileText,      label: 'Reports',     route: '/my-applications' },
-    { icon: FiSettings,      label: 'Settings',    route: '/hacker-profile' },
-    { icon: FiPenTool,       label: 'Legal Agreement', route: '/execute-agreement' },
+    { icon: FiGrid, label: 'Dashboard', route: '/hacker-dashboard' },
+    { icon: FiFolder, label: 'Projects', route: '/projects' },
+    { icon: FiShoppingBag, label: 'Engagements', route: '/engagements' },
+    { icon: FiShield, label: 'Findings', route: '/findings' },
+    { icon: FiMessageSquare, label: 'Messages', route: '/messages', badge: unreadChatCount },
+    { icon: FiFileText, label: 'Reports', route: '/my-applications' },
+    { icon: FiSettings, label: 'Settings', route: '/hacker-profile' },
+    { icon: FiPenTool, label: 'Legal Agreement', route: '/execute-agreement' },
   ];
 
   if (hasAnyRole(ROLES.ORG_ADMIN)) {
@@ -117,8 +116,8 @@ const HackerLayout = () => {
                 key={item.route}
                 onClick={() => { navigate(item.route); setIsMobileMenuOpen(false); }}
                 className={`w-full flex items-center space-x-3 px-3 py-3 rounded-lg transition-colors text-left ${isActive(item.route)
-                    ? 'bg-[#00c477]/10 text-[#00c477] border-l-2 border-[#00c477]'
-                    : 'text-gray-400 hover:bg-white/5 hover:text-white'
+                  ? 'bg-[#00c477]/10 text-[#00c477] border-l-2 border-[#00c477]'
+                  : 'text-gray-400 hover:bg-white/5 hover:text-white'
                   }`}
               >
                 <item.icon className={isActive(item.route) ? 'text-[#00c477]' : ''} />
@@ -169,7 +168,7 @@ const HackerLayout = () => {
           </div>
 
           <div className="flex items-center space-x-4 relative">
-            <button 
+            <button
               className="relative text-gray-400 hover:text-white transition-colors hidden sm:block"
               onClick={() => setIsNotificationsOpen(!isNotificationsOpen)}
             >
@@ -181,9 +180,9 @@ const HackerLayout = () => {
 
             <AnimatePresence>
               {isNotificationsOpen && (
-                <NotificationPanel 
-                  isOpen={isNotificationsOpen} 
-                  onClose={() => setIsNotificationsOpen(false)} 
+                <NotificationPanel
+                  isOpen={isNotificationsOpen}
+                  onClose={() => setIsNotificationsOpen(false)}
                 />
               )}
             </AnimatePresence>
