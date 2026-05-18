@@ -108,6 +108,8 @@ model Organization {
   slug               String               @unique
   description        String?
   industry           String?
+  companyType        String?
+  foundedYear        String?
   size               String?
   website            String?
   primaryEmail       String?
@@ -115,14 +117,23 @@ model Organization {
   addressLine1       String?
   addressLine2       String?
   city               String?
+  subCity            String?
   state              String?
   postalCode         String?
   country            String?
+  mapsLink           String?
   timezone           String?
   currency           String?
   registrationNumber String?
   taxId              String?
   companySize        String?
+  licenseIssueDate   String?
+  licenseExpiryDate  String?
+  businessLicenseUrl String?
+  contactFirstName   String?
+  contactLastName    String?
+  contactJobTitle    String?
+  contactLinkedin    String?
   verificationStatus VerificationStatus   @default(DRAFT)
   createdAt          DateTime             @default(now())
   updatedAt          DateTime             @updatedAt
