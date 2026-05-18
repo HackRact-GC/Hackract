@@ -293,7 +293,7 @@ const OrganizationDashboard = () => {
       const [projectsRes, logsRes, findingsRes] = await Promise.all([
         api.get(`/projects?organizationId=${organization.id}`),
         api.get(`/audit-logs?organizationId=${organization.id}&limit=15`),
-        api.get(`/findings?limit=15`)
+        api.get(`/findings?organizationId=${organization.id}&limit=15`)
       ]);
       setProjects(projectsRes.data.data || []);
 
