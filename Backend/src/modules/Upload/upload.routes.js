@@ -1,6 +1,6 @@
 import express from 'express';
 import { protect } from '../../middleware/Auth.middleware.js';
-import { s3Upload, isS3Configured, getS3PublicUrl } from '../../utils/s3Upload.js';
+import { s3Upload, isS3Configured } from '../../utils/s3Upload.js';
 import AppError from '../../utils/AppError.js';
 
 const router = express.Router();
@@ -54,12 +54,13 @@ router.post('/', s3Upload.single('file'), (req, res, next) => {
     let fileUrl = '';
     
     if (isS3Configured) {
-      // multer-s3 attaches the S3 URL to req.file.location (may be missing in some configs)
-      fileUrl = req.file.location || getS3PublicUrl(req.file.key);
+      // multer-s3 attaches the S3 URL to req.file.location
+      fileUrl = req.file.location;
     } else {
-      // For local fallback testing (you could adapt this to save locally and serve statically if needed)
-      // Since it's memory storage fallback, we don't have a real URL.
-      throw new AppError('AWS S3 is not configured. File cannot be stored.', 500);
+      // Local fallback: req.file.filename contains the name we generated
+      // The public URL should point to our /uploads static route
+      const baseUrl = `${req.protocol}://${req.get('host')}`;
+      fileUrl = `${baseUrl}/uploads/${req.file.filename}`;
     }
 
     res.status(200).json({

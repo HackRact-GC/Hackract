@@ -38,7 +38,16 @@ export const getHistory = asyncHandler(async (req, res) => {
     orderBy: { createdAt: 'desc' },
     include: {
       user: {
-        select: { id: true, fullName: true, email: true, handle: true, avatar: true }
+        select: { 
+          id: true, 
+          fullName: true, 
+          email: true, 
+          handle: true, 
+          avatar: true,
+          roles: {
+            select: { type: true }
+          }
+        }
       }
     }
   });

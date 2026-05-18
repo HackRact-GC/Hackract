@@ -1,6 +1,9 @@
 import { useState } from 'react';
 import { Outlet, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/authContext.jsx';
+import { useNotifications } from '../context/NotificationContext.jsx';
+import NotificationPanel from '../components/NotificationPanel.jsx';
+import { motion, AnimatePresence } from 'framer-motion';
 import {
   FiGrid,
   FiFolder,
@@ -16,13 +19,20 @@ import {
   FiLogOut,
   FiShield,
   FiPenTool,
+  FiMonitor,
 } from 'react-icons/fi';
-
+import { ROLES, isOrgAdminMember } from '../utils/roles.js';
 const HackerLayout = () => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
-  const { user, logout } = useAuth();
+  const { user, logout, hasAnyRole } = useAuth();
+  const { unreadCount } = useNotifications();
+  const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
+
+  // Count unread chat notifications specifically for badge on Messages nav
+  const { notifications } = useNotifications();
+  const unreadChatCount = notifications.filter(n => n.type === 'CHAT_MESSAGE' && !n.isRead).length;
 
   const handleLogout = async () => {
     await logout();
@@ -33,14 +43,19 @@ const HackerLayout = () => {
   const userInitial = displayName[0]?.toUpperCase() || 'H';
 
   const navItems = [
-    { icon: FiGrid,          label: 'Dashboard',   route: '/hacker-dashboard' },
-    { icon: FiFolder,        label: 'Projects',    route: '/projects' },
-    { icon: FiShoppingBag,   label: 'Engagements', route: '/engagements' },
-    { icon: FiMessageSquare, label: 'Messages',    route: '/messages' },
-    { icon: FiFileText,      label: 'Reports',     route: '/my-applications' },
-    { icon: FiSettings,      label: 'Settings',    route: '/hacker-profile' },
-    { icon: FiPenTool,       label: 'Legal Agreement', route: '/execute-agreement' },
+    { icon: FiGrid, label: 'Dashboard', route: '/hacker-dashboard' },
+    { icon: FiFolder, label: 'Projects', route: '/projects' },
+    { icon: FiShoppingBag, label: 'Engagements', route: '/engagements' },
+    { icon: FiShield, label: 'Findings', route: '/findings' },
+    { icon: FiMessageSquare, label: 'Messages', route: '/messages', badge: unreadChatCount },
+    { icon: FiFileText, label: 'Reports', route: '/my-applications' },
+    { icon: FiSettings, label: 'Settings', route: '/hacker-profile' },
+    { icon: FiPenTool, label: 'Legal Agreement', route: '/execute-agreement' },
   ];
+
+  if (hasAnyRole(ROLES.ORG_ADMIN)) {
+    navItems.push({ icon: FiMonitor, label: 'Org Dashboard', route: '/dashboard' });
+  }
 
   const isActive = (route) => {
     if (route === '/hacker-dashboard') return location.pathname === '/hacker-dashboard';
@@ -101,12 +116,17 @@ const HackerLayout = () => {
                 key={item.route}
                 onClick={() => { navigate(item.route); setIsMobileMenuOpen(false); }}
                 className={`w-full flex items-center space-x-3 px-3 py-3 rounded-lg transition-colors text-left ${isActive(item.route)
-                    ? 'bg-[#00c477]/10 text-[#00c477] border-l-2 border-[#00c477]'
-                    : 'text-gray-400 hover:bg-white/5 hover:text-white'
+                  ? 'bg-[#00c477]/10 text-[#00c477] border-l-2 border-[#00c477]'
+                  : 'text-gray-400 hover:bg-white/5 hover:text-white'
                   }`}
               >
                 <item.icon className={isActive(item.route) ? 'text-[#00c477]' : ''} />
-                <span className="font-medium">{item.label}</span>
+                <span className="font-medium flex-1">{item.label}</span>
+                {item.badge > 0 && (
+                  <span className="ml-auto w-4 h-4 rounded-full bg-[#00c477] text-black text-[9px] font-black flex items-center justify-center">
+                    {item.badge > 9 ? '9+' : item.badge}
+                  </span>
+                )}
               </button>
             ))}
           </nav>
@@ -133,7 +153,7 @@ const HackerLayout = () => {
       <div className="flex-1 flex flex-col h-full min-w-0 overflow-hidden">
 
         {/* Top header */}
-        <header className="flex justify-between items-center p-4 lg:p-5 border-b border-white/5 bg-[#050505] z-30 flex-shrink-0">
+        <header className="flex justify-between items-center p-4 lg:p-5 border-b border-white/5 bg-[#050505] z-30 shrink-0">
           <div className="flex items-center flex-1 gap-4">
             {/* Mobile hamburger */}
             <button
@@ -147,11 +167,25 @@ const HackerLayout = () => {
             <span className="text-white font-semibold lg:hidden">{currentPage}</span>
           </div>
 
-          <div className="flex items-center space-x-4">
-            <button className="relative text-gray-400 hover:text-white transition-colors hidden sm:block">
+          <div className="flex items-center space-x-4 relative">
+            <button
+              className="relative text-gray-400 hover:text-white transition-colors hidden sm:block"
+              onClick={() => setIsNotificationsOpen(!isNotificationsOpen)}
+            >
               <FiBell size={20} />
-              <span className="absolute -top-1 -right-1 w-2 h-2 bg-[#00c477] rounded-full" />
+              {unreadCount > 0 && (
+                <span className="absolute -top-1 -right-1 w-2 h-2 bg-[#00c477] rounded-full" />
+              )}
             </button>
+
+            <AnimatePresence>
+              {isNotificationsOpen && (
+                <NotificationPanel
+                  isOpen={isNotificationsOpen}
+                  onClose={() => setIsNotificationsOpen(false)}
+                />
+              )}
+            </AnimatePresence>
             <div
               className="flex items-center space-x-2 border-l border-white/10 pl-4 cursor-pointer"
               onClick={() => navigate('/hacker-profile')}

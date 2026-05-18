@@ -49,7 +49,7 @@ const AiNode = ({ data, selected }) => {
             className="w-full h-20 bg-black border border-gray-800 text-gray-300 p-2 rounded resize-none focus:outline-none focus:border-[#00ff88]/50"
             placeholder="ask something..."
             defaultValue={data.prompt || ''}
-            onChange={data.onChange}
+            onChange={(e) => data.onDataChange && data.onDataChange({ prompt: e.target.value })}
           />
           <button className="absolute bottom-2 right-2 text-[#00ff88] hover:text-white transition-colors">
             ➤

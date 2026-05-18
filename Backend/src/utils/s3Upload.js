@@ -1,8 +1,9 @@
-import { GetObjectCommand, S3Client } from '@aws-sdk/client-s3';
+import { GetObjectCommand, S3Client, HeadBucketCommand, CreateBucketCommand, PutBucketPolicyCommand } from '@aws-sdk/client-s3';
 import multer from 'multer';
 import multerS3 from 'multer-s3';
 import { v4 as uuidv4 } from 'uuid';
 import path from 'path';
+import fs from 'fs';
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -52,6 +53,52 @@ const getMinioClient = () => {
   }
 
   return minioClient;
+};
+
+/** Ensure the bucket exists and is configured for public read */
+export const initializeStorage = async () => {
+  if (!isStorageConfigured) {
+    console.warn('[Storage] Skipping initialization: MinIO not configured.');
+    return;
+  }
+  
+  const client = getMinioClient();
+  const bucketName = getEnv('MINIO_BUCKET_NAME');
+
+  try {
+    await client.send(new HeadBucketCommand({ Bucket: bucketName }));
+    console.log(`[Storage] Bucket "${bucketName}" verified.`);
+  } catch (err) {
+    // If bucket doesn't exist, create it
+    if (err.name === 'NotFound' || err.$metadata?.httpStatusCode === 404) {
+      console.log(`[Storage] Bucket "${bucketName}" not found. Creating...`);
+      try {
+        await client.send(new CreateBucketCommand({ Bucket: bucketName }));
+        
+        // Apply public read policy so browser can access files directly
+        const policy = {
+          Version: "2012-10-17",
+          Statement: [{
+            Effect: "Allow",
+            Principal: "*",
+            Action: ["s3:GetObject"],
+            Resource: [`arn:aws:s3:::${bucketName}/*`]
+          }]
+        };
+
+        await client.send(new PutBucketPolicyCommand({
+          Bucket: bucketName,
+          Policy: JSON.stringify(policy)
+        }));
+        
+        console.log(`[Storage] Bucket "${bucketName}" initialized with public policy.`);
+      } catch (createErr) {
+        console.error(`[Storage] Failed to create bucket "${bucketName}":`, createErr.message);
+      }
+    } else {
+      console.error(`[Storage] Unexpected error checking bucket:`, err.message);
+    }
+  }
 };
 
 // ─── Key Builder ─────────────────────────────────────────────────────────────
@@ -131,11 +178,16 @@ const fileFilter = (req, file, cb) => {
 
 // ─── Multer Storage ───────────────────────────────────────────────────────────
 
+// Ensure local uploads directory exists
+const localUploadsDir = path.join(process.cwd(), 'public', 'uploads');
+if (!fs.existsSync(localUploadsDir)) {
+  fs.mkdirSync(localUploadsDir, { recursive: true });
+}
+
 const storage = isStorageConfigured
   ? multerS3({
     s3:     getMinioClient(),
     bucket: getEnv('MINIO_BUCKET_NAME'),
-    // MinIO buckets can be set to public via bucket policy — no ACL needed
     contentType: multerS3.AUTO_CONTENT_TYPE,
     metadata: (req, file, cb) => {
       cb(null, { fieldName: file.fieldname });
@@ -145,7 +197,18 @@ const storage = isStorageConfigured
       cb(null, buildS3Key({ folder, originalName: file.originalname }));
     },
   })
-  : multer.memoryStorage();
+  : multer.diskStorage({
+    destination: (req, file, cb) => {
+      cb(null, localUploadsDir);
+    },
+    filename: (req, file, cb) => {
+      const folder = req.s3Folder || req.query.folder || 'general';
+      const uniqueSuffix = `${Date.now()}-${uuidv4()}`;
+      const ext = path.extname(file.originalname);
+      // We'll store the relative path in the filename so the route can build the URL
+      cb(null, `${folder}-${uniqueSuffix}${ext}`);
+    },
+  });
 
 const s3Upload = multer({
   storage,

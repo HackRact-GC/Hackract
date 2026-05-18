@@ -6,6 +6,36 @@ import { logAction } from '../AuditLogs/auditLog.service.js';
 
 // ─── Guards ──────────────────────────────────────────────────────────────────
 
+const checkProjectManagePermission = async (pentestId, user) => {
+    // 1. Global ORG_ADMIN
+    if (user.roles.some(r => r.type === 'ORG_ADMIN')) return true;
+
+    const pentest = await prisma.pentest.findUnique({
+        where: { id: pentestId },
+        select: { id: true, organizationId: true, leadPentesterId: true }
+    });
+    if (!pentest) throw new AppError('Project not found', 404, InvitationErrorCodes.PROJECT_NOT_FOUND);
+
+    // 2. Org Member (Owner/Admin)
+    if (pentest.organizationId) {
+        const orgMember = await prisma.organizationMember.findFirst({
+            where: { organizationId: pentest.organizationId, userId: user.id, role: { in: ['owner', 'admin'] } }
+        });
+        if (orgMember) return true;
+    }
+
+    // 3. Project Lead
+    if (pentest.leadPentesterId === user.id) return true;
+
+    // 4. Project Admin Collaborator
+    const isProjectAdmin = await prisma.pentestCollaborator.findFirst({
+        where: { pentestId, userId: user.id, role: 'PROJECT_ADMIN' }
+    });
+    if (isProjectAdmin) return true;
+
+    throw new AppError('You do not have permission to manage this project', 403);
+};
+
 const ensurePentestExists = async (pentestId) => {
     const pentest = await prisma.pentest.findUnique({
         where: { id: pentestId },
@@ -43,10 +73,10 @@ const ensureHackerApproved = async (hackerId) => {
 /**
  * Organization sends an invitation to a hacker for a specific pentest.
  */
-export const sendInvitation = async (invitedById, { pentestId, hackerId, message, expiresAt }, req) => {
-    await ensurePentestExists(pentestId);
+export const sendInvitation = async (inviterId, { pentestId, hackerId, message, expiresAt }, req) => {
+    const user = req.user; // We assume controller passes user or attaches to req
+    await checkProjectManagePermission(pentestId, user);
     await ensureHackerExists(hackerId);
-    await ensureHackerApproved(hackerId);
 
     // Block duplicate PENDING invitation
     const existing = await invitationRepository.findPending(pentestId, hackerId);
@@ -61,18 +91,32 @@ export const sendInvitation = async (invitedById, { pentestId, hackerId, message
     const invitation = await invitationRepository.create({
         pentestId,
         hackerId,
-        invitedById,
+        invitedById: inviterId,
         message: message || null,
         expiresAt: expiresAt ? new Date(expiresAt) : null,
         status: 'PENDING',
     });
 
-    await logAction(InvitationActions.SENT, invitedById, {
+    await logAction(InvitationActions.SENT, inviterId, {
         invitationId: invitation.id,
         pentestId,
         hackerId,
         organizationId: invitation.pentest?.organization?.id,
     }, req);
+
+    if (req?.app?.locals?.sendNotification) {
+        console.log(`📡 Service: Dispatching INVITE_RECEIVED to ${hackerId}`);
+        const projectName = invitation.pentest?.name || 'a new project';
+        req.app.locals.sendNotification(hackerId, {
+            type: 'INVITE_RECEIVED',
+            title: 'New Mission Directive',
+            message: `You have been assigned to project: ${projectName}.`,
+            pentestId,
+            timestamp: new Date().toISOString()
+        });
+    } else {
+        console.warn('⚠️ Service: req.app.locals.sendNotification is NOT defined!');
+    }
 
     return invitation;
 };
@@ -122,9 +166,33 @@ export const respondToInvitation = async (invitationId, hackerId, status, req) =
                 data: {
                     pentestId: invitation.pentestId,
                     userId: hackerId,
-                    role: 'collaborator',
+                    role: 'HACKER',
                 },
             });
+        }
+
+        // Auto-create PENDING ProjectAgreementAcceptance for the hacker
+        const activeAgreement = await prisma.projectAgreement.findFirst({
+            where: { pentestId: invitation.pentestId, isActive: true },
+            orderBy: { version: 'desc' }
+        });
+
+        if (activeAgreement) {
+            const alreadyAccepted = await prisma.projectAgreementAcceptance.findUnique({
+                where: { agreementId_hackerId: { agreementId: activeAgreement.id, hackerId } }
+            });
+
+            if (!alreadyAccepted) {
+                await prisma.projectAgreementAcceptance.create({
+                    data: {
+                        agreementId: activeAgreement.id,
+                        hackerId,
+                        pentestId: invitation.pentestId,
+                        version: activeAgreement.version,
+                        status: 'PENDING'
+                    }
+                });
+            }
         }
     }
 
@@ -133,6 +201,20 @@ export const respondToInvitation = async (invitationId, hackerId, status, req) =
         invitationId,
         pentestId: invitation.pentestId,
     }, req);
+
+    if (req?.app?.locals?.sendNotification && invitation.invitedById) {
+        console.log(`📡 Service: Dispatching response notification to ${invitation.invitedById}`);
+        const hackerName = invitation.hacker?.fullName || 'An operative';
+        req.app.locals.sendNotification(invitation.invitedById, {
+            type: status === 'ACCEPTED' ? 'INVITE_ACCEPTED' : 'INVITE_REJECTED',
+            title: status === 'ACCEPTED' ? 'Mission Accepted' : 'Mission Declined',
+            message: `${hackerName} has ${status.toLowerCase()} the invitation for project ${invitation.pentest?.name || 'Assigned'}.`,
+            pentestId: invitation.pentestId,
+            timestamp: new Date().toISOString()
+        });
+    } else {
+        console.warn('⚠️ Service: Notification skipped (missing helper or invitedById)');
+    }
 
     return updated;
 };
@@ -146,6 +228,8 @@ export const revokeInvitation = async (invitationId, userId, req) => {
     if (!invitation) {
         throw new AppError('Invitation not found', 404, InvitationErrorCodes.NOT_FOUND);
     }
+
+    await checkProjectManagePermission(invitation.pentestId, req.user);
 
     if (invitation.status !== 'PENDING') {
         throw new AppError(
@@ -169,8 +253,8 @@ export const revokeInvitation = async (invitationId, userId, req) => {
 /**
  * List all invitations for a project (org view).
  */
-export const listProjectInvitations = async (pentestId, filters) => {
-    await ensurePentestExists(pentestId);
+export const listProjectInvitations = async (pentestId, filters, user) => {
+    await checkProjectManagePermission(pentestId, user);
     return invitationRepository.listForPentest(pentestId, filters);
 };
 

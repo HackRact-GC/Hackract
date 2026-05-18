@@ -33,31 +33,40 @@ export const getPublicProfile = async (userId) => {
     include: {
       user: {
         select: {
-          id:         true,
-          fullName:   true,
-          handle:     true,
-          avatar:     true,
+          id: true,
+          fullName: true,
+          handle: true,
+          avatar: true,
           trustScore: true,
-          country:    false,
+          nationalIDVerification: { select: { verificationStatus: true } },
           // Fetch completed pentests where user was lead or collaborator
           pentestsLed: {
-            where:   { status: { in: ['CLOSED', 'REPORTING', 'IN_PROGRESS'] } },
-            select:  { id: true, name: true, status: true, createdAt: true,
-                       organization: { select: { name: true } } },
+            where: { status: { in: ['CLOSED', 'REPORTING', 'IN_PROGRESS'] } },
+            select: {
+              id: true, name: true, status: true, createdAt: true,
+              organization: { select: { name: true } }
+            },
             orderBy: { createdAt: 'desc' },
-            take:    10,
+            take: 10,
           },
           pentestCollaborators: {
-            where:   { pentest: { status: { in: ['CLOSED', 'REPORTING', 'IN_PROGRESS'] } } },
-            select:  { pentest: { select: { id: true, name: true, status: true, createdAt: true,
-                                           organization: { select: { name: true } } } } },
+            where: { pentest: { status: { in: ['CLOSED', 'REPORTING', 'IN_PROGRESS'] } } },
+            select: {
+              pentest: {
+                select: {
+                  id: true, name: true, status: true, createdAt: true,
+                  organization: { select: { name: true } }
+                }
+              }
+            },
             orderBy: { addedAt: 'desc' },
-            take:    10,
+            take: 10,
           },
           reviewsReceived: {
             select: {
               id: true, rating: true, comment: true, createdAt: true,
               author: { select: { fullName: true, handle: true } },
+              pentest: { select: { id: true, name: true } },
             },
             orderBy: { createdAt: 'desc' },
             take: 10,
@@ -67,8 +76,63 @@ export const getPublicProfile = async (userId) => {
     },
   });
 
-  if (!profile || profile.status !== 'APPROVED') return null;
+  if (!profile) return null;
+
+  const ratingAggregate = await prisma.review.aggregate({
+    where: { subjectId: userId },
+    _avg: { rating: true },
+    _count: { rating: true },
+  });
+
+  if (profile.user) {
+    profile.user.averageRating = ratingAggregate._avg.rating || 0;
+    profile.user.totalReviews = ratingAggregate._count.rating || 0;
+  }
+
   return profile;
+};
+
+export const createHackerReview = async (authorId, subjectId, rating, comment, pentestId) => {
+  if (authorId === subjectId) {
+    throw new AppError('You cannot rate your own profile', 400);
+  }
+  const ratingNum = parseInt(rating, 10);
+  if (isNaN(ratingNum) || ratingNum < 1 || ratingNum > 5) {
+    throw new AppError('Rating must be an integer between 1 and 5', 400);
+  }
+
+  if (pentestId) {
+    const pentest = await prisma.pentest.findUnique({
+      where: { id: pentestId },
+      include: {
+        collaborators: true,
+      }
+    });
+    if (!pentest) {
+      throw new AppError('The specified project does not exist', 404);
+    }
+    const isLead = pentest.leadPentesterId === subjectId;
+    const isCollab = pentest.collaborators.some(c => c.userId === subjectId);
+    if (!isLead && !isCollab) {
+      throw new AppError('The pentester is not assigned to this project', 400);
+    }
+  }
+
+  const review = await prisma.review.create({
+    data: {
+      authorId,
+      subjectId,
+      rating: ratingNum,
+      comment: comment || null,
+      pentestId: pentestId || null,
+    },
+    include: {
+      author: { select: { fullName: true, handle: true } },
+      pentest: { select: { id: true, name: true } },
+    }
+  });
+
+  return review;
 };
 
 export const upsertMyProfile = async (userId, payload) => {
@@ -92,6 +156,7 @@ export const upsertMyProfile = async (userId, payload) => {
     yearsOfExperience: payload.yearsOfExperience ? Number(payload.yearsOfExperience) : null,
     primarySkills: toArray(payload.primarySkills),
     certifications: toArray(payload.certifications),
+    education: toArray(payload.education),
     employment: toArray(payload.employment),
     otherExperiences: toArray(payload.otherExperiences),
     portfolioLinks: toArray(payload.portfolioLinks),
@@ -160,8 +225,8 @@ export const submitMyProfile = async (userId) => {
 export const discoverHackers = async ({ page = 1, limit = 12, search, skills, certs }) => {
   const skip = (page - 1) * limit;
 
-  // Build the `where` clause
-  const where = { status: 'APPROVED' };
+  // Build the `where` clause - show ALL profiles (removed APPROVED filter per user request)
+  const where = {};
 
   // Skills filter: profile must have at least one of the selected skills
   if (skills && skills.length > 0) {
@@ -177,11 +242,11 @@ export const discoverHackers = async ({ page = 1, limit = 12, search, skills, ce
   if (search && search.trim()) {
     const q = search.trim();
     where.OR = [
-      { bio:            { contains: q, mode: 'insensitive' } },
+      { bio: { contains: q, mode: 'insensitive' } },
       { specialization: { contains: q, mode: 'insensitive' } },
-      { country:        { contains: q, mode: 'insensitive' } },
+      { country: { contains: q, mode: 'insensitive' } },
       { user: { fullName: { contains: q, mode: 'insensitive' } } },
-      { user: { handle:   { contains: q, mode: 'insensitive' } } },
+      { user: { handle: { contains: q, mode: 'insensitive' } } },
     ];
   }
 
@@ -194,11 +259,30 @@ export const discoverHackers = async ({ page = 1, limit = 12, search, skills, ce
       include: {
         user: {
           select: {
-            id:         true,
-            fullName:   true,
-            handle:     true,
-            avatar:     true,
+            id: true,
+            fullName: true,
+            handle: true,
+            avatar: true,
             trustScore: true,
+            reviewsReceived: {
+              select: {
+                rating: true,
+              },
+            },
+            pentestsLed: {
+              select: {
+                status: true,
+              },
+            },
+            pentestCollaborators: {
+              select: {
+                pentest: {
+                  select: {
+                    status: true,
+                  },
+                },
+              },
+            },
           },
         },
       },
@@ -206,8 +290,49 @@ export const discoverHackers = async ({ page = 1, limit = 12, search, skills, ce
     prisma.hackerProfile.count({ where }),
   ]);
 
+  const enrichedProfiles = profiles.map(profile => {
+    const u = profile.user || {};
+    
+    // Calculate averageRating and totalReviews
+    const reviews = u.reviewsReceived || [];
+    const totalReviews = reviews.length;
+    const averageRating = totalReviews > 0
+      ? Number((reviews.reduce((acc, curr) => acc + curr.rating, 0) / totalReviews).toFixed(1))
+      : 0;
+
+    // Calculate totalProjects, completedProjects, successRate
+    const ledProjects = u.pentestsLed || [];
+    const collabProjects = (u.pentestCollaborators || []).map(c => c.pentest).filter(Boolean);
+    const allProjects = [...ledProjects, ...collabProjects];
+    const totalProjects = allProjects.length;
+    const completedProjects = allProjects.filter(p => p.status === 'COMPLETED' || p.status === 'CLOSED').length;
+    const successRate = totalProjects > 0 ? Math.round((completedProjects / totalProjects) * 100) : 100;
+
+    // Determine category / rank based on averageRating, trustScore, and successRate
+    const trustScore = u.trustScore ?? 100;
+    
+    let rank = 'BRONZE';
+    if (trustScore >= 120 && successRate >= 80 && (totalReviews === 0 || averageRating >= 4.0)) {
+      rank = 'GOLD';
+    } else if (trustScore >= 100 && successRate >= 50) {
+      rank = 'SILVER';
+    }
+
+    // Clean up internal relations to keep response payload slim
+    const { reviewsReceived, pentestsLed, pentestCollaborators, ...userWithoutRelations } = u;
+
+    return {
+      ...profile,
+      user: userWithoutRelations,
+      rating: totalReviews > 0 ? averageRating : null, // Show real rated value
+      totalReviews,
+      successRate,
+      rank,
+    };
+  });
+
   return {
-    profiles,
+    profiles: enrichedProfiles,
     pagination: {
       page,
       limit,

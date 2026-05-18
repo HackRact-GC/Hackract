@@ -1,16 +1,15 @@
-// app.js
+import dotenv from 'dotenv';
+dotenv.config();
+
 import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
 import compression from 'compression';
 import morgan from 'morgan';
-import dotenv from 'dotenv';
 import swaggerUi from "swagger-ui-express";
 import swaggerSpec from "./src/config/Swagger.js";
 // Import main router
 import apiRoutes from './src/routes.js';
-
-dotenv.config();
 
 const app = express();
 
@@ -21,6 +20,8 @@ app.use(compression());
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 app.use(morgan('dev'));
+app.use('/public', express.static('public'));
+app.use('/uploads', express.static('public/uploads'));
 
 // API Routes
 app.use('/api/v1', apiRoutes);

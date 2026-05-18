@@ -1,3 +1,6 @@
+import dotenv from 'dotenv';
+dotenv.config();
+
 import http from "http";
 import app from "./app.js";
 import { connectDatabase } from "./src/database/sqlConnection.js";
@@ -5,26 +8,59 @@ import { Server } from "socket.io";
 import jwt from "jsonwebtoken";
 import prisma from "./src/database/prismaClient.js";
 import { upsertUserPresence } from "./src/modules/Chat/chat.repository.js";
+import { setupTerminalSocket } from "./src/modules/Terminal/terminal.socket.js";
+import { initializeStorage } from "./src/utils/s3Upload.js";
 
 const PORT = process.env.PORT || 3000;
 const HOST = process.env.HOST || "127.0.0.1";
 
 // Decode socket token and return user id, or null
-const decodeSocketUser = (socket) => {
+const decodeSocketUser = async (socket) => {
   try {
     const token =
       socket.handshake.auth?.token ||
       socket.handshake.headers?.authorization?.replace("Bearer ", "");
-    if (!token) return null;
-    const decoded = jwt.verify(token, process.env.JWT_ACCESS_SECRET);
-    return decoded?.id || decoded?.sub || null;
-  } catch {
+    
+    if (!token) {
+      console.warn("🔌 Socket: No token provided");
+      return null;
+    }
+
+    // 1. Try local JWT verification
+    try {
+      const decoded = jwt.verify(token, process.env.JWT_ACCESS_SECRET);
+      const userId = decoded?.id || decoded?.sub || null;
+      if (userId) return userId;
+    } catch (localErr) {
+      // 2. If local fails, it might be an Auth0 token
+      const decoded = jwt.decode(token);
+      if (decoded && decoded.sub) {
+        // Find user by Auth0 ID (sub) or UUID (sub)
+        const user = await prisma.user.findFirst({
+          where: {
+            OR: [
+              { auth0Id: decoded.sub },
+              { id: decoded.sub }
+            ]
+          }
+        });
+        if (user) {
+          console.log(`🔌 Socket: Resolved Auth0 user: ${user.id}`);
+          return user.id;
+        }
+      }
+      console.error(`🔌 Socket: Token validation failed: ${localErr.message}`);
+    }
+    return null;
+  } catch (err) {
+    console.error(`🔌 Socket: Decoding error: ${err.message}`);
     return null;
   }
 };
 
 const startServer = async () => {
   await connectDatabase();
+  await initializeStorage();
 
   const server = http.createServer(app);
 
@@ -50,7 +86,7 @@ const startServer = async () => {
   io.on("connection", async (socket) => {
     console.log(`🔌 New client connected: ${socket.id}`);
 
-    const userId = decodeSocketUser(socket);
+    const userId = await decodeSocketUser(socket);
 
     // ── Chat: register presence ────────────────────────────────────────────
     if (userId) {
@@ -198,19 +234,70 @@ const startServer = async () => {
     });
   });
 
+  setupTerminalSocket(io);
 
   // ── Helper: broadcast a new message to all participants in a conversation ──
   // Called from chat REST API (via the io instance attached to app)
-  app.locals.broadcastChatMessage = (conversationId, message) => {
+  app.locals.broadcastChatMessage = async (conversationId, message) => {
+    // 1. Emit to the conversation room (for those who have the chat open)
     io.to(`conv:${conversationId}`).emit("chat:new-message", message);
+
+    // 2. Notify participants individually for global notifications / badges
+    try {
+      const conv = await prisma.conversation.findUnique({
+        where: { id: conversationId },
+        include: { participants: { select: { userId: true } } }
+      });
+      if (conv) {
+        conv.participants.forEach(p => {
+          io.to(`user:${p.userId}`).emit("chat:new-message", message);
+        });
+      }
+    } catch (err) {
+      console.error("Error in broadcastChatMessage:", err);
+    }
   };
 
-  app.locals.broadcastMessageEdit = (conversationId, message) => {
+  app.locals.broadcastMessageEdit = async (conversationId, message) => {
     io.to(`conv:${conversationId}`).emit("chat:message-edited", message);
+    
+    // Also notify individuals so global state can update if needed
+    try {
+      const conv = await prisma.conversation.findUnique({
+        where: { id: conversationId },
+        include: { participants: { select: { userId: true } } }
+      });
+      if (conv) {
+        conv.participants.forEach(p => {
+          io.to(`user:${p.userId}`).emit("chat:message-edited", message);
+        });
+      }
+    } catch (err) { }
   };
 
-  app.locals.broadcastMessageDelete = (conversationId, messageId) => {
+  app.locals.broadcastMessageDelete = async (conversationId, messageId) => {
     io.to(`conv:${conversationId}`).emit("chat:message-deleted", { conversationId, messageId });
+    
+    try {
+      const conv = await prisma.conversation.findUnique({
+        where: { id: conversationId },
+        include: { participants: { select: { userId: true } } }
+      });
+      if (conv) {
+        conv.participants.forEach(p => {
+          io.to(`user:${p.userId}`).emit("chat:message-deleted", { conversationId, messageId });
+        });
+      }
+    } catch (err) { }
+  };
+
+
+  app.locals.sendNotification = (userId, notification) => {
+    console.log(`🔔 Sending notification to user:${userId}`, notification);
+    const room = `user:${userId}`;
+    const clients = io.sockets.adapter.rooms.get(room);
+    console.log(`   Target room: ${room}, Active clients: ${clients ? clients.size : 0}`);
+    io.to(room).emit("notification", notification);
   };
 
   const maxRetries = 5;
