@@ -187,6 +187,7 @@ model Pentest {
   projectAgreementAcceptances ProjectAgreementAcceptance[]
   projectInvitations          ProjectInvitation[]
   workflows                   Workflow[]
+  reviews                     Review[]
 
   @@index([organizationId])
   @@index([leadPentesterId])
@@ -415,13 +416,16 @@ model Review {
   comment   String?
   authorId  String
   subjectId String
+  pentestId String?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   author    User     @relation("ReviewAuthor", fields: [authorId], references: [id])
   subject   User     @relation("ReviewSubject", fields: [subjectId], references: [id])
+  pentest   Pentest? @relation(fields: [pentestId], references: [id])
 
   @@index([authorId])
   @@index([subjectId])
+  @@index([pentestId])
 }
 
 model Citizen {
