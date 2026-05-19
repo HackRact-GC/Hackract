@@ -87,6 +87,14 @@ export default function OrganizationChat() {
     }).catch(console.error).finally(() => setLoadingConvs(false));
   }, [user]);
 
+  // Sync active conversation globally for notification filter
+  useEffect(() => {
+    window.activeConversationId = active?.id || null;
+    return () => {
+      window.activeConversationId = null;
+    };
+  }, [active]);
+
   const openConversation = useCallback(async (conv) => {
     if (prevConvId.current) { leaveConv(prevConvId.current); emitTypingStop(prevConvId.current); }
     setActive(conv); prevConvId.current = conv.id;
