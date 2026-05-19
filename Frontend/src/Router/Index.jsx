@@ -35,7 +35,6 @@ import OrganizationProjectWorkspace from "../pages/OrganizationProjectWorkspace.
 
 // Phase 2 Marketplace Imports
 import EngagementBoard from "../pages/EngagementBoard.jsx";
-import MyApplications from "../pages/MyApplications.jsx";
 
 // Phase 17 Onboarding Imports
 import OnboardingGuard from "../components/OnboardingGuard.jsx";
@@ -128,10 +127,7 @@ const router = createBrowserRouter([
             path: "engagements",
             element: <EngagementBoard />,
           },
-          {
-            path: "my-applications",
-            element: <MyApplications />,
-          },
+
           {
             path: "messages",
             element: <HackerChat />,
