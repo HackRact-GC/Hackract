@@ -29,15 +29,7 @@ const OnboardingGuard = ({ children }) => {
     let needsOnboarding = false;
     let targetOnboardingRoute = '/onboarding';
 
-    if (isPentester || isProjectAdmin) {
-        // Both PENTESTER and PROJECT_ADMIN need hacker profiles
-        const profile = user.hackerProfile;
-        const status = profile?.status;
-        if (!profile || !HACKER_READY_STATUSES.has(status)) {
-            needsOnboarding = true;
-            targetOnboardingRoute = '/onboarding/hacker';
-        }
-    } else if (isOrgAdmin) {
+    if (isOrgAdmin) {
         // Evaluate Organization status
         const orgs = user.organizations || [];
         if (orgs.length === 0) {
