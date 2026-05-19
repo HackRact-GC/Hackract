@@ -257,8 +257,20 @@ const ProjectControlCenter = ({ projectId, onBack }) => {
     }
   };
 
+  const handleRemoveAdmin = async () => {
+    if (!window.confirm("Are you sure you want to remove the Administrator designation for this operator?")) return;
+    try {
+      await api.delete(`/projects/${projectId}/admin`);
+      toast.success("Administrator designation removed!");
+      loadProject();
+    } catch (err) {
+      toast.error(err.response?.data?.message || "Failed to remove administrator designation");
+    }
+  };
+
   const handleRemoveHacker = async (userId) => {
     if (!window.confirm("Are you sure you want to remove this operator from the project?")) return;
+
     try {
       await api.delete(`/projects/${projectId}/collaborators/${userId}`);
       toast.success("Operator removed from mission");
@@ -457,8 +469,18 @@ const ProjectControlCenter = ({ projectId, onBack }) => {
                         </div>
 
                         {isLead ? (
-                          <div className="text-[#00c477] border border-[#00c477]/30 px-4 py-2 rounded text-[10px] font-black uppercase tracking-widest bg-[#00c477]/5 whitespace-nowrap">
-                            LEAD_ADMIN
+                          <div className="flex items-center gap-2">
+                            <div className="text-[#00c477] border border-[#00c477]/30 px-4 py-2 rounded text-[10px] font-black uppercase tracking-widest bg-[#00c477]/5 whitespace-nowrap">
+                              LEAD_ADMIN
+                            </div>
+                            {canManageInvitations && (
+                              <button
+                                onClick={handleRemoveAdmin}
+                                className="text-gray-400 border border-gray-700 px-4 py-2 rounded text-[10px] font-black uppercase tracking-widest hover:text-rose-500 hover:border-rose-500/50 transition-all bg-transparent whitespace-nowrap"
+                              >
+                                REMOVE_ADMIN
+                              </button>
+                            )}
                           </div>
                         ) : (
                           <div className="flex items-center gap-2">
