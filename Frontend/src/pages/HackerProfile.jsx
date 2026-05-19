@@ -225,7 +225,7 @@ const HackerProfile = () => {
             {/* Verifications */}
             <div className="bg-[#0c0c0c] border border-white/5 rounded-2xl p-6">
               <h2 className="text-lg font-bold mb-4">Verifications</h2>
-              {isNationalIdVerified ? (
+              {(user?.isVerified || isNationalIdVerified) ? (
                 <div className="flex items-center gap-2 text-sm">
                   <FiCheckCircle className="text-[#00c477]" />
                   <span>ID: Verified</span>
