@@ -360,7 +360,7 @@ const EngagementBoard = () => {
             </div>
 
             <button
-                onClick={() => navigate("/my-applications")}
+                onClick={() => navigate("/projects?tab=applications")}
                 className="w-full py-5 bg-black/70 backdrop-blur-md border border-white/10 rounded-3xl font-bold text-xs uppercase tracking-widest text-white/70 hover:text-black hover:bg-[#00c477] hover:border-[#00c477] transition-all flex items-center justify-center gap-3 group"
             >
                 Pending Proposals
