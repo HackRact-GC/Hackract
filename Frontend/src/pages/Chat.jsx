@@ -1,5 +1,4 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { motion } from 'framer-motion';
 import { useChatSocket } from '../hooks/useChatSocket';
 import * as chatApi from '../api/chatApi';
 import { useAuth } from '../context/authContext';

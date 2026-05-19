@@ -6,12 +6,10 @@ import path from 'path';
 import fs from 'fs';
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
-
 /** Read an env var and strip any accidental whitespace */
 const getEnv = (key) => (process.env[key] || '').trim();
 
 // ─── MinIO Configuration Check ───────────────────────────────────────────────
-
 const requiredEnvVars = [
   'MINIO_ENDPOINT',
   'MINIO_ACCESS_KEY',
@@ -25,7 +23,6 @@ const isStorageConfigured = requiredEnvVars.every((envVar) => {
 });
 
 // ─── MinIO Client (S3-compatible) ────────────────────────────────────────────
-
 let minioClient;
 
 const getMinioClient = () => {
