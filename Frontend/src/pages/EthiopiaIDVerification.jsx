@@ -9,6 +9,7 @@ import {
 } from 'react-icons/fi';
 import toast from 'react-hot-toast';
 import NationalIDService from '../services/nationalID.service';
+import { useAuth } from '../context/authContext.jsx';
 
 // Validation Schema
 const step1Schema = z.object({
@@ -28,6 +29,7 @@ const EthiopiaIDVerification = () => {
   const [submitting, setSubmitting] = useState(false);
   const [statusData, setStatusData] = useState(null);
   const [emailPreview, setEmailPreview] = useState('');
+  const { refreshUser } = useAuth();
 
   const { register, handleSubmit, formState: { errors }, watch } = useForm({
     resolver: zodResolver(step === 1 ? step1Schema : step2Schema),
@@ -73,6 +75,7 @@ const EthiopiaIDVerification = () => {
       
       if (result.autoVerified) {
         toast.success('Identity Auto-Verified!');
+        try { await refreshUser(); } catch (e) { /* ignore */ }
         fetchStatus();
       } else {
         if (result.error) {
@@ -110,11 +113,9 @@ const EthiopiaIDVerification = () => {
     setSubmitting(true);
     try {
       const rawFan = fan?.replace(/\s/g, '');
-      await NationalIDService.verifyOtp({
-        fan: rawFan,
-        otp: data.otp
-      });
+      await NationalIDService.verifyOtp({ fan: rawFan, otp: data.otp });
       toast.success('Identity Verified Successfully!');
+      try { await refreshUser(); } catch (e) { /* ignore */ }
       fetchStatus();
       setStep(1); // Reset step on success
     } catch (error) {

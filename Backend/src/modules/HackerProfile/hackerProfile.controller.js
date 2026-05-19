@@ -1,6 +1,7 @@
 import * as service from './hackerProfile.service.js';
 import ApiResponse from '../../utils/ApiResponse.js';
 import { VerificationStatus } from './hackerProfile.constants.js';
+import AppError from '../../utils/AppError.js';
 
 export const discoverHackers = async (req, res, next) => {
   try {
@@ -32,6 +33,17 @@ export const getPublicHackerProfile = async (req, res, next) => {
       return next(new AppError('Hacker profile not found or not approved', 404));
     }
     ApiResponse.success(res, { profile }, 'Public hacker profile retrieved');
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const createReview = async (req, res, next) => {
+  try {
+    const { rating, comment, pentestId } = req.body;
+    const { userId } = req.params;
+    const review = await service.createHackerReview(req.user.id, userId, rating, comment, pentestId);
+    ApiResponse.success(res, { review }, 'Review submitted successfully', 201);
   } catch (error) {
     next(error);
   }

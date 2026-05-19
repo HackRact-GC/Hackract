@@ -824,7 +824,13 @@ const WorkflowEditor = ({ workflowId: propWorkflowId, isOrgView = false }) => {
           </button>
           <button
             className="bg-[#00ff41] hover:bg-[#00cc33] text-black px-4 py-1.5 rounded-md text-xs font-bold transition-all shadow-[0_0_10px_rgba(0,255,65,0.2)] active:scale-95"
-            onClick={() => navigate('/findings')}
+            onClick={() => {
+              if (isOrgView && projectInfo?.id) {
+                navigate(`/org-findings?pentestId=${projectInfo.id}`);
+              } else {
+                navigate('/findings');
+              }
+            }}
           >
             FINDINGS PANEL
           </button>

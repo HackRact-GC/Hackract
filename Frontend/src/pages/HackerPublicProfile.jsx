@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import api from '../api/axiosConfig';
 import toast from 'react-hot-toast';
+import { useAuth } from '../context/authContext.jsx';
 import {
   FiArrowLeft, FiStar, FiMapPin, FiShield, FiTool,
   FiAward, FiBriefcase, FiMessageSquare, FiCheckCircle,
@@ -10,65 +11,6 @@ import {
   FiTrendingUp, FiCalendar, FiGlobe, FiAlertTriangle, FiFolder,
 } from 'react-icons/fi';
 
-// ─── MOCK DATA ───────────────────────────────────────────────────────────────
-const MOCK_HACKERS = {
-  1: {
-    id: 1,
-    name: "Null_Pointer_Ex",
-    alias: "Jane Doe",
-    tag: "#ETHICAL_HACKER_102",
-    status: "ACTIVE SENTINEL",
-    rating: 4.9,
-    rank: "GOLD",
-    location: "Remote",
-    avatar: "https://api.dicebear.com/7.x/bottts/svg?seed=NullPointer&baseColor=00ff88",
-    bio: "Senior Security Researcher specializing in advanced persistent threat (APT) simulation and blockchain infrastructure auditing. With over a decade of experience in offensive security, pioneering several zero-day discovery protocols currently utilized by top-tier FinTech institutions.",
-    arsenal: ["Kubernetes Hacking", "Smart Contract Auditing", "Rust Security", "Zero-Knowledge Proofs", "Fuzzing", "Burp Suite Professional"],
-    skills: ["Web Exploitation", "Kernel Research", "Binary Analysis", "Reverse Engineering", "Network Forensics"],
-    certifications: [
-      { name: "OSCP Certification", body: "Offensive Security", verified: true },
-      { name: "AWS Certified Security", body: "Cloud Specialist", verified: true },
-    ],
-    telemetry: { vulnsFound: 1204, uptimeIntegrity: "99.2%" },
-    projects: [
-      { org: "FinTech Corp", year: 2024, title: "Infrastructure Hardening & Red Team Simulation", status: "COMPLETED" },
-      { org: "Global Bank X", year: 2023, title: "Core Banking API Penetration Testing", status: "COMPLETED" },
-      { org: "[Confidential Entity]", year: 2023, title: "Zero-Knowledge Infrastructure Audit", status: "COMPLETED" },
-    ],
-    reviews: [
-      { from: "Acme Corp", rating: 5, text: "Exceptional work. Identified vulnerabilities our internal team missed for 2 years.", date: "Mar 2024" },
-      { from: "SecureNet Ltd", rating: 5, text: "Delivered a complete red-team report ahead of schedule. Highly professional.", date: "Jan 2024" },
-    ],
-  },
-  2: {
-    id: 2,
-    name: "Cyber_Sentinel",
-    alias: "Marcus Webb",
-    tag: "#SEC_ARCHITECT_04",
-    status: "ACTIVE SENTINEL",
-    rating: 4.8,
-    rank: "PLATINUM",
-    location: "Remote",
-    avatar: "https://api.dicebear.com/7.x/bottts/svg?seed=Sentinel&baseColor=00ff88",
-    bio: "Cloud security architect with deep expertise in AWS/GCP hardening and red team engagements. Certified ethical hacker with a focus on financial infrastructure.",
-    arsenal: ["Cloud Security", "IAM Exploitation", "Terraform Audit", "GCP Hardening", "Docker Escape"],
-    skills: ["Cloud Security", "Pentesting", "Infrastructure Review"],
-    certifications: [
-      { name: "CEH Certification", body: "EC-Council", verified: true },
-    ],
-    telemetry: { vulnsFound: 893, uptimeIntegrity: "98.7%" },
-    projects: [
-      { org: "CloudBase Inc", year: 2024, title: "AWS IAM Misconfiguration Audit", status: "COMPLETED" },
-    ],
-    reviews: [
-      { from: "Nexus Finance", rating: 5, text: "Top-tier cloud security researcher. Found critical IAM issues immediately.", date: "Feb 2024" },
-    ],
-  },
-  3: { id: 3, name: "Root_Access", alias: "Alex Mercer", tag: "#RF_REACH_99", status: "ACTIVE SENTINEL", rating: 4.5, rank: "SILVER", location: "Remote", avatar: "https://api.dicebear.com/7.x/bottts/svg?seed=Root&baseColor=00ff88", bio: "IoT and radio-frequency security specialist.", arsenal: ["IoT Hacking", "SDR", "JTAG", "Firmware Analysis"], skills: ["IoT Hacking", "SDR"], certifications: [{ name: "GPEN", body: "GIAC", verified: true }], telemetry: { vulnsFound: 441, uptimeIntegrity: "97.1%" }, projects: [], reviews: [] },
-  4: { id: 4, name: "Ghost_Shell", alias: "Kai Zero", tag: "#SH_DEEP_33", status: "ACTIVE SENTINEL", rating: 4.7, rank: "GOLD", location: "Remote", avatar: "https://api.dicebear.com/7.x/bottts/svg?seed=Ghost&baseColor=00ff88", bio: "Binary analyst and exploit developer with OSCE certification.", arsenal: ["Binary Analysis", "Heap Spray", "ROP Chains"], skills: ["Binary Analysis"], certifications: [{ name: "OSCE", body: "Offensive Security", verified: true }], telemetry: { vulnsFound: 682, uptimeIntegrity: "98.3%" }, projects: [], reviews: [] },
-  5: { id: 5, name: "Buffer_Overrun", alias: "Dana Cross", tag: "#B0_X64_11", status: "ACTIVE SENTINEL", rating: 4.6, rank: "SILVER", location: "Remote", avatar: "https://api.dicebear.com/7.x/bottts/svg?seed=Buffer&baseColor=00ff88", bio: "Fuzzing and malware analysis specialist.", arsenal: ["Fuzzing", "Malware RE", "AFL++"], skills: ["Fuzzing", "Malware"], certifications: [], telemetry: { vulnsFound: 334, uptimeIntegrity: "96.8%" }, projects: [], reviews: [] },
-  6: { id: 6, name: "Packet_Wizard", alias: "Eliot Forge", tag: "#PW_TCP_8080", status: "ACTIVE SENTINEL", rating: 4.9, rank: "ELITE", location: "Remote", avatar: "https://api.dicebear.com/7.x/bottts/svg?seed=Wizard&baseColor=00ff88", bio: "Network forensics expert and GREM-certified malware reverse engineer.", arsenal: ["Network Forensics", "Wireshark", "Zeek", "Suricata", "YARA"], skills: ["Network Forensics"], certifications: [{ name: "GREM", body: "GIAC", verified: true }], telemetry: { vulnsFound: 1567, uptimeIntegrity: "99.8%" }, projects: [], reviews: [] },
-};
 
 // ─── DATA NORMALISER ─────────────────────────────────────────────────────────
 // Converts the DB response into the shape the UI sections expect.
@@ -89,6 +31,7 @@ const normalise = (profile) => {
       title: p.name,
       status: p.status,
       role: p.role,
+      organizationId: p.organizationId,
     }));
 
   const reviews = (u.reviewsReceived || []).map(r => ({
@@ -96,6 +39,7 @@ const normalise = (profile) => {
     rating: r.rating,
     text: r.comment || '',
     date: new Date(r.createdAt).toLocaleDateString('en-US', { month: 'short', year: 'numeric' }),
+    project: r.pentest?.name || null,
   }));
 
   const skills = profile.primarySkills || [];
@@ -147,9 +91,12 @@ const normalise = (profile) => {
     alias: u.fullName || '',
     tag: u.handle ? `@${u.handle}` : '',
     status: 'ACTIVE SENTINEL',
-    rating: reviews.length > 0
-      ? +(reviews.reduce((s, r) => s + r.rating, 0) / reviews.length).toFixed(1)
-      : 4.5, // Default for now
+    rating: u.averageRating != null && u.totalReviews > 0
+      ? +Number(u.averageRating).toFixed(1)
+      : (reviews.length > 0
+        ? +(reviews.reduce((s, r) => s + r.rating, 0) / reviews.length).toFixed(1)
+        : 4.5),
+    totalReviews: u.totalReviews || reviews.length,
     rank,
     trustScore,
     location: profile.country || 'Remote',
@@ -519,9 +466,7 @@ const ProjectsSection = ({ hacker }) => (
                 </div>
                 <p className="text-xs text-gray-400 mt-1">{p.title}</p>
               </div>
-              <span className="px-3 py-1.5 rounded-full text-[9px] font-black font-mono tracking-widest uppercase text-[#00c477] bg-[#00c477]/10 border border-[#00c477]/20 flex-shrink-0">
-                {p.status}
-              </span>
+
             </motion.div>
           ))}
         </div>
@@ -564,61 +509,211 @@ const OtherExperiencesSection = ({ hacker }) => (
   </motion.div>
 );
 
-const ReviewsSection = ({ hacker }) => (
-  <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} className="space-y-4">
-    <div className="bg-[#0a0a0a] border border-white/5 rounded-2xl p-8">
-      <div className="flex items-center gap-3 mb-6">
-        <div className="w-8 h-8 rounded-lg bg-[#00c477]/10 border border-[#00c477]/20 flex items-center justify-center">
-          <FiMessageSquare className="text-[#00c477] text-sm" />
-        </div>
-        <h2 className="text-lg font-black text-white tracking-tight">Client Reviews</h2>
-      </div>
-      {hacker.reviews.length === 0 ? (
-        <div className="flex flex-col items-center justify-center py-16 gap-4">
-          <div className="w-16 h-16 rounded-2xl bg-white/[0.02] border border-white/5 flex items-center justify-center">
-            <FiMessageSquare className="text-gray-600 text-2xl" />
+const ReviewsSection = ({ hacker, isOrgAdmin, user, onSubmitReview }) => {
+  const [rating, setRating] = useState(5);
+  const [hoverRating, setHoverRating] = useState(0);
+  const [comment, setComment] = useState('');
+  const [selectedPentestId, setSelectedPentestId] = useState('');
+  const [submitting, setSubmitting] = useState(false);
+
+  const userOrgIds = user?.organizations?.map(org => org.organizationId) || [];
+  const orgProjects = (hacker.projects || []).filter(proj => userOrgIds.includes(proj.organizationId));
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setSubmitting(true);
+    try {
+      await onSubmitReview({ rating, comment, pentestId: selectedPentestId || null });
+      setRating(5);
+      setComment('');
+      setSelectedPentestId('');
+    } catch (err) {
+      // Error handled by parent toast
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  return (
+    <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} className="space-y-6">
+      {/* Rate Form for Org Admin */}
+      {isOrgAdmin && (
+        <div className="bg-[#0a0a0a] border border-white/5 rounded-2xl p-8 shadow-2xl relative overflow-hidden">
+          <div className="absolute inset-0 pointer-events-none">
+            <div className="absolute -top-12 -right-12 w-48 h-48 bg-[#00c477]/5 rounded-full blur-2xl" />
           </div>
-          <p className="text-gray-600 text-sm font-mono">No reviews available yet.</p>
-        </div>
-      ) : (
-        <div className="space-y-4">
-          {hacker.reviews.map((r, i) => (
-            <motion.div
-              key={i}
-              initial={{ opacity: 0, y: 8 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: i * 0.1 }}
-              className="p-6 rounded-2xl border border-white/5 bg-white/[0.02] hover:border-white/10 transition-colors"
-            >
-              <div className="flex items-start justify-between mb-4 flex-wrap gap-2">
-                <div>
-                  <p className="text-sm font-bold text-white">{r.from}</p>
-                  <div className="flex items-center gap-1 mt-1">
-                    {[...Array(5)].map((_, j) => (
-                      <FiStar key={j} className={`text-sm ${j < r.rating ? 'text-[#00c477] fill-[#00c477]' : 'text-gray-700'}`} />
-                    ))}
-                  </div>
-                </div>
-                <span className="text-[10px] text-gray-600 font-mono">{r.date}</span>
+
+          <div className="flex items-center gap-3 mb-6">
+            <div className="w-8 h-8 rounded-lg bg-[#00c477]/10 border border-[#00c477]/20 flex items-center justify-center">
+              <FiStar className="text-[#00c477] text-sm" />
+            </div>
+            <h2 className="text-lg font-black text-white tracking-tight">Evaluate Pentester</h2>
+          </div>
+
+          <form onSubmit={handleSubmit} className="space-y-5">
+            {/* Rating Stars Input */}
+            <div>
+              <label className="text-[10px] font-black text-gray-500 tracking-[0.2em] uppercase block mb-3 font-mono">
+                Overall Assessment
+              </label>
+              <div className="flex items-center gap-2">
+                {[1, 2, 3, 4, 5].map((star) => (
+                  <button
+                    key={star}
+                    type="button"
+                    onClick={() => setRating(star)}
+                    onMouseEnter={() => setHoverRating(star)}
+                    onMouseLeave={() => setHoverRating(0)}
+                    className="p-1 transition-transform active:scale-95 text-2xl animate-pulse-subtle"
+                  >
+                    <FiStar
+                      className={`transition-all duration-150 ${
+                        star <= (hoverRating || rating)
+                          ? 'text-[#00c477] fill-[#00c477] scale-110 drop-shadow-[0_0_8px_rgba(0,196,119,0.4)]'
+                          : 'text-gray-700'
+                      }`}
+                    />
+                  </button>
+                ))}
+                <span className="text-xs text-gray-400 font-mono ml-2">
+                  ({rating} of 5 stars)
+                </span>
               </div>
-              <p className="text-sm text-gray-400 leading-relaxed">"{r.text}"</p>
-            </motion.div>
-          ))}
+            </div>
+
+            {/* Project Selection Dropdown */}
+            {orgProjects.length > 0 && (
+              <div>
+                <label className="text-[10px] font-black text-gray-500 tracking-[0.2em] uppercase block mb-2 font-mono">
+                  Associate with Project
+                </label>
+                <select
+                  value={selectedPentestId}
+                  onChange={(e) => setSelectedPentestId(e.target.value)}
+                  className="w-full bg-[#0c0c0c] border border-white/5 focus:border-[#00c477]/40 rounded-xl px-4 py-3 text-sm text-gray-300 outline-none transition-all cursor-pointer font-mono"
+                >
+                  <option value="">-- General Evaluation (No Specific Project) --</option>
+                  {orgProjects.map((proj) => (
+                    <option key={proj.id} value={proj.id}>
+                      {proj.title} ({proj.org})
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
+
+            {/* Comment field */}
+            <div>
+              <label className="text-[10px] font-black text-gray-500 tracking-[0.2em] uppercase block mb-2 font-mono">
+                Detailed Review
+              </label>
+              <textarea
+                value={comment}
+                onChange={(e) => setComment(e.target.value)}
+                placeholder="Leave structured feedback regarding communication, performance, or technical expertise..."
+                required
+                className="w-full bg-[#0c0c0c] border border-white/5 focus:border-[#00c477]/40 focus:ring-1 focus:ring-[#00c477]/20 rounded-xl px-4 py-3 text-sm text-white placeholder-gray-600 outline-none transition-all resize-none h-28"
+              />
+            </div>
+
+            {/* Submit Button */}
+            <button
+              type="submit"
+              disabled={submitting}
+              className="px-6 py-3 rounded-xl bg-[#00c477] hover:bg-[#009a5e] text-black font-black text-xs uppercase tracking-widest shadow-[0_0_20px_rgba(0,196,119,0.15)] hover:shadow-[0_0_30px_rgba(0,196,119,0.3)] transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+            >
+              {submitting && <div className="w-3.5 h-3.5 border-2 border-black border-t-transparent rounded-full animate-spin" />}
+              {submitting ? 'Submitting...' : 'Submit Evaluation'}
+            </button>
+          </form>
         </div>
       )}
-    </div>
-  </motion.div>
-);
+
+      {/* Reviews List */}
+      <div className="bg-[#0a0a0a] border border-white/5 rounded-2xl p-8">
+        <div className="flex items-center gap-3 mb-6">
+          <div className="w-8 h-8 rounded-lg bg-[#00c477]/10 border border-[#00c477]/20 flex items-center justify-center">
+            <FiMessageSquare className="text-[#00c477] text-sm" />
+          </div>
+          <h2 className="text-lg font-black text-white tracking-tight">Client Reviews</h2>
+        </div>
+        {hacker.reviews.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-16 gap-4">
+            <div className="w-16 h-16 rounded-2xl bg-white/[0.02] border border-white/5 flex items-center justify-center">
+              <FiMessageSquare className="text-gray-600 text-2xl" />
+            </div>
+            <p className="text-gray-600 text-sm font-mono">No reviews available yet.</p>
+          </div>
+        ) : (
+          <div className="space-y-4">
+            {hacker.reviews.map((r, i) => (
+              <motion.div
+                key={i}
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: i * 0.1 }}
+                className="p-6 rounded-2xl border border-white/5 bg-white/[0.02] hover:border-white/10 transition-colors"
+              >
+                <div className="flex items-start justify-between mb-3 flex-wrap gap-2">
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <p className="text-sm font-bold text-white">{r.from}</p>
+                      {r.project && (
+                        <span className="px-2 py-0.5 rounded bg-[#00c477]/10 border border-[#00c477]/20 text-[9px] text-[#00c477] font-mono">
+                          Project: {r.project}
+                        </span>
+                      )}
+                    </div>
+                    <div className="flex items-center gap-1 mt-1.5">
+                      {[...Array(5)].map((_, j) => (
+                        <FiStar key={j} className={`text-xs ${j < r.rating ? 'text-[#00c477] fill-[#00c477]' : 'text-gray-700'}`} />
+                      ))}
+                    </div>
+                  </div>
+                  <span className="text-[10px] text-gray-600 font-mono">{r.date}</span>
+                </div>
+                <p className="text-sm text-gray-400 leading-relaxed font-sans">"{r.text}"</p>
+              </motion.div>
+            ))}
+          </div>
+        )}
+      </div>
+    </motion.div>
+  );
+};
 
 // ─── MAIN COMPONENT ───────────────────────────────────────────────────────────
 
 const HackerPublicProfile = () => {
   const { hackerId } = useParams();
   const navigate = useNavigate();
+  const { user } = useAuth();
+  const isOrgAdmin = user?.roles?.some(r => (typeof r === 'string' ? r : r.type) === 'ORG_ADMIN') ||
+                     user?.organizations?.some(org => org.role === 'admin' || org.role === 'owner') ||
+                     false;
+
   const [activeTab, setActiveTab] = useState('ABOUT');
   const [assignModalOpen, setAssignModalOpen] = useState(false);
   const [hacker, setHacker] = useState(null);
   const [loading, setLoading] = useState(true);
+
+  const handleSubmitReview = async ({ rating, comment, pentestId }) => {
+    try {
+      await api.post(`/hacker-profiles/public/${hackerId}/reviews`, {
+        rating,
+        comment,
+        pentestId,
+      });
+      toast.success('Your review has been successfully submitted!');
+      // Reload profile data to immediately show updated average rating and new review
+      const profileRes = await api.get(`/hacker-profiles/public/${hackerId}`);
+      const updatedProfile = profileRes.data?.data?.profile || profileRes.data?.profile || profileRes.data;
+      setHacker(normalise(updatedProfile));
+    } catch (err) {
+      toast.error(err?.response?.data?.message || 'Failed to submit review');
+      throw err;
+    }
+  };
   const [projects, setProjects] = useState([]);
   const [selectedProject, setSelectedProject] = useState('');
   const [inviteMessage, setInviteMessage] = useState('');
@@ -687,7 +782,7 @@ const HackerPublicProfile = () => {
       case "CERTIFICATIONS": return <CertificationsSection hacker={hacker} />;
       case "OTHER": return <OtherExperiencesSection hacker={hacker} />;
       case "PAST PROJECTS": return <ProjectsSection hacker={hacker} />;
-      case "REVIEWS": return <ReviewsSection hacker={hacker} />;
+      case "REVIEWS": return <ReviewsSection hacker={hacker} isOrgAdmin={isOrgAdmin} user={user} onSubmitReview={handleSubmitReview} />;
       default: return <AboutSection hacker={hacker} />;
     }
   };
@@ -697,7 +792,7 @@ const HackerPublicProfile = () => {
   if (hacker.certifications.length > 0) dynamicTabs.push("CERTIFICATIONS");
   if (hacker.other.length > 0) dynamicTabs.push("OTHER");
   if (hacker.projects.length > 0) dynamicTabs.push("PAST PROJECTS");
-  if (hacker.reviews.length > 0) dynamicTabs.push("REVIEWS");
+  if (hacker.reviews.length > 0 || isOrgAdmin) dynamicTabs.push("REVIEWS");
 
   return (
     <div className="flex flex-col h-full -m-10">
@@ -744,7 +839,9 @@ const HackerPublicProfile = () => {
                 <div className="flex items-center gap-2 px-3 py-1 rounded-lg bg-white/[0.03] border border-white/5 w-fit">
                   <FiStar className="text-[#00c477] fill-[#00c477] text-xs" />
                   <span className="text-white font-bold text-xs">{hacker.rating}</span>
-                  <span className="text-[10px] text-gray-500 font-mono uppercase tracking-widest">Rating</span>
+                  <span className="text-[10px] text-gray-500 font-mono uppercase tracking-widest">
+                    Rating ({hacker.totalReviews || 0} {hacker.totalReviews === 1 ? 'review' : 'reviews'})
+                  </span>
                 </div>
               )}
             </div>

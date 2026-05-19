@@ -56,11 +56,15 @@ const HackerOnboarding = () => {
 
         try {
           const statusRes = await NationalIDService.getStatus();
-          if (statusRes && statusRes.data && statusRes.data.isVerified) {
-            setIsNationalIdVerified(true);
-          }
-        } catch (e) {
-          console.error("Failed to fetch National ID status", e);
+          const verificationStatus = statusRes?.data?.verificationStatus;
+          const isVerified = Boolean(
+            statusRes?.data?.isVerified ||
+            verificationStatus === 'APPROVED' ||
+            verificationStatus === 'VERIFIED'
+          );
+          setIsNationalIdVerified(isVerified);
+        } catch (error) {
+          console.error("Failed to fetch National ID status", error);
         }
 
         if (profile) {

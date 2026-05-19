@@ -164,6 +164,17 @@ class AuthService {
         });
 
         if (!user) return null;
+
+        if (user.hackerProfile) {
+            const ratingAggregate = await prisma.review.aggregate({
+                where: { subjectId: userId },
+                _avg: { rating: true },
+                _count: { rating: true },
+            });
+            user.averageRating = ratingAggregate._avg.rating || 0;
+            user.totalReviews = ratingAggregate._count.rating || 0;
+        }
+
         return this.sanitizeUser(user);
     }
 
@@ -174,6 +185,17 @@ class AuthService {
             include: USER_PROFILE_INCLUDE,
         });
         if (!user) return null;
+
+        if (user.hackerProfile) {
+            const ratingAggregate = await prisma.review.aggregate({
+                where: { subjectId: user.id },
+                _avg: { rating: true },
+                _count: { rating: true },
+            });
+            user.averageRating = ratingAggregate._avg.rating || 0;
+            user.totalReviews = ratingAggregate._count.rating || 0;
+        }
+
         return this.sanitizeUser(user);
     }
 
@@ -550,13 +572,11 @@ class AuthService {
 
         const verification = await this.sendVerification(user, meta);
 
-        let auth = null;
-        if (user.isVerified) {
-            auth = await this.issueTokens(user, meta);
-        }
+        // Always issue tokens on registration (even if email verification is pending)
+        const auth = await this.issueTokens(user, meta);
 
         return {
-            ...(auth || {}),
+            ...auth,
             requiresEmailVerification: !user.isVerified,
             user: this.sanitizeUser(user),
             verification: {

@@ -108,6 +108,8 @@ model Organization {
   slug               String               @unique
   description        String?
   industry           String?
+  companyType        String?
+  foundedYear        String?
   size               String?
   website            String?
   primaryEmail       String?
@@ -115,14 +117,23 @@ model Organization {
   addressLine1       String?
   addressLine2       String?
   city               String?
+  subCity            String?
   state              String?
   postalCode         String?
   country            String?
+  mapsLink           String?
   timezone           String?
   currency           String?
   registrationNumber String?
   taxId              String?
   companySize        String?
+  licenseIssueDate   String?
+  licenseExpiryDate  String?
+  businessLicenseUrl String?
+  contactFirstName   String?
+  contactLastName    String?
+  contactJobTitle    String?
+  contactLinkedin    String?
   verificationStatus VerificationStatus   @default(DRAFT)
   createdAt          DateTime             @default(now())
   updatedAt          DateTime             @updatedAt
@@ -176,6 +187,7 @@ model Pentest {
   projectAgreementAcceptances ProjectAgreementAcceptance[]
   projectInvitations          ProjectInvitation[]
   workflows                   Workflow[]
+  reviews                     Review[]
 
   @@index([organizationId])
   @@index([leadPentesterId])
@@ -404,13 +416,16 @@ model Review {
   comment   String?
   authorId  String
   subjectId String
+  pentestId String?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   author    User     @relation("ReviewAuthor", fields: [authorId], references: [id])
   subject   User     @relation("ReviewSubject", fields: [subjectId], references: [id])
+  pentest   Pentest? @relation(fields: [pentestId], references: [id])
 
   @@index([authorId])
   @@index([subjectId])
+  @@index([pentestId])
 }
 
 model Citizen {

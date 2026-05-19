@@ -13,9 +13,10 @@ const RankBadge = ({ rank }) => {
     PLATINUM: 'text-purple-400 border-purple-400/30 bg-purple-400/10',
     GOLD:     'text-amber-400 border-amber-400/30 bg-amber-400/10',
     SILVER:   'text-gray-300 border-gray-400/30 bg-gray-400/10',
+    BRONZE:   'text-orange-400 border-orange-400/30 bg-orange-400/10',
   };
   return (
-    <span className={`text-[9px] font-black font-mono uppercase tracking-widest px-2 py-0.5 rounded border ${colors[rank] || colors.SILVER}`}>
+    <span className={`text-[9px] font-black font-mono uppercase tracking-widest px-2 py-0.5 rounded border ${colors[rank] || colors.BRONZE}`}>
       {rank}
     </span>
   );
@@ -195,9 +196,9 @@ const HackerCard = ({ hacker, index, onInvite, onViewProfile, authUser }) => {
 
   const skills = parseItems(hacker.primarySkills || hacker.skills);
   const certs = parseItems(hacker.certifications || hacker.certs);
-  const rating = hacker.rating || 4.5;
-  const rank = hacker.rank || 'SILVER';
-  const trustScore = hacker.user?.trustScore;
+  const rating = hacker.rating; // Real rated value or null
+  const rank = hacker.rank || 'BRONZE';
+  const trustScore = hacker.user?.trustScore ?? 100;
 
   return (
     <motion.div
@@ -214,8 +215,8 @@ const HackerCard = ({ hacker, index, onInvite, onViewProfile, authUser }) => {
         </div>
         <div className="flex flex-col items-end gap-1.5">
           <div className="flex items-center gap-1 text-white font-bold">
-            <FiStar className="text-[#00c477] fill-[#00c477] text-sm" />
-            <span className="text-sm">{typeof rating === 'number' ? rating.toFixed(1) : rating}</span>
+            <FiStar className={`text-sm ${rating ? 'text-yellow-500 fill-yellow-500' : 'text-gray-600'}`} />
+            <span className="text-xs font-mono">{rating ? rating.toFixed(1) : 'Unrated'}</span>
           </div>
           <RankBadge rank={rank} />
         </div>
@@ -228,7 +229,7 @@ const HackerCard = ({ hacker, index, onInvite, onViewProfile, authUser }) => {
       </div>
 
       {/* Skills + certs */}
-      <div className="flex flex-wrap gap-2 mb-6 mt-auto">
+      <div className="flex flex-wrap gap-2 mb-4">
         {skills.slice(0, 3).map(s => (
           <span key={s} className="px-2.5 py-1 rounded border border-white/10 bg-white/5 text-[10px] text-gray-300 font-mono">{s}</span>
         ))}
@@ -240,18 +241,23 @@ const HackerCard = ({ hacker, index, onInvite, onViewProfile, authUser }) => {
         )}
       </div>
 
-      {/* Trust Score */}
-      {trustScore != null && (
-        <div className="mb-4 flex items-center gap-2">
-          <div className="h-1.5 flex-1 bg-white/5 rounded-full overflow-hidden">
-            <div
-              className="h-full bg-linear-to-r from-[#00c477] to-emerald-400 rounded-full transition-all"
-              style={{ width: `${Math.min(100, trustScore)}%` }}
-            />
+      {/* Reputation and Success Rate Metrics */}
+      <div className="grid grid-cols-2 gap-3 mb-5 mt-auto">
+        <div className="bg-white/2 border border-white/5 rounded-xl p-3 flex flex-col justify-between h-[68px]">
+          <span className="text-[9px] font-black text-gray-500 tracking-wider uppercase font-mono block mb-1">Reputation</span>
+          <div className="flex items-center justify-between">
+            <span className="text-base font-bold text-white font-mono">{trustScore}</span>
+            <div className="w-1.5 h-1.5 rounded-full bg-[#00c477]" />
           </div>
-          <span className="text-[10px] text-gray-500 font-mono w-10 text-right">{trustScore}%</span>
         </div>
-      )}
+        <div className="bg-white/2 border border-white/5 rounded-xl p-3 flex flex-col justify-between h-[68px]">
+          <span className="text-[9px] font-black text-gray-500 tracking-wider uppercase font-mono block mb-1">Success Rate</span>
+          <div className="flex items-center justify-between">
+            <span className="text-base font-bold text-white font-mono">{hacker.successRate ?? 100}%</span>
+            <div className="w-1.5 h-1.5 rounded-full bg-[#00c477]" />
+          </div>
+        </div>
+      </div>
 
       {/* Actions */}
       <div className="flex gap-2">
