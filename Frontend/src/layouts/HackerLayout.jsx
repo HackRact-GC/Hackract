@@ -48,7 +48,7 @@ const HackerLayout = () => {
     { icon: FiShoppingBag, label: 'Engagements', route: '/engagements' },
     { icon: FiShield, label: 'Findings', route: '/findings' },
     { icon: FiMessageSquare, label: 'Messages', route: '/messages', badge: unreadChatCount },
-    { icon: FiFileText, label: 'Reports', route: '/my-applications' },
+    { icon: FiFileText, label: 'Reports', route: '/hacker-reports' },
     { icon: FiSettings, label: 'Settings', route: '/hacker-profile' },
     { icon: FiPenTool, label: 'Legal Agreement', route: '/execute-agreement' },
   ];

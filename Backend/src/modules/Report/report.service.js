@@ -3,18 +3,18 @@ import prisma from '../../database/prismaClient.js';
 
 // ── Color palette ──────────────────────────────────────────────────────────────
 const C = {
-  black:       '#0a0a0a',
+  bg:          '#0a0a0a',
+  surface:     '#141518',
+  border:      '#2a2b30',
   white:       '#ffffff',
-  offWhite:    '#f8f9fa',
-  lightGray:   '#e5e7eb',
-  midGray:     '#6b7280',
-  darkGray:    '#374151',
-  accent:      '#00c477',   // Hackract green
-  critical:    '#dc2626',
-  high:        '#ea580c',
-  medium:      '#ca8a04',
-  low:         '#2563eb',
-  info:        '#64748b',
+  textMain:    '#d1d5db',
+  textMuted:   '#6b7280',
+  accent:      '#00c477',
+  critical:    '#ef4444',
+  high:        '#f97316',
+  medium:      '#eab308',
+  low:         '#3b82f6',
+  info:        '#6b7280',
 };
 
 const SEVERITY_COLOR = {
@@ -27,7 +27,7 @@ const SEVERITY_COLOR = {
 
 // ── Helpers ────────────────────────────────────────────────────────────────────
 
-function drawHRule(doc, { y, color = C.lightGray, width = 1 } = {}) {
+function drawHRule(doc, { y, color = C.border, width = 1 } = {}) {
   const pageY = y ?? doc.y;
   doc
     .moveTo(doc.page.margins.left, pageY)
@@ -38,68 +38,80 @@ function drawHRule(doc, { y, color = C.lightGray, width = 1 } = {}) {
 }
 
 function sectionTitle(doc, text) {
+  doc.x = doc.page.margins.left; // Reset text pointer to left margin
   doc.moveDown(0.5);
   doc
     .fontSize(14)
-    .fillColor(C.black)
+    .fillColor(C.white)
     .font('Helvetica-Bold')
-    .text(text.toUpperCase(), { characterSpacing: 1 });
-  drawHRule(doc, { y: doc.y + 4, color: C.black, width: 2 });
-  doc.moveDown(0.8);
+    .text(text.toUpperCase(), { characterSpacing: 2 });
+  drawHRule(doc, { y: doc.y , color: C.accent, width: 1.5 });
+  doc.moveDown(1.5);
 }
 
 function bodyText(doc, text) {
+  doc.x = doc.page.margins.left; // Reset text pointer to left margin
   doc
     .fontSize(10)
-    .fillColor(C.darkGray)
+    .fillColor(C.textMain)
     .font('Helvetica')
-    .text(text, { align: 'justify', lineGap: 2 });
+    .text(text, { align: 'justify', lineGap: 3 });
 }
 
 function label(doc, key, value, x) {
   doc
     .fontSize(9)
     .font('Helvetica-Bold')
-    .fillColor(C.midGray)
+    .fillColor(C.textMuted)
     .text(key, x, doc.y, { continued: true })
     .font('Helvetica')
-    .fillColor(C.darkGray)
+    .fillColor(C.textMain)
     .text('  ' + (value || '—'));
 }
 
 function addFooter(doc, pageNum, totalPages) {
+  if (pageNum === 1) return; // Skip cover page
+
   const y = doc.page.height - 40;
   const left  = doc.page.margins.left;
   const right = doc.page.width - doc.page.margins.right;
 
+  // Draw header accent line (neon green) at the top of content
+  doc.save();
+  doc.rect(left, 30, right - left, 2).fill(C.accent);
+  doc.restore();
+
   doc
     .fontSize(8)
-    .fillColor(C.midGray)
-    .font('Helvetica');
+    .fillColor(C.textMuted)
+    .font('Helvetica-Bold');
 
-  drawHRule(doc, { y: y - 8, color: C.lightGray });
+  drawHRule(doc, { y: y - 8, color: C.border });
 
   doc.text('HACKRACT SENTINEL PROTOCOL  ·  CONFIDENTIAL', left, y, {
     align: 'left',
     lineBreak: false,
     width: (right - left) / 2,
+    characterSpacing: 1
   });
 
-  doc.text(`Page ${pageNum} of ${totalPages}`, left, y, {
+  doc.text(`PAGE ${pageNum} // ${totalPages}`, left, y, {
     align: 'right',
     lineBreak: false,
     width: right - left,
+    characterSpacing: 1
   });
+}
+
+function fillPageBackground(doc) {
+  // Fill the entire page with the dark background color
+  doc.save();
+  doc.rect(0, 0, doc.page.width, doc.page.height).fill(C.bg);
+  doc.restore();
 }
 
 // ── Main export ────────────────────────────────────────────────────────────────
 
-/**
- * generatePdfReport
- * @param {string} projectId
- * @param {{ execSummary: boolean, vulnTable: boolean, methodology: boolean, rawLogs: boolean }} modules
- * @returns {Promise<Buffer>}  – raw PDF bytes
- */
 export async function generatePdfReport(projectId, modules = {}) {
   // ── 1. Fetch data ─────────────────────────────────────────────────────────
   const project = await prisma.pentest.findUnique({
@@ -128,168 +140,118 @@ export async function generatePdfReport(projectId, modules = {}) {
     return a;
   }, {});
 
-  const today = new Date().toLocaleDateString('en-US', {
-    year: 'numeric', month: 'long', day: 'numeric',
-  });
-
+  const today = new Date().toISOString().replace('T', ' // ').substring(0, 19);
   const refId = projectId.split('-')[0].toUpperCase();
+  const projectName = project.name || 'NEXUS_CORE';
+  const orgName = project.organization?.name || 'QUANTUM_DYNAMICS_INTL';
 
   // ── 2. Build PDF ──────────────────────────────────────────────────────────
   const doc = new PDFDocument({
     size:    'A4',
     margins: { top: 60, bottom: 60, left: 60, right: 60 },
     info: {
-      Title:    `Hackract Security Report – ${project.name}`,
+      Title:    `Hackract Security Report – ${projectName}`,
       Author:   'Hackract Sentinel Protocol',
       Subject:  'Penetration Test Assessment Report',
       Keywords: 'security, pentest, vulnerability, assessment',
     },
-    bufferPages: true,   // lets us add footer with total page count afterwards
+    bufferPages: true,
   });
 
   const chunks = [];
   doc.on('data', chunk => chunks.push(chunk));
 
-  // ── PAGE 1 — Cover ────────────────────────────────────────────────────────
+  // Fill background on every new page
+  doc.on('pageAdded', () => {
+    fillPageBackground(doc);
+  });
+
   const pw = doc.page.width;
   const ph = doc.page.height;
   const ml = doc.page.margins.left;
   const mr = doc.page.margins.right;
   const contentW = pw - ml - mr;
 
-  // Black header block
-  doc.rect(0, 0, pw, 220).fill(C.black);
+  // Fill first page background manually since pageAdded already fired
+  fillPageBackground(doc);
 
-  // Accent bar
-  doc.rect(0, 220, pw, 6).fill(C.accent);
+  // ── PAGE 1 — Cover ────────────────────────────────────────────────────────
 
-  // HACKRACT logo text
+  doc.y = 80;
+
   doc
     .font('Helvetica-Bold')
-    .fontSize(11)
+    .fontSize(24)
     .fillColor(C.accent)
-    .text('HACKRACT', ml, 40, { characterSpacing: 4 });
+    .text('HACKRACT', ml, doc.y, { characterSpacing: 4 });
+
+  doc.moveDown(0.2);
+  doc
+    .fontSize(10)
+    .fillColor(C.textMuted)
+    .font('Courier')
+    .text('SYNTHETIC_SENTINEL_V4.0', ml, doc.y, { characterSpacing: 2 });
+
+  doc.y = 250;
 
   doc
-    .fontSize(9)
-    .fillColor('#6b7280')
-    .font('Helvetica')
-    .text('SENTINEL PROTOCOL', ml, 57, { characterSpacing: 3 });
+    .fontSize(12)
+    .fillColor(C.accent)
+    .font('Helvetica-Bold')
+    .text('PROJECT_MANIFEST', ml, doc.y, { characterSpacing: 2 });
 
-  // Report title
+  doc.moveDown(0.5);
   doc
     .font('Helvetica-Bold')
-    .fontSize(28)
+    .fontSize(42)
     .fillColor(C.white)
-    .text(project.name || 'Untitled Project', ml, 100, {
-      width: contentW - 120,
+    .text(`${projectName.toUpperCase()}\nSECURITY_AUDIT`, ml, doc.y, {
+      width: contentW,
       lineGap: 4,
     });
 
-  doc
-    .fontSize(11)
-    .fillColor('#9ca3af')
-    .font('Helvetica')
-    .text(
-      `Security Assessment Report  ·  ${project.organization?.name || 'Independent Engagement'}`,
-      ml, 170, { width: contentW }
-    );
+  // Vertical line block
+  doc.y = ph - 160;
+  doc.rect(ml, doc.y, 2, 80).fill(C.accent);
 
-  // Date / ref box (top-right of header)
   doc
     .fontSize(9)
-    .fillColor('#9ca3af')
+    .fillColor(C.textMuted)
     .font('Helvetica-Bold')
-    .text(today, pw - mr - 120, 40, { width: 120, align: 'right' });
+    .text('GENERATED_FOR', ml + 12, doc.y, { continued: true, characterSpacing: 1 })
+    .fillColor(C.accent)
+    .text('                 CONFIDENTIAL');
 
+  doc.moveDown(0.4);
   doc
-    .fontSize(8)
-    .fillColor('#6b7280')
-    .font('Helvetica')
-    .text(`REF: SEC-${refId}`, pw - mr - 120, 57, { width: 120, align: 'right', characterSpacing: 1 });
+    .fontSize(14)
+    .fillColor(C.white)
+    .text(orgName.toUpperCase(), ml + 12, doc.y);
 
-  // Body area starts below accent bar
-  doc.y = 260;
-
-  // Meta row
-  const colW = contentW / 3;
-  [
-    ['Project Status',  project.status?.replace('_', ' ') || 'N/A'],
-    ['Total Findings',  String(findings.length)],
-    ['Generated',       today],
-  ].forEach(([k, v], i) => {
-    const x = ml + i * colW;
-    doc
-      .rect(x, 270, colW - 8, 60)
-      .fillAndStroke('#f9fafb', C.lightGray);
-
-    doc
-      .fontSize(8)
-      .fillColor(C.midGray)
-      .font('Helvetica-Bold')
-      .text(k.toUpperCase(), x + 12, 280, { characterSpacing: 1 });
-
-    doc
-      .fontSize(14)
-      .fillColor(C.black)
-      .font('Helvetica-Bold')
-      .text(v, x + 12, 295);
-  });
-
-  doc.y = 360;
-
-  // Scope block
-  if (project.targetDomains?.length || project.ipRanges?.length) {
-    doc
-      .rect(ml, doc.y, contentW, 1)
-      .fill(C.lightGray);
-
-    doc.moveDown(0.5);
-    doc
-      .fontSize(9)
-      .fillColor(C.midGray)
-      .font('Helvetica-Bold')
-      .text('SCOPE OF ENGAGEMENT', { characterSpacing: 1 });
-
-    doc.moveDown(0.3);
-
-    if (project.targetDomains?.length) {
-      label(doc, 'Target Domains:', project.targetDomains.join(', '), ml);
-    }
-    if (project.ipRanges?.length) {
-      label(doc, 'IP Ranges:', project.ipRanges.join(', '), ml);
-    }
-    if (project.excludedAssets) {
-      label(doc, 'Exclusions:', project.excludedAssets, ml);
-    }
-  }
-
-  // Classification banner at bottom of cover
-  doc.y = ph - 100;
+  doc.moveDown(1.5);
   doc
-    .rect(ml, doc.y, contentW, 30)
-    .fill('#fef3c7');
+    .fontSize(9)
+    .fillColor(C.textMuted)
+    .text('DATE_ISSUED', ml + 12, doc.y, { characterSpacing: 1 });
 
+  doc.moveDown(0.2);
   doc
-    .fontSize(8.5)
-    .fillColor('#92400e')
-    .font('Helvetica-Bold')
-    .text(
-      '⚠  CONFIDENTIAL — This document contains sensitive security information. Handle accordingly.',
-      ml + 10, doc.y + 9, { width: contentW - 20, align: 'center' }
-    );
+    .fontSize(11)
+    .fillColor(C.textMain)
+    .font('Courier')
+    .text(today, ml + 12, doc.y);
 
   // ── PAGE 2+ — Dynamic Modules ─────────────────────────────────────────────
-  doc.addPage();
 
-  // ── Executive Summary ─────────────────────────────────────────────────────
+  // Executive Summary
   if (modules.execSummary !== false) {
+    doc.addPage();
     sectionTitle(doc, '1. Executive Summary');
 
     bodyText(
       doc,
-      `The security assessment for "${project.name}" was conducted on behalf of ` +
-      `${project.organization?.name || 'the client organization'}. ` +
+      `The security assessment for "${projectName}" was conducted on behalf of ` +
+      `${orgName}. ` +
       `A total of ${findings.length} unique vulnerabilities were identified across the defined scope. ` +
       `This document provides a structured breakdown of each finding, their potential impact, ` +
       `and recommended remediation steps to reduce organizational risk exposure.`
@@ -300,267 +262,254 @@ export async function generatePdfReport(projectId, modules = {}) {
     // Severity grid
     doc
       .fontSize(10)
-      .fillColor(C.black)
+      .fillColor(C.white)
       .font('Helvetica-Bold')
-      .text('Vulnerability Distribution by Severity');
+      .text('Vulnerability Distribution by Severity', { characterSpacing: 1 });
 
-    doc.moveDown(0.5);
+    doc.moveDown(1);
 
-    const boxW  = (contentW - 20) / 4;
-    const boxH  = 60;
+    const boxW  = (contentW - 30) / 4;
+    const boxH  = 70;
     const startX = ml;
     const startY = doc.y;
 
     ['CRITICAL', 'HIGH', 'MEDIUM', 'LOW'].forEach((sev, i) => {
-      const x = startX + i * (boxW + 6);
+      const x = startX + i * (boxW + 10);
       const color = SEVERITY_COLOR[sev];
 
-      doc.rect(x, startY, boxW, boxH).fillAndStroke('#ffffff', C.lightGray);
-      // colored left bar
+      doc.rect(x, startY, boxW, boxH).fillAndStroke(C.surface, C.border);
       doc.rect(x, startY, 4, boxH).fill(color);
 
       doc
-        .fontSize(26)
+        .fontSize(28)
         .font('Helvetica-Bold')
         .fillColor(color)
-        .text(String(counts[sev] || 0), x + 12, startY + 8, { width: boxW - 20 });
+        .text(String(counts[sev] || 0), x + 16, startY + 12, { width: boxW - 20 });
 
       doc
         .fontSize(8)
         .font('Helvetica-Bold')
-        .fillColor(C.midGray)
-        .text(sev, x + 12, startY + 42, { width: boxW - 20, characterSpacing: 1 });
+        .fillColor(C.textMuted)
+        .text(sev, x + 16, startY + 50, { width: boxW - 20, characterSpacing: 1 });
     });
 
-    doc.y = startY + boxH + 16;
-    doc.moveDown(0.5);
+    doc.y = startY + boxH + 30;
+    doc.x = ml; // Reset text pointer to left margin
   }
 
-  // ── Vulnerability Table ────────────────────────────────────────────────────
-  if (modules.vulnTable !== false) {
-    sectionTitle(doc, '2. Detected Vulnerabilities');
+  // Technical Scope
+  if (modules.techScope !== false) {
+    if (!modules.execSummary) doc.addPage();
+
+    sectionTitle(doc, '2. Technical Scope');
+
+    bodyText(doc, 'The following assets were authorized and included in the scope of this security audit. Any asset not explicitly listed here was considered out of bounds and was not tested.');
+
+    doc.moveDown(1);
+
+    if (project.targetDomains?.length) {
+      doc.fontSize(10).font('Helvetica-Bold').fillColor(C.white).text('Authorized Domains:', { characterSpacing: 1 });
+      doc.moveDown(0.5);
+      project.targetDomains.slice(0, 3).forEach(d => {
+        doc.fontSize(10).font('Courier').fillColor(C.accent).text(`> ${d}`);
+      });
+      if (project.targetDomains.length > 3) {
+        doc.fontSize(9).font('Courier').fillColor(C.textMuted).text(`> ... and ${project.targetDomains.length - 3} other target domains`);
+      }
+      doc.moveDown(1);
+    }
+
+    if (project.ipRanges?.length) {
+      doc.fontSize(10).font('Helvetica-Bold').fillColor(C.white).text('Authorized IP Ranges:', { characterSpacing: 1 });
+      doc.moveDown(0.5);
+      project.ipRanges.slice(0, 3).forEach(ip => {
+        doc.fontSize(10).font('Courier').fillColor(C.accent).text(`> ${ip}`);
+      });
+      if (project.ipRanges.length > 3) {
+        doc.fontSize(9).font('Courier').fillColor(C.textMuted).text(`> ... and ${project.ipRanges.length - 3} other network ranges`);
+      }
+      doc.moveDown(1);
+    }
+
+    if (project.excludedAssets) {
+      doc.fontSize(10).font('Helvetica-Bold').fillColor(C.critical).text('Strict Exclusions:', { characterSpacing: 1 });
+      doc.moveDown(0.5);
+      doc.fontSize(10).font('Helvetica').fillColor(C.textMain).text(project.excludedAssets);
+      doc.moveDown(1);
+    }
+
+    if (!project.targetDomains?.length && !project.ipRanges?.length) {
+      doc.fontSize(10).font('Courier').fillColor(C.textMuted).text('No specific technical scope parameters were defined for this project.');
+    }
+  }
+
+  // Vulnerability Matrix
+  if (modules.vulnMatrix !== false) {
+    doc.addPage();
+    sectionTitle(doc, '3. Vulnerability Matrix');
 
     if (findings.length === 0) {
       doc
         .fontSize(10)
-        .fillColor(C.midGray)
-        .font('Helvetica')
-        .text('No vulnerabilities were identified during this assessment.', { align: 'center' });
+        .fillColor(C.textMuted)
+        .font('Courier')
+        .text('> NO VULNERABILITIES DETECTED IN THIS ASSESSMENT.', { align: 'center' });
     } else {
       // Table header
       const cols = {
-        sev:    { x: ml,         w: 72  },
-        title:  { x: ml + 78,    w: 220 },
-        asset:  { x: ml + 304,   w: 140 },
-        cvss:   { x: ml + 450,   w: 50  },
-        status: { x: ml + 506,   w: 66  },
+        id:     { x: ml,         w: 50  },
+        sev:    { x: ml + 50,    w: 60  },
+        title:  { x: ml + 110,   w: 220 },
+        asset:  { x: ml + 330,   w: 100 },
+        cvss:   { x: ml + 430,   w: 50  },
       };
-      const rowH = 22;
-      const headerY = doc.y;
+      const rowH = 28;
+      let headerY = doc.y;
 
-      // Header fill
-      doc.rect(ml, headerY, contentW, rowH).fill('#111827');
+      doc.rect(ml, headerY, contentW, rowH).fill(C.surface);
+
+      doc.moveTo(ml, headerY + rowH).lineTo(ml + contentW, headerY + rowH).lineWidth(1).strokeColor(C.border).stroke();
 
       Object.entries({
+        'ID': cols.id,
         'SEVERITY': cols.sev,
-        'VULNERABILITY':  cols.title,
-        'AFFECTED ASSET': cols.asset,
+        'VULNERABILITY': cols.title,
+        'ASSET': cols.asset,
         'CVSS': cols.cvss,
-        'STATUS': cols.status,
       }).forEach(([text, col]) => {
         doc
-          .fontSize(7.5)
+          .fontSize(8)
           .font('Helvetica-Bold')
-          .fillColor(C.white)
-          .text(text, col.x + 4, headerY + 7, { width: col.w - 8, characterSpacing: 0.5 });
+          .fillColor(C.textMuted)
+          .text(text, col.x + 8, headerY + 10, { width: col.w - 16, characterSpacing: 1 });
       });
 
       doc.y = headerY + rowH;
 
-      // Rows — sorted by severity order
-      const sorted = [...findings].sort((a, b) =>
-        severityOrder.indexOf(a.severity) - severityOrder.indexOf(b.severity)
-      );
+      const sorted = [...findings].sort((a, b) => severityOrder.indexOf(a.severity) - severityOrder.indexOf(b.severity));
+      const displayFindings = sorted.slice(0, 12);
+      const remainingCount = sorted.length - displayFindings.length;
 
-      sorted.forEach((f, idx) => {
-        // Check if we need a new page
-        if (doc.y + rowH > doc.page.height - doc.page.margins.bottom - 30) {
-          doc.addPage();
-        }
-
+      displayFindings.forEach((f, idx) => {
         const rowY = doc.y;
-        const bg   = idx % 2 === 0 ? '#ffffff' : '#f9fafb';
+        const bg = idx % 2 === 0 ? C.bg : C.surface;
         doc.rect(ml, rowY, contentW, rowH).fill(bg);
 
-        // Severity badge
+        // ID
+        doc.fontSize(8).font('Courier-Bold').fillColor(C.accent).text(`RX-${String(idx+1).padStart(3, '0')}`, cols.id.x + 8, rowY + 10);
+
+        // Severity
         const sColor = SEVERITY_COLOR[f.severity] || C.info;
-        doc.rect(cols.sev.x + 4, rowY + 5, 60, 12).fill(sColor + '22');
-        doc
-          .fontSize(7)
-          .font('Helvetica-Bold')
-          .fillColor(sColor)
-          .text(f.severity || '—', cols.sev.x + 6, rowY + 7, { width: 56 });
+        doc.fontSize(8).font('Helvetica-Bold').fillColor(sColor).text(f.severity || '—', cols.sev.x + 8, rowY + 10);
 
-        doc
-          .fontSize(8.5)
-          .font('Helvetica-Bold')
-          .fillColor(C.darkGray)
-          .text(f.title || '—', cols.title.x + 4, rowY + 6, {
-            width: cols.title.w - 8,
-            lineBreak: false,
-            ellipsis: true,
-          });
+        // Title
+        doc.fontSize(9).font('Helvetica-Bold').fillColor(C.textMain).text(f.title || '—', cols.title.x + 8, rowY + 9, { width: cols.title.w - 16, lineBreak: false, ellipsis: true });
 
-        doc
-          .fontSize(8)
-          .font('Helvetica')
-          .fillColor(C.midGray)
-          .text(f.affectedAsset || '—', cols.asset.x + 4, rowY + 7, {
-            width: cols.asset.w - 8,
-            lineBreak: false,
-            ellipsis: true,
-          });
+        // Asset
+        doc.fontSize(8).font('Courier').fillColor(C.textMuted).text(f.affectedAsset || '—', cols.asset.x + 8, rowY + 10, { width: cols.asset.w - 16, lineBreak: false, ellipsis: true });
 
-        doc
-          .fontSize(9)
-          .font('Helvetica-Bold')
-          .fillColor(C.black)
-          .text(f.cvssScore != null ? Number(f.cvssScore).toFixed(1) : '—', cols.cvss.x + 4, rowY + 7, {
-            width: cols.cvss.w - 8,
-          });
+        // CVSS
+        doc.fontSize(9).font('Helvetica-Bold').fillColor(C.white).text(f.cvssScore != null ? Number(f.cvssScore).toFixed(1) : '—', cols.cvss.x + 8, rowY + 9);
 
-        doc
-          .fontSize(7)
-          .font('Helvetica')
-          .fillColor(C.midGray)
-          .text(f.status?.replace('_', ' ') || '—', cols.status.x + 4, rowY + 7, {
-            width: cols.status.w - 8,
-            lineBreak: false,
-            ellipsis: true,
-          });
-
-        // Bottom border
-        doc
-          .moveTo(ml, rowY + rowH)
-          .lineTo(ml + contentW, rowY + rowH)
-          .lineWidth(0.5)
-          .strokeColor(C.lightGray)
-          .stroke();
-
+        doc.moveTo(ml, rowY + rowH).lineTo(ml + contentW, rowY + rowH).lineWidth(0.5).strokeColor(C.border).stroke();
         doc.y = rowY + rowH;
       });
 
-      doc.moveDown(1);
+      if (remainingCount > 0) {
+        const rowY = doc.y;
+        doc.rect(ml, rowY, contentW, rowH).fill(C.surface);
+        
+        doc.fontSize(8).font('Courier-Bold').fillColor(C.textMuted).text(`RX-OVR`, cols.id.x + 8, rowY + 10);
+        doc.fontSize(8).font('Helvetica-Bold').fillColor(C.info).text('INFO', cols.sev.x + 8, rowY + 10);
+        doc.fontSize(9).font('Helvetica-Bold').fillColor(C.accent).text(`... AND ${remainingCount} MORE ACTIVE FINDINGS IN PORTAL DATABASE`, cols.title.x + 8, rowY + 9, { width: cols.title.w - 16, lineBreak: false, ellipsis: true });
+        doc.fontSize(8).font('Courier').fillColor(C.textMuted).text('portal.hackract.com', cols.asset.x + 8, rowY + 10, { width: cols.asset.w - 16, lineBreak: false, ellipsis: true });
+        doc.fontSize(9).font('Helvetica-Bold').fillColor(C.white).text('—', cols.cvss.x + 8, rowY + 9);
+
+        doc.moveTo(ml, rowY + rowH).lineTo(ml + contentW, rowY + rowH).lineWidth(0.5).strokeColor(C.border).stroke();
+        doc.y = rowY + rowH;
+      }
+      doc.x = ml; // Reset X pointer to left margin
     }
   }
 
-  // ── Detailed Findings ─────────────────────────────────────────────────────
-  if (modules.vulnTable !== false && findings.length > 0) {
+  // Detailed Findings + Remediation Roadmap
+  if (modules.remedPath !== false) {
     doc.addPage();
-    sectionTitle(doc, '3. Finding Details');
+    sectionTitle(doc, '4. Remediation Roadmap');
 
-    findings.forEach((f, idx) => {
-      if (doc.y > doc.page.height - 200) doc.addPage();
-
-      // Finding header
-      const sevColor = SEVERITY_COLOR[f.severity] || C.info;
-      doc.rect(ml, doc.y, contentW, 28).fill(sevColor + '18');
+    if (findings.length === 0) {
+      doc.y += 40;
       doc
         .fontSize(10)
-        .font('Helvetica-Bold')
-        .fillColor(C.black)
-        .text(`${idx + 1}. ${f.title}`, ml + 8, doc.y + 8, { width: contentW - 80 });
+        .fillColor(C.textMuted)
+        .font('Courier')
+        .text('> NO VULNERABILITIES DETECTED. SYSTEM ROADMAP SECURED.', { align: 'center' });
+    } else {
+      const displayRoadmap = findings.slice(0, 2);
+      const remainingRoadmap = findings.length - displayRoadmap.length;
 
-      // Severity label (right-aligned)
-      doc
-        .fontSize(8)
-        .font('Helvetica-Bold')
-        .fillColor(sevColor)
-        .text(f.severity, ml + contentW - 70, doc.y - 12, { width: 66, align: 'right' });
+      displayRoadmap.forEach((f, idx) => {
+        const sevColor = SEVERITY_COLOR[f.severity] || C.info;
 
-      doc.moveDown(0.8);
+        doc.rect(ml, doc.y, contentW, 36).fill(C.surface);
+        doc.rect(ml, doc.y, 4, 36).fill(sevColor);
 
-      // Meta row
-      doc
-        .fontSize(8.5)
-        .font('Helvetica-Bold')
-        .fillColor(C.midGray)
-        .text('CVSS: ', ml, doc.y, { continued: true })
-        .font('Helvetica')
-        .fillColor(C.black)
-        .text(f.cvssScore != null ? Number(f.cvssScore).toFixed(1) : 'N/A', { continued: true })
-        .text('   Status: ', { continued: true })
-        .text(f.status?.replace('_', ' ') || 'OPEN', { continued: true })
-        .text('   Asset: ', { continued: true })
-        .text(f.affectedAsset || 'Not specified');
+        doc.fontSize(8).font('Courier-Bold').fillColor(C.textMuted).text(`RX-${String(idx+1).padStart(3, '0')}`, ml + 16, doc.y + 8);
+        doc.fontSize(12).font('Helvetica-Bold').fillColor(C.white).text(f.title, ml + 16, doc.y + 18, { width: contentW - 100 });
 
-      doc.moveDown(0.5);
+        doc.fontSize(9).font('Helvetica-Bold').fillColor(sevColor).text(f.severity, ml + contentW - 80, doc.y - 20, { width: 64, align: 'right', characterSpacing: 1 });
 
-      // Description
-      doc
-        .fontSize(8)
-        .font('Helvetica-Bold')
-        .fillColor(C.darkGray)
-        .text('Description');
-      bodyText(doc, f.description || 'No description provided.');
+        doc.moveDown(1.5);
 
-      if (f.remediation) {
-        doc.moveDown(0.4);
+        doc.fontSize(9).font('Helvetica-Bold').fillColor(C.textMuted).text('AFFECTED ASSET: ', ml, doc.y, { continued: true })
+           .font('Courier').fillColor(C.accent).text(f.affectedAsset || 'Not specified', { continued: true })
+           .font('Helvetica-Bold').fillColor(C.textMuted).text('    CVSS: ', { continued: true })
+           .font('Helvetica-Bold').fillColor(C.white).text(f.cvssScore != null ? Number(f.cvssScore).toFixed(1) : 'N/A');
+
+        doc.moveDown(1);
+
+        doc.fontSize(10).font('Helvetica-Bold').fillColor(C.white).text('Technical Description', { characterSpacing: 1 });
+        doc.moveDown(0.5);
+        bodyText(doc, f.description || 'No description provided.');
+
+        doc.moveDown(1);
+
+        doc.fontSize(10).font('Helvetica-Bold').fillColor(C.white).text('Remediation Instructions', { characterSpacing: 1 });
+        doc.moveDown(0.5);
+        if (f.remediation) {
+          bodyText(doc, f.remediation);
+        } else {
+          doc.fontSize(9).font('Courier').fillColor(C.textMuted).text('> No specific remediation steps provided.');
+        }
+
+        doc.moveDown(2);
+        drawHRule(doc, { color: C.border });
+        doc.moveDown(1.5);
+      });
+
+      if (remainingRoadmap > 0) {
+        doc.moveDown(0.5);
+        const panelH = 45;
+        doc.rect(ml, doc.y, contentW, panelH).fillAndStroke(C.surface, C.border);
+        doc.rect(ml, doc.y, 4, panelH).fill(C.accent);
+
+        doc
+          .fontSize(9)
+          .font('Courier-Bold')
+          .fillColor(C.accent)
+          .text(`[+] ${remainingRoadmap} MORE DETAILED SECURITY FINDINGS & PROOFS`, ml + 16, doc.y + 12);
         doc
           .fontSize(8)
-          .font('Helvetica-Bold')
-          .fillColor(C.darkGray)
-          .text('Remediation');
-        bodyText(doc, f.remediation);
+          .font('Helvetica')
+          .fillColor(C.textMain)
+          .text(`These additional items are fully documented with exploit payloads in the secure online workspace.`, ml + 16, doc.y + 24);
+
+        doc.y += panelH;
       }
-
-      doc.moveDown(0.5);
-      drawHRule(doc, { color: C.lightGray });
-      doc.moveDown(0.8);
-    });
+    }
   }
 
-  // ── Methodology ───────────────────────────────────────────────────────────
-  if (modules.methodology) {
-    doc.addPage();
-    sectionTitle(doc, '4. Methodology');
-
-    bodyText(
-      doc,
-      'The assessment was conducted using a combination of manual testing and automated scanning ' +
-      'techniques, aligned with industry-recognized frameworks including OWASP Testing Guide, ' +
-      'PTES (Penetration Testing Execution Standard), and NIST SP 800-115. ' +
-      'The Hackract platform facilitated real-time collaboration between security operatives ' +
-      'through workflow boards, shared terminal sessions, and structured finding documentation.'
-    );
-
-    doc.moveDown(1);
-
-    const phases = [
-      ['Reconnaissance',     'Passive and active information gathering to map the attack surface.'],
-      ['Scanning',           'Automated vulnerability scanning and service enumeration.'],
-      ['Exploitation',       'Manual exploitation of identified vulnerabilities to validate impact.'],
-      ['Post-Exploitation',  'Assessment of lateral movement, privilege escalation, and data access.'],
-      ['Reporting',          'Structured documentation of findings with severity classification and remediation guidance.'],
-    ];
-
-    phases.forEach(([phase, desc], i) => {
-      if (doc.y + 40 > doc.page.height - 80) doc.addPage();
-      doc
-        .fontSize(9)
-        .font('Helvetica-Bold')
-        .fillColor(C.accent)
-        .text(`${i + 1}. ${phase}`, ml, doc.y);
-      doc
-        .fontSize(9)
-        .font('Helvetica')
-        .fillColor(C.darkGray)
-        .text(desc, ml + 12, doc.y, { width: contentW - 12 });
-      doc.moveDown(0.5);
-    });
-  }
-
-  // ── Back-patch footers now that we know total pages ────────────────────────
+  // ── Back-patch footers ───────────────────────────────────────────────────
   const totalPages = doc.bufferedPageRange().count;
   for (let i = 0; i < totalPages; i++) {
     doc.switchToPage(i);
