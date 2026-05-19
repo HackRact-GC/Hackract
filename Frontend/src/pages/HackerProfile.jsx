@@ -52,11 +52,15 @@ const HackerProfile = () => {
 
         try {
           const statusRes = await NationalIDService.getStatus();
-          if (statusRes && statusRes.data && statusRes.data.isVerified) {
-            setIsNationalIdVerified(true);
-          }
-        } catch (e) {
-          console.error("Failed to fetch National ID status", e);
+          const verificationStatus = statusRes?.data?.verificationStatus;
+          const isVerified = Boolean(
+            statusRes?.data?.isVerified ||
+            verificationStatus === 'APPROVED' ||
+            verificationStatus === 'VERIFIED'
+          );
+          setIsNationalIdVerified(isVerified);
+        } catch (error) {
+          console.error("Failed to fetch National ID status", error);
         }
 
         if (profile) {
@@ -68,7 +72,7 @@ const HackerProfile = () => {
               ? profile.certifications.map(c => {
                   try {
                     return JSON.parse(c);
-                  } catch (e) {
+                  } catch {
                     return { title: c, provider: '', date: '' };
                   }
                 })
@@ -201,6 +205,12 @@ const HackerProfile = () => {
             <div>
               <h1 className="text-2xl font-bold flex items-center gap-2">
                 {displayName}
+                {(user?.isVerified || isNationalIdVerified) && (
+                  <span className="ml-2 inline-flex items-center gap-2 bg-gradient-to-r from-green-600 to-emerald-400 text-black text-xs font-bold uppercase px-3 py-1 rounded-full shadow-lg">
+                    <FiAward className="text-sm text-white" />
+                    Verified Identity
+                  </span>
+                )}
               </h1>
               {user?.averageRating != null && user?.totalReviews > 0 && (
                 <div className="flex items-center gap-2 mt-2 px-3 py-1 rounded-lg bg-white/[0.03] border border-white/5 w-fit">
@@ -224,7 +234,7 @@ const HackerProfile = () => {
             {/* Verifications */}
             <div className="bg-[#0c0c0c] border border-white/5 rounded-2xl p-6">
               <h2 className="text-lg font-bold mb-4">Verifications</h2>
-              {isNationalIdVerified ? (
+              {(user?.isVerified || isNationalIdVerified) ? (
                 <div className="flex items-center gap-2 text-sm">
                   <FiCheckCircle className="text-[#00c477]" />
                   <span>ID: Verified</span>

@@ -263,21 +263,54 @@ class NationalIDService {
             });
         }
 
-        const isSameEmail = true; // Bypass email check
+        const isSameEmail = user.email.toLowerCase() === citizen.email.toLowerCase();
+        if (!isSameEmail) {
+            throw new AppError(
+                'Your account email must match the official email associated with this National ID in the Government Registry.',
+                400
+            );
+        }
 
-        // Automatically verify them
         await prisma.nationalIDVerification.upsert({
             where: { userId },
-            update: { citizenId: citizen.id, verificationStatus: 'APPROVED', verifiedAt: new Date() },
-            create: { userId, citizenId: citizen.id, verificationStatus: 'APPROVED', verifiedAt: new Date() }
+            update: { citizenId: citizen.id, verificationStatus: 'DRAFT', verifiedAt: null },
+            create: { userId, citizenId: citizen.id, verificationStatus: 'DRAFT' }
         });
 
-        // Skip OTP and return a message indicating it's verified
-        console.log(`[DEV] National ID Bypass - User ${userId} verified with FAN ${fan}`);
-        return { 
-            message: 'National ID verification has been bypassed. Automatically verified.', 
+        const otp = Math.floor(100000 + Math.random() * 900000).toString();
+        const otpHash = await bcrypt.hash(otp, 12);
+        const expiresAt = dayjs().add(10, 'minute').toDate();
+
+        await prisma.otpVerification.create({
+            data: {
+                citizenId: citizen.id,
+                otpHash,
+                expiresAt
+            }
+        });
+
+        const frontendBase = process.env.FRONTEND_BASE_URL || 'http://localhost:5173';
+        const verifyUrl = `${frontendBase}/national-id-verification?fan=${encodeURIComponent(citizen.fan)}`;
+
+        let emailError = null;
+        try {
+            await sendNationalIdOtpEmail({
+                to: citizen.email,
+                name: citizen.firstName ? `${citizen.firstName} ${citizen.lastName || ''}`.trim() : 'Citizen',
+                code: otp,
+                verifyUrl,
+                expiresAt
+            });
+        } catch (error) {
+            emailError = error.message;
+        }
+
+        return {
+            message: emailError
+                ? 'OTP created, but we could not send the verification email.'
+                : 'OTP sent successfully to the email registered on National ID',
             isSameEmail,
-            autoVerified: true
+            delivered: !emailError
         };
     }
 
