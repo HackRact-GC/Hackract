@@ -728,7 +728,10 @@ const HackerPublicProfile = () => {
         setHacker(normalise(profile));
 
         // Load organization projects for invitation
-        const projRes = await api.get('/pentests');
+        const organizationId = user?.organizations?.[0]?.organizationId || user?.organizations?.[0]?.organization?.id;
+        const projRes = organizationId 
+          ? await api.get(`/pentests?organizationId=${organizationId}`)
+          : await api.get('/pentests');
         setProjects(projRes.data?.data || projRes.data?.pentests || []);
       } catch (err) {
         console.error('Failed to load hacker profile', err);
@@ -739,7 +742,7 @@ const HackerPublicProfile = () => {
       }
     };
     loadData();
-  }, [hackerId, navigate]);
+  }, [hackerId, navigate, user]);
 
   const handleSendInvitation = async () => {
     if (!selectedProject) {

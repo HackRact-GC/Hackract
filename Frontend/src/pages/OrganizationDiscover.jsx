@@ -24,6 +24,7 @@ const RankBadge = ({ rank }) => {
 
 // ─── INVITE MODAL ─────────────────────────────────────────────────────────────
 const InviteModal = ({ hacker, onClose }) => {
+  const { user } = useAuth();
   const [projects, setProjects] = useState([]);
   const [selectedProject, setSelectedProject] = useState('');
   const [message, setMessage] = useState('');
@@ -32,8 +33,14 @@ const InviteModal = ({ hacker, onClose }) => {
 
   useEffect(() => {
     (async () => {
+      const organizationId = user?.organizations?.[0]?.organizationId || user?.organizations?.[0]?.organization?.id;
+      if (!organizationId) {
+        setProjects([]);
+        setFetching(false);
+        return;
+      }
       try {
-        const { data } = await api.get('/pentests');
+        const { data } = await api.get(`/pentests?organizationId=${organizationId}`);
         // Support both response shapes
         const list = data?.data || data?.pentests || data || [];
         setProjects(Array.isArray(list) ? list : []);
@@ -44,7 +51,7 @@ const InviteModal = ({ hacker, onClose }) => {
         setFetching(false);
       }
     })();
-  }, []);
+  }, [user]);
 
   const handleSend = async () => {
     if (!selectedProject) {
