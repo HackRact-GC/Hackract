@@ -2,8 +2,10 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import api from '../api/axiosConfig';
+import { uploadFile as uploadChatFile } from '../api/chatApi';
 import toast from 'react-hot-toast';
 import { useAuth } from '../context/authContext.jsx';
+import invitationService from '../services/invitation.service';
 import {
   FiArrowLeft, FiStar, FiMapPin, FiShield, FiTool,
   FiAward, FiBriefcase, FiMessageSquare, FiCheckCircle,
@@ -718,6 +720,11 @@ const HackerPublicProfile = () => {
   const [selectedProject, setSelectedProject] = useState('');
   const [inviteMessage, setInviteMessage] = useState('');
   const [inviting, setInviting] = useState(false);
+  const [agreementMode, setAgreementMode] = useState('UPLOAD');
+  const [agreementFile, setAgreementFile] = useState(null);
+  const [agreements, setAgreements] = useState([]);
+  const [selectedAgreementId, setSelectedAgreementId] = useState('');
+  const [agreementLoading, setAgreementLoading] = useState(false);
 
   useEffect(() => {
     const loadData = async () => {
@@ -744,23 +751,110 @@ const HackerPublicProfile = () => {
     loadData();
   }, [hackerId, navigate, user]);
 
+  useEffect(() => {
+    const loadAgreements = async () => {
+      try {
+        const { data } = await api.get('/legal-agreements?isActive=true');
+        const list = data?.data || data || [];
+        setAgreements(Array.isArray(list) ? list : []);
+      } catch (err) {
+        console.error('Failed to load legal agreements', err);
+        setAgreements([]);
+      }
+    };
+    loadAgreements();
+  }, []);
+
+  const buildAgreementFile = (agreement) => {
+    const rawTitle = agreement?.title || 'agreement';
+    const safeTitle = rawTitle.replace(/[^a-z0-9]+/gi, '_').replace(/^_+|_+$/g, '') || 'agreement';
+    const version = agreement?.version ? `v${agreement.version}` : 'v1';
+    const fileName = `${safeTitle}_${version}.txt`;
+    const content = agreement?.content || '';
+    return new File([content], fileName, { type: 'text/plain' });
+  };
+
   const handleSendInvitation = async () => {
     if (!selectedProject) {
       toast.error('Please select a project');
       return;
     }
+    if (agreementMode === 'UPLOAD' && !agreementFile) {
+      toast.error('Please upload a legal agreement file');
+      return;
+    }
+    if (agreementMode === 'LEGAL_AGREEMENT' && !selectedAgreementId) {
+      toast.error('Please select a legal agreement');
+      return;
+    }
     setInviting(true);
     try {
+      setAgreementLoading(true);
+
+      const projectRes = await api.get(`/projects/${selectedProject}`);
+      const projectData = projectRes?.data?.data || projectRes?.data || {};
+      const collaborators = projectData?.collaborators || [];
+      const alreadyAssigned = collaborators.some((c) => c.userId === hacker.userId);
+      if (alreadyAssigned) {
+        toast.error('This hacker is already assigned to the selected project.');
+        return;
+      }
+
+      const inviteRes = await invitationService.getInvitationsByProject(selectedProject);
+      const inviteList = Array.isArray(inviteRes?.data)
+        ? inviteRes.data
+        : Array.isArray(inviteRes?.data?.data)
+          ? inviteRes.data.data
+          : [];
+      const pendingInvite = inviteList.find((inv) => inv.status === 'PENDING' && (inv.hackerId === hacker.userId || inv.hacker?.id === hacker.userId));
+      if (pendingInvite) {
+        toast.error('This hacker already has a pending invitation for the selected project.');
+        return;
+      }
+
+      let agreementPayload = null;
+
+      if (agreementMode === 'UPLOAD') {
+        const fileData = await uploadChatFile(agreementFile);
+        agreementPayload = {
+          source: 'UPLOAD',
+          title: agreementFile?.name,
+          fileUrl: fileData.fileUrl,
+          fileName: fileData.fileName,
+          fileSize: fileData.fileSize,
+          fileMime: fileData.fileMime,
+        };
+      } else {
+        const agreement = agreements.find((a) => a.id === selectedAgreementId);
+        if (!agreement?.content) {
+          toast.error('Selected agreement is missing content.');
+          return;
+        }
+        const generatedFile = buildAgreementFile(agreement);
+        const fileData = await uploadChatFile(generatedFile);
+        agreementPayload = {
+          source: 'LEGAL_AGREEMENT',
+          legalAgreementId: agreement.id,
+          title: agreement.title,
+          fileUrl: fileData.fileUrl,
+          fileName: fileData.fileName,
+          fileSize: fileData.fileSize,
+          fileMime: fileData.fileMime,
+        };
+      }
+
       await api.post('/invitations', {
         pentestId: selectedProject,
         hackerId: hacker.userId,
         message: inviteMessage.trim() || undefined,
+        agreement: agreementPayload,
       });
       toast.success(`Invitation sent to ${hacker.name}!`);
       setAssignModalOpen(false);
     } catch (err) {
       toast.error(err?.response?.data?.message || 'Failed to send invitation');
     } finally {
+      setAgreementLoading(false);
       setInviting(false);
     }
   };
@@ -777,6 +871,8 @@ const HackerPublicProfile = () => {
   if (!hacker) return null;
 
   const rankStyle = RANK_COLORS[hacker.rank] || RANK_COLORS.SILVER;
+  const agreementReady = agreementMode === 'UPLOAD' ? !!agreementFile : !!selectedAgreementId;
+  const isSending = inviting || agreementLoading;
 
   const renderSection = () => {
     switch (activeTab) {
@@ -964,6 +1060,59 @@ const HackerPublicProfile = () => {
               </div>
 
               <div className="mb-6">
+                <label className="text-[10px] font-black text-gray-500 tracking-[0.2em] uppercase block mb-3 font-mono">
+                  Agreement Source
+                </label>
+                <div className="flex gap-2 mb-4">
+                  <button
+                    onClick={() => setAgreementMode('UPLOAD')}
+                    className={`flex-1 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest border transition-all ${agreementMode === 'UPLOAD'
+                      ? 'border-[#00c477]/50 text-[#00c477] bg-[#00c477]/10'
+                      : 'border-white/10 text-gray-500 hover:text-white hover:border-white/30'}`}
+                  >
+                    Upload File
+                  </button>
+                  <button
+                    onClick={() => setAgreementMode('LEGAL_AGREEMENT')}
+                    className={`flex-1 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest border transition-all ${agreementMode === 'LEGAL_AGREEMENT'
+                      ? 'border-[#00c477]/50 text-[#00c477] bg-[#00c477]/10'
+                      : 'border-white/10 text-gray-500 hover:text-white hover:border-white/30'}`}
+                  >
+                    Use Existing
+                  </button>
+                </div>
+
+                {agreementMode === 'UPLOAD' ? (
+                  <div>
+                    <input
+                      type="file"
+                      accept=".pdf,.doc,.docx,.txt"
+                      onChange={(e) => setAgreementFile(e.target.files?.[0] || null)}
+                      className="block w-full text-xs text-gray-400 file:mr-3 file:py-2.5 file:px-4 file:rounded-lg file:border-0 file:bg-[#00c477]/10 file:text-[#00c477] file:font-bold file:uppercase file:text-[10px] file:tracking-widest hover:file:bg-[#00c477]/20"
+                    />
+                    {agreementFile && (
+                      <p className="text-[11px] text-gray-500 mt-2 font-mono truncate">{agreementFile.name}</p>
+                    )}
+                  </div>
+                ) : (
+                  <div>
+                    <select
+                      value={selectedAgreementId}
+                      onChange={(e) => setSelectedAgreementId(e.target.value)}
+                      className="w-full bg-[#0c0c0c] border border-white/10 focus:border-[#00c477] rounded-xl px-4 py-3 text-sm text-white outline-none transition-all"
+                    >
+                      <option value="">Select a legal agreement</option>
+                      {agreements.map((a) => (
+                        <option key={a.id} value={a.id}>
+                          {a.title} {a.version ? `v${a.version}` : ''}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                )}
+              </div>
+
+              <div className="mb-6">
                 <textarea
                   value={inviteMessage}
                   onChange={e => setInviteMessage(e.target.value)}
@@ -981,11 +1130,11 @@ const HackerPublicProfile = () => {
                 </button>
                 <button
                   onClick={handleSendInvitation}
-                  disabled={inviting || !selectedProject}
+                  disabled={isSending || !selectedProject || !agreementReady}
                   className="flex-1 py-3 rounded-xl bg-[#00c477] hover:bg-[#009a5e] text-black font-black text-sm shadow-[0_0_20px_rgba(0,196,119,0.2)] hover:shadow-[0_0_35px_rgba(0,196,119,0.4)] transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                 >
-                  {inviting && <div className="w-3 h-3 border-2 border-black border-t-transparent rounded-full animate-spin" />}
-                  {inviting ? 'Inviting...' : 'Send Invitation'}
+                  {isSending && <div className="w-3 h-3 border-2 border-black border-t-transparent rounded-full animate-spin" />}
+                  {isSending ? 'Inviting...' : 'Send Invitation'}
                 </button>
               </div>
             </motion.div>
