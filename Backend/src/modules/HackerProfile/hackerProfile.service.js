@@ -324,7 +324,7 @@ export const discoverHackers = async ({ page = 1, limit = 12, search, skills, ce
     return {
       ...profile,
       user: userWithoutRelations,
-      rating: totalReviews > 0 ? averageRating : null, // Show real rated value
+      rating: totalReviews > 0 ? averageRating : 0, // Show real rated value, default to 0
       totalReviews,
       successRate,
       rank,
