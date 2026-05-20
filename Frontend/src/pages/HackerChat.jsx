@@ -158,7 +158,7 @@ export default function HackerChat() {
 
   return (
     <div className="flex h-full bg-[#050505] overflow-hidden" style={{ height: 'calc(100vh - 40px)' }}>
-      <ChatSidebar user={user} conversations={conversations} active={active} presenceMap={presenceMap} connected={connected} onSelect={openConversation} loadingConvs={loadingConvs} onInvitationSent={handleInvitationSent} targetRole="ORG_ADMIN" />
+      <ChatSidebar user={user} conversations={conversations} active={active} presenceMap={presenceMap} connected={connected} onSelect={openConversation} loadingConvs={loadingConvs} onInvitationSent={handleInvitationSent} targetRole="ALL" />
 
       {active ? (
         <div className="flex-1 flex flex-col min-w-0 bg-[#050505] border-l border-white/5">

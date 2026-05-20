@@ -94,7 +94,7 @@ router.post("/personal", async (req, res, next) => {
 
     // Auto-add creator as a HACKER collaborator so they can submit findings
     await prisma.pentestCollaborator.create({
-      data: { pentestId: project.id, userId: req.user.id, role: "HACKER" },
+      data: { pentestId: project.id, userId: req.user.id, role: "HACKER", canEditFindings: true, canManageSessions: true },
     });
 
     await logAction("PERSONAL_WORKSPACE_CREATED", req.user.id, { pentestId: project.id, name }, req);
@@ -302,9 +302,9 @@ router.post("/", async (req, res, next) => {
     const uniqueHackers = [...new Set((hackerIds || []).filter(Boolean))];
     const collaboratorRows = [
       ...(projectAdminId
-        ? [{ pentestId: project.id, userId: projectAdminId, role: "PROJECT_ADMIN" }]
+        ? [{ pentestId: project.id, userId: projectAdminId, role: "PROJECT_ADMIN", canEditFindings: true, canManageSessions: true }]
         : []),
-      ...uniqueHackers.map((userId) => ({ pentestId: project.id, userId, role: "HACKER" })),
+      ...uniqueHackers.map((userId) => ({ pentestId: project.id, userId, role: "HACKER", canEditFindings: true, canManageSessions: true })),
     ];
 
     if (collaboratorRows.length > 0) {
@@ -385,8 +385,8 @@ router.patch("/:projectId/admin", async (req, res, next) => {
       where: {
         pentestId_userId: { pentestId: projectId, userId: projectAdminId }
       },
-      update: { role: "PROJECT_ADMIN" },
-      create: { pentestId: projectId, userId: projectAdminId, role: "PROJECT_ADMIN" }
+      update: { role: "PROJECT_ADMIN", canEditFindings: true, canManageSessions: true },
+      create: { pentestId: projectId, userId: projectAdminId, role: "PROJECT_ADMIN", canEditFindings: true, canManageSessions: true }
     });
 
     // 3. Update the leadPentesterId on the project
@@ -487,7 +487,7 @@ router.post("/:projectId/hackers", async (req, res, next) => {
     }
 
     await prisma.pentestCollaborator.createMany({
-      data: [...new Set(hackerIds)].map((userId) => ({ pentestId: projectId, userId, role: "HACKER" })),
+      data: [...new Set(hackerIds)].map((userId) => ({ pentestId: projectId, userId, role: "HACKER", canEditFindings: true, canManageSessions: true })),
       skipDuplicates: true,
     });
 
@@ -592,7 +592,7 @@ router.post("/:projectId/hire", async (req, res, next) => {
 
     await prisma.pentestCollaborator.update({
       where: { pentestId_userId: { pentestId: projectId, userId } },
-      data: { role: "HACKER" },
+      data: { role: "HACKER", canEditFindings: true, canManageSessions: true },
     });
 
     await logAction("HACKER_HIRED", req.user.id, {
