@@ -3,6 +3,7 @@ import AppError from '../../utils/AppError.js';
 import invitationRepository from './invitation.repository.js';
 import { InvitationErrorCodes, InvitationActions } from './invitation.constants.js';
 import { logAction } from '../AuditLogs/auditLog.service.js';
+import * as chatService from '../Chat/chat.service.js';
 
 // ─── Guards ──────────────────────────────────────────────────────────────────
 
@@ -73,7 +74,7 @@ const ensureHackerApproved = async (hackerId) => {
 /**
  * Organization sends an invitation to a hacker for a specific pentest.
  */
-export const sendInvitation = async (inviterId, { pentestId, hackerId, message, expiresAt }, req) => {
+export const sendInvitation = async (inviterId, { pentestId, hackerId, message, expiresAt, agreement }, req) => {
     const user = req.user; // We assume controller passes user or attaches to req
     await checkProjectManagePermission(pentestId, user);
     await ensureHackerExists(hackerId);
@@ -88,6 +89,25 @@ export const sendInvitation = async (inviterId, { pentestId, hackerId, message, 
         );
     }
 
+    if (!agreement?.fileUrl) {
+        throw new AppError(
+            'A legal agreement document is required to send an invitation',
+            400,
+            InvitationErrorCodes.AGREEMENT_REQUIRED
+        );
+    }
+
+    const agreementData = agreement ? {
+        agreementSource: agreement.source || null,
+        agreementLegalId: agreement.legalAgreementId || null,
+        agreementTitle: agreement.title || null,
+        agreementFileUrl: agreement.fileUrl || null,
+        agreementFileName: agreement.fileName || null,
+        agreementFileSize: agreement.fileSize || null,
+        agreementFileMime: agreement.fileMime || null,
+        agreementSentAt: agreement.fileUrl ? new Date() : null,
+    } : {};
+
     const invitation = await invitationRepository.create({
         pentestId,
         hackerId,
@@ -95,6 +115,7 @@ export const sendInvitation = async (inviterId, { pentestId, hackerId, message, 
         message: message || null,
         expiresAt: expiresAt ? new Date(expiresAt) : null,
         status: 'PENDING',
+        ...agreementData,
     });
 
     await logAction(InvitationActions.SENT, inviterId, {
@@ -118,13 +139,28 @@ export const sendInvitation = async (inviterId, { pentestId, hackerId, message, 
         console.warn('⚠️ Service: req.app.locals.sendNotification is NOT defined!');
     }
 
+    if (agreement?.fileUrl) {
+        const projectName = invitation.pentest?.name || 'a new project';
+        const conversation = await chatService.getOrCreateDirectConversation(inviterId, hackerId);
+        const agreementMessage = await chatService.sendMessage(conversation.id, inviterId, {
+            content: `Legal agreement attached for ${projectName}.`,
+            type: 'FILE',
+            fileUrl: agreement.fileUrl,
+            fileName: agreement.fileName,
+            fileSize: agreement.fileSize,
+            fileMime: agreement.fileMime,
+        });
+
+        req.app.locals.broadcastChatMessage?.(conversation.id, agreementMessage);
+    }
+
     return invitation;
 };
 
 /**
  * Hacker accepts or rejects an invitation. On ACCEPTED, also creates a PentestCollaborator record.
  */
-export const respondToInvitation = async (invitationId, hackerId, status, req) => {
+export const respondToInvitation = async (invitationId, hackerId, { status, signedFile }, req) => {
     const invitation = await invitationRepository.findById(invitationId);
 
     if (!invitation) {
@@ -151,9 +187,28 @@ export const respondToInvitation = async (invitationId, hackerId, status, req) =
         throw new AppError('This invitation has expired', 410, InvitationErrorCodes.EXPIRED);
     }
 
-    const updated = await invitationRepository.updateStatus(invitationId, status, {
+    const requiresSignedFile = Boolean(invitation.agreementFileUrl);
+    if (status === 'ACCEPTED' && requiresSignedFile && !signedFile?.fileUrl) {
+        throw new AppError(
+            'Signed agreement document is required to accept this invitation',
+            400,
+            InvitationErrorCodes.SIGNED_DOCUMENT_REQUIRED
+        );
+    }
+
+    const updatePayload = {
         respondedAt: new Date(),
-    });
+    };
+
+    if (status === 'ACCEPTED' && signedFile?.fileUrl) {
+        updatePayload.signedFileUrl = signedFile.fileUrl;
+        updatePayload.signedFileName = signedFile.fileName || null;
+        updatePayload.signedFileSize = signedFile.fileSize || null;
+        updatePayload.signedFileMime = signedFile.fileMime || null;
+        updatePayload.signedAt = new Date();
+    }
+
+    const updated = await invitationRepository.updateStatus(invitationId, status, updatePayload);
 
     // On acceptance → add to pentest as collaborator (if not already there)
     if (status === 'ACCEPTED') {
@@ -194,6 +249,21 @@ export const respondToInvitation = async (invitationId, hackerId, status, req) =
                 });
             }
         }
+    }
+
+    if (status === 'ACCEPTED' && signedFile?.fileUrl && invitation.invitedById) {
+        const projectName = invitation.pentest?.name || 'Assigned';
+        const conversation = await chatService.getOrCreateDirectConversation(hackerId, invitation.invitedById);
+        const signedMessage = await chatService.sendMessage(conversation.id, hackerId, {
+            content: `Signed agreement for ${projectName}.`,
+            type: 'FILE',
+            fileUrl: signedFile.fileUrl,
+            fileName: signedFile.fileName,
+            fileSize: signedFile.fileSize,
+            fileMime: signedFile.fileMime,
+        });
+
+        req.app.locals.broadcastChatMessage?.(conversation.id, signedMessage);
     }
 
     const actionKey = status === 'ACCEPTED' ? InvitationActions.ACCEPTED : InvitationActions.REJECTED;
