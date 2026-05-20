@@ -95,7 +95,7 @@ const normalise = (profile) => {
       ? +Number(u.averageRating).toFixed(1)
       : (reviews.length > 0
         ? +(reviews.reduce((s, r) => s + r.rating, 0) / reviews.length).toFixed(1)
-        : 4.5),
+        : 0),
     totalReviews: u.totalReviews || reviews.length,
     rank,
     trustScore,
