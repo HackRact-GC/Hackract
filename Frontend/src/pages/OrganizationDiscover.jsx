@@ -97,6 +97,28 @@ const InviteModal = ({ hacker, onClose }) => {
     setLoading(true);
     try {
       setAgreementLoading(true);
+
+      const projectRes = await api.get(`/projects/${selectedProject}`);
+      const projectData = projectRes?.data?.data || projectRes?.data || {};
+      const collaborators = projectData?.collaborators || [];
+      const alreadyAssigned = collaborators.some((c) => c.userId === (hacker.userId || hacker.id));
+      if (alreadyAssigned) {
+        toast.error('This hacker is already assigned to the selected project.');
+        return;
+      }
+
+      const inviteRes = await api.get(`/invitations/project/${selectedProject}`);
+      const inviteList = Array.isArray(inviteRes?.data?.data)
+        ? inviteRes.data.data
+        : Array.isArray(inviteRes?.data)
+          ? inviteRes.data
+          : [];
+      const pendingInvite = inviteList.find((inv) => inv.status === 'PENDING' && (inv.hackerId === (hacker.userId || hacker.id) || inv.hacker?.id === (hacker.userId || hacker.id)));
+      if (pendingInvite) {
+        toast.error('This hacker already has a pending invitation for the selected project.');
+        return;
+      }
+
       let agreementPayload = null;
 
       if (agreementMode === 'UPLOAD') {

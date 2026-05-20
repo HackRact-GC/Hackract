@@ -203,7 +203,7 @@ const AgreementSelectionModal = ({ hacker, projectId, onClose, onConfirm, onLoad
   );
 };
 
-const HackerDiscoveryModal = ({ projectId, onClose, onInvited }) => {
+const HackerDiscoveryModal = ({ projectId, onClose, onInvited, assignedIds = [], pendingInviteIds = [] }) => {
   const [search, setSearch] = useState("");
   const [results, setResults] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -211,6 +211,11 @@ const HackerDiscoveryModal = ({ projectId, onClose, onInvited }) => {
   const [agreementModal, setAgreementModal] = useState(false);
   const [selectedHacker, setSelectedHacker] = useState(null);
   const [agreementLoading, setAgreementLoading] = useState(false);
+
+  const assignedSet = useMemo(() => new Set(assignedIds), [assignedIds]);
+  const pendingSet = useMemo(() => new Set(pendingInviteIds), [pendingInviteIds]);
+
+  const getHackerId = (hacker) => hacker?.userId || hacker?.id;
 
   const fetchHackers = async (query = "") => {
     setLoading(true);
@@ -311,6 +316,9 @@ const HackerDiscoveryModal = ({ projectId, onClose, onInvited }) => {
           ) : results.length > 0 ? (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {results.map(hacker => {
+                const hackerId = getHackerId(hacker);
+                const isAssigned = assignedSet.has(hackerId);
+                const isPending = pendingSet.has(hackerId);
                 const name = hacker.user?.fullName || hacker.name || "Unknown";
                 const handle = hacker.user?.handle || hacker.tag || "";
                 const skills = parseItems(hacker.primarySkills || hacker.skills).slice(0, 3);
@@ -345,12 +353,14 @@ const HackerDiscoveryModal = ({ projectId, onClose, onInvited }) => {
 
                     <div className="flex items-center gap-2 pt-3 border-t border-gray-800">
                       <button
-                        disabled={agreementLoading}
-                        onClick={() => handleInviteClick(hacker)}
+                        disabled={agreementLoading || isAssigned || isPending}
+                        onClick={() => {
+                          if (!isAssigned && !isPending) handleInviteClick(hacker);
+                        }}
                         className="flex-1 py-2 bg-transparent hover:bg-[#00c477]/10 text-gray-400 hover:text-[#00c477] rounded-lg transition-all border border-gray-700 hover:border-[#00c477]/30 disabled:opacity-50 text-[10px] font-bold uppercase tracking-widest flex items-center justify-center gap-2"
                       >
                         {agreementLoading ? <div className="w-3 h-3 border-2 border-transparent border-t-[#00c477] rounded-full animate-spin" /> : <FiSend />}
-                        Invite
+                        {isAssigned ? "Already Assigned" : isPending ? "Invite Sent" : "Invite"}
                       </button>
                     </div>
                   </div>
@@ -423,6 +433,18 @@ const ProjectControlCenter = ({ projectId, onBack }) => {
   const hackers = useMemo(() => {
     return project?.collaborators?.filter((c) => c.role === "HACKER" || c.role === "PROJECT_ADMIN" || c.role === "PENTESTER") || [];
   }, [project]);
+
+  const assignedIds = useMemo(() => {
+    return hackers.map((h) => h.userId || h.id).filter(Boolean);
+  }, [hackers]);
+
+  const pendingInviteIds = useMemo(() => {
+    const list = Array.isArray(invitations) ? invitations : [];
+    return list
+      .filter((inv) => inv.status === "PENDING")
+      .map((inv) => inv.hackerId || inv.hacker?.id || inv.hacker?.userId)
+      .filter(Boolean);
+  }, [invitations]);
 
   const handleMakeAdmin = async (userId) => {
     try {
@@ -723,6 +745,8 @@ const ProjectControlCenter = ({ projectId, onBack }) => {
         {showInviteModal && (
           <HackerDiscoveryModal
             projectId={projectId}
+            assignedIds={assignedIds}
+            pendingInviteIds={pendingInviteIds}
             onClose={() => setShowInviteModal(false)}
             onInvited={() => {
               loadProject();
