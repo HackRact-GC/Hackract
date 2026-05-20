@@ -1,7 +1,8 @@
-import React from 'react';
-import { Navigate, useLocation } from 'react-router-dom';
-import { useAuth } from '../context/authContext.jsx';
-import { hasAnyRole, getDashboardPath } from '../utils/roles.js';
+import React from "react";
+import { Navigate, useLocation } from "react-router-dom";
+
+import { useAuth } from "../context/authContext.jsx";
+import { getDashboardPath, hasAnyRole } from "../utils/roles.js";
 
 /**
  * Route-level guard that restricts access to one or more roles.
@@ -14,7 +15,7 @@ import { hasAnyRole, getDashboardPath } from '../utils/roles.js';
  * If the user is unauthenticated → redirect to /login
  * If the user lacks the required role → redirect to their own dashboard
  */
-const RoleGuard = ({ allowed = [], customCheck, children }) => {
+const RoleGuard = ({ allowed = [], customCheck = null, children }) => {
   const { user, loading } = useAuth();
   const location = useLocation();
 

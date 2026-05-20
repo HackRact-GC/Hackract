@@ -1,7 +1,7 @@
-import { useEffect, useRef, useCallback, useState } from 'react';
-import { io } from 'socket.io-client';
+import { useCallback, useEffect, useRef, useState } from "react";
+import { io } from "socket.io-client";
 
-const SOCKET_URL = import.meta.env.VITE_SOCKET_URL || 'http://localhost:4000';
+const SOCKET_URL = import.meta.env.VITE_SOCKET_URL || "http://localhost:4000";
 
 export function useChatSocket({
   token,
@@ -23,7 +23,7 @@ export function useChatSocket({
 
     const socket = io(SOCKET_URL, {
       auth: { token },
-      transports: ['websocket', 'polling'],
+      transports: ["websocket", "polling"],
       reconnection: true,
       reconnectionDelay: 1000,
       reconnectionDelayMax: 5000,
@@ -33,49 +33,49 @@ export function useChatSocket({
 
     socketRef.current = socket;
 
-    socket.on('connect', () => {
-      console.log('🔌 Chat socket connected');
+    socket.on("connect", () => {
+      console.log("🔌 Chat socket connected");
       setConnected(true);
     });
 
-    socket.on('disconnect', (reason) => {
-      console.log('🔌 Chat socket disconnected:', reason);
+    socket.on("disconnect", (reason) => {
+      console.log("🔌 Chat socket disconnected:", reason);
       setConnected(false);
     });
 
-    socket.on('reconnect', (attempt) => {
+    socket.on("reconnect", (attempt) => {
       console.log(`🔌 Chat socket reconnected after ${attempt} attempts`);
     });
 
     // ── Message events ──────────────────────────────────────────────────
-    socket.on('chat:new-message', (message) => {
+    socket.on("chat:new-message", (message) => {
       onNewMessage?.(message);
     });
 
-    socket.on('chat:message-edited', (message) => {
+    socket.on("chat:message-edited", (message) => {
       onMessageEdited?.(message);
     });
 
-    socket.on('chat:message-deleted', ({ conversationId, messageId }) => {
+    socket.on("chat:message-deleted", ({ conversationId, messageId }) => {
       onMessageDeleted?.(conversationId, messageId);
     });
 
     // ── Presence events ─────────────────────────────────────────────────
-    socket.on('chat:presence-update', ({ userId, isOnline, lastSeenAt }) => {
+    socket.on("chat:presence-update", ({ userId, isOnline, lastSeenAt }) => {
       onPresenceUpdate?.(userId, isOnline, lastSeenAt);
     });
 
     // ── Typing events ───────────────────────────────────────────────────
-    socket.on('chat:typing', ({ userId, conversationId }) => {
+    socket.on("chat:typing", ({ userId, conversationId }) => {
       onTyping?.(userId, conversationId);
     });
 
-    socket.on('chat:stop-typing', ({ userId, conversationId }) => {
+    socket.on("chat:stop-typing", ({ userId, conversationId }) => {
       onStopTyping?.(userId, conversationId);
     });
 
     // ── Read receipts ───────────────────────────────────────────────────
-    socket.on('chat:read-receipt', ({ conversationId, userId, readAt }) => {
+    socket.on("chat:read-receipt", ({ conversationId, userId, readAt }) => {
       onReadReceipt?.(conversationId, userId, readAt);
     });
 
@@ -87,29 +87,29 @@ export function useChatSocket({
   }, [token]);
 
   const joinConversation = useCallback((conversationId) => {
-    socketRef.current?.emit('chat:join', { conversationId });
+    socketRef.current?.emit("chat:join", { conversationId });
   }, []);
 
   const leaveConversation = useCallback((conversationId) => {
-    socketRef.current?.emit('chat:leave', { conversationId });
+    socketRef.current?.emit("chat:leave", { conversationId });
   }, []);
 
   const emitTypingStart = useCallback((conversationId) => {
-    socketRef.current?.emit('chat:typing-start', { conversationId });
+    socketRef.current?.emit("chat:typing-start", { conversationId });
     // Auto-stop typing after 3 seconds of no input
     clearTimeout(typingTimers.current[conversationId]);
     typingTimers.current[conversationId] = setTimeout(() => {
-      socketRef.current?.emit('chat:typing-stop', { conversationId });
+      socketRef.current?.emit("chat:typing-stop", { conversationId });
     }, 3000);
   }, []);
 
   const emitTypingStop = useCallback((conversationId) => {
     clearTimeout(typingTimers.current[conversationId]);
-    socketRef.current?.emit('chat:typing-stop', { conversationId });
+    socketRef.current?.emit("chat:typing-stop", { conversationId });
   }, []);
 
   const emitMarkRead = useCallback((conversationId) => {
-    socketRef.current?.emit('chat:mark-read', { conversationId });
+    socketRef.current?.emit("chat:mark-read", { conversationId });
   }, []);
 
   return {

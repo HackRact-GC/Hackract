@@ -1,7 +1,7 @@
-import { useEffect, useState, useRef, useCallback } from 'react';
-import { io } from 'socket.io-client';
+import { useCallback, useEffect, useRef, useState } from "react";
+import { io } from "socket.io-client";
 
-const SOCKET_URL = import.meta.env.VITE_SOCKET_URL || 'http://localhost:4000';
+const SOCKET_URL = import.meta.env.VITE_SOCKET_URL || "http://localhost:4000";
 
 export const useTerminalSocket = (workflowId) => {
   const [socket, setSocket] = useState(null);
@@ -12,21 +12,21 @@ export const useTerminalSocket = (workflowId) => {
     if (!workflowId) return;
 
     const newSocket = io(`${SOCKET_URL}/terminal`, {
-      transports: ['websocket'],
+      transports: ["websocket"],
       query: { workflowId },
     });
 
-    newSocket.on('connect', () => {
+    newSocket.on("connect", () => {
       setIsConnected(true);
       console.log(`💻 Terminal connected to project: ${workflowId}`);
     });
 
-    newSocket.on('disconnect', () => {
+    newSocket.on("disconnect", () => {
       setIsConnected(false);
-      console.log('💻 Terminal disconnected');
+      console.log("💻 Terminal disconnected");
     });
 
-    newSocket.on('output', (data) => {
+    newSocket.on("output", (data) => {
       if (onOutputRef.current) {
         onOutputRef.current(data);
       }
@@ -39,17 +39,23 @@ export const useTerminalSocket = (workflowId) => {
     };
   }, [workflowId]);
 
-  const sendInput = useCallback((data) => {
-    if (socket?.connected) {
-      socket.emit('input', data);
-    }
-  }, [socket]);
+  const sendInput = useCallback(
+    (data) => {
+      if (socket?.connected) {
+        socket.emit("input", data);
+      }
+    },
+    [socket],
+  );
 
-  const sendResize = useCallback((size) => {
-    if (socket?.connected) {
-      socket.emit('resize', size);
-    }
-  }, [socket]);
+  const sendResize = useCallback(
+    (size) => {
+      if (socket?.connected) {
+        socket.emit("resize", size);
+      }
+    },
+    [socket],
+  );
 
   const setOnOutput = useCallback((callback) => {
     onOutputRef.current = callback;

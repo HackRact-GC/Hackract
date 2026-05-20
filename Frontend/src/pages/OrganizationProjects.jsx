@@ -1,15 +1,33 @@
-import React, { useState, useEffect, useMemo } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { motion, AnimatePresence } from 'framer-motion';
+import { AnimatePresence, motion } from "framer-motion";
+import React, { useEffect, useMemo, useState } from "react";
+import toast from "react-hot-toast";
 import {
-  FiShield, FiPlus, FiX, FiUsers, FiClock, FiTarget,
-  FiActivity, FiArrowRight, FiCheck, FiAlertTriangle,
-  FiBriefcase, FiBarChart2, FiPieChart,
-  FiMoreVertical, FiEdit2, FiTrash2, FiExternalLink, FiCalendar, FiGlobe, FiServer, FiFileMinus
-} from 'react-icons/fi';
-import api from '../api/axiosConfig';
-import { useAuth } from '../context/authContext';
-import toast from 'react-hot-toast';
+  FiActivity,
+  FiAlertTriangle,
+  FiArrowRight,
+  FiBarChart2,
+  FiBriefcase,
+  FiCalendar,
+  FiCheck,
+  FiClock,
+  FiEdit2,
+  FiExternalLink,
+  FiFileMinus,
+  FiGlobe,
+  FiMoreVertical,
+  FiPieChart,
+  FiPlus,
+  FiServer,
+  FiShield,
+  FiTarget,
+  FiTrash2,
+  FiUsers,
+  FiX,
+} from "react-icons/fi";
+import { useNavigate } from "react-router-dom";
+
+import api from "../api/axiosConfig";
+import { useAuth } from "../context/authContext";
 
 // ─── MOCK DATA ───────────────────────────────────────────────────────────────
 // Mock data is now only a fallback or removed in favor of real API data
@@ -17,17 +35,53 @@ const FALLBACK_PROJECTS = [];
 
 // ─── CONSTANTS & CONFIG (Executive Black & Green Theme) ───────────────────────
 const STATUS_CONFIG = {
-  PLANNING: { label: "Planning", color: "text-amber-400", bg: "bg-amber-400/10", border: "border-amber-400/30" },
-  IN_PROGRESS: { label: "In Progress", color: "text-[#00c477]", bg: "bg-[#00c477]/10", border: "border-[#00c477]/30" },
-  REPORTING: { label: "Reporting", color: "text-purple-400", bg: "bg-purple-400/10", border: "border-purple-400/30" },
-  CLOSED: { label: "Closed", color: "text-gray-500", bg: "bg-gray-500/10", border: "border-gray-500/30" },
+  PLANNING: {
+    label: "Planning",
+    color: "text-amber-400",
+    bg: "bg-amber-400/10",
+    border: "border-amber-400/30",
+  },
+  IN_PROGRESS: {
+    label: "In Progress",
+    color: "text-[#00c477]",
+    bg: "bg-[#00c477]/10",
+    border: "border-[#00c477]/30",
+  },
+  REPORTING: {
+    label: "Reporting",
+    color: "text-purple-400",
+    bg: "bg-purple-400/10",
+    border: "border-purple-400/30",
+  },
+  CLOSED: {
+    label: "Closed",
+    color: "text-gray-500",
+    bg: "bg-gray-500/10",
+    border: "border-gray-500/30",
+  },
 };
 
 const THREAT_CONFIG = {
-  CRITICAL: { color: "text-rose-500", bg: "bg-rose-500/10", border: "border-rose-500/30" },
-  HIGH: { color: "text-amber-500", bg: "bg-amber-500/10", border: "border-amber-500/30" },
-  MEDIUM: { color: "text-[#00c477]", bg: "bg-[#00c477]/10", border: "border-[#00c477]/30" },
-  LOW: { color: "text-gray-400", bg: "bg-gray-400/10", border: "border-gray-500/30" },
+  CRITICAL: {
+    color: "text-rose-500",
+    bg: "bg-rose-500/10",
+    border: "border-rose-500/30",
+  },
+  HIGH: {
+    color: "text-amber-500",
+    bg: "bg-amber-500/10",
+    border: "border-amber-500/30",
+  },
+  MEDIUM: {
+    color: "text-[#00c477]",
+    bg: "bg-[#00c477]/10",
+    border: "border-[#00c477]/30",
+  },
+  LOW: {
+    color: "text-gray-400",
+    bg: "bg-gray-400/10",
+    border: "border-gray-500/30",
+  },
 };
 
 const FILTERS = ["ALL", "PLANNING", "IN_PROGRESS", "REPORTING", "CLOSED"];
@@ -37,8 +91,12 @@ const FILTERS = ["ALL", "PLANNING", "IN_PROGRESS", "REPORTING", "CLOSED"];
 const StatusBadge = ({ status }) => {
   const cfg = STATUS_CONFIG[status] || STATUS_CONFIG.PLANNING;
   return (
-    <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-[6px] text-[10px] font-bold tracking-wide uppercase border ${cfg.color} ${cfg.bg} ${cfg.border}`}>
-      <span className={`w-1.5 h-1.5 rounded-full ${cfg.color.replace('text-', 'bg-')}`} />
+    <span
+      className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-[6px] text-[10px] font-bold tracking-wide uppercase border ${cfg.color} ${cfg.bg} ${cfg.border}`}
+    >
+      <span
+        className={`w-1.5 h-1.5 rounded-full ${cfg.color.replace("text-", "bg-")}`}
+      />
       {cfg.label}
     </span>
   );
@@ -47,7 +105,9 @@ const StatusBadge = ({ status }) => {
 const ThreatBadge = ({ level }) => {
   const cfg = THREAT_CONFIG[level] || THREAT_CONFIG.MEDIUM;
   return (
-    <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-[4px] text-[10px] font-bold tracking-wider border ${cfg.color} ${cfg.bg} ${cfg.border}`}>
+    <span
+      className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-[4px] text-[10px] font-bold tracking-wider border ${cfg.color} ${cfg.bg} ${cfg.border}`}
+    >
       <FiAlertTriangle className="text-[10px]" />
       {level}
     </span>
@@ -55,9 +115,10 @@ const ThreatBadge = ({ level }) => {
 };
 
 const ProjectCard = ({ project, onManage, index }) => {
+  const navigate = useNavigate();
   const [menuOpen, setMenuOpen] = useState(false);
   const deadline = new Date(project.deadline);
-  const isOverdue = deadline < new Date() && project.status !== 'CLOSED';
+  const isOverdue = deadline < new Date() && project.status !== "CLOSED";
 
   return (
     <motion.div
@@ -74,7 +135,7 @@ const ProjectCard = ({ project, onManage, index }) => {
         </div>
         <div className="relative z-10">
           <button
-            onClick={() => setMenuOpen(v => !v)}
+            onClick={() => setMenuOpen((v) => !v)}
             className="w-8 h-8 rounded-lg flex items-center justify-center text-gray-500 hover:text-white hover:bg-white/10 transition-all"
           >
             <FiMoreVertical fontSize={16} />
@@ -88,24 +149,46 @@ const ProjectCard = ({ project, onManage, index }) => {
                 className="absolute right-0 top-10 bg-[#111] border border-white/10 rounded-xl p-1.5 min-w-[170px] shadow-[0_20px_40px_-5px_rgba(0,0,0,0.8)] backdrop-blur-xl z-20"
               >
                 {[
-                  { icon: FiEdit2, label: "Settings & Scope", action: () => navigate(`/org-projects/${project.id}?tab=settings`) },
-                  { icon: FiExternalLink, label: "Open Workspace", action: () => onManage(project.id) },
                   {
-                    icon: FiTrash2, label: "Archive Program", action: () => {
-                      if (window.confirm("Archive this program? This will delete all project data.")) {
+                    icon: FiEdit2,
+                    label: "Settings & Scope",
+                    action: () =>
+                      navigate(`/org-projects/${project.id}?tab=settings`),
+                  },
+                  {
+                    icon: FiExternalLink,
+                    label: "Open Workspace",
+                    action: () => onManage(project.id),
+                  },
+                  {
+                    icon: FiTrash2,
+                    label: "Archive Program",
+                    action: () => {
+                      if (
+                        window.confirm(
+                          "Archive this program? This will delete all project data.",
+                        )
+                      ) {
                         api.delete(`/projects/${project.id}`).then(() => {
                           toast.success("Program archived");
                           window.location.reload();
                         });
                       }
-                    }, destructive: true
+                    },
+                    destructive: true,
                   },
-                ].map(item => (
+                ].map((item) => (
                   <button
                     key={item.label}
-                    onClick={() => { item.action(); setMenuOpen(false); }}
-                    className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-[13px] font-medium transition-colors text-left ${item.destructive ? 'text-rose-400 hover:bg-rose-500/10' : 'text-gray-300 hover:text-white hover:bg-white/5'
-                      }`}
+                    onClick={() => {
+                      item.action();
+                      setMenuOpen(false);
+                    }}
+                    className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-[13px] font-medium transition-colors text-left ${
+                      item.destructive
+                        ? "text-rose-400 hover:bg-rose-500/10"
+                        : "text-gray-300 hover:text-white hover:bg-white/5"
+                    }`}
                   >
                     <item.icon fontSize={14} />
                     {item.label}
@@ -135,7 +218,11 @@ const ProjectCard = ({ project, onManage, index }) => {
               title={c.user?.fullName || c.user?.email}
             >
               {c.user?.avatar ? (
-                <img src={c.user.avatar} alt="avatar" className="w-full h-full object-cover" />
+                <img
+                  src={c.user.avatar}
+                  alt="avatar"
+                  className="w-full h-full object-cover"
+                />
               ) : (
                 <span>{(c.user?.fullName || "H")[0].toUpperCase()}</span>
               )}
@@ -148,7 +235,7 @@ const ProjectCard = ({ project, onManage, index }) => {
           )}
           {(project.collaborators?.length || 0) > 3 && (
             <div className="w-8 h-8 rounded-full border-2 border-[#0a0a0a] bg-white/5 flex items-center justify-center text-[9px] text-gray-400 font-bold">
-              +{(project.collaborators.length - 3)}
+              +{project.collaborators.length - 3}
             </div>
           )}
         </div>
@@ -157,7 +244,9 @@ const ProjectCard = ({ project, onManage, index }) => {
             Assigned Team
           </span>
           <span className="text-[10px] text-gray-500">
-            {(project.collaborators?.length || 0) === 0 ? 'None assigned' : `${project.collaborators.length} Members`}
+            {(project.collaborators?.length || 0) === 0
+              ? "None assigned"
+              : `${project.collaborators.length} Members`}
           </span>
         </div>
       </div>
@@ -168,11 +257,20 @@ const ProjectCard = ({ project, onManage, index }) => {
           <div className="w-6 h-6 rounded-md bg-[#00c477]/10 flex items-center justify-center text-[#00c477]">
             <FiTarget size={12} />
           </div>
-          <span className="text-gray-200 font-bold">{project._count?.findings || project.findings?.length || 0} <span className="font-normal text-gray-500">Findings</span></span>
+          <span className="text-gray-200 font-bold">
+            {project._count?.findings || project.findings?.length || 0}{" "}
+            <span className="font-normal text-gray-500">Findings</span>
+          </span>
         </div>
-        <div className={`flex items-center gap-1.5 ${isOverdue ? 'text-rose-400 bg-rose-500/10 px-2 py-1 rounded-md' : ''}`}>
+        <div
+          className={`flex items-center gap-1.5 ${isOverdue ? "text-rose-400 bg-rose-500/10 px-2 py-1 rounded-md" : ""}`}
+        >
           <FiCalendar size={13} />
-          <span>{project.endDate ? new Date(project.endDate).toLocaleDateString() : 'No deadline'}</span>
+          <span>
+            {project.endDate
+              ? new Date(project.endDate).toLocaleDateString()
+              : "No deadline"}
+          </span>
         </div>
       </div>
 
@@ -182,7 +280,10 @@ const ProjectCard = ({ project, onManage, index }) => {
         className="mt-6 w-full py-2.5 rounded-xl bg-white/5 hover:bg-[#00c477] border border-white/10 hover:border-[#00c477] text-white hover:text-black text-[13px] font-bold transition-all flex items-center justify-center gap-2 group/btn"
       >
         Manage Program
-        <FiArrowRight size={14} className="group-hover/btn:translate-x-1 transition-transform" />
+        <FiArrowRight
+          size={14}
+          className="group-hover/btn:translate-x-1 transition-transform"
+        />
       </button>
     </motion.div>
   );
@@ -191,19 +292,19 @@ const ProjectCard = ({ project, onManage, index }) => {
 // ─── CREATE PROJECT MODAL ─────────────────────────────────────────────────────
 const CreateProjectModal = ({ onClose, onCreate, organizationId }) => {
   const [form, setForm] = useState({
-    name: '',
-    description: '',
-    type: 'WEB_APP',
-    threatLevel: 'HIGH',
-    startDate: '',
-    endDate: '',
-    targetDomains: '', // Will split by newline/comma
-    ipRanges: '',      // Will split by newline/comma
-    excludedAssets: '',
+    name: "",
+    description: "",
+    type: "WEB_APP",
+    threatLevel: "HIGH",
+    startDate: "",
+    endDate: "",
+    targetDomains: "", // Will split by newline/comma
+    ipRanges: "", // Will split by newline/comma
+    excludedAssets: "",
   });
   const [loading, setLoading] = useState(false);
 
-  const handleSubmit = async e => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     if (!form.name.trim()) return;
     setLoading(true);
@@ -212,18 +313,26 @@ const CreateProjectModal = ({ onClose, onCreate, organizationId }) => {
       const payload = {
         ...form,
         organizationId,
-        targetDomains: form.targetDomains.split(/[\n,]+/).map(s => s.trim()).filter(Boolean),
-        ipRanges: form.ipRanges.split(/[\n,]+/).map(s => s.trim()).filter(Boolean),
+        targetDomains: form.targetDomains
+          .split(/[\n,]+/)
+          .map((s) => s.trim())
+          .filter(Boolean),
+        ipRanges: form.ipRanges
+          .split(/[\n,]+/)
+          .map((s) => s.trim())
+          .filter(Boolean),
       };
 
-      const { data } = await api.post('/projects', payload);
+      const { data } = await api.post("/projects", payload);
       if (data.success) {
         toast.success("Security program initialized!");
         onCreate(data.data);
         onClose();
       }
     } catch (error) {
-      toast.error(error?.response?.data?.error || "Failed to initialize program");
+      toast.error(
+        error?.response?.data?.error || "Failed to initialize program",
+      );
     } finally {
       setLoading(false);
     }
@@ -243,7 +352,7 @@ const CreateProjectModal = ({ onClose, onCreate, organizationId }) => {
         animate={{ opacity: 1, scale: 1, y: 0 }}
         exit={{ opacity: 0, scale: 0.95, y: 20 }}
         className="bg-[#050505] border border-white/10 rounded-3xl w-full max-w-4xl shadow-[0_20px_80px_-15px_rgba(0,196,119,0.15)] relative overflow-hidden flex flex-col md:flex-row"
-        onClick={e => e.stopPropagation()}
+        onClick={(e) => e.stopPropagation()}
       >
         {/* Left Pane - Context & Branding */}
         <div className="md:w-5/12 relative p-8 md:p-10 border-b md:border-b-0 md:border-r border-white/5 flex flex-col justify-between overflow-hidden">
@@ -256,14 +365,17 @@ const CreateProjectModal = ({ onClose, onCreate, organizationId }) => {
               <FiBriefcase className="text-[#00c477] text-2xl" />
             </div>
             <h2 className="text-3xl font-black text-white tracking-tight leading-tight mb-4">
-              Initialize<br />Security Program
+              Initialize
+              <br />
+              Security Program
             </h2>
             <p className="text-sm text-gray-400 leading-relaxed">
-              Configure parameters for the new engagement. Once initialized, the program enters the <strong className="text-[#00c477] font-bold">PLANNING</strong> phase for resource allocation and scoping.
+              Configure parameters for the new engagement. Once initialized, the
+              program enters the{" "}
+              <strong className="text-[#00c477] font-bold">PLANNING</strong>{" "}
+              phase for resource allocation and scoping.
             </p>
           </div>
-
-
         </div>
 
         {/* Right Pane - Form Fields */}
@@ -284,7 +396,9 @@ const CreateProjectModal = ({ onClose, onCreate, organizationId }) => {
               </label>
               <input
                 value={form.name}
-                onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
+                onChange={(e) =>
+                  setForm((f) => ({ ...f, name: e.target.value }))
+                }
                 placeholder="e.g., Core Banking API Audit Q3"
                 required
                 className="w-full bg-[#050505] border border-white/10 focus:border-[#00c477] focus:ring-1 focus:ring-[#00c477] rounded-xl px-4 py-3.5 text-sm text-white outline-none transition-all placeholder-gray-600 shadow-inner"
@@ -297,17 +411,16 @@ const CreateProjectModal = ({ onClose, onCreate, organizationId }) => {
                 Primary Target Asset
               </label>
               <div className="grid grid-cols-3 gap-3">
-                {[
-                  { id: 'WEB_APP', label: 'Web App' }
-                ].map(type => (
+                {[{ id: "WEB_APP", label: "Web App" }].map((type) => (
                   <button
                     key={type.id}
                     type="button"
-                    onClick={() => setForm(f => ({ ...f, type: type.id }))}
-                    className={`py-2.5 rounded-lg text-xs font-bold transition-all border ${form.type === type.id
-                      ? 'bg-[#00c477]/10 border-[#00c477] text-[#00c477]'
-                      : 'bg-black border-white/5 text-gray-500 hover:border-white/20'
-                      }`}
+                    onClick={() => setForm((f) => ({ ...f, type: type.id }))}
+                    className={`py-2.5 rounded-lg text-xs font-bold transition-all border ${
+                      form.type === type.id
+                        ? "bg-[#00c477]/10 border-[#00c477] text-[#00c477]"
+                        : "bg-black border-white/5 text-gray-500 hover:border-white/20"
+                    }`}
                   >
                     {type.label}
                   </button>
@@ -322,7 +435,9 @@ const CreateProjectModal = ({ onClose, onCreate, organizationId }) => {
               </label>
               <textarea
                 value={form.description}
-                onChange={e => setForm(f => ({ ...f, description: e.target.value }))}
+                onChange={(e) =>
+                  setForm((f) => ({ ...f, description: e.target.value }))
+                }
                 rows={2}
                 placeholder="Detail the primary systems and attack vectors to test..."
                 className="w-full bg-[#050505] border border-white/10 focus:border-[#00c477] focus:ring-1 focus:ring-[#00c477] rounded-xl px-4 py-3 text-sm text-white outline-none transition-all placeholder-gray-600 resize-none shadow-inner"
@@ -337,7 +452,9 @@ const CreateProjectModal = ({ onClose, onCreate, organizationId }) => {
                 </label>
                 <textarea
                   value={form.targetDomains}
-                  onChange={e => setForm(f => ({ ...f, targetDomains: e.target.value }))}
+                  onChange={(e) =>
+                    setForm((f) => ({ ...f, targetDomains: e.target.value }))
+                  }
                   rows={2}
                   placeholder="e.g. api.hackract.com, *.hackract.com"
                   className="w-full bg-[#050505] border border-white/10 focus:border-[#00c477] focus:ring-1 focus:ring-[#00c477] rounded-xl px-4 py-3 text-xs text-white outline-none transition-all placeholder-gray-600 resize-none shadow-inner"
@@ -349,7 +466,9 @@ const CreateProjectModal = ({ onClose, onCreate, organizationId }) => {
                 </label>
                 <textarea
                   value={form.ipRanges}
-                  onChange={e => setForm(f => ({ ...f, ipRanges: e.target.value }))}
+                  onChange={(e) =>
+                    setForm((f) => ({ ...f, ipRanges: e.target.value }))
+                  }
                   rows={2}
                   placeholder="e.g. 192.168.1.0/24"
                   className="w-full bg-[#050505] border border-white/10 focus:border-[#00c477] focus:ring-1 focus:ring-[#00c477] rounded-xl px-4 py-3 text-xs text-white outline-none transition-all placeholder-gray-600 resize-none shadow-inner"
@@ -363,7 +482,9 @@ const CreateProjectModal = ({ onClose, onCreate, organizationId }) => {
               </label>
               <input
                 value={form.excludedAssets}
-                onChange={e => setForm(f => ({ ...f, excludedAssets: e.target.value }))}
+                onChange={(e) =>
+                  setForm((f) => ({ ...f, excludedAssets: e.target.value }))
+                }
                 placeholder="Identify systems strictly out of scope..."
                 className="w-full bg-[#050505] border border-white/10 focus:border-[#00c477] focus:ring-1 focus:ring-[#00c477] rounded-xl px-4 py-3 text-sm text-white outline-none transition-all placeholder-gray-600 shadow-inner"
               />
@@ -378,9 +499,11 @@ const CreateProjectModal = ({ onClose, onCreate, organizationId }) => {
                 <input
                   type="date"
                   value={form.startDate}
-                  onChange={e => setForm(f => ({ ...f, startDate: e.target.value }))}
+                  onChange={(e) =>
+                    setForm((f) => ({ ...f, startDate: e.target.value }))
+                  }
                   className="w-full bg-[#050505] border border-white/10 focus:border-[#00c477] focus:ring-1 focus:ring-[#00c477] rounded-xl px-4 py-3 text-sm text-white outline-none transition-all"
-                  style={{ colorScheme: 'dark' }}
+                  style={{ colorScheme: "dark" }}
                 />
               </div>
               <div>
@@ -390,9 +513,11 @@ const CreateProjectModal = ({ onClose, onCreate, organizationId }) => {
                 <input
                   type="date"
                   value={form.endDate}
-                  onChange={e => setForm(f => ({ ...f, endDate: e.target.value }))}
+                  onChange={(e) =>
+                    setForm((f) => ({ ...f, endDate: e.target.value }))
+                  }
                   className="w-full bg-[#050505] border border-white/10 focus:border-[#00c477] focus:ring-1 focus:ring-[#00c477] rounded-xl px-4 py-3 text-sm text-white outline-none transition-all"
-                  style={{ colorScheme: 'dark' }}
+                  style={{ colorScheme: "dark" }}
                 />
               </div>
             </div>
@@ -411,11 +536,12 @@ const CreateProjectModal = ({ onClose, onCreate, organizationId }) => {
                 disabled={loading || !form.name.trim()}
                 className="px-8 py-3 rounded-xl bg-[#00c477] hover:bg-[#009a5e] text-black font-extrabold text-sm shadow-[0_0_20px_rgba(0,196,119,0.3)] focus:ring-4 focus:ring-[#00c477]/30 transition-all disabled:opacity-50 flex items-center gap-2"
               >
-                {loading
-                  ? <div className="w-4 h-4 border-2 border-black/20 border-t-black rounded-full animate-spin" />
-                  : <FiCheck size={16} />
-                }
-                {loading ? 'Initializing...' : 'Deploy Program'}
+                {loading ? (
+                  <div className="w-4 h-4 border-2 border-black/20 border-t-black rounded-full animate-spin" />
+                ) : (
+                  <FiCheck size={16} />
+                )}
+                {loading ? "Initializing..." : "Deploy Program"}
               </button>
             </div>
           </div>
@@ -430,18 +556,23 @@ const OrganizationProjects = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
   const [projects, setProjects] = useState([]);
-  const [filter, setFilter] = useState('ALL');
+  const [filter, setFilter] = useState("ALL");
   const [showCreate, setShowCreate] = useState(false);
   const [loading, setLoading] = useState(true);
 
   // Get the active organization for this user
-  const organization = useMemo(() => user?.organizations?.[0]?.organization, [user]);
+  const organization = useMemo(
+    () => user?.organizations?.[0]?.organization,
+    [user],
+  );
 
   const fetchProjects = async () => {
     if (!organization?.id) return;
     setLoading(true);
     try {
-      const { data } = await api.get(`/projects?organizationId=${organization.id}`);
+      const { data } = await api.get(
+        `/projects?organizationId=${organization.id}`,
+      );
       setProjects(data.data || []);
     } catch (error) {
       toast.error("Failed to sync security programs");
@@ -454,32 +585,39 @@ const OrganizationProjects = () => {
     fetchProjects();
   }, [organization?.id]);
 
-  const filtered = filter === 'ALL' ? projects : projects.filter(p => p.status === filter);
-  const totalHackers = projects.reduce((acc, p) => acc + (p.collaborators?.filter(c => c.role === 'HACKER') || []).length, 0);
-  const totalFindings = projects.reduce((acc, p) => acc + (p._count?.findings || p.findings?.length || 0), 0);
-  const activeCount = projects.filter(p => p.status === 'IN_PROGRESS').length;
+  const filtered =
+    filter === "ALL" ? projects : projects.filter((p) => p.status === filter);
+  const totalHackers = projects.reduce(
+    (acc, p) =>
+      acc + (p.collaborators?.filter((c) => c.role === "HACKER") || []).length,
+    0,
+  );
+  const totalFindings = projects.reduce(
+    (acc, p) => acc + (p._count?.findings || p.findings?.length || 0),
+    0,
+  );
+  const activeCount = projects.filter((p) => p.status === "IN_PROGRESS").length;
 
   if (loading && projects.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center py-64 bg-[#050505] -m-10 min-h-screen">
         <div className="w-12 h-12 border-2 border-white/10 border-t-[#00c477] rounded-full animate-spin mb-4" />
-        <span className="text-[10px] font-black text-white/40 uppercase tracking-[0.3em]">Syncing Mission Grid</span>
+        <span className="text-[10px] font-black text-white/40 uppercase tracking-[0.3em]">
+          Syncing Mission Grid
+        </span>
       </div>
     );
   }
 
   return (
     <div className="flex flex-col h-full bg-[#050505] -m-10 min-h-screen text-gray-200 font-sans selection:bg-[#00c477]/30">
-
       {/* ── Header Area ── */}
       <div className="relative overflow-hidden px-10 pt-12 pb-8 border-b border-white/5 bg-[#050505] z-10">
-
         {/* Subtle Decorative Elements */}
         <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-[#00c477]/5 rounded-full blur-[120px] pointer-events-none" />
 
         <div className="relative z-10 flex flex-col md:flex-row md:items-end justify-between gap-6 max-w-7xl mx-auto">
           <div>
-
             <h1 className="text-4xl font-extrabold text-white tracking-tight leading-none mb-3">
               Security Programs
             </h1>
@@ -499,8 +637,20 @@ const OrganizationProjects = () => {
         {/* Stats Strip */}
         <div className="grid grid-cols-2 md:grid-cols-2 gap-5 mt-10 max-w-7xl mx-auto">
           {[
-            { label: "Total Initiatives", value: projects.length, icon: FiBriefcase, color: "text-[#00c477]", bg: "bg-[#00c477]/10" },
-            { label: "Consultants", value: totalHackers, icon: FiUsers, color: "text-purple-400", bg: "bg-purple-500/10" },
+            {
+              label: "Total Initiatives",
+              value: projects.length,
+              icon: FiBriefcase,
+              color: "text-[#00c477]",
+              bg: "bg-[#00c477]/10",
+            },
+            {
+              label: "Consultants",
+              value: totalHackers,
+              icon: FiUsers,
+              color: "text-purple-400",
+              bg: "bg-purple-500/10",
+            },
           ].map((stat, i) => (
             <motion.div
               key={stat.label}
@@ -509,11 +659,15 @@ const OrganizationProjects = () => {
               transition={{ delay: i * 0.1, duration: 0.5 }}
               className="bg-[#0a0a0a] border border-white/5 rounded-2xl p-5 flex items-center gap-5 hover:border-white/10 transition-colors"
             >
-              <div className={`w-12 h-12 rounded-xl flex items-center justify-center shrink-0 ${stat.bg}`}>
+              <div
+                className={`w-12 h-12 rounded-xl flex items-center justify-center shrink-0 ${stat.bg}`}
+              >
                 <stat.icon className={`text-xl ${stat.color}`} />
               </div>
               <div>
-                <p className="text-[11px] font-bold text-gray-500 uppercase tracking-wider mb-1">{stat.label}</p>
+                <p className="text-[11px] font-bold text-gray-500 uppercase tracking-wider mb-1">
+                  {stat.label}
+                </p>
                 <p className="text-2xl font-black text-white">{stat.value}</p>
               </div>
             </motion.div>
@@ -525,17 +679,22 @@ const OrganizationProjects = () => {
       <div className="px-10 py-5 border-b border-white/5 bg-[#0a0a0a]">
         <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4">
           <div className="flex bg-[#050505] p-1.5 rounded-xl border border-white/5">
-            {FILTERS.map(f => (
+            {FILTERS.map((f) => (
               <button
                 key={f}
                 onClick={() => setFilter(f)}
-                className={`px-5 py-2 rounded-lg text-[11px] font-bold tracking-wide transition-all ${filter === f
-                  ? 'bg-white/10 text-white shadow-sm'
-                  : 'text-gray-500 hover:text-white hover:bg-white/5'
-                  }`}
+                className={`px-5 py-2 rounded-lg text-[11px] font-bold tracking-wide transition-all ${
+                  filter === f
+                    ? "bg-white/10 text-white shadow-sm"
+                    : "text-gray-500 hover:text-white hover:bg-white/5"
+                }`}
               >
-                {f === 'IN_PROGRESS' ? 'Active' : f.charAt(0) + f.slice(1).toLowerCase()}
-                {f === 'ALL' && <span className="ml-1.5 opacity-60">({projects.length})</span>}
+                {f === "IN_PROGRESS"
+                  ? "Active"
+                  : f.charAt(0) + f.slice(1).toLowerCase()}
+                {f === "ALL" && (
+                  <span className="ml-1.5 opacity-60">({projects.length})</span>
+                )}
               </button>
             ))}
           </div>
@@ -561,13 +720,15 @@ const OrganizationProjects = () => {
                 <FiPieChart className="text-gray-600 text-4xl" />
               </div>
               <div className="text-center max-w-sm">
-                <h3 className="text-white font-bold text-xl mb-2 tracking-tight">No Programs Found</h3>
+                <h3 className="text-white font-bold text-xl mb-2 tracking-tight">
+                  No Programs Found
+                </h3>
                 <p className="text-gray-500 text-sm leading-relaxed mb-6">
-                  {filter === 'ALL'
+                  {filter === "ALL"
                     ? "Your organization hasn't initiated any security programs yet."
                     : `No engagements are currently marked as "${filter}".`}
                 </p>
-                {filter === 'ALL' && (
+                {filter === "ALL" && (
                   <button
                     onClick={() => setShowCreate(true)}
                     className="inline-flex items-center gap-2 px-6 py-3 bg-[#00c477] text-black font-extrabold text-sm rounded-xl hover:bg-[#009a5e] transition-all shadow-[0_0_20px_rgba(0,196,119,0.2)]"
@@ -584,12 +745,12 @@ const OrganizationProjects = () => {
                   key={project.id}
                   project={project}
                   index={i}
-                  onManage={id => navigate(`/org-projects/${id}`)}
+                  onManage={(id) => navigate(`/org-projects/${id}`)}
                 />
               ))}
 
               {/* Quick Add Card */}
-              {filter === 'ALL' && (
+              {filter === "ALL" && (
                 <motion.button
                   initial={{ opacity: 0, y: 16 }}
                   animate={{ opacity: 1, y: 0 }}
@@ -600,7 +761,9 @@ const OrganizationProjects = () => {
                   <div className="w-14 h-14 rounded-2xl bg-white/5 flex items-center justify-center group-hover:scale-110 group-hover:bg-[#00c477]/20 group-hover:text-[#00c477] transition-all">
                     <FiPlus className="text-2xl" />
                   </div>
-                  <span className="text-sm font-bold tracking-wide">Initialize Program</span>
+                  <span className="text-sm font-bold tracking-wide">
+                    Initialize Program
+                  </span>
                 </motion.button>
               )}
             </div>
@@ -614,7 +777,9 @@ const OrganizationProjects = () => {
           <CreateProjectModal
             organizationId={organization?.id}
             onClose={() => setShowCreate(false)}
-            onCreate={newProject => setProjects(prev => [newProject, ...prev])}
+            onCreate={(newProject) =>
+              setProjects((prev) => [newProject, ...prev])
+            }
           />
         )}
       </AnimatePresence>

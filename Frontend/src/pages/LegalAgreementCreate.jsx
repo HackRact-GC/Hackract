@@ -1,5 +1,6 @@
 import { useEffect } from "react";
 import { Navigate, useNavigate } from "react-router-dom";
+
 import { useAuth } from "../context/authContext.jsx";
 
 const LegalAgreementCreate = () => {
@@ -10,7 +11,7 @@ const LegalAgreementCreate = () => {
   const isOrgAdmin = roleType === "ORG_ADMIN";
 
   useEffect(() => {
-    navigate('/org-agreement', { replace: true });
+    navigate("/org-agreement", { replace: true });
   }, [navigate]);
 
   return <div className="min-h-screen bg-gray-50" />;

@@ -1,14 +1,27 @@
-import React, { useState } from 'react';
-import { Outlet, useNavigate, useLocation } from 'react-router-dom';
-import { useAuth } from '../context/authContext.jsx';
-import { useNotifications } from '../context/NotificationContext.jsx';
-import NotificationPanel from '../components/NotificationPanel.jsx';
+import { AnimatePresence, motion } from "framer-motion";
+import React, { useState } from "react";
 import {
-  FiGrid, FiBriefcase, FiGlobe, FiShield, FiSettings,
-  FiFileText, FiBell, FiChevronDown, FiPlus, FiCpu,
-  FiActivity, FiTarget, FiZap, FiLogOut, FiMessageSquare
-} from 'react-icons/fi';
-import { motion, AnimatePresence } from 'framer-motion';
+  FiActivity,
+  FiBell,
+  FiBriefcase,
+  FiChevronDown,
+  FiCpu,
+  FiFileText,
+  FiGlobe,
+  FiGrid,
+  FiLogOut,
+  FiMessageSquare,
+  FiPlus,
+  FiSettings,
+  FiShield,
+  FiTarget,
+  FiZap,
+} from "react-icons/fi";
+import { Outlet, useLocation, useNavigate } from "react-router-dom";
+
+import NotificationPanel from "../components/NotificationPanel.jsx";
+import { useAuth } from "../context/authContext.jsx";
+import { useNotifications } from "../context/NotificationContext.jsx";
 
 const OrganizationLayout = () => {
   const navigate = useNavigate();
@@ -19,24 +32,38 @@ const OrganizationLayout = () => {
 
   // Chat-specific unread count for the Messages nav badge
   const { notifications } = useNotifications();
-  const unreadChatCount = notifications.filter(n => n.type === 'CHAT_MESSAGE' && !n.isRead).length;
+  const unreadChatCount = notifications.filter(
+    (n) => n.type === "CHAT_MESSAGE" && !n.isRead,
+  ).length;
 
   const orgName = user?.organization?.name || "Organization";
-  const userInitial = user?.fullName?.[0]?.toUpperCase() || user?.email?.[0]?.toUpperCase() || "O";
+  const userInitial =
+    user?.fullName?.[0]?.toUpperCase() ||
+    user?.email?.[0]?.toUpperCase() ||
+    "O";
 
   const navItems = [
-    { icon: FiGrid, label: 'DASHBOARD', route: '/dashboard' },
-    { icon: FiBriefcase, label: 'PROJECTS', route: '/org-projects' },
-    { icon: FiGlobe, label: 'DISCOVER', route: '/discover' },
-    { icon: FiMessageSquare, label: 'MESSAGES', route: '/org-messages', badge: unreadChatCount },
-    { icon: FiShield, label: 'LEGAL AGREEMENTS', route: '/legal' },
-    { icon: FiSettings, label: 'SETTINGS', route: '/organization-profile' },
-    { icon: FiFileText, label: 'REPORTS', route: '/reports' },
+    { icon: FiGrid, label: "DASHBOARD", route: "/dashboard" },
+    { icon: FiBriefcase, label: "PROJECTS", route: "/org-projects" },
+    { icon: FiGlobe, label: "DISCOVER", route: "/discover" },
+    {
+      icon: FiMessageSquare,
+      label: "MESSAGES",
+      route: "/org-messages",
+      badge: unreadChatCount,
+    },
+    { icon: FiShield, label: "LEGAL AGREEMENTS", route: "/legal" },
+    { icon: FiSettings, label: "SETTINGS", route: "/organization-profile" },
+    { icon: FiFileText, label: "REPORTS", route: "/reports" },
   ];
 
   const isActive = (route) => {
-    if (route === '/legal') {
-      return ['/legal', '/legal/create', '/org-agreement'].some((path) => location.pathname === path || location.pathname.startsWith(`${path}/`));
+    if (route === "/legal") {
+      return ["/legal", "/legal/create", "/org-agreement"].some(
+        (path) =>
+          location.pathname === path ||
+          location.pathname.startsWith(`${path}/`),
+      );
     }
 
     return location.pathname === route;
@@ -44,12 +71,13 @@ const OrganizationLayout = () => {
 
   return (
     <div className="flex h-screen bg-[#050505] text-gray-400 font-sans overflow-hidden">
-
       {/* SIDEBAR */}
       <aside className="w-64 bg-[#050505] border-r border-white/5 flex flex-col z-50">
         <div className="p-8 pb-12">
           <div className="flex flex-col gap-1">
-            <h1 className="text-xl font-black text-white tracking-[0.2em] font-mono">HACKRACT</h1>
+            <h1 className="text-xl font-black text-white tracking-[0.2em] font-mono">
+              HACKRACT
+            </h1>
           </div>
         </div>
 
@@ -58,10 +86,11 @@ const OrganizationLayout = () => {
             <button
               key={item.label}
               onClick={() => navigate(item.route)}
-              className={`w-full flex items-center gap-4 px-8 py-4 transition-all relative group ${isActive(item.route)
-                  ? 'text-[#00c477]'
-                  : 'text-gray-500 hover:text-white hover:bg-white/2'
-                }`}
+              className={`w-full flex items-center gap-4 px-8 py-4 transition-all relative group ${
+                isActive(item.route)
+                  ? "text-[#00c477]"
+                  : "text-gray-500 hover:text-white hover:bg-white/2"
+              }`}
             >
               {isActive(item.route) && (
                 <motion.div
@@ -69,11 +98,15 @@ const OrganizationLayout = () => {
                   className="absolute left-0 w-[3px] h-full bg-[#00c477] shadow-[0_0_15px_#00c477]"
                 />
               )}
-              <item.icon className={`text-lg transition-colors ${isActive(item.route) ? 'text-[#00c477]' : 'group-hover:text-white'}`} />
-              <span className="text-[11px] font-black tracking-[0.2em] font-mono flex-1 text-left">{item.label}</span>
+              <item.icon
+                className={`text-lg transition-colors ${isActive(item.route) ? "text-[#00c477]" : "group-hover:text-white"}`}
+              />
+              <span className="text-[11px] font-black tracking-[0.2em] font-mono flex-1 text-left">
+                {item.label}
+              </span>
               {item.badge > 0 && (
                 <span className="w-4 h-4 rounded-full bg-[#00c477] text-black text-[9px] font-black flex items-center justify-center">
-                  {item.badge > 9 ? '9+' : item.badge}
+                  {item.badge > 9 ? "9+" : item.badge}
                 </span>
               )}
             </button>
@@ -85,7 +118,7 @@ const OrganizationLayout = () => {
           <button
             onClick={() => {
               logout();
-              navigate('/login');
+              navigate("/login");
             }}
             className="w-full flex items-center justify-center gap-3 px-4 py-3 bg-[#ff3366]/10 text-[#ff3366] hover:bg-[#ff3366] hover:text-white rounded-lg transition-all font-mono font-black text-[11px] tracking-widest uppercase border border-[#ff3366]/30"
           >
@@ -97,11 +130,12 @@ const OrganizationLayout = () => {
 
       {/* MAIN CONTENT AREA */}
       <div className="flex-1 flex flex-col min-w-0 relative">
-
         {/* HEADER */}
         <header className="h-16 flex items-center justify-between px-10 border-b border-white/5 bg-[#050505]/50 backdrop-blur-xl z-40 sticky top-0">
           <div className="flex items-center gap-2 cursor-pointer group">
-            <h2 className="text-sm font-black text-white tracking-widest uppercase font-mono group-hover:text-[#00c477] transition-colors">{orgName}</h2>
+            <h2 className="text-sm font-black text-white tracking-widest uppercase font-mono group-hover:text-[#00c477] transition-colors">
+              {orgName}
+            </h2>
             <FiChevronDown className="text-gray-500 group-hover:text-white transition-colors" />
           </div>
 
