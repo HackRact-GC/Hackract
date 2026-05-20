@@ -16,8 +16,7 @@ const NdaModal = ({ agreement, onSigned, onCancel }) => {
   const [scrolled, setScrolled]         = useState(false);
   const [signing, setSigning]           = useState(false);
 
-
-   const handleSign = async () => {
+  const handleSign = async () => {
     if (!acknowledged) return toast.error("Please read and acknowledge the agreement first.");
     setSigning(true);
     try {
@@ -32,7 +31,6 @@ const NdaModal = ({ agreement, onSigned, onCancel }) => {
   };
 
   return (
-    // Backdrop
     <motion.div
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
@@ -130,6 +128,103 @@ const NdaModal = ({ agreement, onSigned, onCancel }) => {
 };
 
 // ──────────────────────────────────────────────────────────────────────
+// Project Details Modal
+// ──────────────────────────────────────────────────────────────────────
+const ProjectDetailsModal = ({ project, onApply, applying, onClose }) => {
+  return (
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4"
+    >
+      <motion.div
+        initial={{ scale: 0.95, opacity: 0, y: 20 }}
+        animate={{ scale: 1, opacity: 1, y: 0 }}
+        exit={{ scale: 0.95, opacity: 0, y: 20 }}
+        className="w-full max-w-xl bg-[#080d14] border border-slate-800 rounded-3xl overflow-hidden shadow-2xl"
+      >
+        {/* Header */}
+        <div className="px-8 py-5 border-b border-slate-800 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-[#00c477]/10 border border-[#00c477]/20 flex items-center justify-center text-[#00c477]">
+              <FiBriefcase size={18} />
+            </div>
+            <div>
+              <p className="text-xs font-black text-white uppercase tracking-widest">{project.organization?.name || "Independent Organization"}</p>
+              <h3 className="text-sm font-bold text-white font-mono mt-0.5">{project.name}</h3>
+            </div>
+          </div>
+          <button onClick={onClose} className="w-8 h-8 rounded-lg bg-slate-900 hover:bg-slate-800 flex items-center justify-center text-slate-400 hover:text-white transition-colors">
+            <FiX size={14} />
+          </button>
+        </div>
+
+        {/* Body */}
+        <div className="px-8 py-6 space-y-6 max-h-[60vh] overflow-y-auto">
+          {/* Description */}
+          <div className="space-y-2">
+            <h4 className="text-[10px] font-black text-[#00c477] uppercase tracking-[0.2em] font-mono">Project Summary</h4>
+            <p className="text-xs text-slate-300 leading-relaxed font-mono">
+              {project.description || "Detailed scope documentation available upon engagement activation."}
+            </p>
+          </div>
+
+          {/* Scope Lock Banner */}
+          <div className="bg-[#0c1322] border border-slate-800/80 rounded-2xl p-5 space-y-4">
+            <div className="flex items-center gap-2.5 text-amber-400 font-mono text-[10px] uppercase tracking-wider">
+              <FiLock size={12} className="animate-pulse" /> Detailed Scope Targets Locked
+            </div>
+            <p className="text-[11px] text-slate-400 leading-relaxed font-mono">
+              Specific target assets (such as domains, IP ranges, and excluded environments) are only visible inside the workspace after signing the Non-Disclosure Agreement (NDA) and getting approved by the organization administrator.
+            </p>
+            <div className="grid grid-cols-2 gap-3 text-[10px] font-mono">
+              <div className="bg-black/40 border border-slate-900 rounded-lg p-2.5">
+                <span className="text-slate-500 block mb-1">Target Domains</span>
+                <span className="text-slate-400 font-bold">[ LOCKED ]</span>
+              </div>
+              <div className="bg-black/40 border border-slate-900 rounded-lg p-2.5">
+                <span className="text-slate-500 block mb-1">IP Ranges</span>
+                <span className="text-slate-400 font-bold">[ LOCKED ]</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Logistics / Timeline */}
+          <div className="grid grid-cols-2 gap-4 border-t border-slate-800/60 pt-4">
+            <div className="space-y-1">
+              <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest block font-mono">Created On</span>
+              <span className="text-xs text-slate-300 font-mono">{new Date(project.createdAt).toLocaleDateString()}</span>
+            </div>
+            <div className="space-y-1">
+              <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest block font-mono">Collaborators</span>
+              <span className="text-xs text-slate-300 font-mono">{project._count?.collaborators || 0} Pentester(s)</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Footer */}
+        <div className="px-8 py-5 border-t border-slate-800 flex items-center justify-end gap-3">
+          <button onClick={onClose} className="px-4 py-2 text-xs text-slate-500 hover:text-slate-300 uppercase tracking-widest font-bold transition-colors">
+            Close
+          </button>
+          <button
+            onClick={() => {
+              onClose();
+              onApply(project.id);
+            }}
+            disabled={applying === project.id}
+            className="flex items-center gap-2 px-5 py-2.5 bg-[#00c477] text-black hover:bg-white rounded-xl text-xs font-black uppercase tracking-widest transition-all active:scale-95 shadow-lg shadow-black/20"
+          >
+            Register Interest
+          </button>
+        </div>
+      </motion.div>
+    </motion.div>
+  );
+};
+
+// ──────────────────────────────────────────────────────────────────────
 // Main EngagementBoard
 // ──────────────────────────────────────────────────────────────────────
 const EngagementBoard = () => {
@@ -141,6 +236,8 @@ const EngagementBoard = () => {
 
   // NDA gate state
   const [ndaModal, setNdaModal]           = useState(null); // { agreement, pendingProjectId }
+  // Details modal state
+  const [detailsModal, setDetailsModal]   = useState(null); // project object
 
   const loadEngagements = async () => {
     setLoading(true);
@@ -216,8 +313,20 @@ const EngagementBoard = () => {
         )}
       </AnimatePresence>
 
+      {/* Details Modal */}
+      <AnimatePresence>
+        {detailsModal && (
+          <ProjectDetailsModal
+            project={detailsModal}
+            onApply={handleApply}
+            applying={applying}
+            onClose={() => setDetailsModal(null)}
+          />
+        )}
+      </AnimatePresence>
+
       {/* Header Section */}
-      <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
+      <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-6 border-b border-white/5 pb-6">
         <div className="space-y-1">
           <div className="flex items-center gap-3">
              <div className="h-8 w-8 bg-[#00c477]/10 border border-[#00c477]/20 rounded flex items-center justify-center text-[#00c477]">
@@ -228,6 +337,20 @@ const EngagementBoard = () => {
           <p className="text-white/70 text-sm max-w-xl">
             Official repository of authorized security engagement opportunities within the Hackract network.
           </p>
+        </div>
+
+        {/* Search Input */}
+        <div className="relative w-full md:w-80 shrink-0">
+          <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-500">
+            <FiSearch size={14} />
+          </div>
+          <input
+            type="text"
+            placeholder="Search engagements..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="w-full pl-10 pr-4 py-2.5 bg-black/40 hover:bg-black/60 focus:bg-black border border-white/10 hover:border-white/20 focus:border-[#00c477] focus:ring-1 focus:ring-[#00c477] rounded-xl text-xs text-white font-mono placeholder:text-slate-600 transition-all outline-none"
+          />
         </div>
       </div>
 
@@ -282,7 +405,6 @@ const EngagementBoard = () => {
                                     {project.status === 'PUBLISHED' ? 'OPEN TENDER' : project.status}
                                 </span>
                                 <span className="text-xs text-white/50 font-mono truncate">ID: {project.id.split('-')[0].toUpperCase()}</span>
-                                {/* NDA required badge */}
                                 <span className="text-[9px] font-black uppercase tracking-widest text-amber-400 bg-amber-500/10 border border-amber-500/20 px-2 py-0.5 rounded flex items-center gap-1">
                                   <FiLock size={8} /> NDA Required
                                 </span>
@@ -323,7 +445,10 @@ const EngagementBoard = () => {
                             <>Register Interest <FiExternalLink /></>
                           )}
                         </button>
-                        <button className="px-4 py-3 bg-white/10 hover:bg-[#00c477] hover:text-black text-white/70 rounded-xl text-[10px] font-black uppercase tracking-widest transition-colors border border-white/10 hover:border-[#00c477]">
+                        <button
+                          onClick={() => setDetailsModal(project)}
+                          className="px-4 py-3 bg-white/10 hover:bg-[#00c477] hover:text-black text-white/70 rounded-xl text-[10px] font-black uppercase tracking-widest transition-colors border border-white/10 hover:border-[#00c477]"
+                        >
                             Details
                         </button>
                       </div>
