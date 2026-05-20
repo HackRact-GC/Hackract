@@ -602,6 +602,19 @@ model ProjectInvitation {
   pentestId   String
   hackerId    String
   invitedById String
+  agreementSource   String?
+  agreementLegalId  String?
+  agreementTitle    String?
+  agreementFileUrl  String?
+  agreementFileName String?
+  agreementFileSize Int?
+  agreementFileMime String?
+  agreementSentAt   DateTime?
+  signedFileUrl     String?
+  signedFileName    String?
+  signedFileSize    Int?
+  signedFileMime    String?
+  signedAt          DateTime?
   expiresAt   DateTime?
   respondedAt DateTime?
   createdAt   DateTime                @default(now())
