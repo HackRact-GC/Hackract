@@ -14,6 +14,11 @@ export default function ChatSidebar({ user, conversations, active, presenceMap, 
   const [findLoading, setFindLoading] = useState(false);
   const [inviteTarget, setInviteTarget] = useState(null);
   const [inviteText, setInviteText] = useState('');
+  const [selectedRoleFilter, setSelectedRoleFilter] = useState(targetRole || 'ALL');
+
+  useEffect(() => {
+    setSelectedRoleFilter(targetRole || 'ALL');
+  }, [targetRole]);
 
   /* Load ALL users when panel opens; filter on type */
   useEffect(() => {
@@ -21,12 +26,15 @@ export default function ChatSidebar({ user, conversations, active, presenceMap, 
     const delay = findQuery.trim() ? 300 : 0;
     const t = setTimeout(async () => {
       setFindLoading(true);
-      try { setFindResults(await chatApi.searchUsers(findQuery, targetRole)); }
+      try {
+        const roleParam = selectedRoleFilter === 'ALL' ? undefined : selectedRoleFilter;
+        setFindResults(await chatApi.searchUsers(findQuery, roleParam));
+      }
       catch { setFindResults([]); }
       finally { setFindLoading(false); }
     }, delay);
     return () => clearTimeout(t);
-  }, [findQuery, showFind]);
+  }, [findQuery, showFind, selectedRoleFilter]);
 
   /* Start a direct conversation and send the first message as invitation text */
   const sendInvitation = async () => {
@@ -116,10 +124,29 @@ export default function ChatSidebar({ user, conversations, active, presenceMap, 
                   <p className="text-[10px] text-gray-600 font-mono">Search by name, handle or email</p>
                 </div>
               </div>
-              <div className="relative">
+              <div className="relative mb-3">
                 <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-600" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" /></svg>
                 <input autoFocus value={findQuery} onChange={(e) => setFindQuery(e.target.value)} placeholder="Search by name or @handle..."
                   className="w-full bg-white/[0.04] border border-white/[0.05] rounded-xl pl-9 pr-4 py-2.5 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-[#00c477]/30 transition-all" />
+              </div>
+              {/* Role filter tabs */}
+              <div className="flex gap-1 bg-white/[0.02] border border-white/[0.05] p-1 rounded-xl">
+                {[
+                  { label: 'All', value: 'ALL' },
+                  { label: 'Hackers', value: 'PENTESTER' },
+                  { label: 'Orgs', value: 'ORG_ADMIN' }
+                ].map((t) => (
+                  <button
+                    key={t.value}
+                    onClick={() => setSelectedRoleFilter(t.value)}
+                    className={`flex-1 py-1.5 px-2 rounded-lg font-mono text-[9px] uppercase tracking-wider font-bold transition-all text-center
+                      ${selectedRoleFilter === t.value
+                        ? 'bg-[#00c477]/10 text-[#00c477] border border-[#00c477]/20 shadow-[0_0_8px_rgba(0,196,119,0.1)]'
+                        : 'bg-transparent border border-transparent text-gray-400 hover:text-white'}`}
+                  >
+                    {t.label}
+                  </button>
+                ))}
               </div>
             </div>
             <div className="flex-1 overflow-y-auto py-1">
