@@ -11,6 +11,7 @@ import {
   FiAward, FiBriefcase, FiMessageSquare, FiCheckCircle,
   FiActivity, FiZap, FiCpu, FiTarget, FiUsers, FiLock,
   FiTrendingUp, FiCalendar, FiGlobe, FiAlertTriangle, FiFolder,
+  FiEdit2,
 } from 'react-icons/fi';
 
 
@@ -29,7 +30,7 @@ const normalise = (profile) => {
     .map(p => ({
       id: p.id,
       org: p.organization?.name || '[Confidential]',
-      year: new Date(p.createdAt).getFullYear(),
+      year: new Date(p.createdAt).toLocaleDateString('en-US'),
       title: p.name,
       status: p.status,
       role: p.role,
@@ -37,11 +38,14 @@ const normalise = (profile) => {
     }));
 
   const reviews = (u.reviewsReceived || []).map(r => ({
+    id: r.id,
+    fromId: r.author?.id,
     from: r.author?.fullName || r.author?.handle || 'Anonymous',
     rating: r.rating,
     text: r.comment || '',
     date: new Date(r.createdAt).toLocaleDateString('en-US', { month: 'short', year: 'numeric' }),
     project: r.pentest?.name || null,
+    pentestId: r.pentest?.id || '',
   }));
 
   const skills = profile.primarySkills || [];
@@ -466,7 +470,6 @@ const ProjectsSection = ({ hacker }) => (
                   <span className="text-sm font-bold text-white">{p.org}</span>
                   <span className="text-[10px] text-gray-600 font-mono">— {p.year}</span>
                 </div>
-                <p className="text-xs text-gray-400 mt-1">{p.title}</p>
               </div>
 
             </motion.div>
@@ -516,7 +519,22 @@ const ReviewsSection = ({ hacker, isOrgAdmin, user, onSubmitReview }) => {
   const [hoverRating, setHoverRating] = useState(0);
   const [comment, setComment] = useState('');
   const [selectedPentestId, setSelectedPentestId] = useState('');
+  const [editingReview, setEditingReview] = useState(null);
   const [submitting, setSubmitting] = useState(false);
+
+  const existingReview = hacker.reviews?.find(r => r.fromId === user?.id);
+
+  useEffect(() => {
+    if (editingReview) {
+      setRating(editingReview.rating || 5);
+      setComment(editingReview.text || '');
+      setSelectedPentestId(editingReview.pentestId || '');
+    } else {
+      setRating(5);
+      setComment('');
+      setSelectedPentestId('');
+    }
+  }, [editingReview]);
 
   const userOrgIds = user?.organizations?.map(org => org.organizationId) || [];
   const orgProjects = (hacker.projects || []).filter(proj => userOrgIds.includes(proj.organizationId));
@@ -526,9 +544,7 @@ const ReviewsSection = ({ hacker, isOrgAdmin, user, onSubmitReview }) => {
     setSubmitting(true);
     try {
       await onSubmitReview({ rating, comment, pentestId: selectedPentestId || null });
-      setRating(5);
-      setComment('');
-      setSelectedPentestId('');
+      setEditingReview(null);
     } catch (err) {
       // Error handled by parent toast
     } finally {
@@ -538,106 +554,32 @@ const ReviewsSection = ({ hacker, isOrgAdmin, user, onSubmitReview }) => {
 
   return (
     <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} className="space-y-6">
-      {/* Rate Form for Org Admin */}
-      {isOrgAdmin && (
-        <div className="bg-[#0a0a0a] border border-white/5 rounded-2xl p-8 shadow-2xl relative overflow-hidden">
-          <div className="absolute inset-0 pointer-events-none">
-            <div className="absolute -top-12 -right-12 w-48 h-48 bg-[#00c477]/5 rounded-full blur-2xl" />
-          </div>
-
-          <div className="flex items-center gap-3 mb-6">
-            <div className="w-8 h-8 rounded-lg bg-[#00c477]/10 border border-[#00c477]/20 flex items-center justify-center">
-              <FiStar className="text-[#00c477] text-sm" />
-            </div>
-            <h2 className="text-lg font-black text-white tracking-tight">Evaluate Pentester</h2>
-          </div>
-
-          <form onSubmit={handleSubmit} className="space-y-5">
-            {/* Rating Stars Input */}
-            <div>
-              <label className="text-[10px] font-black text-gray-500 tracking-[0.2em] uppercase block mb-3 font-mono">
-                Overall Assessment
-              </label>
-              <div className="flex items-center gap-2">
-                {[1, 2, 3, 4, 5].map((star) => (
-                  <button
-                    key={star}
-                    type="button"
-                    onClick={() => setRating(star)}
-                    onMouseEnter={() => setHoverRating(star)}
-                    onMouseLeave={() => setHoverRating(0)}
-                    className="p-1 transition-transform active:scale-95 text-2xl animate-pulse-subtle"
-                  >
-                    <FiStar
-                      className={`transition-all duration-150 ${
-                        star <= (hoverRating || rating)
-                          ? 'text-[#00c477] fill-[#00c477] scale-110 drop-shadow-[0_0_8px_rgba(0,196,119,0.4)]'
-                          : 'text-gray-700'
-                      }`}
-                    />
-                  </button>
-                ))}
-                <span className="text-xs text-gray-400 font-mono ml-2">
-                  ({rating} of 5 stars)
-                </span>
-              </div>
-            </div>
-
-            {/* Project Selection Dropdown */}
-            {orgProjects.length > 0 && (
-              <div>
-                <label className="text-[10px] font-black text-gray-500 tracking-[0.2em] uppercase block mb-2 font-mono">
-                  Associate with Project
-                </label>
-                <select
-                  value={selectedPentestId}
-                  onChange={(e) => setSelectedPentestId(e.target.value)}
-                  className="w-full bg-[#0c0c0c] border border-white/5 focus:border-[#00c477]/40 rounded-xl px-4 py-3 text-sm text-gray-300 outline-none transition-all cursor-pointer font-mono"
-                >
-                  <option value="">-- General Evaluation (No Specific Project) --</option>
-                  {orgProjects.map((proj) => (
-                    <option key={proj.id} value={proj.id}>
-                      {proj.title} ({proj.org})
-                    </option>
-                  ))}
-                </select>
-              </div>
-            )}
-
-            {/* Comment field */}
-            <div>
-              <label className="text-[10px] font-black text-gray-500 tracking-[0.2em] uppercase block mb-2 font-mono">
-                Detailed Review
-              </label>
-              <textarea
-                value={comment}
-                onChange={(e) => setComment(e.target.value)}
-                placeholder="Leave structured feedback regarding communication, performance, or technical expertise..."
-                required
-                className="w-full bg-[#0c0c0c] border border-white/5 focus:border-[#00c477]/40 focus:ring-1 focus:ring-[#00c477]/20 rounded-xl px-4 py-3 text-sm text-white placeholder-gray-600 outline-none transition-all resize-none h-28"
-              />
-            </div>
-
-            {/* Submit Button */}
-            <button
-              type="submit"
-              disabled={submitting}
-              className="px-6 py-3 rounded-xl bg-[#00c477] hover:bg-[#009a5e] text-black font-black text-xs uppercase tracking-widest shadow-[0_0_20px_rgba(0,196,119,0.15)] hover:shadow-[0_0_30px_rgba(0,196,119,0.3)] transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
-            >
-              {submitting && <div className="w-3.5 h-3.5 border-2 border-black border-t-transparent rounded-full animate-spin" />}
-              {submitting ? 'Submitting...' : 'Submit Evaluation'}
-            </button>
-          </form>
-        </div>
-      )}
-
       {/* Reviews List */}
       <div className="bg-[#0a0a0a] border border-white/5 rounded-2xl p-8">
-        <div className="flex items-center gap-3 mb-6">
-          <div className="w-8 h-8 rounded-lg bg-[#00c477]/10 border border-[#00c477]/20 flex items-center justify-center">
-            <FiMessageSquare className="text-[#00c477] text-sm" />
+        <div className="flex items-start justify-between gap-4 mb-6 flex-wrap">
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 rounded-lg bg-[#00c477]/10 border border-[#00c477]/20 flex items-center justify-center">
+              <FiMessageSquare className="text-[#00c477] text-sm" />
+            </div>
+            <div>
+              <h2 className="text-lg font-black text-white tracking-tight">Client Reviews</h2>
+              {existingReview && isOrgAdmin && (
+                <p className="text-[10px] text-gray-400 uppercase tracking-[0.25em] mt-1 font-mono">
+                  Your organization’s rating can be edited by clicking the pencil icon.
+                </p>
+              )}
+            </div>
           </div>
-          <h2 className="text-lg font-black text-white tracking-tight">Client Reviews</h2>
+          {isOrgAdmin && (
+            <button
+              type="button"
+              onClick={() => setEditingReview(existingReview || { rating: 5, text: '', pentestId: '' })}
+              className="inline-flex items-center gap-2 px-3 py-2 text-[10px] uppercase tracking-[0.25em] bg-white/5 border border-white/10 rounded-full text-white hover:bg-white/10 transition"
+            >
+              <FiEdit2 className="text-[#00c477]" />
+              {existingReview ? 'Edit Your Review' : 'Leave Review'}
+            </button>
+          )}
         </div>
         {hacker.reviews.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-16 gap-4">
@@ -672,7 +614,19 @@ const ReviewsSection = ({ hacker, isOrgAdmin, user, onSubmitReview }) => {
                       ))}
                     </div>
                   </div>
-                  <span className="text-[10px] text-gray-600 font-mono">{r.date}</span>
+                  <div className="flex items-center gap-2">
+                    <span className="text-[10px] text-gray-600 font-mono">{r.date}</span>
+                    {isOrgAdmin && r.fromId === user?.id && (
+                      <button
+                        type="button"
+                        onClick={() => setEditingReview(r)}
+                        className="p-2 rounded-full text-gray-400 hover:text-[#00c477] transition"
+                        aria-label="Edit your review"
+                      >
+                        <FiEdit2 className="text-base" />
+                      </button>
+                    )}
+                  </div>
                 </div>
                 <p className="text-sm text-gray-400 leading-relaxed font-sans">"{r.text}"</p>
               </motion.div>
@@ -680,6 +634,107 @@ const ReviewsSection = ({ hacker, isOrgAdmin, user, onSubmitReview }) => {
           </div>
         )}
       </div>
+
+      {editingReview && isOrgAdmin && (
+        <div className="bg-[#0a0a0a] border border-white/5 rounded-2xl p-8 shadow-2xl relative overflow-hidden">
+          <div className="absolute inset-0 pointer-events-none">
+            <div className="absolute -top-12 -right-12 w-48 h-48 bg-[#00c477]/5 rounded-full blur-2xl" />
+          </div>
+
+          <div className="flex items-center gap-3 mb-4">
+            <div className="w-8 h-8 rounded-lg bg-[#00c477]/10 border border-[#00c477]/20 flex items-center justify-center">
+              <FiStar className="text-[#00c477] text-sm" />
+            </div>
+            <div>
+              <h2 className="text-lg font-black text-white tracking-tight">{editingReview?.id ? 'Edit Your Review' : 'Leave a Review'}</h2>
+              <p className="text-xs text-gray-400 uppercase tracking-[0.25em] mt-1 font-mono">
+                Update your rating for this pentester.
+              </p>
+            </div>
+          </div>
+
+          <form onSubmit={handleSubmit} className="space-y-5">
+            {/* Rating Stars Input */}
+            <div>
+              <label className="text-[10px] font-black text-gray-500 tracking-[0.2em] uppercase block mb-3 font-mono">
+                Overall Assessment
+              </label>
+              <div className="flex items-center gap-2">
+                {[1, 2, 3, 4, 5].map((star) => (
+                  <button
+                    key={star}
+                    type="button"
+                    onClick={() => setRating(star)}
+                    onMouseEnter={() => setHoverRating(star)}
+                    onMouseLeave={() => setHoverRating(0)}
+                    className="p-1 transition-transform active:scale-95 text-2xl animate-pulse-subtle"
+                  >
+                    <FiStar
+                      className={`transition-all duration-150 ${
+                        star <= (hoverRating || rating)
+                          ? 'text-[#00c477] fill-[#00c477] scale-110 drop-shadow-[0_0_8px_rgba(0,196,119,0.4)]'
+                          : 'text-gray-700'
+                      }`}
+                    />
+                  </button>
+                ))}
+                <span className="text-xs text-gray-400 font-mono ml-2">
+                  ({rating} of 5 stars)
+                </span>
+              </div>
+            </div>
+
+            {orgProjects.length > 0 && (
+              <div>
+                <label className="text-[10px] font-black text-gray-500 tracking-[0.2em] uppercase block mb-2 font-mono">
+                  Related Engagement
+                </label>
+                <select
+                  value={selectedPentestId}
+                  onChange={(e) => setSelectedPentestId(e.target.value)}
+                  className="w-full bg-[#0c0c0c] border border-white/5 rounded-xl px-4 py-3 text-sm text-white outline-none focus:border-[#00c477]/40 transition-all"
+                >
+                  <option value="">Select an engagement</option>
+                  {orgProjects.map((project) => (
+                    <option key={project.id} value={project.id}>{project.org} — {project.year}</option>
+                  ))}
+                </select>
+              </div>
+            )}
+
+            <div>
+              <label className="text-[10px] font-black text-gray-500 tracking-[0.2em] uppercase block mb-2 font-mono">
+                Detailed Review
+              </label>
+              <textarea
+                value={comment}
+                onChange={(e) => setComment(e.target.value)}
+                placeholder="Leave structured feedback regarding communication, performance, or technical expertise..."
+                required
+                className="w-full bg-[#0c0c0c] border border-white/5 focus:border-[#00c477]/40 focus:ring-1 focus:ring-[#00c477]/20 rounded-xl px-4 py-3 text-sm text-white placeholder-gray-600 outline-none transition-all resize-none h-28"
+              />
+            </div>
+
+            <div className="flex flex-wrap gap-3 items-center">
+              <button
+                type="submit"
+                disabled={submitting}
+                className="px-6 py-3 rounded-xl bg-[#00c477] hover:bg-[#009a5e] text-black font-black text-xs uppercase tracking-widest shadow-[0_0_20px_rgba(0,196,119,0.15)] hover:shadow-[0_0_30px_rgba(0,196,119,0.3)] transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+              >
+                {submitting && <div className="w-3.5 h-3.5 border-2 border-black border-t-transparent rounded-full animate-spin" />}
+                {submitting ? 'Submitting...' : editingReview?.id ? 'Update Evaluation' : 'Submit Evaluation'}
+              </button>
+              <button
+                type="button"
+                onClick={() => setEditingReview(null)}
+                className="px-5 py-3 rounded-xl border border-white/10 text-white text-xs uppercase tracking-widest hover:bg-white/5 transition"
+              >
+                Cancel
+              </button>
+            </div>
+          </form>
+        </div>
+      )}
     </motion.div>
   );
 };

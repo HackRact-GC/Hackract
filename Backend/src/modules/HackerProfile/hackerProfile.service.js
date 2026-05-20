@@ -65,7 +65,7 @@ export const getPublicProfile = async (userId) => {
           reviewsReceived: {
             select: {
               id: true, rating: true, comment: true, createdAt: true,
-              author: { select: { fullName: true, handle: true } },
+              author: { select: { id: true, fullName: true, handle: true } },
               pentest: { select: { id: true, name: true } },
             },
             orderBy: { createdAt: 'desc' },
@@ -118,19 +118,42 @@ export const createHackerReview = async (authorId, subjectId, rating, comment, p
     }
   }
 
-  const review = await prisma.review.create({
-    data: {
+  const existingReview = await prisma.review.findFirst({
+    where: {
       authorId,
       subjectId,
-      rating: ratingNum,
-      comment: comment || null,
-      pentestId: pentestId || null,
     },
-    include: {
-      author: { select: { fullName: true, handle: true } },
-      pentest: { select: { id: true, name: true } },
-    }
   });
+
+  const reviewData = {
+    rating: ratingNum,
+    comment: comment || null,
+    pentestId: pentestId || null,
+  };
+
+  let review;
+  if (existingReview) {
+    review = await prisma.review.update({
+      where: { id: existingReview.id },
+      data: reviewData,
+      include: {
+        author: { select: { id: true, fullName: true, handle: true } },
+        pentest: { select: { id: true, name: true } },
+      },
+    });
+  } else {
+    review = await prisma.review.create({
+      data: {
+        authorId,
+        subjectId,
+        ...reviewData,
+      },
+      include: {
+        author: { select: { id: true, fullName: true, handle: true } },
+        pentest: { select: { id: true, name: true } },
+      }
+    });
+  }
 
   return review;
 };
@@ -292,7 +315,7 @@ export const discoverHackers = async ({ page = 1, limit = 12, search, skills, ce
 
   const enrichedProfiles = profiles.map(profile => {
     const u = profile.user || {};
-    
+
     // Calculate averageRating and totalReviews
     const reviews = u.reviewsReceived || [];
     const totalReviews = reviews.length;
@@ -310,7 +333,7 @@ export const discoverHackers = async ({ page = 1, limit = 12, search, skills, ce
 
     // Determine category / rank based on averageRating, trustScore, and successRate
     const trustScore = u.trustScore ?? 100;
-    
+
     let rank = 'BRONZE';
     if (trustScore >= 120 && successRate >= 80 && (totalReviews === 0 || averageRating >= 4.0)) {
       rank = 'GOLD';
