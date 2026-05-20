@@ -1,24 +1,35 @@
+import { AnimatePresence, motion } from "framer-motion";
 import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
-import { motion, AnimatePresence } from "framer-motion";
 import toast from "react-hot-toast";
-import api from "../api/axiosConfig";
 import {
-  FiSearch, FiBriefcase, FiArrowRight, FiClock, FiShield, FiCpu,
-  FiExternalLink, FiFileText, FiCheckCircle, FiLock, FiX, FiAlertTriangle,
+  FiAlertTriangle,
+  FiArrowRight,
+  FiBriefcase,
+  FiCheckCircle,
+  FiClock,
+  FiCpu,
+  FiExternalLink,
+  FiFileText,
+  FiLock,
+  FiSearch,
+  FiShield,
+  FiX,
 } from "react-icons/fi";
+import { useNavigate } from "react-router-dom";
+
+import api from "../api/axiosConfig";
 
 // ──────────────────────────────────────────────────────────────────────
 // Inline NDA Modal shown before applying to an org project
 // ──────────────────────────────────────────────────────────────────────
 const NdaModal = ({ agreement, onSigned, onCancel }) => {
   const [acknowledged, setAcknowledged] = useState(false);
-  const [scrolled, setScrolled]         = useState(false);
-  const [signing, setSigning]           = useState(false);
+  const [scrolled, setScrolled] = useState(false);
+  const [signing, setSigning] = useState(false);
 
-
-   const handleSign = async () => {
-    if (!acknowledged) return toast.error("Please read and acknowledge the agreement first.");
+  const handleSign = async () => {
+    if (!acknowledged)
+      return toast.error("Please read and acknowledge the agreement first.");
     setSigning(true);
     try {
       await api.post("/user-signatures/sign", { agreementId: agreement.id });
@@ -52,11 +63,18 @@ const NdaModal = ({ agreement, onSigned, onCancel }) => {
               <FiFileText size={18} />
             </div>
             <div>
-              <p className="text-xs font-black text-white uppercase tracking-widest">{agreement.title}</p>
-              <p className="text-[10px] text-slate-600 font-mono mt-0.5">v{agreement.version} · Required to apply</p>
+              <p className="text-xs font-black text-white uppercase tracking-widest">
+                {agreement.title}
+              </p>
+              <p className="text-[10px] text-slate-600 font-mono mt-0.5">
+                v{agreement.version} · Required to apply
+              </p>
             </div>
           </div>
-          <button onClick={onCancel} className="w-8 h-8 rounded-lg bg-slate-900 hover:bg-slate-800 flex items-center justify-center text-slate-400 hover:text-white transition-colors">
+          <button
+            onClick={onCancel}
+            className="w-8 h-8 rounded-lg bg-slate-900 hover:bg-slate-800 flex items-center justify-center text-slate-400 hover:text-white transition-colors"
+          >
             <FiX size={14} />
           </button>
         </div>
@@ -64,14 +82,17 @@ const NdaModal = ({ agreement, onSigned, onCancel }) => {
         {/* NDA Body — scrollable */}
         <div
           className="px-8 py-5 max-h-64 overflow-y-auto text-xs text-slate-400 leading-relaxed space-y-3"
-          onScroll={e => {
+          onScroll={(e) => {
             const el = e.target;
-            if (el.scrollHeight - el.scrollTop <= el.clientHeight + 40) setScrolled(true);
+            if (el.scrollHeight - el.scrollTop <= el.clientHeight + 40)
+              setScrolled(true);
           }}
         >
-          {agreement.content.split("\n").map((line, i) =>
-            line.trim() ? <p key={i}>{line}</p> : <br key={i} />
-          )}
+          {agreement.content
+            .split("\n")
+            .map((line, i) =>
+              line.trim() ? <p key={i}>{line}</p> : <br key={i} />,
+            )}
         </div>
 
         {!scrolled && (
@@ -84,21 +105,28 @@ const NdaModal = ({ agreement, onSigned, onCancel }) => {
         <div className="px-8 py-5 border-t border-slate-800 bg-slate-900/30">
           <label className="flex items-start gap-3 cursor-pointer group">
             <div
-              onClick={() => setAcknowledged(v => !v)}
+              onClick={() => setAcknowledged((v) => !v)}
               className={`mt-0.5 w-5 h-5 shrink-0 rounded-md border-2 flex items-center justify-center transition-all ${
-                acknowledged ? "bg-[#00c477] border-[#00c477]" : "border-slate-700 group-hover:border-slate-500"
+                acknowledged
+                  ? "bg-[#00c477] border-[#00c477]"
+                  : "border-slate-700 group-hover:border-slate-500"
               }`}
             >
               <AnimatePresence>
                 {acknowledged && (
-                  <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} exit={{ scale: 0 }}>
+                  <motion.div
+                    initial={{ scale: 0 }}
+                    animate={{ scale: 1 }}
+                    exit={{ scale: 0 }}
+                  >
                     <FiCheckCircle size={11} className="text-black" />
                   </motion.div>
                 )}
               </AnimatePresence>
             </div>
             <p className="text-xs text-slate-400 leading-relaxed select-none group-hover:text-slate-300 transition-colors">
-              I have read and agree to be legally bound by this Non-Disclosure Agreement.
+              I have read and agree to be legally bound by this Non-Disclosure
+              Agreement.
             </p>
           </label>
         </div>
@@ -108,7 +136,10 @@ const NdaModal = ({ agreement, onSigned, onCancel }) => {
           <div className="flex items-center gap-2 text-slate-700 text-[10px] font-mono flex-1">
             <FiLock size={10} /> Signature is logged with IP & timestamp
           </div>
-          <button onClick={onCancel} className="px-4 py-2 text-xs text-slate-500 hover:text-slate-300 uppercase tracking-widest font-bold transition-colors">
+          <button
+            onClick={onCancel}
+            className="px-4 py-2 text-xs text-slate-500 hover:text-slate-300 uppercase tracking-widest font-bold transition-colors"
+          >
             Cancel
           </button>
           <button
@@ -120,7 +151,11 @@ const NdaModal = ({ agreement, onSigned, onCancel }) => {
                 : "bg-slate-800 text-slate-600 cursor-not-allowed"
             }`}
           >
-            {signing ? <div className="w-3.5 h-3.5 border-2 border-current border-t-transparent rounded-full animate-spin" /> : <FiCheckCircle size={13} />}
+            {signing ? (
+              <div className="w-3.5 h-3.5 border-2 border-current border-t-transparent rounded-full animate-spin" />
+            ) : (
+              <FiCheckCircle size={13} />
+            )}
             {signing ? "Signing…" : "Sign & Continue"}
           </button>
         </div>
@@ -134,13 +169,13 @@ const NdaModal = ({ agreement, onSigned, onCancel }) => {
 // ──────────────────────────────────────────────────────────────────────
 const EngagementBoard = () => {
   const navigate = useNavigate();
-  const [projects, setProjects]           = useState([]);
-  const [loading, setLoading]             = useState(true);
-  const [applying, setApplying]           = useState(null);
-  const [searchQuery, setSearchQuery]     = useState("");
+  const [projects, setProjects] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [applying, setApplying] = useState(null);
+  const [searchQuery, setSearchQuery] = useState("");
 
   // NDA gate state
-  const [ndaModal, setNdaModal]           = useState(null); // { agreement, pendingProjectId }
+  const [ndaModal, setNdaModal] = useState(null); // { agreement, pendingProjectId }
 
   const loadEngagements = async () => {
     setLoading(true);
@@ -154,7 +189,9 @@ const EngagementBoard = () => {
     }
   };
 
-  useEffect(() => { loadEngagements(); }, []);
+  useEffect(() => {
+    loadEngagements();
+  }, []);
 
   // Submit the actual application
   const submitApplication = async (projectId) => {
@@ -198,9 +235,10 @@ const EngagementBoard = () => {
     await submitApplication(pendingProjectId);
   };
 
-  const filteredProjects = projects.filter(p =>
-    p.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    p.organization?.name.toLowerCase().includes(searchQuery.toLowerCase())
+  const filteredProjects = projects.filter(
+    (p) =>
+      p.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      p.organization?.name.toLowerCase().includes(searchQuery.toLowerCase()),
   );
 
   return (
@@ -220,13 +258,16 @@ const EngagementBoard = () => {
       <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
         <div className="space-y-1">
           <div className="flex items-center gap-3">
-             <div className="h-8 w-8 bg-[#00c477]/10 border border-[#00c477]/20 rounded flex items-center justify-center text-[#00c477]">
-                <FiShield size={18} />
-             </div>
-             <h1 className="text-2xl font-bold tracking-tight text-white">Public Engagement Board</h1>
+            <div className="h-8 w-8 bg-[#00c477]/10 border border-[#00c477]/20 rounded flex items-center justify-center text-[#00c477]">
+              <FiShield size={18} />
+            </div>
+            <h1 className="text-2xl font-bold tracking-tight text-white">
+              Public Engagement Board
+            </h1>
           </div>
           <p className="text-white/70 text-sm max-w-xl">
-            Official repository of authorized security engagement opportunities within the Hackract network.
+            Official repository of authorized security engagement opportunities
+            within the Hackract network.
           </p>
         </div>
       </div>
@@ -235,8 +276,12 @@ const EngagementBoard = () => {
       <div className="flex items-start gap-3 bg-amber-500/5 border border-amber-500/15 rounded-2xl px-6 py-4">
         <FiAlertTriangle className="text-amber-400 mt-0.5 shrink-0" size={14} />
         <p className="text-xs text-amber-200/60 leading-relaxed">
-          <span className="font-black text-amber-400">NDA Required for Org Programs. </span>
-          To register interest in any organization-hosted project, you will be prompted to sign the platform Non-Disclosure Agreement. This only needs to be done once.
+          <span className="font-black text-amber-400">
+            NDA Required for Org Programs.{" "}
+          </span>
+          To register interest in any organization-hosted project, you will be
+          prompted to sign the platform Non-Disclosure Agreement. This only
+          needs to be done once.
         </p>
       </div>
 
@@ -245,20 +290,27 @@ const EngagementBoard = () => {
           <AnimatePresence mode="wait">
             {loading ? (
               <motion.div
-                initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
                 className="py-32 flex flex-col items-center gap-4 text-white/60 font-mono"
               >
                 <div className="w-12 h-12 border-2 border-white/10 border-t-[#00c477] rounded-full animate-spin shadow-[0_0_15px_rgba(0,255,136,0.15)]" />
-                <span className="text-[10px] uppercase tracking-[0.3em] animate-pulse">Synchronizing Engagement Feed</span>
+                <span className="text-[10px] uppercase tracking-[0.3em] animate-pulse">
+                  Synchronizing Engagement Feed
+                </span>
               </motion.div>
             ) : filteredProjects.length === 0 ? (
               <motion.div
-                initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
                 className="py-24 text-center border border-white/10 border-dashed rounded-3xl bg-black/50 text-white/60"
               >
                 <div className="text-4xl mb-4 opacity-20">📡</div>
                 <p className="font-medium">No engagement matches found</p>
-                <p className="text-xs mt-1 text-white/40">Adjust your criteria or check back for new postings.</p>
+                <p className="text-xs mt-1 text-white/40">
+                  Adjust your criteria or check back for new postings.
+                </p>
               </motion.div>
             ) : (
               <div className="grid gap-5">
@@ -271,40 +323,51 @@ const EngagementBoard = () => {
                     className="bg-black/70 backdrop-blur-md border border-white/10 p-6 rounded-4xl hover:border-[#00c477]/30 hover:bg-black transition-all group relative overflow-hidden"
                   >
                     <div className="absolute top-0 right-0 p-8 opacity-[0.03] group-hover:opacity-[0.08] transition-opacity pointer-events-none">
-                        <FiCpu size={80} />
+                      <FiCpu size={80} />
                     </div>
 
                     <div className="flex flex-col md:flex-row items-start justify-between gap-6 relative z-10">
                       <div className="space-y-4 flex-1">
                         <div className="space-y-1">
-                            <div className="flex items-center gap-3">
-                                <span className="text-[10px] font-mono font-bold text-[#00c477] uppercase tracking-widest bg-[#00c477]/10 px-2 py-0.5 rounded">
-                                    {project.status === 'PUBLISHED' ? 'OPEN TENDER' : project.status}
-                                </span>
-                                <span className="text-xs text-white/50 font-mono truncate">ID: {project.id.split('-')[0].toUpperCase()}</span>
-                                {/* NDA required badge */}
-                                <span className="text-[9px] font-black uppercase tracking-widest text-amber-400 bg-amber-500/10 border border-amber-500/20 px-2 py-0.5 rounded flex items-center gap-1">
-                                  <FiLock size={8} /> NDA Required
-                                </span>
-                            </div>
-                              <h3 className="text-xl font-bold text-white group-hover:text-[#00c477] transition-colors tracking-tight">
-                                {project.name}
-                            </h3>
+                          <div className="flex items-center gap-3">
+                            <span className="text-[10px] font-mono font-bold text-[#00c477] uppercase tracking-widest bg-[#00c477]/10 px-2 py-0.5 rounded">
+                              {project.status === "PUBLISHED"
+                                ? "OPEN TENDER"
+                                : project.status}
+                            </span>
+                            <span className="text-xs text-white/50 font-mono truncate">
+                              ID: {project.id.split("-")[0].toUpperCase()}
+                            </span>
+                            {/* NDA required badge */}
+                            <span className="text-[9px] font-black uppercase tracking-widest text-amber-400 bg-amber-500/10 border border-amber-500/20 px-2 py-0.5 rounded flex items-center gap-1">
+                              <FiLock size={8} /> NDA Required
+                            </span>
+                          </div>
+                          <h3 className="text-xl font-bold text-white group-hover:text-[#00c477] transition-colors tracking-tight">
+                            {project.name}
+                          </h3>
                         </div>
 
                         <p className="text-white/70 text-sm line-clamp-2 leading-relaxed max-w-2xl">
-                          {project.description || "Detailed scope documentation available upon engagement activation."}
+                          {project.description ||
+                            "Detailed scope documentation available upon engagement activation."}
                         </p>
 
                         <div className="flex flex-wrap items-center gap-5 text-[11px] font-semibold text-white/60 uppercase tracking-widest">
                           <div className="flex items-center gap-2 bg-black px-3 py-1.5 rounded-full border border-white/10 group-hover:border-[#00c477]/30 transition-colors">
                             <FiBriefcase className="text-[#00c477]" />
-                            <span className="text-white/80">{project.organization?.name}</span>
-                            </div>
-                            <div className="flex items-center gap-2">
+                            <span className="text-white/80">
+                              {project.organization?.name}
+                            </span>
+                          </div>
+                          <div className="flex items-center gap-2">
                             <FiClock className="text-white/40" />
-                                <span>Engagement Window: {new Date(project.createdAt).toLocaleDateString()} — TBD</span>
-                            </div>
+                            <span>
+                              Engagement Window:{" "}
+                              {new Date(project.createdAt).toLocaleDateString()}{" "}
+                              — TBD
+                            </span>
+                          </div>
                         </div>
                       </div>
 
@@ -320,11 +383,13 @@ const EngagementBoard = () => {
                               Checking…
                             </>
                           ) : (
-                            <>Register Interest <FiExternalLink /></>
+                            <>
+                              Register Interest <FiExternalLink />
+                            </>
                           )}
                         </button>
                         <button className="px-4 py-3 bg-white/10 hover:bg-[#00c477] hover:text-black text-white/70 rounded-xl text-[10px] font-black uppercase tracking-widest transition-colors border border-white/10 hover:border-[#00c477]">
-                            Details
+                          Details
                         </button>
                       </div>
                     </div>
@@ -337,45 +402,70 @@ const EngagementBoard = () => {
 
         {/* Sidebar */}
         <aside className="space-y-6">
-            <div className="bg-black border border-white/10 p-8 rounded-4xl shadow-2xl relative overflow-hidden group">
-              <div className="absolute -top-10 -right-10 w-40 h-40 bg-[#00c477]/10 rounded-full blur-[100px] group-hover:bg-[#00c477]/20 transition-all duration-700" />
-              <h4 className="text-[#00c477] font-bold text-xs uppercase tracking-[0.2em] mb-6 flex items-center gap-2">
-                <div className="w-1.5 h-1.5 bg-[#00c477] rounded-full" /> Engagement Protocols
-                </h4>
-                <div className="space-y-6">
-                    {[
-                        { step: "01", title: "NDA Signing", desc: "Sign the platform NDA once — it covers all org programs." },
-                        { step: "02", title: "Resource Alignment", desc: "Ensure your technical arsenal matches target architecture." },
-                        { step: "03", title: "Proposal Submission", desc: "Formal notice of interest is logged in the immutable ledger." }
-                    ].map((item, i) => (
-                        <div key={i} className="space-y-2 group/item">
-                            <div className="flex items-center gap-2">
-                                <span className="text-[10px] font-black text-[#00c477] opacity-40 group-hover/item:opacity-100 transition-opacity font-mono">{item.step}</span>
-                                <span className="text-xs font-bold text-white/90 uppercase tracking-wide">{item.title}</span>
-                            </div>
-                              <p className="text-[11px] text-white/60 leading-relaxed pl-6">{item.desc}</p>
-                        </div>
-                    ))}
+          <div className="bg-black border border-white/10 p-8 rounded-4xl shadow-2xl relative overflow-hidden group">
+            <div className="absolute -top-10 -right-10 w-40 h-40 bg-[#00c477]/10 rounded-full blur-[100px] group-hover:bg-[#00c477]/20 transition-all duration-700" />
+            <h4 className="text-[#00c477] font-bold text-xs uppercase tracking-[0.2em] mb-6 flex items-center gap-2">
+              <div className="w-1.5 h-1.5 bg-[#00c477] rounded-full" />{" "}
+              Engagement Protocols
+            </h4>
+            <div className="space-y-6">
+              {[
+                {
+                  step: "01",
+                  title: "NDA Signing",
+                  desc: "Sign the platform NDA once — it covers all org programs.",
+                },
+                {
+                  step: "02",
+                  title: "Resource Alignment",
+                  desc: "Ensure your technical arsenal matches target architecture.",
+                },
+                {
+                  step: "03",
+                  title: "Proposal Submission",
+                  desc: "Formal notice of interest is logged in the immutable ledger.",
+                },
+              ].map((item, i) => (
+                <div key={i} className="space-y-2 group/item">
+                  <div className="flex items-center gap-2">
+                    <span className="text-[10px] font-black text-[#00c477] opacity-40 group-hover/item:opacity-100 transition-opacity font-mono">
+                      {item.step}
+                    </span>
+                    <span className="text-xs font-bold text-white/90 uppercase tracking-wide">
+                      {item.title}
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-white/60 leading-relaxed pl-6">
+                    {item.desc}
+                  </p>
                 </div>
+              ))}
             </div>
+          </div>
 
-            <button
-                onClick={() => navigate("/my-applications")}
-                className="w-full py-5 bg-black/70 backdrop-blur-md border border-white/10 rounded-3xl font-bold text-xs uppercase tracking-widest text-white/70 hover:text-black hover:bg-[#00c477] hover:border-[#00c477] transition-all flex items-center justify-center gap-3 group"
-            >
-                Pending Proposals
-                <div className="w-5 h-5 bg-white/10 group-hover:bg-black/10 rounded-md flex items-center justify-center transition-colors">
-                  <FiArrowRight className="group-hover:text-black" />
-                </div>
-            </button>
-
-              <div className="p-6 border border-white/10 rounded-3xl text-center space-y-2">
-                <p className="text-[10px] text-white/50 uppercase font-bold tracking-[0.2em]">Platform Status</p>
-                <div className="flex items-center justify-center gap-2 text-[#00c477] text-[10px] font-mono">
-                  <div className="w-1.5 h-1.5 bg-[#00c477] rounded-full animate-pulse" />
-                    OPERATIONAL • {new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                </div>
+          <button
+            onClick={() => navigate("/my-applications")}
+            className="w-full py-5 bg-black/70 backdrop-blur-md border border-white/10 rounded-3xl font-bold text-xs uppercase tracking-widest text-white/70 hover:text-black hover:bg-[#00c477] hover:border-[#00c477] transition-all flex items-center justify-center gap-3 group"
+          >
+            Pending Proposals
+            <div className="w-5 h-5 bg-white/10 group-hover:bg-black/10 rounded-md flex items-center justify-center transition-colors">
+              <FiArrowRight className="group-hover:text-black" />
             </div>
+          </button>
+
+          <div className="p-6 border border-white/10 rounded-3xl text-center space-y-2">
+            <p className="text-[10px] text-white/50 uppercase font-bold tracking-[0.2em]">
+              Platform Status
+            </p>
+            <div className="flex items-center justify-center gap-2 text-[#00c477] text-[10px] font-mono">
+              <div className="w-1.5 h-1.5 bg-[#00c477] rounded-full animate-pulse" />
+              OPERATIONAL •{" "}
+              {new Date().toLocaleTimeString([], {
+                hour: "2-digit",
+                minute: "2-digit",
+              })}
+            </div>
+          </div>
         </aside>
       </div>
     </div>

@@ -1,12 +1,14 @@
-import { Handle, Position } from '@xyflow/react';
-import { FiPlay, FiX } from 'react-icons/fi';
+import { Handle, Position } from "@xyflow/react";
+import { FiPlay, FiX } from "react-icons/fi";
 
 const StartingPointNode = ({ data, selected }) => {
   const activeUsers = Object.values(data.activeUsers || {});
   const showPresence = activeUsers.length > 0;
 
   return (
-    <div className={`bg-[#0b0f19] border ${showPresence ? 'border-[#00ff88]' : 'border-[#00ff88]/50'} rounded-lg shadow-[0_0_15px_rgba(0,255,136,0.4)] w-[300px] font-mono text-sm overflow-hidden transition-all ${selected ? 'ring-2 ring-[#00ff88]' : ''}`}>
+    <div
+      className={`bg-[#0b0f19] border ${showPresence ? "border-[#00ff88]" : "border-[#00ff88]/50"} rounded-lg shadow-[0_0_15px_rgba(0,255,136,0.4)] w-[300px] font-mono text-sm overflow-hidden transition-all ${selected ? "ring-2 ring-[#00ff88]" : ""}`}
+    >
       {/* Presence Indicators (Figma Style) */}
       {showPresence && (
         <div className="absolute -top-6 right-0 flex -space-x-2">
@@ -14,10 +16,10 @@ const StartingPointNode = ({ data, selected }) => {
             <div
               key={i}
               className="w-5 h-5 rounded-full border-2 border-[#0b0f19] flex items-center justify-center text-[10px] font-bold text-white shadow-lg animate-bounce"
-              style={{ backgroundColor: u.color || '#00ff88' }}
+              style={{ backgroundColor: u.color || "#00ff88" }}
               title={u.user}
             >
-              {u.user?.[0] || 'U'}
+              {u.user?.[0] || "U"}
             </div>
           ))}
         </div>
@@ -32,8 +34,10 @@ const StartingPointNode = ({ data, selected }) => {
           <input
             className="bg-transparent border-none text-right focus:outline-none text-gray-400 text-xs placeholder-gray-600 w-[120px]"
             placeholder="Scan Title..."
-            defaultValue={data.label || ''}
-            onBlur={(e) => data.onTitleChange && data.onTitleChange(e.target.value)}
+            defaultValue={data.label || ""}
+            onBlur={(e) =>
+              data.onTitleChange && data.onTitleChange(e.target.value)
+            }
           />
           <button
             className="text-gray-500 hover:text-red-500 transition-colors cursor-pointer"
@@ -48,24 +52,32 @@ const StartingPointNode = ({ data, selected }) => {
       {/* Body */}
       <div className="p-4 space-y-4">
         <div>
-          <label className="block text-[#00ff88] text-xs mb-1">Provide IP/Host address:</label>
+          <label className="block text-[#00ff88] text-xs mb-1">
+            Provide IP/Host address:
+          </label>
           <div className="flex gap-2">
             <input
               type="text"
               placeholder="example.com"
               className="flex-1 bg-[#161a23] border border-gray-600 rounded px-2 py-1 text-gray-300 focus:outline-none focus:border-[#00ff88]"
-              defaultValue={data.host || ''}
-              onChange={(e) => data.onDataChange && data.onDataChange({ host: e.target.value })}
+              defaultValue={data.host || ""}
+              onChange={(e) =>
+                data.onDataChange && data.onDataChange({ host: e.target.value })
+              }
             />
-            <button 
-              onClick={() => data.onRunAutomation && data.onRunAutomation(data.host)}
+            <button
+              onClick={() =>
+                data.onRunAutomation && data.onRunAutomation(data.host)
+              }
               className="bg-[#00ff88] text-black px-3 py-1 flex items-center justify-center rounded hover:bg-[#00cc33] transition-colors active:scale-95"
               title="Run Automated Recon"
             >
               <FiPlay size={14} />
             </button>
           </div>
-          <p className="text-gray-500 text-[10px] mt-1">192.168.1.1 or example.com</p>
+          <p className="text-gray-500 text-[10px] mt-1">
+            192.168.1.1 or example.com
+          </p>
         </div>
 
         {/* Mock Terminal Output */}
@@ -78,7 +90,11 @@ const StartingPointNode = ({ data, selected }) => {
       </div>
 
       {/* Connection Handle (Output only for starting point) */}
-      <Handle type="source" position={Position.Right} className="w-3 h-3 bg-[#00ff88] border-2 border-[#0b0f19]" />
+      <Handle
+        type="source"
+        position={Position.Right}
+        className="w-3 h-3 bg-[#00ff88] border-2 border-[#0b0f19]"
+      />
     </div>
   );
 };

@@ -30,7 +30,10 @@ export const getWorkflowHistory = async (workflowId) => {
 };
 
 export const recordWorkflowHistory = async (workflowId, historyData) => {
-  const response = await api.post(`/workflows/${workflowId}/history`, historyData);
+  const response = await api.post(
+    `/workflows/${workflowId}/history`,
+    historyData,
+  );
   return response.data;
 };
 

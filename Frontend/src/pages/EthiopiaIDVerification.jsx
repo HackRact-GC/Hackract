@@ -1,25 +1,44 @@
-import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import * as z from 'zod';
-import { 
-  FiShield, FiCheckCircle, FiInfo, FiCreditCard, 
-  FiAlertCircle, FiArrowRight, FiMail, FiPhone, FiGlobe, FiLock 
-} from 'react-icons/fi';
-import toast from 'react-hot-toast';
-import NationalIDService from '../services/nationalID.service';
-import { useAuth } from '../context/authContext.jsx';
+import { zodResolver } from "@hookform/resolvers/zod";
+import React, { useEffect, useState } from "react";
+import { useForm } from "react-hook-form";
+import toast from "react-hot-toast";
+import {
+  FiAlertCircle,
+  FiArrowRight,
+  FiCheckCircle,
+  FiCreditCard,
+  FiGlobe,
+  FiInfo,
+  FiLock,
+  FiMail,
+  FiPhone,
+  FiShield,
+} from "react-icons/fi";
+import { useNavigate } from "react-router-dom";
+import * as z from "zod";
+
+import { useAuth } from "../context/authContext.jsx";
+import NationalIDService from "../services/nationalID.service";
 
 // Validation Schema
 const step1Schema = z.object({
-  fan: z.string().refine((val) => val.replace(/\s/g, '').length === 16 && /^\d+$/.test(val.replace(/\s/g, '')), {
-    message: 'FAN must be exactly 16 digits',
-  })
+  fan: z
+    .string()
+    .refine(
+      (val) =>
+        val.replace(/\s/g, "").length === 16 &&
+        /^\d+$/.test(val.replace(/\s/g, "")),
+      {
+        message: "FAN must be exactly 16 digits",
+      },
+    ),
 });
 
 const step2Schema = z.object({
-  otp: z.string().length(6, 'OTP must be 6 digits').regex(/^\d+$/, 'OTP must be numeric')
+  otp: z
+    .string()
+    .length(6, "OTP must be 6 digits")
+    .regex(/^\d+$/, "OTP must be numeric"),
 });
 
 const EthiopiaIDVerification = () => {
@@ -28,28 +47,36 @@ const EthiopiaIDVerification = () => {
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [statusData, setStatusData] = useState(null);
-  const [emailPreview, setEmailPreview] = useState('');
+  const [emailPreview, setEmailPreview] = useState("");
   const { refreshUser } = useAuth();
 
-  const { register, handleSubmit, formState: { errors }, watch } = useForm({
+  const {
+    register,
+    handleSubmit,
+    formState: { errors },
+    watch,
+  } = useForm({
     resolver: zodResolver(step === 1 ? step1Schema : step2Schema),
     defaultValues: {
-      gender: 'Male',
-      nationality: 'ET'
-    }
+      gender: "Male",
+      nationality: "ET",
+    },
   });
 
-  const fan = watch('fan');
-  const fin = watch('fin');
+  const fan = watch("fan");
+  const fin = watch("fin");
 
   useEffect(() => {
     fetchStatus();
   }, []);
 
   useEffect(() => {
-    if (statusData?.verificationStatus === 'APPROVED' || statusData?.verificationStatus === 'VERIFIED') {
+    if (
+      statusData?.verificationStatus === "APPROVED" ||
+      statusData?.verificationStatus === "VERIFIED"
+    ) {
       const timer = setTimeout(() => {
-        navigate('/hacker-profile');
+        navigate("/hacker-profile");
       }, 3000);
       return () => clearTimeout(timer);
     }
@@ -61,7 +88,7 @@ const EthiopiaIDVerification = () => {
       const data = await NationalIDService.getStatus();
       setStatusData(data.data);
     } catch (error) {
-      console.error('Failed to fetch status', error);
+      console.error("Failed to fetch status", error);
     } finally {
       setLoading(false);
     }
@@ -70,40 +97,48 @@ const EthiopiaIDVerification = () => {
   const onInitiateSubmit = async (data) => {
     setSubmitting(true);
     try {
-      const rawFan = data.fan.replace(/\s/g, '');
-      const result = await NationalIDService.initiateVerification({ fan: rawFan });
-      
+      const rawFan = data.fan.replace(/\s/g, "");
+      const result = await NationalIDService.initiateVerification({
+        fan: rawFan,
+      });
+
       if (result.autoVerified) {
-        toast.success('Identity Auto-Verified!');
-        try { await refreshUser(); } catch (e) { /* ignore */ }
+        toast.success("Identity Auto-Verified!");
+        try {
+          await refreshUser();
+        } catch (e) {
+          /* ignore */
+        }
         fetchStatus();
       } else {
         if (result.error) {
           toast.error(result.error);
         } else {
-          toast.success(result.message || 'OTP Sent Successfully!');
+          toast.success(result.message || "OTP Sent Successfully!");
         }
-        
-        setEmailPreview('your official government-registered email');
+
+        setEmailPreview("your official government-registered email");
         setStep(2);
       }
     } catch (error) {
-      toast.error(error.response?.data?.message || 'Initiation failed');
+      toast.error(error.response?.data?.message || "Initiation failed");
     } finally {
       setSubmitting(false);
     }
   };
 
   const onResendOtp = async () => {
-    const rawFan = fan?.replace(/\s/g, '');
+    const rawFan = fan?.replace(/\s/g, "");
     if (!rawFan) return;
     setSubmitting(true);
     try {
-      const result = await NationalIDService.initiateVerification({ fan: rawFan });
+      const result = await NationalIDService.initiateVerification({
+        fan: rawFan,
+      });
       if (result.error) toast.error(result.error);
-      else toast.success('A new OTP has been sent.');
+      else toast.success("A new OTP has been sent.");
     } catch (error) {
-      toast.error(error.response?.data?.message || 'Failed to resend OTP');
+      toast.error(error.response?.data?.message || "Failed to resend OTP");
     } finally {
       setSubmitting(false);
     }
@@ -112,47 +147,56 @@ const EthiopiaIDVerification = () => {
   const onOtpVerify = async (data) => {
     setSubmitting(true);
     try {
-      const rawFan = fan?.replace(/\s/g, '');
+      const rawFan = fan?.replace(/\s/g, "");
       await NationalIDService.verifyOtp({ fan: rawFan, otp: data.otp });
-      toast.success('Identity Verified Successfully!');
-      try { await refreshUser(); } catch (e) { /* ignore */ }
+      toast.success("Identity Verified Successfully!");
+      try {
+        await refreshUser();
+      } catch (e) {
+        /* ignore */
+      }
       fetchStatus();
       setStep(1); // Reset step on success
     } catch (error) {
-      toast.error(error.response?.data?.message || 'OTP verification failed');
+      toast.error(error.response?.data?.message || "OTP verification failed");
     } finally {
       setSubmitting(false);
     }
   };
 
   const handleSeedRegistry = async () => {
-      try {
-          await NationalIDService.seedRegistry();
-          toast.success('Test registry seeded with Abebe Bikila (FAN123456 / FIN123456)');
-      } catch (err) {
-          toast.error('Seeding failed');
-      }
+    try {
+      await NationalIDService.seedRegistry();
+      toast.success(
+        "Test registry seeded with Abebe Bikila (FAN123456 / FIN123456)",
+      );
+    } catch (err) {
+      toast.error("Seeding failed");
+    }
   };
 
   if (loading) {
     return (
       <div className="min-h-screen bg-[#050505] flex items-center justify-center">
-        <div className="text-[#00c477] font-mono animate-pulse">CONNECTING_TO_NATIONAL_REGISTRY...</div>
+        <div className="text-[#00c477] font-mono animate-pulse">
+          CONNECTING_TO_NATIONAL_REGISTRY...
+        </div>
       </div>
     );
   }
 
-  const status = statusData?.verificationStatus || 'NOT_STARTED';
-  const isApproved = status === 'APPROVED';
+  const status = statusData?.verificationStatus || "NOT_STARTED";
+  const isApproved = status === "APPROVED";
 
   return (
     <div className="min-h-screen bg-[#050505] text-white p-6 md:p-12 font-sans selection:bg-[#00c477]/30">
       <div className="max-w-4xl mx-auto">
-        <button 
+        <button
           onClick={() => navigate(-1)}
           className="group flex items-center gap-2 text-gray-400 hover:text-white mb-8 transition-all text-sm font-mono"
         >
-          <FiArrowRight className="rotate-180 group-hover:-translate-x-1 transition-transform" /> BACK_TO_PROFILE
+          <FiArrowRight className="rotate-180 group-hover:-translate-x-1 transition-transform" />{" "}
+          BACK_TO_PROFILE
         </button>
 
         <div className="grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-10">
@@ -163,8 +207,12 @@ const EthiopiaIDVerification = () => {
                   <FiShield className="text-3xl text-[#00c477]" />
                 </div>
                 <div>
-                  <h1 className="text-4xl font-black tracking-tighter">Identity Core</h1>
-                  <p className="text-gray-400 text-sm font-mono uppercase tracking-widest">National Verification System</p>
+                  <h1 className="text-4xl font-black tracking-tighter">
+                    Identity Core
+                  </h1>
+                  <p className="text-gray-400 text-sm font-mono uppercase tracking-widest">
+                    National Verification System
+                  </p>
                 </div>
               </div>
             </div>
@@ -172,7 +220,7 @@ const EthiopiaIDVerification = () => {
             {isApproved ? (
               <div className="bg-[#00c477]/5 border border-[#00c477]/20 p-8 rounded-3xl relative overflow-hidden group">
                 <div className="absolute top-0 right-0 p-8 opacity-10 group-hover:opacity-20 transition-opacity">
-                    <FiCheckCircle size={120} />
+                  <FiCheckCircle size={120} />
                 </div>
                 <div className="relative z-10 space-y-6">
                   <div className="flex items-center gap-3 text-[#00c477]">
@@ -181,19 +229,28 @@ const EthiopiaIDVerification = () => {
                   </div>
                   <div className="grid grid-cols-2 gap-8 py-6 border-y border-white/5">
                     <div className="space-y-1">
-                        <p className="text-[10px] text-gray-500 uppercase font-mono tracking-tighter">Full Name</p>
-                        <p className="text-lg font-medium">{statusData.citizen?.fullName}</p>
+                      <p className="text-[10px] text-gray-500 uppercase font-mono tracking-tighter">
+                        Full Name
+                      </p>
+                      <p className="text-lg font-medium">
+                        {statusData.citizen?.fullName}
+                      </p>
                     </div>
                     <div className="space-y-1">
-                        <p className="text-[10px] text-gray-500 uppercase font-mono tracking-tighter">Fayda ID Number (FIN)</p>
-                        <p className="text-lg font-mono text-[#00c477]">{statusData.citizen?.fin}</p>
+                      <p className="text-[10px] text-gray-500 uppercase font-mono tracking-tighter">
+                        Fayda ID Number (FIN)
+                      </p>
+                      <p className="text-lg font-mono text-[#00c477]">
+                        {statusData.citizen?.fin}
+                      </p>
                     </div>
                   </div>
                   <p className="text-sm text-gray-400">
-                    Your identity has been cryptographically verified against the national registry. Your trust score has been boosted.
+                    Your identity has been cryptographically verified against
+                    the national registry. Your trust score has been boosted.
                   </p>
                   <button
-                    onClick={() => navigate('/hacker-profile')}
+                    onClick={() => navigate("/hacker-profile")}
                     className="w-full mt-4 py-4 bg-[#00c477] hover:bg-[#009a5e] text-black font-black uppercase tracking-[0.15em] rounded-xl transition-all active:scale-[0.99] shadow-[0_0_20px_rgba(0,196,119,0.2)]"
                   >
                     Return to Profile Settings
@@ -203,95 +260,128 @@ const EthiopiaIDVerification = () => {
             ) : (
               <div className="bg-white/[0.02] border border-white/10 rounded-3xl p-8 shadow-2xl relative">
                 <div className="absolute -top-px left-8 right-8 h-px bg-gradient-to-r from-transparent via-[#00c477]/50 to-transparent"></div>
-                
+
                 {step === 1 ? (
-                  <form onSubmit={handleSubmit(onInitiateSubmit)} className="space-y-8">
+                  <form
+                    onSubmit={handleSubmit(onInitiateSubmit)}
+                    className="space-y-8"
+                  >
                     <div className="flex flex-col items-center justify-center space-y-6 max-w-sm mx-auto pt-4">
-                      
                       {/* Single FAN Input */}
                       <div className="w-full space-y-2">
-                        <label className="text-xs font-mono text-gray-400 uppercase tracking-[0.2em] text-center block">Fayda Access Number (FAN)</label>
+                        <label className="text-xs font-mono text-gray-400 uppercase tracking-[0.2em] text-center block">
+                          Fayda Access Number (FAN)
+                        </label>
                         <div className="relative">
                           <FiCreditCard className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500 text-lg" />
-                          <input 
-                            {...register('fan', {
+                          <input
+                            {...register("fan", {
                               onChange: (e) => {
-                                const rawValue = e.target.value.replace(/\D/g, '');
-                                const formattedValue = rawValue.replace(/(\d{4})(?=\d)/g, '$1 ');
+                                const rawValue = e.target.value.replace(
+                                  /\D/g,
+                                  "",
+                                );
+                                const formattedValue = rawValue.replace(
+                                  /(\d{4})(?=\d)/g,
+                                  "$1 ",
+                                );
                                 e.target.value = formattedValue;
-                              }
+                              },
                             })}
-                            className={`w-full bg-black/60 border ${errors.fan ? 'border-red-500/50 shadow-[0_0_15px_rgba(239,68,68,0.2)]' : 'border-white/10 hover:border-white/20 focus:border-[#00c477] focus:shadow-[0_0_20px_rgba(0,196,119,0.15)]'} rounded-2xl py-5 pl-14 pr-4 focus:outline-none transition-all font-mono uppercase text-center text-xl tracking-[0.2em]`}
+                            className={`w-full bg-black/60 border ${errors.fan ? "border-red-500/50 shadow-[0_0_15px_rgba(239,68,68,0.2)]" : "border-white/10 hover:border-white/20 focus:border-[#00c477] focus:shadow-[0_0_20px_rgba(0,196,119,0.15)]"} rounded-2xl py-5 pl-14 pr-4 focus:outline-none transition-all font-mono uppercase text-center text-xl tracking-[0.2em]`}
                             placeholder="0000 0000 0000 0000"
                             maxLength={19}
                             autoFocus
                           />
                         </div>
-                        {errors.fan && <p className="text-red-500 text-[10px] mt-2 font-mono text-center">{errors.fan.message}</p>}
+                        {errors.fan && (
+                          <p className="text-red-500 text-[10px] mt-2 font-mono text-center">
+                            {errors.fan.message}
+                          </p>
+                        )}
                       </div>
 
                       <div className="p-4 bg-yellow-500/5 border border-yellow-500/10 rounded-2xl flex gap-3 text-left w-full">
-                         <FiInfo className="text-yellow-500 shrink-0 mt-0.5 text-lg" />
-                         <p className="text-[10px] text-gray-400 leading-relaxed">
-                           Your FAN will be matched against the National Citizen Registry. If found, a 6-digit OTP will be sent to your <strong>official government-registered email</strong>.
-                         </p>
+                        <FiInfo className="text-yellow-500 shrink-0 mt-0.5 text-lg" />
+                        <p className="text-[10px] text-gray-400 leading-relaxed">
+                          Your FAN will be matched against the National Citizen
+                          Registry. If found, a 6-digit OTP will be sent to your{" "}
+                          <strong>official government-registered email</strong>.
+                        </p>
                       </div>
 
-                      <button 
+                      <button
                         type="submit"
                         disabled={submitting}
                         className="w-full py-5 bg-[#00c477] hover:bg-white text-black font-black uppercase tracking-[0.15em] rounded-2xl transition-all active:scale-[0.99] disabled:opacity-50 shadow-[0_0_30px_rgba(0,196,119,0.2)]"
                       >
-                        {submitting ? 'CHECKING REGISTRY...' : 'Verify National ID'}
+                        {submitting
+                          ? "CHECKING REGISTRY..."
+                          : "Verify National ID"}
                       </button>
                     </div>
                   </form>
                 ) : (
-                  <form onSubmit={handleSubmit(onOtpVerify)} className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+                  <form
+                    onSubmit={handleSubmit(onOtpVerify)}
+                    className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500"
+                  >
                     <div className="text-center space-y-4">
                       <div className="inline-flex p-4 bg-blue-500/10 rounded-full text-blue-500">
                         <FiMail size={32} />
                       </div>
-                      <h2 className="text-2xl font-bold">Check Your Official Email</h2>
+                      <h2 className="text-2xl font-bold">
+                        Check Your Official Email
+                      </h2>
                       <p className="text-sm text-gray-400">
-                        We've sent a 6-digit OTP to your registered email address:<br/>
-                        <span className="text-white font-mono">{emailPreview}</span>
+                        We've sent a 6-digit OTP to your registered email
+                        address:
+                        <br />
+                        <span className="text-white font-mono">
+                          {emailPreview}
+                        </span>
                       </p>
                     </div>
 
                     <div className="space-y-2">
-                       <label className="text-[10px] font-mono text-gray-500 uppercase tracking-[0.2em] text-center block">Enter 6-Digit OTP</label>
-                       <div className="relative max-w-[240px] mx-auto">
-                          <FiLock className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-600" />
-                          <input 
-                            {...register('otp')}
-                            className="w-full bg-black/40 border border-white/10 rounded-xl py-5 pl-12 pr-4 focus:outline-none focus:border-[#00c477] transition-all text-center text-3xl font-bold tracking-[0.5em]"
-                            placeholder="000000"
-                            maxLength={6}
-                            autoFocus
-                          />
-                       </div>
-                       {errors.otp && <p className="text-red-500 text-[10px] text-center mt-2 font-mono">{errors.otp.message}</p>}
+                      <label className="text-[10px] font-mono text-gray-500 uppercase tracking-[0.2em] text-center block">
+                        Enter 6-Digit OTP
+                      </label>
+                      <div className="relative max-w-[240px] mx-auto">
+                        <FiLock className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-600" />
+                        <input
+                          {...register("otp")}
+                          className="w-full bg-black/40 border border-white/10 rounded-xl py-5 pl-12 pr-4 focus:outline-none focus:border-[#00c477] transition-all text-center text-3xl font-bold tracking-[0.5em]"
+                          placeholder="000000"
+                          maxLength={6}
+                          autoFocus
+                        />
+                      </div>
+                      {errors.otp && (
+                        <p className="text-red-500 text-[10px] text-center mt-2 font-mono">
+                          {errors.otp.message}
+                        </p>
+                      )}
                     </div>
 
                     <div className="flex flex-col gap-4">
-                      <button 
+                      <button
                         type="submit"
                         disabled={submitting}
                         className="w-full py-5 bg-white text-black font-black uppercase tracking-[0.15em] rounded-2xl transition-all active:scale-[0.99] disabled:opacity-50 shadow-[0_0_20px_rgba(255,255,255,0.1)] hover:bg-gray-200"
                       >
-                        {submitting ? 'VERIFYING...' : 'Complete Verification'}
+                        {submitting ? "VERIFYING..." : "Complete Verification"}
                       </button>
-                      
+
                       <div className="flex justify-between items-center px-2">
-                        <button 
+                        <button
                           type="button"
                           onClick={() => setStep(1)}
                           className="text-[11px] font-mono text-gray-500 hover:text-white transition-colors uppercase tracking-widest"
                         >
                           ← Change FAN
                         </button>
-                        <button 
+                        <button
                           type="button"
                           onClick={onResendOtp}
                           disabled={submitting}
@@ -306,11 +396,9 @@ const EthiopiaIDVerification = () => {
               </div>
             )}
           </div>
-
-          
         </div>
       </div>
-      
+
       <style jsx>{`
         .invert-calendar::-webkit-calendar-picker-indicator {
           filter: invert(1);

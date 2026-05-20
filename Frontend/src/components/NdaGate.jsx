@@ -1,8 +1,16 @@
-import React, { useEffect, useState, useRef } from "react";
-import { motion, AnimatePresence } from "framer-motion";
-import { FiShield, FiFileText, FiLock, FiClock, FiZap, FiRefreshCcw } from "react-icons/fi";
-import api from "../api/axiosConfig";
+import { AnimatePresence, motion } from "framer-motion";
+import React, { useEffect, useRef, useState } from "react";
 import toast from "react-hot-toast";
+import {
+  FiClock,
+  FiFileText,
+  FiLock,
+  FiRefreshCcw,
+  FiShield,
+  FiZap,
+} from "react-icons/fi";
+
+import api from "../api/axiosConfig";
 
 /**
  * NdaGate
@@ -13,14 +21,16 @@ const NdaGate = ({ projectId, children }) => {
   const [status, setStatus] = useState(null); // null = loading
   const [signing, setSigning] = useState(false);
   const [scrolled, setScrolled] = useState(false);
-  
+
   // Canvas logic
   const canvasRef = useRef(null);
   const [hasDrawn, setHasDrawn] = useState(false);
 
   const fetchStatus = async () => {
     try {
-      const { data } = await api.get(`/pentests/${projectId}/agreements/active`);
+      const { data } = await api.get(
+        `/pentests/${projectId}/agreements/active`,
+      );
       const payload = data?.data;
       if (!payload || !payload.agreement) {
         // No agreement required
@@ -30,7 +40,7 @@ const NdaGate = ({ projectId, children }) => {
       setStatus({
         required: true,
         signed: payload.signed,
-        agreement: payload.agreement
+        agreement: payload.agreement,
       });
     } catch (err) {
       if (err?.response?.status === 404) {
@@ -49,11 +59,11 @@ const NdaGate = ({ projectId, children }) => {
   // Set up canvas drawing
   useEffect(() => {
     if (!status || !status.required || status.signed) return;
-    
+
     const canvas = canvasRef.current;
     if (!canvas) return;
 
-    const ctx = canvas.getContext('2d');
+    const ctx = canvas.getContext("2d");
     let drawing = false;
 
     const startDrawing = (e) => {
@@ -69,14 +79,14 @@ const NdaGate = ({ projectId, children }) => {
     const draw = (e) => {
       if (!drawing) return;
       setHasDrawn(true);
-      
+
       const rect = canvas.getBoundingClientRect();
       const x = (e.clientX || e.touches?.[0]?.clientX) - rect.left;
       const y = (e.clientY || e.touches?.[0]?.clientY) - rect.top;
 
       ctx.lineWidth = 2;
-      ctx.lineCap = 'round';
-      ctx.strokeStyle = '#00c477';
+      ctx.lineCap = "round";
+      ctx.strokeStyle = "#00c477";
 
       ctx.lineTo(x, y);
       ctx.stroke();
@@ -84,34 +94,38 @@ const NdaGate = ({ projectId, children }) => {
       ctx.moveTo(x, y);
     };
 
-    canvas.addEventListener('mousedown', startDrawing);
-    canvas.addEventListener('mousemove', draw);
-    canvas.addEventListener('mouseup', stopDrawing);
-    canvas.addEventListener('mouseout', stopDrawing);
-    
+    canvas.addEventListener("mousedown", startDrawing);
+    canvas.addEventListener("mousemove", draw);
+    canvas.addEventListener("mouseup", stopDrawing);
+    canvas.addEventListener("mouseout", stopDrawing);
+
     // Touch support
-    canvas.addEventListener('touchstart', startDrawing, { passive: false });
-    canvas.addEventListener('touchmove', (e) => {
-      e.preventDefault();
-      draw(e);
-    }, { passive: false });
-    canvas.addEventListener('touchend', stopDrawing);
+    canvas.addEventListener("touchstart", startDrawing, { passive: false });
+    canvas.addEventListener(
+      "touchmove",
+      (e) => {
+        e.preventDefault();
+        draw(e);
+      },
+      { passive: false },
+    );
+    canvas.addEventListener("touchend", stopDrawing);
 
     return () => {
-      canvas.removeEventListener('mousedown', startDrawing);
-      canvas.removeEventListener('mousemove', draw);
-      canvas.removeEventListener('mouseup', stopDrawing);
-      canvas.removeEventListener('mouseout', stopDrawing);
-      canvas.removeEventListener('touchstart', startDrawing);
-      canvas.removeEventListener('touchmove', draw);
-      canvas.removeEventListener('touchend', stopDrawing);
+      canvas.removeEventListener("mousedown", startDrawing);
+      canvas.removeEventListener("mousemove", draw);
+      canvas.removeEventListener("mouseup", stopDrawing);
+      canvas.removeEventListener("mouseout", stopDrawing);
+      canvas.removeEventListener("touchstart", startDrawing);
+      canvas.removeEventListener("touchmove", draw);
+      canvas.removeEventListener("touchend", stopDrawing);
     };
   }, [status]);
 
   const clearCanvas = () => {
     const canvas = canvasRef.current;
     if (!canvas) return;
-    const ctx = canvas.getContext('2d');
+    const ctx = canvas.getContext("2d");
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     setHasDrawn(false);
   };
@@ -121,19 +135,21 @@ const NdaGate = ({ projectId, children }) => {
       toast.error("Please provide your digital signature.");
       return;
     }
-    
+
     setSigning(true);
     try {
-      const signatureData = canvasRef.current.toDataURL('image/png');
-      
+      const signatureData = canvasRef.current.toDataURL("image/png");
+
       await api.post(`/pentests/${projectId}/agreements/active/sign`, {
-        signatureData
+        signatureData,
       });
-      
+
       toast.success("NDA signed! Access granted.");
-      setStatus(prev => ({ ...prev, signed: true }));
+      setStatus((prev) => ({ ...prev, signed: true }));
     } catch (err) {
-      toast.error(err?.response?.data?.message || "Failed to sign the agreement.");
+      toast.error(
+        err?.response?.data?.message || "Failed to sign the agreement.",
+      );
     } finally {
       setSigning(false);
     }
@@ -145,7 +161,9 @@ const NdaGate = ({ projectId, children }) => {
       <div className="min-h-screen bg-black flex items-center justify-center font-sans">
         <div className="flex flex-col items-center gap-4 text-white/40">
           <div className="w-10 h-10 border-2 border-white/10 border-t-[#00c477] rounded-full animate-spin" />
-          <p className="text-[10px] uppercase tracking-[0.3em] font-mono animate-pulse">Verifying Authorization</p>
+          <p className="text-[10px] uppercase tracking-[0.3em] font-mono animate-pulse">
+            Verifying Authorization
+          </p>
         </div>
       </div>
     );
@@ -177,7 +195,9 @@ const NdaGate = ({ projectId, children }) => {
             <FiShield size={28} />
           </div>
           <div>
-            <h1 className="text-3xl font-bold tracking-tight text-white italic">Legal Authorization Required</h1>
+            <h1 className="text-3xl font-bold tracking-tight text-white italic">
+              Legal Authorization Required
+            </h1>
             <p className="text-sm text-white/40 mt-1 uppercase tracking-widest font-mono text-[10px]">
               Secure Sector Protocol initialization in progress.
             </p>
@@ -191,13 +211,19 @@ const NdaGate = ({ projectId, children }) => {
             <div className="flex items-center gap-3">
               <FiFileText className="text-[#00c477]" size={18} />
               <div>
-                <p className="text-[10px] font-black text-white/80 uppercase tracking-widest">{agreement.title}</p>
-                <p className="text-[9px] text-white/30 font-mono mt-0.5 tracking-widest">MD-VERSION {agreement.version}</p>
+                <p className="text-[10px] font-black text-white/80 uppercase tracking-widest">
+                  {agreement.title}
+                </p>
+                <p className="text-[9px] text-white/30 font-mono mt-0.5 tracking-widest">
+                  MD-VERSION {agreement.version}
+                </p>
               </div>
             </div>
             <div className="flex items-center gap-2 bg-[#00c477]/10 border border-[#00c477]/20 px-3 py-1.5 rounded-lg">
               <div className="w-1.5 h-1.5 bg-[#00c477] rounded-full animate-pulse" />
-              <span className="text-[9px] font-black text-[#00c477] uppercase tracking-widest">Awaiting Signature</span>
+              <span className="text-[9px] font-black text-[#00c477] uppercase tracking-widest">
+                Awaiting Signature
+              </span>
             </div>
           </div>
 
@@ -211,9 +237,11 @@ const NdaGate = ({ projectId, children }) => {
               }
             }}
           >
-            {agreement.body.split("\n").map((line, i) =>
-              line.trim() ? <p key={i}>{line}</p> : <br key={i} />
-            )}
+            {agreement.body
+              .split("\n")
+              .map((line, i) =>
+                line.trim() ? <p key={i}>{line}</p> : <br key={i} />,
+              )}
 
             {!scrolled && (
               <div className="sticky bottom-0 left-0 right-0 h-12 bg-gradient-to-t from-[#050505] to-transparent flex items-end justify-center pb-1 pointer-events-none">
@@ -231,7 +259,7 @@ const NdaGate = ({ projectId, children }) => {
                 Digital Signature Pad
               </label>
               {hasDrawn && (
-                <button 
+                <button
                   onClick={clearCanvas}
                   className="text-[10px] text-gray-500 hover:text-rose-400 flex items-center gap-1 transition-colors font-mono uppercase"
                 >
@@ -248,12 +276,16 @@ const NdaGate = ({ projectId, children }) => {
               />
               {!hasDrawn && (
                 <div className="absolute inset-0 flex items-center justify-center pointer-events-none opacity-30 group-hover:opacity-10 transition-opacity">
-                  <span className="text-xl font-mono text-gray-400 italic">Sign Here</span>
+                  <span className="text-xl font-mono text-gray-400 italic">
+                    Sign Here
+                  </span>
                 </div>
               )}
             </div>
             <p className="text-[10px] text-gray-600 mt-3 leading-relaxed">
-              By signing above, I acknowledge that I have read and fully understand the terms of this Non-Disclosure Agreement. I agree to be legally bound by its provisions.
+              By signing above, I acknowledge that I have read and fully
+              understand the terms of this Non-Disclosure Agreement. I agree to
+              be legally bound by its provisions.
             </p>
           </div>
         </div>

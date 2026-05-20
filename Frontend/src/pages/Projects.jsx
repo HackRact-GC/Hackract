@@ -84,10 +84,11 @@ const StatusBadge = ({ status }) => {
 
 const RoleBadge = ({ role }) => (
   <span
-    className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-[10px] font-bold tracking-wider uppercase border ${role === "LEAD"
+    className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-[10px] font-bold tracking-wider uppercase border ${
+      role === "LEAD"
         ? "text-[#00c477] bg-[#00c477]/10 border-[#00c477]/30"
         : "text-cyan-400 bg-cyan-400/10 border-cyan-400/30"
-      }`}
+    }`}
   >
     {role === "LEAD" ? "Lead" : "Contributor"}
   </span>
@@ -159,8 +160,8 @@ const PersonalProjectCard = ({ project, onOpen, onDelete, index }) => (
 const OrgProjectCard = ({
   project,
   onOpen,
-  onAccept = (id) => { },
-  onDecline = (id) => { },
+  onAccept = (id) => {},
+  onDecline = (id) => {},
   index,
 }) => {
   const isPending = project.inviteStatus === "PENDING";
@@ -170,10 +171,11 @@ const OrgProjectCard = ({
       initial={{ opacity: 0, scale: 0.98 }}
       animate={{ opacity: 1, scale: 1 }}
       transition={{ delay: index * 0.05, duration: 0.3 }}
-      className={`bg-[#050505] border rounded-2xl p-6 group transition-all relative flex flex-col font-sans hover:shadow-lg ${isPending
+      className={`bg-[#050505] border rounded-2xl p-6 group transition-all relative flex flex-col font-sans hover:shadow-lg ${
+        isPending
           ? "border-amber-500/30 hover:border-amber-400/60 shadow-[0_4px_20px_rgba(245,158,11,0.05)]"
           : "border-white/5 hover:border-white/20 cursor-pointer"
-        }`}
+      }`}
       onClick={() => {
         if (!isPending) onOpen(project.id);
       }}
@@ -326,10 +328,11 @@ const PersonalWorkspaceCard = ({ onCreate }) => {
         </div>
         <button
           onClick={() => setExpanded((v) => !v)}
-          className={`w-full md:w-auto px-6 py-3 rounded-xl flex items-center justify-center transition-all text-sm font-bold gap-2 ${expanded
+          className={`w-full md:w-auto px-6 py-3 rounded-xl flex items-center justify-center transition-all text-sm font-bold gap-2 ${
+            expanded
               ? "bg-white/10 text-white hover:bg-white/20"
               : "bg-[#00c477] text-black hover:bg-[#00a665] shadow-[0_4px_20px_rgba(0,196,119,0.2)]"
-            }`}
+          }`}
         >
           {expanded ? (
             <>
@@ -510,10 +513,11 @@ const Projects = () => {
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
-              className={`px-4 py-2 rounded-lg text-xs font-bold transition-all whitespace-nowrap flex items-center justify-center gap-2 ${activeTab === tab.id
+              className={`px-4 py-2 rounded-lg text-xs font-bold transition-all whitespace-nowrap flex items-center justify-center gap-2 ${
+                activeTab === tab.id
                   ? "bg-white/10 text-white shadow-sm"
                   : "text-gray-500 hover:text-white hover:bg-white/5"
-                }`}
+              }`}
             >
               {tab.label}
               {tab.id === "INBOUND_REQS" && pendingCount > 0 && (

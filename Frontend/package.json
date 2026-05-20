@@ -6,12 +6,12 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "format": "prettier . --write",
-    "check-format": "prettier . --check",
-    "lint": "eslint .",
+    "format": "node ./node_modules/prettier/bin/prettier.cjs . --write",
+    "check-format": "node ./node_modules/prettier/bin/prettier.cjs . --check",
+    "lint": "node ./node_modules/eslint/bin/eslint.js .",
     "preview": "vite preview",
-    "sort-imports": "eslint . --fix --rule \"simple-import-sort/imports:error\" --rule \"simple-import-sort/exports:error\"",
-    "type-check": "tsc --noEmit"
+    "sort-imports": "node ./node_modules/eslint/bin/eslint.js . --fix --rule \"simple-import-sort/imports:error\" --rule \"simple-import-sort/exports:error\"",
+    "type-check": "node ./node_modules/typescript/bin/tsc --noEmit"
   },
   "dependencies": {
     "@auth0/auth0-react": "^2.15.0",

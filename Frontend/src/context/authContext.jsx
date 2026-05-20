@@ -1,9 +1,23 @@
-import React, { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react';
 /* eslint-disable react-refresh/only-export-components */
 import { useAuth0 } from "@auth0/auth0-react";
+import React, {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useState,
+} from "react";
 import toast from "react-hot-toast";
+
 import api from "../api/axiosConfig";
-import { hasRole as checkRole, hasAnyRole as checkAnyRole, getPrimaryRole, getDashboardPath, getRoleTypes } from "../utils/roles.js";
+import {
+  getDashboardPath,
+  getPrimaryRole,
+  getRoleTypes,
+  hasAnyRole as checkAnyRole,
+  hasRole as checkRole,
+} from "../utils/roles.js";
 
 const AuthContext = createContext(null);
 
@@ -14,11 +28,17 @@ const STORAGE_KEYS = {
 
 export const AuthProvider = ({ children }) => {
   const { isAuthenticated, logout: auth0Logout } = useAuth0();
-  const [accessToken, setAccessToken] = useState(() => localStorage.getItem(STORAGE_KEYS.ACCESS));
-  const [refreshToken, setRefreshToken] = useState(() => localStorage.getItem(STORAGE_KEYS.REFRESH));
+  const [accessToken, setAccessToken] = useState(() =>
+    localStorage.getItem(STORAGE_KEYS.ACCESS),
+  );
+  const [refreshToken, setRefreshToken] = useState(() =>
+    localStorage.getItem(STORAGE_KEYS.REFRESH),
+  );
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(false);
-  const [isBootstrapping, setIsBootstrapping] = useState(() => Boolean(localStorage.getItem(STORAGE_KEYS.ACCESS)));
+  const [isBootstrapping, setIsBootstrapping] = useState(() =>
+    Boolean(localStorage.getItem(STORAGE_KEYS.ACCESS)),
+  );
 
   const persistTokens = useCallback((nextAccess, nextRefresh) => {
     if (nextAccess) {
@@ -89,7 +109,7 @@ export const AuthProvider = ({ children }) => {
         setLoading(false);
       }
     },
-    [persistTokens]
+    [persistTokens],
   );
 
   const register = useCallback(
@@ -99,8 +119,15 @@ export const AuthProvider = ({ children }) => {
         const { data } = await api.post("/auth/local/register", payload);
         console.info("[auth] registration success", data);
         const { data: payloadData, message: topMessage } = data || {};
-        const { user: newUser, tokens, message: nestedMessage } = payloadData || {};
-        const successMessage = nestedMessage || topMessage || "Registration successful. Please verify your email.";
+        const {
+          user: newUser,
+          tokens,
+          message: nestedMessage,
+        } = payloadData || {};
+        const successMessage =
+          nestedMessage ||
+          topMessage ||
+          "Registration successful. Please verify your email.";
 
         if (tokens?.accessToken && tokens?.refreshToken) {
           persistTokens(tokens.accessToken, tokens.refreshToken);
@@ -113,14 +140,17 @@ export const AuthProvider = ({ children }) => {
         toast.success(successMessage);
         return payloadData;
       } catch (error) {
-        console.error("[auth] registration failed", error?.response?.data || error);
+        console.error(
+          "[auth] registration failed",
+          error?.response?.data || error,
+        );
         toast.error(extractMessage(error));
         throw error;
       } finally {
         setLoading(false);
       }
     },
-    [persistTokens]
+    [persistTokens],
   );
 
   const refreshTokens = useCallback(async () => {
@@ -132,31 +162,34 @@ export const AuthProvider = ({ children }) => {
     return tokens.accessToken;
   }, [persistTokens, refreshToken]);
 
-  const logout = useCallback(async (options = {}) => {
-    const { skipAuth0Redirect = false } = options;
-    try {
-      if (refreshToken) {
-        const { data } = await api.post("/auth/logout", { refreshToken });
-        const message = data?.message || "Logged out from local session";
-        toast.success(message);
-      } else {
-        toast.success("Logged out");
+  const logout = useCallback(
+    async (options = {}) => {
+      const { skipAuth0Redirect = false } = options;
+      try {
+        if (refreshToken) {
+          const { data } = await api.post("/auth/logout", { refreshToken });
+          const message = data?.message || "Logged out from local session";
+          toast.success(message);
+        } else {
+          toast.success("Logged out");
+        }
+      } catch (error) {
+        console.warn("Logout warning:", error?.message);
+        toast.error("Logout failed. Clearing local session.");
+      } finally {
+        persistTokens(null, null);
+        setUser(null);
+        if (isAuthenticated && !skipAuth0Redirect) {
+          auth0Logout({
+            logoutParams: {
+              returnTo: `${window.location.origin}/login`,
+            },
+          });
+        }
       }
-    } catch (error) {
-      console.warn("Logout warning:", error?.message);
-      toast.error("Logout failed. Clearing local session.");
-    } finally {
-      persistTokens(null, null);
-      setUser(null);
-      if (isAuthenticated && !skipAuth0Redirect) {
-        auth0Logout({
-          logoutParams: {
-            returnTo: `${window.location.origin}/login`,
-          },
-        });
-      }
-    }
-  }, [persistTokens, refreshToken, isAuthenticated, auth0Logout]);
+    },
+    [persistTokens, refreshToken, isAuthenticated, auth0Logout],
+  );
 
   const value = useMemo(
     () => ({
@@ -177,8 +210,18 @@ export const AuthProvider = ({ children }) => {
       dashboardPath: getDashboardPath(user),
       roleTypes: getRoleTypes(user),
     }),
-    [user, accessToken, refreshToken, loading, isBootstrapping, login, register, logout, refreshTokens, fetchProfile]
-
+    [
+      user,
+      accessToken,
+      refreshToken,
+      loading,
+      isBootstrapping,
+      login,
+      register,
+      logout,
+      refreshTokens,
+      fetchProfile,
+    ],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

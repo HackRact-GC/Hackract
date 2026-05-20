@@ -1,9 +1,11 @@
 // src/main.jsx
+import "./index.css";
+
+import { Auth0Provider } from "@auth0/auth0-react";
 import React, { StrictMode } from "react";
 import ReactDOM from "react-dom/client";
-import "./index.css";
-import { Auth0Provider } from "@auth0/auth0-react";
 import { RouterProvider } from "react-router-dom";
+
 import router from "../src/Router/Index";
 import { AuthProvider } from "./context/authContext.jsx";
 import { NotificationProvider } from "./context/NotificationContext.jsx";
@@ -29,5 +31,5 @@ ReactDOM.createRoot(document.getElementById("root")).render(
       </AuthProvider>
     </Auth0Provider>
     {/* </Provider> */}
-  </StrictMode>
+  </StrictMode>,
 );

@@ -1,69 +1,62 @@
 // src/routes/index.jsx
 
 import { createBrowserRouter, Navigate } from "react-router-dom";
+
 import App from "../App.jsx";
-import AuthLayout from "../layouts/AuthLayout.jsx";
-import Login from "../pages/Login.jsx";
-import Register from "../pages/Register.jsx";
-import VerifyEmail from "../pages/VerifyEmail.jsx";
-import Home from "../pages/Home.jsx";
-import Landing from "../pages/Landing.jsx";
-import ForgotPassword from "../pages/ForgotPassword.jsx";
-import ResetPassword from "../pages/ResetPassword.jsx";
-import HackerProfile from "../pages/HackerProfile.jsx";
-import OrganizationProfile from "../pages/OrganizationProfile.jsx";
-import WorkflowEditor from "../pages/WorkflowEditor/WorkflowEditor.jsx";
-import HackerVerification from "../pages/HackerVerification.jsx";
-import OrganizationVerification from "../pages/OrganizationVerification.jsx";
-import ErrorPage from "../pages/ErrorPage.jsx";
-import EthiopiaIDVerification from "../pages/EthiopiaIDVerification.jsx";
-
-
-import Projects from "../pages/Projects.jsx";
-import ProjectWorkspace from "../pages/ProjectWorkspace.jsx";
-import FindingDetails from "../pages/FindingDetails.jsx";
-import VulnerabilityFindings from "../pages/vulnerabilityFinding.jsx";
-import HackerLayout from "../layouts/HackerLayout.jsx";
-import OrganizationLayout from "../layouts/OrganizationLayout.jsx";
-import ProjectAdminLayout from "../layouts/ProjectAdminLayout.jsx";
-import OrganizationDashboard from "../pages/OrganizationDashboard.jsx";
-import Reports from "../pages/Reports.jsx";
-import OrganizationDiscover from "../pages/OrganizationDiscover.jsx";
-import HackerPublicProfile from "../pages/HackerPublicProfile.jsx";
-import OrganizationProjects from "../pages/OrganizationProjects.jsx";
-import OrganizationProjectWorkspace from "../pages/OrganizationProjectWorkspace.jsx";
-
-// Phase 2 Marketplace Imports
-import EngagementBoard from "../pages/EngagementBoard.jsx";
-import MyApplications from "../pages/MyApplications.jsx";
-
 // Phase 17 Onboarding Imports
 import OnboardingGuard from "../components/OnboardingGuard.jsx";
 import RoleGuard from "../components/RoleGuard.jsx";
-import { isOrgAdminMember } from "../utils/roles.js";
+import AuthLayout from "../layouts/AuthLayout.jsx";
+import HackerLayout from "../layouts/HackerLayout.jsx";
 import OnboardingLayout from "../layouts/OnboardingLayout.jsx";
-import HackerOnboarding from "../pages/Onboarding/HackerOnboarding.jsx";
-import OrgOnboarding from "../pages/Onboarding/OrgOnboarding.jsx";
-
-// Chat
-import HackerChat from "../pages/HackerChat.jsx";
-import OrganizationChat from "../pages/OrganizationChat.jsx";
-// Agreement Execute
-import AgreementExecute from "../pages/AgreementExecute.jsx";
-import LegalAgreementCreate from "../pages/LegalAgreementCreate.jsx";
-import LegalAgreementList from "../pages/LegalAgreementList.jsx";
-
+import OrganizationLayout from "../layouts/OrganizationLayout.jsx";
+import ProjectAdminLayout from "../layouts/ProjectAdminLayout.jsx";
 // Phase 18 Admin Imports
 import ApprovalsDashboard from "../pages/Admin/ApprovalsDashboard.jsx";
 import OperatorReview from "../pages/Admin/OperatorReview.jsx";
 import OrgReview from "../pages/Admin/OrgReview.jsx";
 import SystemAdminDashboard from "../pages/Admin/SystemAdminDashboard.jsx";
-
+// Agreement Execute
+import AgreementExecute from "../pages/AgreementExecute.jsx";
 // Optional (only if you really have this file)
 import DashboardPreview from "../pages/DashboardPreview.jsx";
-
+// Phase 2 Marketplace Imports
+import EngagementBoard from "../pages/EngagementBoard.jsx";
+import ErrorPage from "../pages/ErrorPage.jsx";
+import EthiopiaIDVerification from "../pages/EthiopiaIDVerification.jsx";
+import FindingDetails from "../pages/FindingDetails.jsx";
+import ForgotPassword from "../pages/ForgotPassword.jsx";
+// Chat
+import HackerChat from "../pages/HackerChat.jsx";
+import HackerProfile from "../pages/HackerProfile.jsx";
+import HackerPublicProfile from "../pages/HackerPublicProfile.jsx";
+import HackerVerification from "../pages/HackerVerification.jsx";
+import Home from "../pages/Home.jsx";
+import Landing from "../pages/Landing.jsx";
+import LegalAgreementCreate from "../pages/LegalAgreementCreate.jsx";
+import LegalAgreementList from "../pages/LegalAgreementList.jsx";
+import Login from "../pages/Login.jsx";
+import MyApplications from "../pages/MyApplications.jsx";
 // 404 Route
 import NotFound from "../pages/NotFound.jsx";
+import HackerOnboarding from "../pages/Onboarding/HackerOnboarding.jsx";
+import OrgOnboarding from "../pages/Onboarding/OrgOnboarding.jsx";
+import OrganizationChat from "../pages/OrganizationChat.jsx";
+import OrganizationDashboard from "../pages/OrganizationDashboard.jsx";
+import OrganizationDiscover from "../pages/OrganizationDiscover.jsx";
+import OrganizationProfile from "../pages/OrganizationProfile.jsx";
+import OrganizationProjects from "../pages/OrganizationProjects.jsx";
+import OrganizationProjectWorkspace from "../pages/OrganizationProjectWorkspace.jsx";
+import OrganizationVerification from "../pages/OrganizationVerification.jsx";
+import Projects from "../pages/Projects.jsx";
+import ProjectWorkspace from "../pages/ProjectWorkspace.jsx";
+import Register from "../pages/Register.jsx";
+import Reports from "../pages/Reports.jsx";
+import ResetPassword from "../pages/ResetPassword.jsx";
+import VerifyEmail from "../pages/VerifyEmail.jsx";
+import VulnerabilityFindings from "../pages/vulnerabilityFinding.jsx";
+import WorkflowEditor from "../pages/WorkflowEditor/WorkflowEditor.jsx";
+import { isOrgAdminMember } from "../utils/roles.js";
 
 const router = createBrowserRouter([
   {
@@ -86,7 +79,7 @@ const router = createBrowserRouter([
       {
         element: (
           <OnboardingGuard>
-            <RoleGuard allowed={['PENTESTER']}>
+            <RoleGuard allowed={["PENTESTER"]}>
               <HackerLayout />
             </RoleGuard>
           </OnboardingGuard>
@@ -157,7 +150,10 @@ const router = createBrowserRouter([
       {
         element: (
           <OnboardingGuard>
-            <RoleGuard allowed={['PROJECT_ADMIN']} customCheck={isOrgAdminMember}>
+            <RoleGuard
+              allowed={["PROJECT_ADMIN"]}
+              customCheck={isOrgAdminMember}
+            >
               <ProjectAdminLayout />
             </RoleGuard>
           </OnboardingGuard>
@@ -212,7 +208,7 @@ const router = createBrowserRouter([
       {
         element: (
           <OnboardingGuard>
-            <RoleGuard allowed={['ORG_ADMIN']}>
+            <RoleGuard allowed={["ORG_ADMIN"]}>
               <OrganizationLayout />
             </RoleGuard>
           </OnboardingGuard>
@@ -282,11 +278,19 @@ const router = createBrowserRouter([
       // ══════════════════════════════════════════════════════════════
       {
         path: "organization-verification/:organizationId",
-        element: <OnboardingGuard><OrganizationVerification /></OnboardingGuard>,
+        element: (
+          <OnboardingGuard>
+            <OrganizationVerification />
+          </OnboardingGuard>
+        ),
       },
       {
         path: "onboarding",
-        element: <OnboardingGuard><OnboardingLayout /></OnboardingGuard>,
+        element: (
+          <OnboardingGuard>
+            <OnboardingLayout />
+          </OnboardingGuard>
+        ),
         children: [
           {
             path: "hacker",
@@ -295,26 +299,38 @@ const router = createBrowserRouter([
           {
             path: "organization",
             element: <OrgOnboarding />,
-          }
-        ]
+          },
+        ],
       },
       {
         path: "admin/approvals",
-        element: <OnboardingGuard><ApprovalsDashboard /></OnboardingGuard>,
+        element: (
+          <OnboardingGuard>
+            <ApprovalsDashboard />
+          </OnboardingGuard>
+        ),
       },
       {
         path: "admin/approvals/hacker/:id",
-        element: <OnboardingGuard><OperatorReview /></OnboardingGuard>,
+        element: (
+          <OnboardingGuard>
+            <OperatorReview />
+          </OnboardingGuard>
+        ),
       },
       {
         path: "admin/approvals/org/:id",
-        element: <OnboardingGuard><OrgReview /></OnboardingGuard>,
+        element: (
+          <OnboardingGuard>
+            <OrgReview />
+          </OnboardingGuard>
+        ),
       },
       {
         path: "workflows/:workflowId",
         element: (
           <OnboardingGuard>
-            <RoleGuard allowed={['PENTESTER', 'PROJECT_ADMIN', 'ORG_ADMIN']}>
+            <RoleGuard allowed={["PENTESTER", "PROJECT_ADMIN", "ORG_ADMIN"]}>
               <WorkflowEditor />
             </RoleGuard>
           </OnboardingGuard>
@@ -324,7 +340,7 @@ const router = createBrowserRouter([
         path: "org-workflows/:workflowId",
         element: (
           <OnboardingGuard>
-            <RoleGuard allowed={['ORG_ADMIN']}>
+            <RoleGuard allowed={["ORG_ADMIN"]}>
               <WorkflowEditor isOrgView={true} />
             </RoleGuard>
           </OnboardingGuard>
@@ -357,13 +373,13 @@ const router = createBrowserRouter([
             path: "reset-password",
             element: <ResetPassword />,
           },
-        ]
+        ],
       },
       {
         path: "*",
         element: <NotFound />,
       },
-    ]
+    ],
   },
 ]);
 

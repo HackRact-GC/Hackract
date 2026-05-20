@@ -1,7 +1,8 @@
-import React from 'react';
-import { Navigate, useLocation } from 'react-router-dom';
-import { useAuth } from '../context/authContext.jsx';
-import { hasAnyRole, getDashboardPath } from '../utils/roles.js';
+import React from "react";
+import { Navigate, useLocation } from "react-router-dom";
+
+import { useAuth } from "../context/authContext.jsx";
+import { getDashboardPath, hasAnyRole } from "../utils/roles.js";
 
 /**
  * Route-level guard that restricts access to one or more roles.

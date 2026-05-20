@@ -17,7 +17,7 @@ const MatrixRain = () => {
     const initDrops = () => {
       columns = Math.floor(canvas.width / fontSize);
       drops = new Array(columns).fill(0);
-    }
+    };
 
     const resize = () => {
       if (!canvas) return;
@@ -66,7 +66,7 @@ const MatrixRain = () => {
     <canvas
       ref={canvasRef}
       className="absolute inset-0 w-full h-full object-cover"
-      style={{ background: 'black' }}
+      style={{ background: "black" }}
     />
   );
 };
