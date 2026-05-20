@@ -3,16 +3,214 @@ import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import toast from "react-hot-toast";
 import api from "../api/axiosConfig";
+import { uploadFile as uploadChatFile } from "../api/chatApi";
 import { useAuth } from "../context/authContext";
 import invitationService from "../services/invitation.service";
 import ProjectActivity from "./ProjectActivity.jsx";
-import { FiPlus, FiArrowLeft, FiBell, FiTerminal, FiActivity, FiUserPlus, FiX, FiSearch, FiSend, FiTrash2 } from "react-icons/fi";
+import { FiPlus, FiArrowLeft, FiBell, FiTerminal, FiActivity, FiUserPlus, FiX, FiSearch, FiSend, FiTrash2, FiFileText } from "react-icons/fi";
+
+// Agreement selection modal - opens when invite button is clicked
+const AgreementSelectionModal = ({ hacker, projectId, onClose, onConfirm, onLoading }) => {
+  const [agreementMode, setAgreementMode] = useState('UPLOAD');
+  const [agreementFile, setAgreementFile] = useState(null);
+  const [agreements, setAgreements] = useState([]);
+  const [selectedAgreementId, setSelectedAgreementId] = useState('');
+  const [sending, setSending] = useState(false);
+
+  useEffect(() => {
+    const fetchAgreements = async () => {
+      try {
+        const { data } = await api.get('/legal-agreements?isActive=true');
+        const list = data?.data || data || [];
+        setAgreements(Array.isArray(list) ? list : []);
+      } catch (err) {
+        console.error('Failed to fetch legal agreements', err);
+      }
+    };
+    fetchAgreements();
+  }, []);
+
+  const buildAgreementFile = (agreement) => {
+    const rawTitle = agreement?.title || 'agreement';
+    const safeTitle = rawTitle.replace(/[^a-z0-9]+/gi, '_').replace(/^_+|_+$/g, '') || 'agreement';
+    const version = agreement?.version ? `v${agreement.version}` : 'v1';
+    const fileName = `${safeTitle}_${version}.txt`;
+    const content = agreement?.content || '';
+    return new File([content], fileName, { type: 'text/plain' });
+  };
+
+  const handleSend = async () => {
+    if (agreementMode === 'UPLOAD' && !agreementFile) {
+      toast.error('Please upload a legal agreement file');
+      return;
+    }
+    if (agreementMode === 'LEGAL_AGREEMENT' && !selectedAgreementId) {
+      toast.error('Please select a legal agreement');
+      return;
+    }
+
+    setSending(true);
+    onLoading?.(true);
+
+    try {
+      let agreementPayload = null;
+
+      if (agreementMode === 'UPLOAD') {
+        const fileData = await uploadChatFile(agreementFile);
+        agreementPayload = {
+          source: 'UPLOAD',
+          title: agreementFile?.name,
+          fileUrl: fileData.fileUrl,
+          fileName: fileData.fileName,
+          fileSize: fileData.fileSize,
+          fileMime: fileData.fileMime,
+        };
+      } else {
+        const agreement = agreements.find((a) => a.id === selectedAgreementId);
+        if (!agreement?.content) {
+          toast.error('Selected agreement is missing content.');
+          return;
+        }
+        const generatedFile = buildAgreementFile(agreement);
+        const fileData = await uploadChatFile(generatedFile);
+        agreementPayload = {
+          source: 'LEGAL_AGREEMENT',
+          legalAgreementId: agreement.id,
+          title: agreement.title,
+          fileUrl: fileData.fileUrl,
+          fileName: fileData.fileName,
+          fileSize: fileData.fileSize,
+          fileMime: fileData.fileMime,
+        };
+      }
+
+      await invitationService.sendInvitation({
+        pentestId: projectId,
+        hackerId: hacker.userId || hacker.id,
+        message: "You have been invited to collaborate on this security program.",
+        agreement: agreementPayload,
+      });
+      toast.success(`Invitation sent to ${hacker.user?.fullName || hacker.name}!`);
+      onConfirm?.();
+    } catch (e) {
+      toast.error(e?.response?.data?.error || "Failed to send invitation");
+    } finally {
+      setSending(false);
+      onLoading?.(false);
+    }
+  };
+
+  const hackerName = hacker.user?.fullName || hacker.name || 'Unknown';
+
+  return (
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      className="fixed inset-0 bg-black/80 backdrop-blur-md z-50 flex items-center justify-center p-4"
+      onClick={onClose}
+    >
+      <motion.div
+        initial={{ opacity: 0, scale: 0.95, y: 20 }}
+        animate={{ opacity: 1, scale: 1, y: 0 }}
+        exit={{ opacity: 0, scale: 0.95, y: 20 }}
+        transition={{ type: 'spring', stiffness: 300, damping: 25 }}
+        className="bg-[#080808] border border-white/10 rounded-3xl w-full max-w-lg shadow-[0_30px_80px_-10px_rgba(0,196,119,0.2)] relative overflow-hidden"
+        onClick={e => e.stopPropagation()}
+      >
+        <div className="absolute -top-20 -right-20 w-48 h-48 bg-[#00c477]/10 rounded-full blur-[60px] pointer-events-none" />
+
+        <div className="px-8 pt-8 pb-6 border-b border-white/5 flex items-start gap-4 relative z-10">
+          <div className="flex-1">
+            <p className="text-[10px] font-black text-[#00c477] font-mono tracking-widest uppercase mb-1">Attachment Required</p>
+            <h3 className="text-lg font-black text-white">Select Legal Agreement</h3>
+            <p className="text-xs text-gray-500 mt-1">{hackerName} must accept this agreement before assignment</p>
+          </div>
+          <button onClick={onClose} className="p-2 rounded-lg text-gray-500 hover:text-white hover:bg-white/10 transition-all shrink-0">
+            <FiX />
+          </button>
+        </div>
+
+        <div className="px-8 py-6 space-y-5 relative z-10">
+          <div>
+            <label className="text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-3 flex items-center gap-1.5 block">
+              <FiFileText className="text-[#00c477]" /> Agreement Source
+            </label>
+            <div className="flex gap-2">
+              <button
+                onClick={() => setAgreementMode('UPLOAD')}
+                className={`flex-1 py-2 rounded-lg text-[11px] font-bold uppercase tracking-widest border transition-all ${agreementMode === 'UPLOAD' ? 'border-[#00c477]/50 text-[#00c477] bg-[#00c477]/10' : 'border-white/10 text-gray-500 hover:text-white hover:border-white/30'}`}
+              >
+                Upload File
+              </button>
+              <button
+                onClick={() => setAgreementMode('LEGAL_AGREEMENT')}
+                className={`flex-1 py-2 rounded-lg text-[11px] font-bold uppercase tracking-widest border transition-all ${agreementMode === 'LEGAL_AGREEMENT' ? 'border-[#00c477]/50 text-[#00c477] bg-[#00c477]/10' : 'border-white/10 text-gray-500 hover:text-white hover:border-white/30'}`}
+              >
+                Use Existing
+              </button>
+            </div>
+          </div>
+
+          {agreementMode === 'UPLOAD' ? (
+            <div>
+              <input
+                type="file"
+                accept=".pdf,.doc,.docx,.txt"
+                onChange={(e) => setAgreementFile(e.target.files?.[0] || null)}
+                className="block w-full text-xs text-gray-400 file:mr-3 file:py-2.5 file:px-4 file:rounded-lg file:border-0 file:bg-[#00c477]/10 file:text-[#00c477] file:font-bold file:uppercase file:text-[10px] file:tracking-widest hover:file:bg-[#00c477]/20"
+              />
+              {agreementFile && (
+                <p className="text-[11px] text-gray-500 mt-2 font-mono truncate">{agreementFile.name}</p>
+              )}
+            </div>
+          ) : (
+            <div>
+              <select
+                value={selectedAgreementId}
+                onChange={(e) => setSelectedAgreementId(e.target.value)}
+                className="w-full bg-[#0c0c0c] border border-white/10 focus:border-[#00c477] rounded-xl px-4 py-3 text-sm text-white outline-none transition-all"
+              >
+                <option value="">Select a legal agreement</option>
+                {agreements.map((a) => (
+                  <option key={a.id} value={a.id}>
+                    {a.title} {a.version ? `v${a.version}` : ''}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
+        </div>
+
+        <div className="px-8 py-6 border-t border-white/5 flex items-center gap-3 relative z-10">
+          <button
+            onClick={onClose}
+            className="flex-1 py-3 rounded-lg text-white/60 hover:text-white hover:bg-white/5 transition-all border border-white/10 text-sm font-bold uppercase tracking-widest"
+          >
+            Cancel
+          </button>
+          <button
+            onClick={handleSend}
+            disabled={sending}
+            className="flex-1 py-3 rounded-lg bg-[#00c477] hover:bg-[#00ff88] text-black transition-all border border-[#00c477] text-sm font-bold uppercase tracking-widest disabled:opacity-50 flex items-center justify-center gap-2"
+          >
+            {sending ? <div className="w-3 h-3 border-2 border-transparent border-t-black rounded-full animate-spin" /> : <FiSend size={14} />}
+            Send Invitation
+          </button>
+        </div>
+      </motion.div>
+    </motion.div>
+  );
+};
 
 const HackerDiscoveryModal = ({ projectId, onClose, onInvited }) => {
   const [search, setSearch] = useState("");
   const [results, setResults] = useState([]);
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(null);
+  const [agreementModal, setAgreementModal] = useState(false);
+  const [selectedHacker, setSelectedHacker] = useState(null);
+  const [agreementLoading, setAgreementLoading] = useState(false);
 
   const fetchHackers = async (query = "") => {
     setLoading(true);
@@ -40,37 +238,15 @@ const HackerDiscoveryModal = ({ projectId, onClose, onInvited }) => {
     fetchHackers(search);
   };
 
-  const sendInvite = async (hackerId) => {
-    setSending(hackerId);
-    try {
-      await invitationService.sendInvitation({
-        pentestId: projectId,
-        hackerId,
-        message: "You have been invited to collaborate on this security program.",
-      });
-      toast.success("Invitation sent!");
-      onInvited();
-    } catch (e) {
-      toast.error(e?.response?.data?.error || "Failed to send invitation");
-    } finally {
-      setSending(null);
-    }
+  const handleInviteClick = (hacker) => {
+    setSelectedHacker(hacker);
+    setAgreementModal(true);
   };
 
-  const addDirectly = async (hackerId) => {
-    setSending(hackerId);
-    try {
-      await api.post(`/projects/${projectId}/hackers`, {
-        hackerIds: [hackerId]
-      });
-      toast.success("Hacker added directly!");
-      onInvited();
-      onClose();
-    } catch (e) {
-      toast.error(e?.response?.data?.error || "Failed to add hacker");
-    } finally {
-      setSending(null);
-    }
+  const handleAgreementConfirm = () => {
+    setAgreementModal(false);
+    setSelectedHacker(null);
+    onInvited();
   };
 
   // Helper to parse skills/certs safely if they're stored as JSON strings
@@ -169,20 +345,12 @@ const HackerDiscoveryModal = ({ projectId, onClose, onInvited }) => {
 
                     <div className="flex items-center gap-2 pt-3 border-t border-gray-800">
                       <button
-                        disabled={sending === hacker.id || sending === hacker.userId}
-                        onClick={() => sendInvite(hacker.userId || hacker.id)}
+                        disabled={agreementLoading}
+                        onClick={() => handleInviteClick(hacker)}
                         className="flex-1 py-2 bg-transparent hover:bg-[#00c477]/10 text-gray-400 hover:text-[#00c477] rounded-lg transition-all border border-gray-700 hover:border-[#00c477]/30 disabled:opacity-50 text-[10px] font-bold uppercase tracking-widest flex items-center justify-center gap-2"
                       >
-                        {sending === (hacker.userId || hacker.id) ? <div className="w-3 h-3 border-2 border-transparent border-t-[#00c477] rounded-full animate-spin" /> : <FiSend />}
+                        {agreementLoading ? <div className="w-3 h-3 border-2 border-transparent border-t-[#00c477] rounded-full animate-spin" /> : <FiSend />}
                         Invite
-                      </button>
-                      <button
-                        disabled={sending === hacker.id || sending === hacker.userId}
-                        onClick={() => addDirectly(hacker.userId || hacker.id)}
-                        className="flex-1 py-2 bg-[#00c477]/10 hover:bg-[#00c477] text-[#00c477] hover:text-black rounded-lg transition-all border border-[#00c477]/20 hover:border-[#00c477] disabled:opacity-50 text-[10px] font-bold uppercase tracking-widest flex items-center justify-center gap-2"
-                      >
-                        {sending === (hacker.userId || hacker.id) ? <div className="w-3 h-3 border-2 border-transparent border-t-black rounded-full animate-spin" /> : <FiUserPlus />}
-                        Direct Add
                       </button>
                     </div>
                   </div>
@@ -193,11 +361,24 @@ const HackerDiscoveryModal = ({ projectId, onClose, onInvited }) => {
             <p className="text-center py-20 text-[10px] text-gray-600 uppercase tracking-widest font-mono">No operators found matching criteria</p>
           )}
         </div>
+
+        <AnimatePresence>
+          {agreementModal && selectedHacker && (
+            <AgreementSelectionModal
+              hacker={selectedHacker}
+              projectId={projectId}
+              onClose={() => setAgreementModal(false)}
+              onConfirm={handleAgreementConfirm}
+              onLoading={setAgreementLoading}
+            />
+          )}
+        </AnimatePresence>
       </motion.div>
     </motion.div>
   );
 };
 
+// Rest of the ProjectControlCenter code continues as before...
 const ProjectControlCenter = ({ projectId, onBack }) => {
   const navigate = useNavigate();
   const { user: authUser } = useAuth();
@@ -206,7 +387,6 @@ const ProjectControlCenter = ({ projectId, onBack }) => {
   const [loading, setLoading] = useState(true);
   const [showInviteModal, setShowInviteModal] = useState(false);
 
-  // Check if current user can manage invitations (org-admin or project-admin)
   const canManageInvitations = authUser?.roles?.some(
     (r) => r.type === "ORG_ADMIN" || r.type === "PROJECT_ADMIN"
   );
@@ -214,18 +394,15 @@ const ProjectControlCenter = ({ projectId, onBack }) => {
   const loadProject = async () => {
     setLoading(true);
     try {
-      // 1. Load the main project data (Critical)
       const projRes = await api.get(`/projects/${projectId}`);
       setProject(projRes.data?.data || null);
 
-      // 2. Load invitations (Non-critical, handle 403 gracefully)
       if (canManageInvitations) {
         try {
           const invRes = await invitationService.getInvitationsByProject(projectId);
           setInvitations(invRes.data || []);
         } catch (invError) {
           console.warn("Could not load invitations:", invError.response?.status);
-          // Don't toast for 403, just keep invitations empty
           if (invError.response?.status !== 403) {
             toast.error("Unable to load project invitations");
           }
@@ -294,7 +471,7 @@ const ProjectControlCenter = ({ projectId, onBack }) => {
       if (res.data?.success || res.data?.id) {
         toast.success("Workflow board initialized!");
         loadProject();
-        const newWorkflowId = res.data?.id || res.data?.data?.id; // Check response structure
+        const newWorkflowId = res.data?.id || res.data?.data?.id;
         if (newWorkflowId) window.open(`/org-workflows/${newWorkflowId}`, '_blank');
       }
     } catch (err) {
@@ -333,7 +510,6 @@ const ProjectControlCenter = ({ projectId, onBack }) => {
 
   if (!project) return null;
 
-  // Calculate phases based on status
   const statuses = ["PLANNING", "IN_PROGRESS", "REPORTING", "CLOSED"];
   const currentPhaseIndex = statuses.indexOf(project.status) !== -1 ? statuses.indexOf(project.status) : 1;
   const phasePercentage = ((currentPhaseIndex + 1) / 4) * 100;
@@ -341,7 +517,6 @@ const ProjectControlCenter = ({ projectId, onBack }) => {
   return (
     <div className="bg-[#0f1115] min-h-screen text-gray-300 font-mono p-4 md:p-8 selection:bg-[#00c477]/30 overflow-x-hidden">
       <div className="max-w-[1400px] mx-auto space-y-6">
-        {/* Header Breadcrumbs */}
         <div className="flex items-center gap-3 text-[10px] uppercase tracking-[0.2em] text-gray-500 mb-2 truncate">
           <button onClick={onBack} className="hover:text-[#00c477] transition-colors flex items-center gap-1">
             <FiArrowLeft /> BACK
@@ -349,11 +524,9 @@ const ProjectControlCenter = ({ projectId, onBack }) => {
           <span>/ PROJECTS / {project.name?.replace(/\s+/g, '_')?.toUpperCase() || 'NEXUS_CORE'} / <span className="text-[#00c477]">CONTROL</span></span>
         </div>
 
-        {/* Main Header */}
         <div className="flex flex-col md:flex-row md:items-center justify-between mb-8 gap-6">
           <div>
             <h1 className="text-2xl font-black text-white tracking-widest uppercase break-all">PROJECT_CONTROL_CENTER</h1>
-
           </div>
 
           <button
@@ -364,13 +537,8 @@ const ProjectControlCenter = ({ projectId, onBack }) => {
           </button>
         </div>
 
-        {/* Grid Layout */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-
-          {/* Left Column (Timeline & Operatives) */}
           <div className="lg:col-span-2 space-y-6">
-
-            {/* Mission Timeline Card */}
             <div className="bg-[#15181e] border border-gray-800 rounded-lg p-6 relative overflow-hidden">
               <div className="flex justify-between items-start mb-6">
                 <div>
@@ -383,7 +551,6 @@ const ProjectControlCenter = ({ projectId, onBack }) => {
                 </div>
               </div>
 
-              {/* Progress Bar */}
               <div className="h-10 bg-[#0a0c10] w-full mb-6 relative">
                 <motion.div
                   initial={{ width: 0 }}
@@ -395,7 +562,6 @@ const ProjectControlCenter = ({ projectId, onBack }) => {
                 </motion.div>
               </div>
 
-              {/* Phases */}
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-6 border-t border-gray-800 pt-6">
                 {statuses.map((status, index) => {
                   const isActive = index <= currentPhaseIndex;
@@ -420,7 +586,6 @@ const ProjectControlCenter = ({ projectId, onBack }) => {
               </div>
             </div>
 
-            {/* Operative Fleet Card */}
             <div className="bg-[#15181e] border border-gray-800 rounded-lg p-6">
               <div className="flex justify-between items-center border-b border-gray-800 pb-4 mb-6">
                 <h3 className="text-[#00c477] text-xs font-black uppercase tracking-widest">OPERATIVE_FLEET</h3>
@@ -457,7 +622,6 @@ const ProjectControlCenter = ({ projectId, onBack }) => {
                       </div>
 
                       <div className="flex items-center justify-between sm:justify-end gap-8">
-                        {/* Task Capacity Mock */}
                         <div className="hidden md:block">
                           <div className="text-[9px] text-gray-500 uppercase tracking-widest mb-1">TASK_CAPACITY</div>
                           <div className="flex gap-1">
@@ -504,7 +668,6 @@ const ProjectControlCenter = ({ projectId, onBack }) => {
                   );
                 })}
 
-                {/* Pending Invitations */}
                 {(Array.isArray(invitations) ? invitations : []).filter(i => i.status === 'PENDING').map((inv) => (
                   <div key={inv.id} className="flex flex-col sm:flex-row sm:items-center justify-between p-4 bg-[#1a1d24]/40 border border-dashed border-gray-700 rounded hover:border-amber-500/30 transition-colors group gap-4">
                     <div className="flex items-center gap-4">
@@ -541,13 +704,9 @@ const ProjectControlCenter = ({ projectId, onBack }) => {
                 )}
               </div>
             </div>
-
           </div>
 
-          {/* Right Column (Telemetry & Logs) */}
           <div className="space-y-6">
-
-            {/* Live Logs */}
             <div className="bg-[#15181e] border border-gray-800 rounded-lg p-6 flex flex-col h-[320px]">
               <h3 className="text-gray-400 text-xs font-black uppercase tracking-widest mb-4 shrink-0">LIVE_LOGS</h3>
               <div className="flex-1 overflow-y-auto custom-scrollbar -mx-4 px-4 relative">
@@ -556,7 +715,6 @@ const ProjectControlCenter = ({ projectId, onBack }) => {
                 </div>
               </div>
             </div>
-
           </div>
         </div>
       </div>

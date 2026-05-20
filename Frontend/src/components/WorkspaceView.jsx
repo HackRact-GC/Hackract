@@ -46,22 +46,6 @@ const InviteMemberModal = ({ projectId, onClose, onInvited }) => {
     }
   };
 
-  const addDirectly = async (hackerId) => {
-    setSending(hackerId);
-    try {
-      await api.post(`/projects/${projectId}/hackers`, {
-        hackerIds: [hackerId]
-      });
-      toast.success("Hacker added directly!");
-      onInvited();
-      onClose();
-    } catch (e) {
-      toast.error(e?.response?.data?.error || "Failed to add hacker");
-    } finally {
-      setSending(null);
-    }
-  };
-
   return (
     <motion.div
       initial={{ opacity: 0 }}
@@ -127,14 +111,6 @@ const InviteMemberModal = ({ projectId, onClose, onInvited }) => {
                       title="Send Invitation"
                     >
                       {sending === u.id ? <div className="w-4 h-4 border-2 border-white/10 border-t-[#00ff88] rounded-full animate-spin" /> : <FiSend size={14} />}
-                    </button>
-                    <button
-                      disabled={sending === u.id}
-                      onClick={() => addDirectly(u.id)}
-                      className="p-3 bg-[#00ff88]/10 hover:bg-[#00ff88] text-[#00ff88] hover:text-black rounded-xl transition-all border border-[#00ff88]/20 hover:border-[#00ff88] disabled:opacity-50"
-                      title="Direct Add"
-                    >
-                      {sending === u.id ? <div className="w-4 h-4 border-2 border-black/20 border-t-black rounded-full animate-spin" /> : <FiUserPlus size={14} />}
                     </button>
                   </div>
                 </div>
