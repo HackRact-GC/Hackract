@@ -1,4 +1,3 @@
-/* eslint-disable react-refresh/only-export-components */
 import { useAuth0 } from "@auth0/auth0-react";
 import React, {
   createContext,

@@ -609,7 +609,7 @@ const WorkflowEditor = ({ workflowId: propWorkflowId, isOrgView = false }) => {
     if (patch.edges) {
       setEdges(patch.edges);
     }
-  }, [remotePatch]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [remotePatch]);
 
   // Load Initial Graph State
   useEffect(() => {

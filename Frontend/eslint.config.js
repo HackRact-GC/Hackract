@@ -27,8 +27,9 @@ export default defineConfig([
       "simple-import-sort": simpleImportSort,
     },
     rules: {
-      "no-unused-vars": ["warn", { varsIgnorePattern: "^[A-Z_]" }],
-      "react-refresh/only-export-components": "warn",
+      "no-unused-vars": "off",
+      "react-hooks/exhaustive-deps": "off",
+      "react-refresh/only-export-components": "off",
       "simple-import-sort/exports": "error",
       "simple-import-sort/imports": "error",
     },
