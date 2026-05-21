@@ -70,8 +70,15 @@ class OrganizationService {
       return organization;
     }
 
+    // Map frontend-friendly `address` to the DB field `addressLine1` to satisfy Prisma schema
+    const updateData = { ...data };
+    if (updateData.address) {
+      updateData.addressLine1 = updateData.address;
+      delete updateData.address;
+    }
+
     return await organizationRepository.updateOrganization(id, {
-      ...data,
+      ...updateData,
       verificationStatus: VerificationStatus.SUBMITTED
     });
   }

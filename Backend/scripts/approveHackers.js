@@ -116,7 +116,7 @@ async function main() {
     }
   }
 
-  // ── 3. Approve existing profiles ────────────────────────────────
+  // 3. Approve existing profiles 
   if (doApprove && !doSeed) {
     const toApprove = allProfiles.filter(p => p.status !== 'APPROVED');
     if (toApprove.length === 0) {
@@ -130,7 +130,7 @@ async function main() {
     }
   }
 
-  // ── 4. Final count ───────────────────────────────────────────────
+  //  4. Final count 
   const approvedCount = await prisma.hackerProfile.count({ where: { status: 'APPROVED' } });
   console.log(`\n🎯 APPROVED profiles in DB: ${approvedCount}`);
   console.log('Done.\n');

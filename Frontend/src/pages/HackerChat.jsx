@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { motion } from 'framer-motion';
+import toast from 'react-hot-toast';
 import { useChatSocket } from '../hooks/useChatSocket';
 import * as chatApi from '../api/chatApi';
 import { useAuth } from '../context/authContext';
@@ -12,31 +13,11 @@ import { fmtLastSeen, getInitials } from '../components/chat/ChatHelpers';
 const TypingDots = () => (
   <div className="flex items-center gap-1 py-1">
     {[0, 1, 2].map((i) => (
-      <motion.span key={i} className="w-1.5 h-1.5 rounded-full bg-gray-400 block"
+      <motion.span key={i} className="w-1.5 h-1.5 rounded-full bg-[#00c477] block"
         animate={{ y: [0, -5, 0] }} transition={{ duration: 0.5, delay: i * 0.12, repeat: Infinity }} />
     ))}
   </div>
 );
-
-const playNotificationSound = () => {
-  try {
-    const ctx = new (window.AudioContext || window.webkitAudioContext)();
-    const osc = ctx.createOscillator();
-    const gainNode = ctx.createGain();
-    osc.connect(gainNode);
-    gainNode.connect(ctx.destination);
-    osc.type = 'sine';
-    osc.frequency.setValueAtTime(880, ctx.currentTime);
-    osc.frequency.exponentialRampToValueAtTime(1760, ctx.currentTime + 0.1);
-    gainNode.gain.setValueAtTime(0, ctx.currentTime);
-    gainNode.gain.linearRampToValueAtTime(0.3, ctx.currentTime + 0.05);
-    gainNode.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.2);
-    osc.start(ctx.currentTime);
-    osc.stop(ctx.currentTime + 0.2);
-  } catch (err) {
-    console.debug('Notification sound disabled', err);
-  }
-};
 
 import { useNotifications } from '../context/NotificationContext';
 
@@ -64,13 +45,10 @@ export default function HackerChat() {
         ? { ...c, lastMessageAt: msg.createdAt, lastMessagePreview: msg.content?.slice(0, 80) || '📎' }
         : c).sort((a, b) => new Date(b.lastMessageAt) - new Date(a.lastMessageAt))
     );
-    if (msg.senderId !== user?.id) {
-      playNotificationSound();
-      if (active && msg.conversationId === active.id) {
+    if (active && msg.conversationId === active.id && msg.senderId !== user?.id) {
         markChatAsRead(active.id);
-      }
     }
-  }, [user?.id, active, markChatAsRead]);
+  }, [active, markChatAsRead, user?.id]);
 
   const handlePresenceUpdate = useCallback((userId, isOnline, lastSeenAt) => {
     setPresenceMap((prev) => ({ ...prev, [userId]: { isOnline, lastSeenAt } }));
@@ -110,6 +88,14 @@ export default function HackerChat() {
     }).catch(console.error).finally(() => setLoadingConvs(false));
   }, [user]);
 
+  // Sync active conversation globally for notification filter
+  useEffect(() => {
+    window.activeConversationId = active?.id || null;
+    return () => {
+      window.activeConversationId = null;
+    };
+  }, [active]);
+
   const openConversation = useCallback(async (conv) => {
     if (prevConvId.current) { leaveConv(prevConvId.current); emitTypingStop(prevConvId.current); }
     setActive(conv); prevConvId.current = conv.id;
@@ -123,7 +109,7 @@ export default function HackerChat() {
       setConversations((prev) => prev.map((c) => c.id === conv.id
         ? { ...c, participants: c.participants?.map((p) => p.userId === user?.id ? { ...p, unreadCount: 0 } : p) } : c));
     } catch (e) { console.error(e); } finally { setLoadingMsgs(false); }
-  }, [joinConversation, leaveConv, emitTypingStop, emitMarkRead, user?.id]);
+  }, [joinConversation, leaveConv, emitTypingStop, emitMarkRead, user?.id, markChatAsRead]);
 
   const loadMore = useCallback(async () => {
     if (!hasMore || !nextCursor || !active || loadingMsgs) return;
@@ -150,9 +136,9 @@ export default function HackerChat() {
     }
     catch (e) { 
       console.error(e); 
-      import('react-hot-toast').then(t => t.default.error('Failed to send message.'));
+      toast.error('Failed to send message.');
     }
-  }, [active, replyTo, user]);
+  }, [active]);
 
   const handleDelete = useCallback(async (messageId) => {
     if (!active) return;
@@ -160,14 +146,8 @@ export default function HackerChat() {
     catch (e) { console.error(e); }
   }, [active]);
 
-  const startEdit = (msg) => { setEditing({ ...msg, _syncText: true }); };
-
   const handleInvitationSent = useCallback(async (result) => {
-    if (result?.conversations) {
-      setConversations(result.conversations);
-    } else {
-      try { setConversations(await chatApi.getConversations()); } catch { /* ignore */ }
-    }
+    if (result?.conversations) setConversations(result.conversations);
     if (result?.conversation) openConversation(result.conversation);
   }, [openConversation]);
 
@@ -177,67 +157,42 @@ export default function HackerChat() {
   const typingIds = active ? Object.keys(typingMap[active.id] || {}).filter((id) => id !== user?.id) : [];
 
   return (
-    <div className="flex h-full bg-[#0d0d0d] overflow-hidden" style={{ height: 'calc(100vh - 40px)' }}>
-      <ChatSidebar user={user} conversations={conversations} active={active} presenceMap={presenceMap} connected={connected} onSelect={openConversation} loadingConvs={loadingConvs} onInvitationSent={handleInvitationSent} targetRole="ORG_ADMIN" />
+    <div className="flex h-full bg-[#050505] overflow-hidden" style={{ height: 'calc(100vh - 40px)' }}>
+      <ChatSidebar user={user} conversations={conversations} active={active} presenceMap={presenceMap} connected={connected} onSelect={openConversation} loadingConvs={loadingConvs} onInvitationSent={handleInvitationSent} targetRole="ALL" />
 
       {active ? (
-        <div className="flex-1 flex flex-col min-w-0 bg-[#0d0d0d]">
+        <div className="flex-1 flex flex-col min-w-0 bg-[#050505] border-l border-white/5">
           {/* Header */}
-          <div className="px-6 py-3.5 border-b border-white/5 flex items-center justify-between bg-[#0d0d0d]/80 backdrop-blur-xl shrink-0">
-            <div className="flex items-center gap-3">
+          <div className="px-8 py-4 border-b border-white/5 flex items-center justify-between bg-[#050505]/80 backdrop-blur-xl shrink-0">
+            <div className="flex items-center gap-4">
               {active.type === 'GROUP' ? (
-                <div className="w-10 h-10 rounded-xl bg-linear-to-br from-[#00c477]/20 to-purple-500/20 border border-white/10 flex items-center justify-center text-white font-bold text-sm">{getInitials(active.name || 'G')}</div>
-              ) : (<Avatar user={activeOther} size={40} showStatus isOnline={isOtherOnline} />)}
+                <div className="w-10 h-10 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center text-white font-mono font-black text-xs uppercase tracking-widest">{getInitials(active.name || 'G')}</div>
+              ) : (<Avatar user={activeOther} size={42} showStatus isOnline={isOtherOnline} />)}
               <div>
+                <h2 className="text-white font-black text-xs uppercase tracking-[0.2em] font-mono leading-none mb-1.5">{active.type === 'GROUP' ? active.name : (activeOther?.fullName || activeOther?.handle)}</h2>
                 <div className="flex items-center gap-2">
-                  <h2 className="text-white font-bold text-sm leading-tight">{active.type === 'GROUP' ? active.name : (activeOther?.fullName || activeOther?.handle)}</h2>
+                  <div className={`w-1.5 h-1.5 rounded-full ${isOtherOnline ? 'bg-[#00c477] shadow-[0_0_8px_#00c477]' : 'bg-gray-700'}`} />
+                  <p className="text-[10px] font-mono uppercase tracking-widest text-gray-500">
+                    {isOtherOnline ? 'Active Session' : fmtLastSeen(lastSeen)}
+                  </p>
                 </div>
-                <p className="text-xs font-mono mt-px">
-                  {active.type === 'GROUP' ? (<span className="text-gray-600">{active.participants?.length} members</span>)
-                    : isOtherOnline ? (<span className="text-[#00c477]">online now</span>)
-                    : (<span className="text-gray-600">{fmtLastSeen(lastSeen)}</span>)}
-                </p>
               </div>
             </div>
           </div>
 
-          {/* Messages area */}
-          <div className="flex-1 overflow-y-auto px-6 py-5 space-y-3" style={{ backgroundImage: 'radial-gradient(ellipse at 50% 0%, rgba(0,196,119,0.025) 0%, transparent 65%)' }}>
+          {/* Messages */}
+          <div className="flex-1 overflow-y-auto px-8 py-6 space-y-4 font-mono">
             {hasMore && (
-              <div className="flex justify-center py-1">
-                <button onClick={loadMore} disabled={loadingMsgs} className="text-[#00c477]/70 hover:text-[#00c477] text-xs font-mono transition-colors disabled:opacity-40">
-                  {loadingMsgs ? 'Loading...' : '↑ Load older messages'}
+              <div className="flex justify-center pb-4">
+                <button onClick={loadMore} className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-600 hover:text-[#00c477] transition-colors">
+                  [ Load_Historical_Logs ]
                 </button>
               </div>
             )}
-            {loadingMsgs && messages.length === 0 ? (
-              <div className="flex items-center justify-center h-full"><div className="w-6 h-6 border-2 border-[#00c477]/30 border-t-[#00c477] rounded-full animate-spin" /></div>
-            ) : (<>
-              {messages.map((msg, idx) => {
-                const prev = messages[idx - 1];
-                const showDate = !prev || new Date(msg.createdAt).toDateString() !== new Date(prev.createdAt).toDateString();
-                return (
-                  <div key={msg.id}>
-                    {showDate && (
-                      <div className="flex items-center gap-3 my-5">
-                        <div className="flex-1 h-px bg-white/5" />
-                        <span className="text-[10px] font-mono text-gray-600 bg-[#161616] border border-white/5 px-3 py-1 rounded-full">
-                          {new Date(msg.createdAt).toLocaleDateString([], { weekday: 'long', month: 'short', day: 'numeric' })}
-                        </span>
-                        <div className="flex-1 h-px bg-white/5" />
-                      </div>
-                    )}
-                    <MessageBubble message={msg} isOwn={msg.senderId === user?.id} onReply={setReplyTo} onEdit={startEdit} onDelete={handleDelete} />
-                  </div>
-                );
-              })}
-              {typingIds.length > 0 && (
-                <div className="flex items-end gap-2.5">
-                  <Avatar user={active.participants?.find((p) => p.userId === typingIds[0])?.user} size={32} />
-                  <div className="bg-[#1c1c1c] border border-white/6 rounded-2xl rounded-bl-[6px] px-4 py-2"><TypingDots /></div>
-                </div>
-              )}
-            </>)}
+            {messages.map((msg, idx) => (
+              <MessageBubble key={msg.id} message={msg} isOwn={msg.senderId === user?.id} onReply={setReplyTo} onEdit={(m) => setEditing(m)} onDelete={handleDelete} />
+            ))}
+            {typingIds.length > 0 && <div className="text-[9px] text-[#00c477] font-black uppercase tracking-widest animate-pulse">Researching_Input...</div>}
             <div ref={messagesEndRef} />
           </div>
 
@@ -245,16 +200,16 @@ export default function HackerChat() {
             editing={editing} onCancelEdit={() => setEditing(null)} replyTo={replyTo} onCancelReply={() => setReplyTo(null)} />
         </div>
       ) : (
-        <div className="flex-1 flex flex-col items-center justify-center p-8 bg-[#0d0d0d]">
-          <motion.div initial={{ opacity: 0, scale: 0.92 }} animate={{ opacity: 1, scale: 1 }} className="flex flex-col items-center gap-6 text-center max-w-xs">
-            <div className="w-20 h-20 rounded-[24px] bg-[#00c477]/8 border border-[#00c477]/20 flex items-center justify-center shadow-[0_0_50px_rgba(0,196,119,0.08)]">
-              <svg className="w-9 h-9 text-[#00c477]" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" /></svg>
+        <div className="flex-1 flex flex-col items-center justify-center p-12 bg-[#050505]">
+          <div className="text-center space-y-4 max-w-sm">
+            <div className="inline-flex p-4 rounded-2xl bg-white/2 border border-white/5 mb-4">
+              <svg className="w-10 h-10 text-[#00c477]" fill="none" stroke="currentColor" strokeWidth="1" viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" /></svg>
             </div>
-            <div>
-              <h2 className="text-xl font-black text-white tracking-tight mb-2">Researcher Messaging</h2>
-              <p className="text-sm text-gray-600 font-mono leading-relaxed">Secure communication with organizations. Discuss findings, scope, and rewards in real-time.</p>
-            </div>
-          </motion.div>
+            <h2 className="text-xs font-black text-white uppercase tracking-[0.4em] font-mono">Secure_Comms_v2.0</h2>
+            <p className="text-[10px] text-gray-600 font-mono leading-loose uppercase tracking-widest">
+              Establish encrypted tunnels with verified organization admins. Peer-to-peer data exchange active.
+            </p>
+          </div>
         </div>
       )}
     </div>

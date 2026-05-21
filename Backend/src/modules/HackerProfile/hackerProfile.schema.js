@@ -2,8 +2,10 @@ import Joi from 'joi';
 import { VerificationStatus } from './hackerProfile.constants.js';
 
 export const upsertHackerProfileSchema = Joi.object({
-  bio: Joi.string().min(10).max(2000).required().messages({
-    'string.empty': 'Bio is required',
+  bio: Joi.alternatives().try(
+    Joi.string().min(10).max(2000),
+    Joi.string().allow('', null),
+  ).optional().messages({
     'string.min': 'Bio must be at least 10 characters long',
   }),
   country: Joi.string().max(100).optional().allow('', null),
@@ -17,7 +19,7 @@ export const upsertHackerProfileSchema = Joi.object({
     .default([]),
   certifications: Joi.alternatives()
     .try(
-      Joi.array().items(Joi.string().max(100)),
+      Joi.array().items(Joi.string().max(2000)),
       Joi.string().allow('', null),
     )
     .optional()

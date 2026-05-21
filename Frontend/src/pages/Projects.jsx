@@ -8,9 +8,11 @@ import {
   FiTerminal, FiArrowRight, FiZap,
   FiCheck, FiX, FiLock, FiActivity,
   FiTarget, FiClock, FiBell, FiCode, FiCpu,
-  FiChevronRight, FiFolder, FiCheckCircle, FiTrash2, FiUser
+  FiChevronRight, FiFolder, FiCheckCircle, FiTrash2, FiUser,
+  FiBriefcase
 } from "react-icons/fi";
 import invitationService from "../services/invitation.service";
+import SignedAgreementModal from "../components/SignedAgreementModal";
 
 
 // ─── CONSTANTS & CONFIG ────────────────────────────────────────────────
@@ -24,7 +26,8 @@ const STATUS_CONFIG = {
 const TABS = [
   { id: "ALL_ACCESS", label: "All Projects" },
   { id: "LOCAL_LABS", label: "Personal Labs" },
-  { id: "MISSIONS", label: "Organization Projects" },
+  { id: "MISSIONS", label: "Active Engagements" },
+  { id: "APPLICATIONS", label: "Sent Proposals" },
   { id: "INBOUND_REQS", label: "Pending Invitations" }
 ];
 
@@ -198,6 +201,84 @@ const OrgProjectCard = ({ project, onOpen, onAccept, onDecline, index }) => {
   );
 };
 
+// Applied Project (Sent Proposal) Card
+const AppliedProjectCard = ({ project, onWithdraw, index }) => {
+  return (
+    <motion.div
+      initial={{ opacity: 0, scale: 0.98 }}
+      animate={{ opacity: 1, scale: 1 }}
+      transition={{ delay: index * 0.05, duration: 0.3 }}
+      className="bg-[#050505] border border-amber-500/10 hover:border-amber-500/30 rounded-2xl p-6 group transition-all relative flex flex-col font-sans hover:shadow-lg shadow-[0_4px_20px_rgba(245,158,11,0.02)]"
+    >
+      {/* Status + Role row */}
+      <div className="flex items-center gap-2 mb-5 flex-wrap">
+        <StatusBadge status={project.status} />
+        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[10px] font-bold border text-amber-400 bg-amber-500/10 border-amber-500/30 uppercase tracking-wider">
+          Proposal Sent
+        </span>
+      </div>
+
+      <div className="flex items-start gap-4 mb-4">
+        <div className="w-10 h-10 rounded-xl border border-white/10 bg-white/5 shrink-0 overflow-hidden flex items-center justify-center">
+          {project.organization?.avatar ? (
+            <img
+              src={project.organization.avatar}
+              alt={project.organization?.name || "Org"}
+              className="w-10 h-10 object-cover"
+            />
+          ) : (
+            <div className="text-[#00c477] font-black text-sm">
+              {(project.organization?.name || project.orgName || "H")?.[0]?.toUpperCase()}
+            </div>
+          )}
+        </div>
+        <div>
+          <h3 className="text-lg font-bold text-white transition-colors leading-snug truncate max-w-[200px]">
+            {getProjectDisplayName(project)}
+          </h3>
+          <p className="text-[12px] text-gray-400 font-medium mt-0.5">{project.organization?.name || project.orgName || "Private Org"}</p>
+        </div>
+      </div>
+
+      <p className="text-sm text-gray-500 leading-relaxed line-clamp-2 mb-6">
+        {project.description}
+      </p>
+
+      {/* Stats */}
+      <div className="mt-auto pt-4 border-t border-white/5 flex items-center justify-between mb-5">
+        <div className="flex items-center gap-2">
+          <div className="w-6 h-6 rounded-md bg-white/5 flex items-center justify-center text-gray-400">
+            <FiTarget size={12} />
+          </div>
+          <span className="text-[12px] text-gray-300 font-bold">{project.findings || project._count?.findings || 0} <span className="font-normal text-gray-500">Vulns</span></span>
+        </div>
+        <div className="flex items-center gap-1.5 text-[12px] font-medium text-gray-400">
+          <FiClock size={13} />
+          {project.deadline || (project.endDate ? new Date(project.endDate).toLocaleDateString() : "No Deadline")}
+        </div>
+      </div>
+
+      {/* CTA */}
+      <div className="flex items-center justify-between gap-3 pt-2">
+        <span className="text-xs text-amber-500 font-medium flex items-center gap-1.5">
+          <FiClock className="animate-pulse" size={12} /> Under Review
+        </span>
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            if (window.confirm("Are you sure you want to withdraw your proposal for this project?")) {
+              onWithdraw(project.id);
+            }
+          }}
+          className="px-3 py-1.5 rounded-lg border border-red-500/20 hover:bg-red-500/10 text-red-500 text-[11px] font-bold transition-all flex items-center gap-1 cursor-pointer"
+        >
+          <FiX size={12} /> Withdraw
+        </button>
+      </div>
+    </motion.div>
+  );
+};
+
 // Personal Quick-Create Card
 const PersonalWorkspaceCard = ({ onCreate }) => {
   const [expanded, setExpanded] = useState(false);
@@ -307,9 +388,16 @@ const Projects = () => {
 
   const [personalProjects, setPersonalProjects] = useState([]);
   const [orgProjects, setOrgProjects] = useState([]);
+  const [appliedProjects, setAppliedProjects] = useState([]);
   const [pendingInvitations, setPendingInvitations] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState("ALL_ACCESS");
+  const [signModalOpen, setSignModalOpen] = useState(false);
+  const [activeInvite, setActiveInvite] = useState(null);
+  const [activeTab, setActiveTab] = useState(() => {
+    const params = new URLSearchParams(window.location.search);
+    const tabParam = params.get("tab");
+    return tabParam ? tabParam.toUpperCase() : "ALL_ACCESS";
+  });
 
   // Load real personal + org projects from API
   const loadData = async () => {
@@ -324,7 +412,19 @@ const Projects = () => {
       const myInvites = invRes.data?.invitations || invRes.data || [];
 
       setPersonalProjects(allProjects.filter(p => p.isPersonal));
-      setOrgProjects(allProjects.filter(p => p.organizationId));
+      
+      setOrgProjects(allProjects.filter(p => {
+        if (!p.organizationId) return false;
+        const myCollab = p.collaborators?.find(c => c.userId === user?.id);
+        return myCollab && myCollab.role !== "APPLICANT";
+      }));
+
+      setAppliedProjects(allProjects.filter(p => {
+        if (!p.organizationId) return false;
+        const myCollab = p.collaborators?.find(c => c.userId === user?.id);
+        return myCollab && myCollab.role === "APPLICANT";
+      }));
+
       setPendingInvitations(myInvites);
     } catch (err) {
       console.error("Failed to load projects", err);
@@ -338,20 +438,41 @@ const Projects = () => {
     if (user) loadData();
   }, [user]);
 
+  // Sync tab state with URL parameter if it changes
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const tabParam = params.get("tab");
+    if (tabParam) {
+      setActiveTab(tabParam.toUpperCase());
+    }
+  }, [window.location.search]);
+
   const pendingCount = pendingInvitations.length;
 
   // Tab filtering
   const displayPersonal = activeTab === 'ALL_ACCESS' || activeTab === 'LOCAL_LABS';
   const displayOrg = activeTab === 'ALL_ACCESS' || activeTab === 'MISSIONS';
   const displayPending = activeTab === 'ALL_ACCESS' || activeTab === 'INBOUND_REQS';
+  const displayApplied = activeTab === 'ALL_ACCESS' || activeTab === 'APPLICATIONS';
 
-  const handleAccept = async (id) => {
+  const handleAccept = (id) => {
+    const invite = pendingInvitations.find((inv) => inv.id === id);
+    if (!invite) return;
+    setActiveInvite(invite);
+    setSignModalOpen(true);
+  };
+
+  const handleSignedConfirm = async (fileData) => {
+    if (!activeInvite?.id) return;
     try {
-      await invitationService.respondToInvitation(id, 'ACCEPTED');
+      await invitationService.respondToInvitation(activeInvite.id, {
+        status: 'ACCEPTED',
+        signedFile: fileData,
+      });
       toast.success("Assignment accepted. Target nodes acquired.");
       loadData();
     } catch (err) {
-      toast.error("Failed to accept assignment");
+      throw err;
     }
   };
 
@@ -377,6 +498,16 @@ const Projects = () => {
       setPersonalProjects(prev => prev.filter(p => p.id !== projectId));
     } catch (err) {
       toast.error(err?.response?.data?.error || "Deletion failed");
+    }
+  };
+
+  const handleWithdrawProposal = async (projectId) => {
+    try {
+      await api.delete(`/projects/${projectId}/collaborators/${user.id}`);
+      toast.success("Proposal withdrawn successfully");
+      loadData();
+    } catch (err) {
+      toast.error(err?.response?.data?.error || "Withdrawal failed");
     }
   };
 
@@ -528,7 +659,46 @@ const Projects = () => {
             )}
           </section>
         )}
+
+        {/* Sent Proposals section */}
+        {displayApplied && (
+          <section className="space-y-5">
+            <h2 className="text-sm font-bold text-gray-400 tracking-wider uppercase flex items-center gap-3">
+              <span className="w-2 h-2 rounded-full bg-amber-500" /> Sent Proposals
+            </h2>
+
+            {appliedProjects.length === 0 ? (
+              <div className="py-16 flex flex-col items-center justify-center gap-4 border-2 border-dashed border-white/5 bg-[#0a0a0a] rounded-3xl text-gray-500 text-sm">
+                <FiActivity size={32} className="opacity-30 mb-2" />
+                <p>No pending engagement proposals sent.</p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+                {appliedProjects.map((p, i) => (
+                  <AppliedProjectCard
+                    key={p.id}
+                    project={{
+                      ...p,
+                      orgName: p.organization?.name,
+                      orgAvatar: p.organization?.avatar
+                    }}
+                    index={i}
+                    onWithdraw={handleWithdrawProposal}
+                  />
+                ))}
+              </div>
+            )}
+          </section>
+        )}
       </div>
+
+      <SignedAgreementModal
+        open={signModalOpen}
+        onClose={() => { setSignModalOpen(false); setActiveInvite(null); }}
+        onConfirm={handleSignedConfirm}
+        agreementUrl={activeInvite?.agreementFileUrl}
+        agreementTitle={activeInvite?.agreementTitle}
+      />
     </div>
   );
 };

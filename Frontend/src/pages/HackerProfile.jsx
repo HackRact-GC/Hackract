@@ -52,11 +52,15 @@ const HackerProfile = () => {
 
         try {
           const statusRes = await NationalIDService.getStatus();
-          if (statusRes && statusRes.data && statusRes.data.isVerified) {
-            setIsNationalIdVerified(true);
-          }
-        } catch (e) {
-          console.error("Failed to fetch National ID status", e);
+          const verificationStatus = statusRes?.data?.verificationStatus;
+          const isVerified = Boolean(
+            statusRes?.data?.isVerified ||
+            verificationStatus === 'APPROVED' ||
+            verificationStatus === 'VERIFIED'
+          );
+          setIsNationalIdVerified(isVerified);
+        } catch (error) {
+          console.error("Failed to fetch National ID status", error);
         }
 
         if (profile) {
@@ -68,11 +72,38 @@ const HackerProfile = () => {
               ? profile.certifications.map(c => {
                   try {
                     return JSON.parse(c);
-                  } catch (e) {
+                  } catch {
                     return { title: c, provider: '', date: '' };
                   }
                 })
               : prev.certifications,
+            education: profile.education?.length > 0
+              ? profile.education.map(e => {
+                  try {
+                    return JSON.parse(e);
+                  } catch {
+                    return { school: e, degree: '', from: '', to: '' };
+                  }
+                })
+              : prev.education,
+            employment: profile.employment?.length > 0
+              ? profile.employment.map(e => {
+                  try {
+                    return JSON.parse(e);
+                  } catch {
+                    return { company: '', title: e, from: '', to: '' };
+                  }
+                })
+              : prev.employment,
+            other: profile.otherExperiences?.length > 0
+              ? profile.otherExperiences.map(o => {
+                  try {
+                    return JSON.parse(o);
+                  } catch {
+                    return { subject: o, description: '', file: null, fileUrl: null };
+                  }
+                })
+              : prev.other,
           }));
 
           if (profile.avatar) {
@@ -201,16 +232,20 @@ const HackerProfile = () => {
             <div>
               <h1 className="text-2xl font-bold flex items-center gap-2">
                 {displayName}
-              </h1>
-              {user?.averageRating != null && user?.totalReviews > 0 && (
-                <div className="flex items-center gap-2 mt-2 px-3 py-1 rounded-lg bg-white/[0.03] border border-white/5 w-fit">
-                  <FiStar className="text-[#00c477] fill-[#00c477] text-xs" />
-                  <span className="text-white font-bold text-xs">{Number(user.averageRating).toFixed(1)}</span>
-                  <span className="text-[10px] text-gray-500 font-mono uppercase tracking-widest">
-                    Rating ({user.totalReviews} {user.totalReviews === 1 ? 'review' : 'reviews'})
+                {(user?.isVerified || isNationalIdVerified) && (
+                  <span className="ml-2 inline-flex items-center gap-2 bg-gradient-to-r from-green-600 to-emerald-400 text-black text-xs font-bold uppercase px-3 py-1 rounded-full shadow-lg">
+                    <FiAward className="text-sm text-white" />
+                    Verified Identity
                   </span>
-                </div>
-              )}
+                )}
+              </h1>
+              <div className="flex items-center gap-2 mt-2 px-3 py-1 rounded-lg bg-white/[0.03] border border-white/5 w-fit">
+                <FiStar className="text-[#00c477] fill-[#00c477] text-xs" />
+                <span className="text-white font-bold text-xs">{Number(user?.averageRating || 0).toFixed(1)}</span>
+                <span className="text-[10px] text-gray-500 font-mono uppercase tracking-widest">
+                  Rating ({user?.totalReviews || 0} {(user?.totalReviews || 0) === 1 ? 'review' : 'reviews'})
+                </span>
+              </div>
             </div>
           </div>
         </div>
@@ -224,7 +259,7 @@ const HackerProfile = () => {
             {/* Verifications */}
             <div className="bg-[#0c0c0c] border border-white/5 rounded-2xl p-6">
               <h2 className="text-lg font-bold mb-4">Verifications</h2>
-              {isNationalIdVerified ? (
+              {(user?.isVerified || isNationalIdVerified) ? (
                 <div className="flex items-center gap-2 text-sm">
                   <FiCheckCircle className="text-[#00c477]" />
                   <span>ID: Verified</span>

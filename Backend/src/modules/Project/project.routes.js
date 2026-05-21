@@ -94,7 +94,7 @@ router.post("/personal", async (req, res, next) => {
 
     // Auto-add creator as a HACKER collaborator so they can submit findings
     await prisma.pentestCollaborator.create({
-      data: { pentestId: project.id, userId: req.user.id, role: "HACKER" },
+      data: { pentestId: project.id, userId: req.user.id, role: "HACKER", canEditFindings: true, canManageSessions: true },
     });
 
     await logAction("PERSONAL_WORKSPACE_CREATED", req.user.id, { pentestId: project.id, name }, req);
@@ -202,6 +202,25 @@ router.patch("/:projectId", async (req, res, next) => {
       }
     });
 
+    // Send notifications if status has changed to CLOSED
+    if (status === "CLOSED" && project.status !== "CLOSED") {
+      const collaborators = await prisma.pentestCollaborator.findMany({
+        where: { pentestId: projectId }
+      });
+      if (req.app?.locals?.sendNotification) {
+        for (const collab of collaborators) {
+          if (collab.userId === req.user.id) continue;
+          req.app.locals.sendNotification(collab.userId, {
+            type: "INVITE_RECEIVED",
+            title: "Project Closed",
+            message: `The project: ${project.name} has been closed.`,
+            pentestId: projectId,
+            timestamp: new Date().toISOString()
+          });
+        }
+      }
+    }
+
     await logAction("PROJECT_UPDATED", req.user.id, { pentestId: projectId, updates: req.body }, req);
 
     res.json({ success: true, data: updated, message: "Project updated successfully" });
@@ -283,9 +302,9 @@ router.post("/", async (req, res, next) => {
     const uniqueHackers = [...new Set((hackerIds || []).filter(Boolean))];
     const collaboratorRows = [
       ...(projectAdminId
-        ? [{ pentestId: project.id, userId: projectAdminId, role: "PROJECT_ADMIN" }]
+        ? [{ pentestId: project.id, userId: projectAdminId, role: "PROJECT_ADMIN", canEditFindings: true, canManageSessions: true }]
         : []),
-      ...uniqueHackers.map((userId) => ({ pentestId: project.id, userId, role: "HACKER" })),
+      ...uniqueHackers.map((userId) => ({ pentestId: project.id, userId, role: "HACKER", canEditFindings: true, canManageSessions: true })),
     ];
 
     if (collaboratorRows.length > 0) {
@@ -293,6 +312,22 @@ router.post("/", async (req, res, next) => {
         data: collaboratorRows,
         skipDuplicates: true,
       });
+
+      // Send socket notifications to the assigned collaborators
+      if (req.app?.locals?.sendNotification) {
+        for (const row of collaboratorRows) {
+          if (row.userId === req.user.id) continue; // Avoid self-notification
+          req.app.locals.sendNotification(row.userId, {
+            type: 'INVITE_RECEIVED',
+            title: row.role === 'PROJECT_ADMIN' ? 'Project Administrator Assigned' : 'New Mission Assignment',
+            message: row.role === 'PROJECT_ADMIN'
+              ? `You have been assigned as an Administrator for project: ${project.name}.`
+              : `You have been added as a collaborator to project: ${project.name}.`,
+            pentestId: project.id,
+            timestamp: new Date().toISOString()
+          });
+        }
+      }
     }
 
     const fullProject = await prisma.pentest.findUnique({
@@ -334,7 +369,12 @@ router.patch("/:projectId/admin", async (req, res, next) => {
       throw new AppError("Only organization owner/admin can assign project admin", 403);
     }
 
-    // 1. Demote any existing PROJECT_ADMINs to HACKER
+    // 1. Get any existing PROJECT_ADMINs to notify them of demotion
+    const existingAdmins = await prisma.pentestCollaborator.findMany({
+      where: { pentestId: projectId, role: "PROJECT_ADMIN" }
+    });
+
+    // Demote any existing PROJECT_ADMINs to HACKER
     await prisma.pentestCollaborator.updateMany({
       where: { pentestId: projectId, role: "PROJECT_ADMIN" },
       data: { role: "HACKER" }
@@ -345,8 +385,8 @@ router.patch("/:projectId/admin", async (req, res, next) => {
       where: {
         pentestId_userId: { pentestId: projectId, userId: projectAdminId }
       },
-      update: { role: "PROJECT_ADMIN" },
-      create: { pentestId: projectId, userId: projectAdminId, role: "PROJECT_ADMIN" }
+      update: { role: "PROJECT_ADMIN", canEditFindings: true, canManageSessions: true },
+      create: { pentestId: projectId, userId: projectAdminId, role: "PROJECT_ADMIN", canEditFindings: true, canManageSessions: true }
     });
 
     // 3. Update the leadPentesterId on the project
@@ -355,11 +395,80 @@ router.patch("/:projectId/admin", async (req, res, next) => {
       data: { leadPentesterId: projectAdminId }
     });
 
+    // Notify the newly assigned admin
+    if (req.app?.locals?.sendNotification && projectAdminId !== req.user.id) {
+      req.app.locals.sendNotification(projectAdminId, {
+        type: 'INVITE_RECEIVED',
+        title: 'Project Administrator Assigned',
+        message: `You have been assigned as an Administrator for project: ${project.name}.`,
+        pentestId: projectId,
+        timestamp: new Date().toISOString()
+      });
+    }
+
+    // Notify the demoted admins
+    if (req.app?.locals?.sendNotification) {
+      for (const oldAdmin of existingAdmins) {
+        if (oldAdmin.userId === req.user.id || oldAdmin.userId === projectAdminId) continue;
+        req.app.locals.sendNotification(oldAdmin.userId, {
+          type: 'INVITE_RECEIVED',
+          title: 'Project Administrator Designation Removed',
+          message: `Your Administrator designation for project: ${project.name} has been removed.`,
+          pentestId: projectId,
+          timestamp: new Date().toISOString()
+        });
+      }
+    }
+
     res.json({ success: true, message: "Project admin assigned successfully" });
   } catch (error) {
     next(error);
   }
 });
+
+router.delete("/:projectId/admin", async (req, res, next) => {
+  try {
+    const { projectId } = req.params;
+
+    const project = await prisma.pentest.findUnique({ where: { id: projectId } });
+    if (!project) throw new AppError("Project not found", 404);
+
+    const canManage = await isOrgAdminMember(project.organizationId, req.user);
+    if (!canManage) {
+      throw new AppError("Only organization owner/admin can remove project admin", 403);
+    }
+
+    const currentAdminId = project.leadPentesterId;
+
+    // 1. Demote any existing PROJECT_ADMINs to HACKER
+    await prisma.pentestCollaborator.updateMany({
+      where: { pentestId: projectId, role: "PROJECT_ADMIN" },
+      data: { role: "HACKER" }
+    });
+
+    // 2. Clear leadPentesterId on the project
+    await prisma.pentest.update({
+      where: { id: projectId },
+      data: { leadPentesterId: null }
+    });
+
+    // Notify the demoted admin if there was one
+    if (currentAdminId && req.app?.locals?.sendNotification && currentAdminId !== req.user.id) {
+      req.app.locals.sendNotification(currentAdminId, {
+        type: 'INVITE_RECEIVED',
+        title: 'Project Administrator Designation Removed',
+        message: `Your Administrator designation for project: ${project.name} has been removed.`,
+        pentestId: projectId,
+        timestamp: new Date().toISOString()
+      });
+    }
+
+    res.json({ success: true, message: "Project admin removed successfully" });
+  } catch (error) {
+    next(error);
+  }
+});
+
 
 router.post("/:projectId/hackers", async (req, res, next) => {
   try {
@@ -378,9 +487,24 @@ router.post("/:projectId/hackers", async (req, res, next) => {
     }
 
     await prisma.pentestCollaborator.createMany({
-      data: [...new Set(hackerIds)].map((userId) => ({ pentestId: projectId, userId, role: "HACKER" })),
+      data: [...new Set(hackerIds)].map((userId) => ({ pentestId: projectId, userId, role: "HACKER", canEditFindings: true, canManageSessions: true })),
       skipDuplicates: true,
     });
+
+    // Send notifications to the assigned hackers
+    if (req.app?.locals?.sendNotification) {
+      const distinctHackers = [...new Set(hackerIds)];
+      for (const userId of distinctHackers) {
+        if (userId === req.user.id) continue;
+        req.app.locals.sendNotification(userId, {
+          type: 'INVITE_RECEIVED',
+          title: 'New Mission Assignment',
+          message: `You have been added as a collaborator to project: ${project.name}.`,
+          pentestId: projectId,
+          timestamp: new Date().toISOString()
+        });
+      }
+    }
 
     res.json({ success: true, message: "Hackers added successfully" });
   } catch (error) {
@@ -468,7 +592,7 @@ router.post("/:projectId/hire", async (req, res, next) => {
 
     await prisma.pentestCollaborator.update({
       where: { pentestId_userId: { pentestId: projectId, userId } },
-      data: { role: "HACKER" },
+      data: { role: "HACKER", canEditFindings: true, canManageSessions: true },
     });
 
     await logAction("HACKER_HIRED", req.user.id, {
@@ -664,6 +788,24 @@ router.delete("/:projectId", async (req, res, next) => {
       throw new AppError("Unauthorized: Only project leads or organization admins can delete projects", 403);
     }
 
+    // Fetch all collaborators to notify them before deletion
+    const collaborators = await prisma.pentestCollaborator.findMany({
+      where: { pentestId: projectId }
+    });
+
+    if (req.app?.locals?.sendNotification) {
+      for (const collab of collaborators) {
+        if (collab.userId === req.user.id) continue;
+        req.app.locals.sendNotification(collab.userId, {
+          type: 'INVITE_REJECTED',
+          title: 'Project Deleted',
+          message: `The project: ${project.name} has been deleted.`,
+          pentestId: projectId,
+          timestamp: new Date().toISOString()
+        });
+      }
+    }
+
     // Manually delete related records to bypass constraint issues
     await prisma.pentestCollaborator.deleteMany({ where: { pentestId: projectId } });
     await prisma.workflow.deleteMany({ where: { pentestId: projectId } });
@@ -695,8 +837,8 @@ router.delete("/:projectId/collaborators/:userId", async (req, res, next) => {
         where: { pentestId: projectId, userId: req.user.id, role: "PROJECT_ADMIN" }
     });
 
-    if (!canManage && !isProjectAdmin) {
-      throw new AppError("Only organization admin or project admin can remove collaborators", 403);
+    if (!canManage && !isProjectAdmin && userId !== req.user.id) {
+      throw new AppError("Only organization admin, project admin, or the collaborator themselves can remove collaborators", 403);
     }
 
     // Prevent removing the last admin? (Optional safety)
@@ -704,6 +846,16 @@ router.delete("/:projectId/collaborators/:userId", async (req, res, next) => {
     await prisma.pentestCollaborator.delete({
       where: { pentestId_userId: { pentestId: projectId, userId } }
     });
+
+    if (req.app?.locals?.sendNotification && userId !== req.user.id) {
+      req.app.locals.sendNotification(userId, {
+        type: 'INVITE_REJECTED',
+        title: 'Removed from Project',
+        message: `You have been removed from the project: ${project.name}.`,
+        pentestId: projectId,
+        timestamp: new Date().toISOString()
+      });
+    }
 
     await logAction("COLLABORATOR_REMOVED", req.user.id, { pentestId: projectId, removedUserId: userId }, req);
 

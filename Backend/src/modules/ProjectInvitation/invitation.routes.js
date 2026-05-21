@@ -39,6 +39,26 @@ router.use(protect);
  *               expiresAt:
  *                 type: string
  *                 format: date-time
+ *               agreement:
+ *                 type: object
+ *                 required: [source, fileUrl, fileName]
+ *                 properties:
+ *                   source:
+ *                     type: string
+ *                     enum: [UPLOAD, LEGAL_AGREEMENT]
+ *                   legalAgreementId:
+ *                     type: string
+ *                     format: uuid
+ *                   title:
+ *                     type: string
+ *                   fileUrl:
+ *                     type: string
+ *                   fileName:
+ *                     type: string
+ *                   fileSize:
+ *                     type: integer
+ *                   fileMime:
+ *                     type: string
  *     responses:
  *       201:
  *         description: Invitation sent successfully
@@ -140,6 +160,18 @@ router.get('/project/:pentestId', restrictTo('ORG_ADMIN', 'PROJECT_ADMIN', 'PENT
  *               status:
  *                 type: string
  *                 enum: [ACCEPTED, REJECTED]
+ *               signedFile:
+ *                 type: object
+ *                 required: [fileUrl, fileName]
+ *                 properties:
+ *                   fileUrl:
+ *                     type: string
+ *                   fileName:
+ *                     type: string
+ *                   fileSize:
+ *                     type: integer
+ *                   fileMime:
+ *                     type: string
  *     responses:
  *       200:
  *         description: Response recorded

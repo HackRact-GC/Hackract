@@ -1,29 +1,71 @@
 import React, { useState, useEffect } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
-import { 
-  FiDownload, FiZoomIn, FiZoomOut, FiBell, FiUser, 
-  FiFileText, FiShield, FiAlertTriangle, FiArrowLeft, FiLoader
-} from 'react-icons/fi';
+import { FiDownload, FiCode, FiSend, FiFileText, FiZoomIn, FiMaximize2, FiArrowLeft, FiLoader } from 'react-icons/fi';
 import api from '../api/axiosConfig';
 import toast from 'react-hot-toast';
 import jsPDF from 'jspdf';
 
+// Checkbox Component
+const CheckboxOption = ({ id, label, checked, onChange }) => (
+  <div
+    onClick={onChange}
+    className="flex items-center justify-between p-4 bg-[#141518] rounded-xl cursor-pointer border transition-colors border-white/5 hover:border-white/10"
+  >
+    <div>
+      <div className="text-[9px] font-bold text-gray-500 uppercase tracking-widest font-mono mb-1">
+        SECTION_ID: {id}
+      </div>
+      <div className="text-sm font-bold text-gray-200">{label}</div>
+    </div>
+    <div className={`w-5 h-5 flex items-center justify-center rounded-md border transition-colors ${checked ? 'bg-[#00c477] border-[#00c477]' : 'bg-[#1e1e24] border-gray-600'}`}>
+      {checked && <svg className="w-3 h-3 text-black" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" /></svg>}
+    </div>
+  </div>
+);
+
+// Toggle Switch Component
+const ToggleSwitch = ({ label, icon: Icon, checked, onChange }) => (
+  <div className="flex items-center justify-between py-3">
+    <div className="flex items-center gap-3">
+      {Icon && <Icon className="text-gray-500 w-4 h-4" />}
+      <span className="text-sm font-medium text-gray-300">{label}</span>
+    </div>
+    <button
+      onClick={onChange}
+      className={`w-10 h-5 rounded-full relative transition-colors ${checked ? 'bg-[#00c477]' : 'bg-[#2a2b30]'}`}
+    >
+      <div className={`absolute top-0.5 w-4 h-4 rounded-full bg-white transition-transform ${checked ? 'translate-x-[22px]' : 'translate-x-0.5'}`} />
+    </button>
+  </div>
+);
+
 const Reports = () => {
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
   const projectId = searchParams.get('projectId');
-  const [zoom, setZoom] = useState(100);
+  
   const [loading, setLoading] = useState(!!projectId);
   const [generating, setGenerating] = useState(false);
-  const [exportFormat, setExportFormat] = useState('pdf'); // 'pdf' | 'json'
   const [project, setProject] = useState(null);
   const [findings, setFindings] = useState([]);
+  const [availableProjects, setAvailableProjects] = useState([]);
+  
+  const [step, setStep] = useState(projectId ? 2 : 1);
+  const [exportFormat, setExportFormat] = useState('pdf');
+
   const [modules, setModules] = useState({
     execSummary: true,
-    vulnTable: true,
-    methodology: false,
-    rawLogs: false
+    techScope: true,
+    vulnMatrix: true,
+    remedPath: true,
+    screenshots: true,
+    cvssBreakdown: true,
+    digitalSignature: false
   });
+
+  useEffect(() => {
+    api.get('/projects').then(res => setAvailableProjects(res.data?.data || [])).catch(console.error);
+  }, []);
 
   const loadData = async () => {
     if (!projectId) return;
@@ -33,7 +75,6 @@ const Reports = () => {
         api.get(`/projects/${projectId}`),
         api.get(`/findings?pentestId=${projectId}&limit=100`)
       ]);
-      // Handle both { data: { data: project } } and { data: project } shapes
       setProject(pRes.data?.data ?? pRes.data);
       setFindings(fRes.data?.data ?? fRes.data ?? []);
     } catch (e) {
@@ -45,108 +86,20 @@ const Reports = () => {
 
   useEffect(() => { loadData(); }, [projectId]);
 
-  const severityCounts = findings.reduce((acc, f) => {
-    const s = f.severity?.toUpperCase() || 'INFO';
-    acc[s] = (acc[s] || 0) + 1;
-    return acc;
-  }, { CRITICAL: 0, HIGH: 0, MEDIUM: 0, LOW: 0, INFO: 0 });
-
-  const toggleModule = (mod) => {
-    setModules(prev => ({ ...prev, [mod]: !prev[mod] }));
-  };
-
-  // ── Client-side jsPDF fallback ──────────────────────────────────────────────
-  const generateClientPdf = () => {
-    const doc = new jsPDF({ unit: 'pt', format: 'a4' });
-    const green = [0, 196, 119];
-    const dark  = [10, 10, 10];
-
-    // Cover
-    doc.setFillColor(...dark);
-    doc.rect(0, 0, 595, 200, 'F');
-    doc.setFillColor(...green);
-    doc.rect(0, 200, 595, 4, 'F');
-
-    doc.setFont('helvetica', 'bold');
-    doc.setFontSize(24);
-    doc.setTextColor(255, 255, 255);
-    doc.text(project?.name || 'Security Report', 40, 100);
-
-    doc.setFontSize(11);
-    doc.setTextColor(156, 163, 175);
-    doc.text(project?.organization?.name || 'Hackract Assessment', 40, 125);
-
-    doc.setFontSize(9);
-    doc.text(new Date().toLocaleDateString(), 40, 145);
-
-    // Summary
-    doc.setTextColor(...dark);
-    doc.setFontSize(14);
-    doc.text('Executive Summary', 40, 240);
-
-    doc.setFont('helvetica', 'normal');
-    doc.setFontSize(10);
-    doc.setTextColor(55, 65, 81);
-    doc.text(`Total findings: ${findings.length}  |  Critical: ${severityCounts.CRITICAL}  |  High: ${severityCounts.HIGH}  |  Medium: ${severityCounts.MEDIUM}  |  Low: ${severityCounts.LOW}`, 40, 265);
-
-    // Findings table
-    if (findings.length > 0) {
-      doc.setFont('helvetica', 'bold');
-      doc.setFontSize(13);
-      doc.setTextColor(...dark);
-      doc.text('Detected Vulnerabilities', 40, 310);
-
-      let y = 335;
-      doc.setFillColor(17, 24, 39);
-      doc.rect(40, y - 14, 515, 18, 'F');
-      doc.setTextColor(255, 255, 255);
-      doc.setFontSize(8);
-      doc.text('SEVERITY', 45, y - 3);
-      doc.text('TITLE', 120, y - 3);
-      doc.text('CVSS', 490, y - 3);
-
-      y += 10;
-      doc.setFont('helvetica', 'normal');
-      findings.slice(0, 30).forEach((f, i) => {
-        if (y > 770) { doc.addPage(); y = 60; }
-        if (i % 2 === 0) {
-          doc.setFillColor(249, 250, 251);
-          doc.rect(40, y - 12, 515, 18, 'F');
-        }
-        doc.setTextColor(55, 65, 81);
-        doc.setFontSize(8);
-        doc.text(f.severity || '—', 45, y);
-        const title = f.title?.substring(0, 55) || '—';
-        doc.text(title, 120, y);
-        doc.text(f.cvssScore != null ? Number(f.cvssScore).toFixed(1) : '—', 490, y);
-        y += 18;
-      });
-    }
-
-    doc.setFont('helvetica', 'normal');
-    doc.setFontSize(8);
-    doc.setTextColor(156, 163, 175);
-    doc.text('HACKRACT SENTINEL PROTOCOL  ·  CONFIDENTIAL', 40, 820);
-
-    const name = (project?.name || 'Report').replace(/\s+/g, '-').substring(0, 40);
-    doc.save(`Hackract-Report-${name}.pdf`);
-  };
+  const toggleModule = (mod) => setModules(prev => ({ ...prev, [mod]: !prev[mod] }));
 
   // ── JSON export (client-side) ───────────────────────────────────────────────
   const handleJsonExport = () => {
-    if (!projectId && findings.length === 0) {
-      return toast.error('No project data loaded to export.');
-    }
+    if (!projectId && findings.length === 0) return toast.error('No project data loaded to export.');
     const payload = {
       generatedAt: new Date().toISOString(),
-      project:     project || { name: 'Demo Report' },
+      project: project || { name: 'Demo Report' },
       findings,
-      severityCounts,
     };
     const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
-    const url  = URL.createObjectURL(blob);
-    const a    = document.createElement('a');
-    a.href     = url;
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
     a.download = `Hackract-Report-${(project?.name || 'export').replace(/\s+/g, '-')}.json`;
     document.body.appendChild(a);
     a.click();
@@ -156,20 +109,11 @@ const Reports = () => {
   };
 
   // ── Main generate handler ───────────────────────────────────────────────────
-  const handleGenerate = async () => {
-    if (exportFormat === 'json') {
-      return handleJsonExport();
-    }
-
-    if (!projectId) {
-      // No project loaded — use client-side fallback
-      generateClientPdf();
-      toast.success('Client-side PDF generated (no project selected)');
-      return;
-    }
+  const handleGeneratePdf = async () => {
+    if (!projectId) return toast.error('No project selected to generate PDF.');
 
     setGenerating(true);
-    const toastId = toast.loading('Building PDF report…');
+    const toastId = toast.loading('Synthesizing PDF document…');
 
     try {
       const response = await api.post(
@@ -178,286 +122,310 @@ const Reports = () => {
         { responseType: 'blob' }
       );
 
-      const blob      = new Blob([response.data], { type: 'application/pdf' });
-      const url       = URL.createObjectURL(blob);
-      const a         = document.createElement('a');
-      const name      = (project?.name || 'Report').replace(/\s+/g, '-').substring(0, 40);
-      a.href          = url;
-      a.download      = `Hackract-Report-${name}.pdf`;
+      const blob = new Blob([response.data], { type: 'application/pdf' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      const name = (project?.name || 'Report').replace(/\s+/g, '-').substring(0, 40);
+      a.href = url;
+      a.download = `Hackract-Report-${name}.pdf`;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
 
-      toast.success('Report downloaded!', { id: toastId });
+      toast.success('Report deployed successfully!', { id: toastId });
     } catch (err) {
-      console.warn('Server PDF failed, falling back to client-side:', err.message);
-      toast.loading('Server error — generating client-side PDF…', { id: toastId });
-      try {
-        generateClientPdf();
-        toast.success('Client-side PDF generated!', { id: toastId });
-      } catch (fallbackErr) {
-        toast.error('PDF generation failed.', { id: toastId });
-      }
+      console.error(err);
+      toast.error('PDF synthesis failed. Please try again.', { id: toastId });
     } finally {
       setGenerating(false);
     }
   };
 
-  const todayDate = new Date().toLocaleDateString('en-US', {
-    year: 'numeric', month: 'long', day: 'numeric'
-  });
+  const getSeverityStyle = (severity) => {
+    switch (severity?.toUpperCase()) {
+      case 'CRITICAL': return 'bg-red-500/10 text-red-500 border-red-500/20';
+      case 'HIGH': return 'bg-orange-500/10 text-orange-500 border-orange-500/20';
+      case 'MEDIUM': return 'bg-yellow-500/10 text-yellow-500 border-yellow-500/20';
+      case 'LOW': return 'bg-blue-500/10 text-blue-500 border-blue-500/20';
+      default: return 'bg-gray-500/10 text-gray-500 border-gray-500/20';
+    }
+  };
+
+  const projectName = project?.data?.name || project?.name || 'NEXUS_CORE';
+  const orgName = project?.data?.organization?.name || project?.organization?.name || 'QUANTUM_DYNAMICS_INTL';
+  const today = new Date().toISOString().replace('T', ' // ').substring(0, 19);
 
   return (
-    <div className="flex h-full w-full bg-[#0a0a0b] text-gray-300 font-sans overflow-hidden border border-white/5 rounded-[32px] box-border shadow-2xl relative">
-      
-      {/* Left Sidebar (Configuration) */}
-      <div className="w-80 bg-[#111215] border-r border-[#1e1e24] flex-col pt-6 pb-6 shadow-2xl relative z-10 hidden xl:flex">
-        <div className="px-6 mb-8">
-          <div className="flex items-center gap-2 mb-4">
-            <button onClick={() => navigate(-1)} className="p-2 hover:bg-white/5 rounded-lg text-gray-500 hover:text-white transition-all">
-              <FiArrowLeft size={16} />
+    <div className="flex flex-col h-full w-full bg-[#0d0f12] text-gray-300 font-sans overflow-y-auto">
+      {/* Top Header */}
+      <div className="flex items-start justify-between px-8 py-6 border-b border-[#1c1d21]">
+        <div className="max-w-2xl">
+          <div className="flex items-center gap-3 mb-2">
+            <button onClick={() => navigate(-1)} className="text-gray-500 hover:text-white transition-colors">
+              <FiArrowLeft size={18} />
             </button>
-            <span className="text-[10px] font-black uppercase tracking-widest text-gray-600">Return</span>
+            <h1 className="text-gray-300 text-sm font-medium leading-relaxed">
+              Configure and synthesize high-fidelity audit reports for the <span className="font-bold text-white uppercase">{projectName}</span> architecture. Select parameters, review findings, and deploy documentation.
+            </h1>
           </div>
-          <h2 className="text-2xl font-black text-white mb-1 tracking-tight">Report Generator</h2>
-          <p className="text-xs text-gray-500 font-mono tracking-wide">Mission parameter export</p>
-          {!projectId && (
-            <p className="text-[10px] text-amber-400 mt-2 font-mono">⚠ No project selected — demo mode</p>
-          )}
         </div>
-
-        <div className="flex-1 overflow-y-auto px-6 space-y-8 scrollbar-hide">
-          {/* Export Formats */}
-          <div className="space-y-4">
-            <h3 className="text-[10px] font-bold text-gray-500 uppercase tracking-widest font-mono">Export Format</h3>
-            <div className="grid grid-cols-2 gap-3">
-              <button
-                onClick={() => setExportFormat('pdf')}
-                className={`flex flex-col items-center justify-center p-4 rounded-xl border transition-all ${
-                  exportFormat === 'pdf'
-                    ? 'border-[#00ff41] bg-[#00ff41]/5 text-[#00ff41]'
-                    : 'border-white/5 hover:border-white/20 bg-black/20 text-gray-400 hover:text-white'
-                }`}
-              >
-                <FiFileText size={20} className="mb-2" />
-                <span className="text-xs font-bold">PDF</span>
-              </button>
-              <button
-                onClick={() => setExportFormat('json')}
-                className={`flex flex-col items-center justify-center p-4 rounded-xl border transition-all ${
-                  exportFormat === 'json'
-                    ? 'border-[#00ff41] bg-[#00ff41]/5 text-[#00ff41]'
-                    : 'border-white/5 hover:border-white/20 bg-black/20 text-gray-400 hover:text-white'
-                }`}
-              >
-                <FiFileText size={20} className="mb-2" />
-                <span className="text-xs font-bold">JSON</span>
-              </button>
-            </div>
+        <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2 bg-[#00c477]/10 px-4 py-2 rounded border border-[#00c477]/20">
+            <div className="w-1.5 h-1.5 rounded-full bg-[#00c477] animate-pulse" />
+            <span className="text-[10px] font-black text-[#00c477] uppercase tracking-widest">FINDINGS: {findings.length} DETECTED</span>
           </div>
-
-          {/* Report Modules — only relevant for PDF */}
-          {exportFormat === 'pdf' && (
-            <div className="space-y-4">
-              <h3 className="text-[10px] font-bold text-gray-500 uppercase tracking-widest font-mono">Report Modules</h3>
-              <div className="space-y-2">
-                {[
-                  { key: 'execSummary', label: 'Executive Summary' },
-                  { key: 'vulnTable',   label: 'Vulnerability Findings' },
-                  { key: 'methodology', label: 'Methodology' },
-                  { key: 'rawLogs',     label: 'Raw Payload Logs' },
-                ].map(({ key, label }) => (
-                  <div key={key} className="flex items-center justify-between p-3.5 rounded-xl bg-white/5 border border-white/5">
-                    <span className="text-sm font-medium text-white">{label}</span>
-                    <button
-                      onClick={() => toggleModule(key)}
-                      className={`w-9 h-5 rounded-full relative transition-colors ${modules[key] ? 'bg-[#00ff41]' : 'bg-gray-600'}`}
-                    >
-                      <div className={`absolute top-0.5 w-4 h-4 bg-white rounded-full transition-transform ${modules[key] ? 'left-[18px]' : 'left-0.5'}`} />
-                    </button>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-        </div>
-
-        <div className="px-6 mt-6">
-          <button
-            onClick={handleGenerate}
-            disabled={generating || loading}
-            className="w-full flex items-center justify-center gap-2 py-4 bg-[#00ff41] hover:bg-[#00cc33] disabled:opacity-60 disabled:cursor-not-allowed text-black rounded-xl font-bold text-sm tracking-wide shadow-[0_0_20px_rgba(0,255,65,0.2)] transition-all"
-          >
-            {generating
-              ? <><FiLoader size={16} className="animate-spin" /> Generating…</>
-              : <><FiDownload size={18} /> {exportFormat === 'json' ? 'Export JSON' : 'Generate Report'}</>
-            }
-          </button>
+          <div className="flex items-center gap-2 bg-[#3b82f6]/10 px-4 py-2 rounded border border-[#3b82f6]/20">
+            <div className="w-1.5 h-1.5 rounded-full bg-[#3b82f6]" />
+            <span className="text-[10px] font-black text-[#3b82f6] uppercase tracking-widest">COMPLIANCE: SOC2 READY</span>
+          </div>
         </div>
       </div>
 
-      {/* Main Content (Preview Area) */}
-      <div className="flex-1 flex flex-col relative overflow-hidden bg-[#070708] z-0">
-        
-        {/* Top Navbar */}
-        <div className="h-16 bg-[#111215]/80 backdrop-blur-md border-b border-[#1e1e24] flex items-center justify-between px-6 z-20 absolute top-0 w-full">
-          <div className="flex items-center gap-4">
-            <div className="flex items-center gap-2">
-               <FiShield className="text-[#00ff41] w-5 h-5" />
-               <span className="font-black text-white tracking-widest uppercase text-sm">Hackract Engine</span>
-            </div>
-            <div className="px-2 py-1 bg-white/5 rounded border border-white/10 text-[10px] font-mono text-gray-400">
-              v4.2.0-rc
-            </div>
+      <div className="flex flex-1 p-8 gap-8 max-w-[1600px] mx-auto w-full">
+        {/* Left Column - Configuration */}
+        <div className="flex-1 max-w-[700px] flex flex-col gap-6">
+          
+          {/* Progress Bar */}
+          <div className="flex gap-2 mb-2">
+            <div className={`h-1 flex-1 rounded-full ${step >= 1 ? (step === 1 ? 'bg-linear-to-r from-[#00c477] to-[#1c1d21]' : 'bg-[#00c477]') : 'bg-[#1c1d21]'}`} />
+            <div className={`h-1 flex-1 rounded-full ${step >= 2 ? (step === 2 ? 'bg-linear-to-r from-[#00c477] to-[#1c1d21]' : 'bg-[#00c477]') : 'bg-[#1c1d21]'}`} />
+            <div className={`h-1 flex-1 rounded-full ${step >= 3 ? (step === 3 ? 'bg-linear-to-r from-[#00c477] to-[#1c1d21]' : 'bg-[#00c477]') : 'bg-[#1c1d21]'}`} />
           </div>
+          
+          {step === 1 && (
+            <>
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-8 rounded-full bg-[#00c477] flex items-center justify-center text-black font-black text-xs">
+                  01
+                </div>
+                <h2 className="text-xl font-black text-white tracking-widest uppercase">Export_Parameters</h2>
+              </div>
+              <div className="bg-[#0f1115] border border-[#1c1d21] rounded-2xl p-6 flex-1 flex flex-col">
+                <div className="mb-8">
+                  <h3 className="text-[10px] font-bold text-gray-500 uppercase tracking-widest font-mono mb-4">Target Project</h3>
+                  <select 
+                    value={projectId || ''} 
+                    onChange={e => setSearchParams({ projectId: e.target.value })}
+                    className="w-full bg-[#141518] border border-white/10 rounded-xl px-4 py-3 text-sm text-white outline-none focus:border-[#00c477] appearance-none"
+                  >
+                    <option value="" disabled>Select a project to analyze...</option>
+                    {availableProjects.map(p => (
+                      <option key={p.id} value={p.id}>{p.name || 'Untitled Project'}</option>
+                    ))}
+                  </select>
+                </div>
 
-          <div className="flex items-center gap-6">
-            {/* Mobile generate button */}
-            <button
-              onClick={handleGenerate}
-              disabled={generating || loading}
-              className="xl:hidden flex items-center gap-2 px-4 py-2 bg-[#00ff41] hover:bg-[#00cc33] disabled:opacity-60 text-black rounded-lg font-bold text-xs transition-all"
-            >
-              {generating ? <FiLoader size={14} className="animate-spin" /> : <FiDownload size={14} />}
-              {generating ? 'Generating…' : exportFormat === 'json' ? 'Export JSON' : 'Generate PDF'}
-            </button>
+                <h3 className="text-[10px] font-bold text-gray-500 uppercase tracking-widest font-mono mb-4">Select Format</h3>
+                <div className="grid grid-cols-2 gap-4">
+                  <button onClick={() => setExportFormat('pdf')} className={`p-6 rounded-xl border flex flex-col items-center gap-4 transition-all ${exportFormat === 'pdf' ? 'border-[#00c477] bg-[#00c477]/10 text-[#00c477]' : 'border-white/5 bg-[#141518] hover:border-white/20 text-gray-400'}`}>
+                    <FiFileText size={32} />
+                    <span className="font-bold tracking-widest uppercase">PDF Document</span>
+                  </button>
+                  <button onClick={() => setExportFormat('json')} className={`p-6 rounded-xl border flex flex-col items-center gap-4 transition-all ${exportFormat === 'json' ? 'border-[#00c477] bg-[#00c477]/10 text-[#00c477]' : 'border-white/5 bg-[#141518] hover:border-white/20 text-gray-400'}`}>
+                    <FiCode size={32} />
+                    <span className="font-bold tracking-widest uppercase">JSON Payload</span>
+                  </button>
+                </div>
+                <div className="flex gap-4 mt-auto pt-6">
+                  <button onClick={() => navigate(-1)} className="px-6 py-3.5 rounded-xl border border-white/10 text-xs font-bold text-gray-300 uppercase tracking-widest hover:bg-white/5 transition-colors">
+                    Cancel
+                  </button>
+                  <button 
+                    onClick={() => {
+                      if (!projectId) return toast.error('Please select a Target Project first.');
+                      setStep(2);
+                    }} 
+                    className="flex-1 bg-[#a3ffcc] hover:bg-[#00c477] text-[#004d2e] rounded-xl text-xs font-black uppercase tracking-widest transition-colors flex items-center justify-center"
+                  >
+                    Next_Step
+                  </button>
+                </div>
+              </div>
+            </>
+          )}
 
-            <div className="flex items-center p-1 bg-black/40 rounded-lg border border-white/5">
-              <button onClick={() => setZoom(z => Math.max(z - 10, 50))} className="p-1.5 hover:bg-white/10 rounded text-gray-400 hover:text-white transition-colors"><FiZoomOut size={16} /></button>
-              <span className="px-3 text-xs font-mono font-bold text-gray-300 w-12 text-center">{zoom}%</span>
-              <button onClick={() => setZoom(z => Math.min(z + 10, 200))} className="p-1.5 hover:bg-white/10 rounded text-gray-400 hover:text-white transition-colors"><FiZoomIn size={16} /></button>
-            </div>
-            <div className="w-px h-6 bg-white/10" />
-            <button className="text-gray-400 hover:text-white transition-colors relative">
-              <FiBell size={20} />
-              <span className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-[#00ff41] rounded-full border border-[#111215]" />
-            </button>
-            <button className="w-8 h-8 rounded-full bg-linear-to-tr from-[#00ff41] to-teal-500 flex items-center justify-center text-black font-bold text-xs ring-2 ring-white/10">
-              <FiUser size={14} />
-            </button>
-          </div>
+          {step === 2 && (
+            <>
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-8 rounded-full bg-[#00c477] flex items-center justify-center text-black font-black text-xs">
+                  02
+                </div>
+                <h2 className="text-xl font-black text-white tracking-widest uppercase">Content_Scope_Configuration</h2>
+              </div>
+              <div className="bg-[#0f1115] border border-[#1c1d21] rounded-2xl p-6 flex-1 flex flex-col">
+                {/* Grid Options */}
+                <div className="grid grid-cols-2 gap-4 mb-8">
+                  <CheckboxOption id="EX_SUM" label="Executive Summary" checked={modules.execSummary} onChange={() => toggleModule('execSummary')} />
+                  <CheckboxOption id="TECH_SCOPE" label="Technical Scope" checked={modules.techScope} onChange={() => toggleModule('techScope')} />
+                  <CheckboxOption id="FINDINGS_M" label="Vulnerability Matrix" checked={modules.vulnMatrix} onChange={() => toggleModule('vulnMatrix')} />
+                  <CheckboxOption id="REMED_PATH" label="Remediation Roadmap" checked={modules.remedPath} onChange={() => toggleModule('remedPath')} />
+                </div>
+
+                {/* Advanced Metadata Injection */}
+                <div className="mb-8">
+                  <h3 className="text-[10px] font-bold text-gray-500 uppercase tracking-widest font-mono mb-4">Advanced_Metadata_Injection</h3>
+                  <div className="space-y-1">
+                    <ToggleSwitch label="Include Evidence Screenshots" icon={FiFileText} checked={modules.screenshots} onChange={() => toggleModule('screenshots')} />
+                    <ToggleSwitch label="CVSS Score Breakdown" icon={FiFileText} checked={modules.cvssBreakdown} onChange={() => toggleModule('cvssBreakdown')} />
+                    <ToggleSwitch label="Digital Signature Verification" icon={FiFileText} checked={modules.digitalSignature} onChange={() => toggleModule('digitalSignature')} />
+                  </div>
+                </div>
+
+                {/* Live Data Feed */}
+                <div className="flex-1 flex flex-col min-h-[200px]">
+                  <div className="flex justify-between items-end mb-3">
+                    <h3 className="text-[10px] font-bold text-gray-500 uppercase tracking-widest font-mono">Live_Data_Feed</h3>
+                    <span className="text-[10px] font-bold text-gray-500 uppercase tracking-widest font-mono">RECORDS: {findings.length}</span>
+                  </div>
+                  <div className="flex-1 bg-[#141518] border border-[#1c1d21] rounded-xl overflow-hidden flex flex-col">
+                    <div className="grid grid-cols-12 gap-2 px-4 py-3 bg-[#111215] border-b border-[#1c1d21] text-[9px] font-black text-gray-500 uppercase tracking-widest">
+                      <div className="col-span-2">ID</div>
+                      <div className="col-span-6">Vulnerability</div>
+                      <div className="col-span-2 text-center">Severity</div>
+                      <div className="col-span-2 text-right">CVSS</div>
+                    </div>
+                    <div className="overflow-y-auto flex-1 p-2 space-y-1">
+                      {loading ? (
+                         <div className="flex justify-center py-8 text-[#00c477]"><FiLoader className="animate-spin" /></div>
+                      ) : findings.length === 0 ? (
+                         <div className="text-center text-xs text-gray-600 py-8 font-mono">NO FINDINGS DETECTED</div>
+                      ) : (
+                        findings.slice(0, 6).map((f, i) => (
+                          <div key={f.id} className="grid grid-cols-12 gap-2 px-2 py-2.5 items-center hover:bg-white/5 rounded-lg transition-colors cursor-default">
+                            <div className="col-span-2 text-[10px] font-mono text-[#00c477]">
+                               #RX-{String(i + 1).padStart(3, '0')}
+                            </div>
+                            <div className="col-span-6 text-xs text-gray-300 font-medium truncate" title={f.title}>
+                              {f.title}
+                            </div>
+                            <div className="col-span-2 flex justify-center">
+                              <span className={`text-[9px] font-black uppercase tracking-widest px-2 py-0.5 rounded border ${getSeverityStyle(f.severity)}`}>
+                                {f.severity}
+                              </span>
+                            </div>
+                            <div className="col-span-2 text-right text-xs font-mono font-bold text-gray-300">
+                              {f.cvssScore ? Number(f.cvssScore).toFixed(1) : 'N/A'}
+                            </div>
+                          </div>
+                        ))
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Bottom Buttons */}
+                <div className="flex gap-4 mt-6">
+                  <button onClick={() => setStep(1)} className="px-6 py-3.5 rounded-xl border border-white/10 text-xs font-bold text-gray-300 uppercase tracking-widest hover:bg-white/5 transition-colors">
+                    Previous_Step
+                  </button>
+                  <button onClick={() => setStep(3)} className="flex-1 bg-[#a3ffcc] hover:bg-[#00c477] text-[#004d2e] rounded-xl text-xs font-black uppercase tracking-widest transition-colors flex items-center justify-center">
+                    Compile_Preview
+                  </button>
+                </div>
+              </div>
+            </>
+          )}
+
+          {step === 3 && (
+            <>
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-8 rounded-full bg-[#00c477] flex items-center justify-center text-black font-black text-xs">
+                  03
+                </div>
+                <h2 className="text-xl font-black text-white tracking-widest uppercase">Synthesis_&_Deployment</h2>
+              </div>
+              <div className="bg-[#0f1115] border border-[#1c1d21] rounded-2xl p-6 flex-1 flex flex-col justify-center items-center text-center">
+                <FiSend size={48} className="text-[#00c477] mb-6 animate-pulse" />
+                <h3 className="text-lg font-black text-white uppercase tracking-widest mb-2">Ready for Deployment</h3>
+                <p className="text-sm text-gray-500 mb-8 max-w-[250px]">
+                  All parameters configured. The {exportFormat === 'pdf' ? 'PDF document' : 'JSON payload'} is ready to be compiled and securely downloaded to your local system.
+                </p>
+                <div className="flex gap-4 w-full mt-auto">
+                  <button onClick={() => setStep(2)} className="px-6 py-3.5 rounded-xl border border-white/10 text-xs font-bold text-gray-300 uppercase tracking-widest hover:bg-white/5 transition-colors">
+                    Previous_Step
+                  </button>
+                  <button 
+                    onClick={exportFormat === 'pdf' ? handleGeneratePdf : handleJsonExport} 
+                    disabled={generating} 
+                    className="flex-1 bg-[#a3ffcc] hover:bg-[#00c477] disabled:opacity-50 text-[#004d2e] rounded-xl text-xs font-black uppercase tracking-widest transition-colors flex items-center justify-center gap-2"
+                  >
+                    {generating ? <FiLoader className="animate-spin" size={16} /> : <FiDownload size={16} />}
+                    {generating ? 'Deploying...' : 'Deploy_Now'}
+                  </button>
+                </div>
+              </div>
+            </>
+          )}
         </div>
 
-        {/* Canvas Area */}
-        <div className="flex-1 overflow-y-auto overflow-x-auto p-12 mt-16 bg-[#0a0a0b] flex justify-center items-start">
-          {loading ? (
-            <div className="flex flex-col items-center justify-center py-32 gap-4 text-gray-500">
-              <div className="w-10 h-10 border-2 border-white/10 border-t-[#00ff41] rounded-full animate-spin" />
-              <span className="text-xs font-mono uppercase tracking-widest animate-pulse">Loading report data…</span>
+        {/* Right Column - Preview & Actions */}
+        <div className="w-[450px] xl:w-[500px] flex flex-col gap-4">
+          <div className="bg-[#141518] border border-[#1c1d21] rounded-2xl p-6 flex-1 flex flex-col">
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-2">
+                <div className="w-2 h-2 rounded-full bg-[#00c477] animate-pulse" />
+                <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Live_Print_Preview</span>
+              </div>
+              <div className="flex gap-2 text-gray-500">
+                <button className="hover:text-white transition-colors"><FiZoomIn size={16}/></button>
+                <button className="hover:text-white transition-colors"><FiMaximize2 size={16}/></button>
+              </div>
             </div>
-          ) : (
-            /* PDF Live Preview Document */
-            <div
-              className="bg-white text-gray-900 shadow-[0_0_50px_rgba(0,0,0,0.5)] rounded-sm transition-transform duration-200 origin-top flex flex-col ring-1 ring-gray-200"
-              style={{ width: '850px', minHeight: '1100px', transform: `scale(${zoom / 100})`, marginBottom: '100px' }}
-            >
-              {/* PDF Header */}
-              <div className="px-12 py-10 border-b-4 border-gray-900 flex justify-between items-end relative overflow-hidden bg-gray-50">
-                 <div className="absolute top-0 right-0 w-64 h-64 bg-gray-200/50 rounded-full mix-blend-multiply blur-3xl -translate-y-1/2 translate-x-1/2" />
-                 <div className="relative z-10">
-                    <h1 className="text-4xl font-black text-gray-950 uppercase tracking-tighter mb-2 font-sans">
-                      {project?.data?.name || project?.name || 'Confidential Audit Document'}
-                    </h1>
-                    <p className="text-sm font-bold text-gray-500 tracking-widest uppercase">
-                      Security Assessment Findings: {project?.data?.organization?.name || project?.organization?.name || 'Enterprise Infrastructure'}
-                    </p>
-                 </div>
-                 <div className="text-right relative z-10">
-                    <div className="flex items-center justify-end gap-2 text-gray-900 mb-2">
-                      <FiShield size={24} className="text-[#00c477]" />
-                      <span className="font-black text-xl tracking-widest">HACKRACT</span>
-                    </div>
-                    <p className="text-xs font-bold text-gray-600 font-mono">{todayDate}</p>
-                    <p className="text-[10px] text-gray-400 font-mono mt-1 uppercase">Ref: {projectId?.split('-')[0].toUpperCase() || 'SEC-AUD-2491A'}</p>
-                 </div>
-              </div>
 
-              <div className="p-12 flex-1 flex flex-col gap-10">
-                
-                {modules.execSummary && (
-                  <section className="animate-in fade-in duration-300">
-                    <h2 className="text-xl font-black uppercase text-gray-900 border-b-2 border-gray-100 pb-2 mb-4 tracking-wide">Executive Summary</h2>
-                    <p className="text-sm text-gray-700 leading-relaxed text-justify mb-5 font-serif">
-                      The security assessment for {project?.data?.name || project?.name || 'this organization'} identified a total of {findings.length} unique vulnerabilities. This report provides a technical breakdown of the risks discovered and guidance on prioritizing remediation efforts to protect organizational assets.
-                    </p>
-                    <div className="grid grid-cols-4 gap-4 mt-6">
-                       {[
-                         { sev: 'CRITICAL', color: 'text-red-600',    count: severityCounts.CRITICAL },
-                         { sev: 'HIGH',     color: 'text-orange-500',  count: severityCounts.HIGH },
-                         { sev: 'MEDIUM',   color: 'text-yellow-500',  count: severityCounts.MEDIUM },
-                         { sev: 'LOW',      color: 'text-blue-500',    count: severityCounts.LOW },
-                       ].map(({ sev, color, count }) => (
-                         <div key={sev} className="bg-white border border-gray-200 p-4 rounded-xl text-center shadow-sm">
-                            <p className={`text-3xl font-black drop-shadow-sm ${color}`}>{count}</p>
-                            <p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest mt-2">{sev}</p>
-                         </div>
-                       ))}
-                    </div>
-                  </section>
-                )}
-
-                {modules.vulnTable && (
-                  <section className="animate-in fade-in duration-300">
-                    <h2 className="text-xl font-black uppercase text-gray-900 border-b-2 border-gray-100 pb-2 mb-6 tracking-wide">Detected Vulnerabilities</h2>
-                    <div className="rounded-xl border border-gray-200 overflow-hidden shadow-sm">
-                      <table className="w-full text-left text-sm">
-                        <thead className="bg-gray-50 border-b border-gray-200">
-                          <tr>
-                            <th className="px-5 py-4 font-black text-gray-700 uppercase text-[10px] tracking-widest w-1/6">Severity</th>
-                            <th className="px-5 py-4 font-black text-gray-700 uppercase text-[10px] tracking-widest">Vulnerability Title</th>
-                            <th className="px-5 py-4 font-black text-gray-700 uppercase text-[10px] tracking-widest w-[28%]">Affected Asset</th>
-                            <th className="px-5 py-4 font-black text-gray-700 uppercase text-[10px] tracking-widest w-[12%]">CVSS</th>
-                          </tr>
-                        </thead>
-                        <tbody className="divide-y divide-gray-100 bg-white">
-                          {findings.length === 0 ? (
-                            <tr>
-                              <td colSpan="4" className="px-5 py-20 text-center text-gray-400 font-medium italic">
-                                No vulnerabilities identified in this assessment sector.
-                              </td>
-                            </tr>
-                          ) : (
-                            findings.map((f) => (
-                              <tr key={f.id} className="hover:bg-gray-50 transition-colors">
-                                <td className="px-5 py-4">
-                                  <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded text-[10px] font-black uppercase tracking-widest border ${
-                                    f.severity === 'CRITICAL' ? 'bg-red-50 text-red-700 border-red-200' :
-                                    f.severity === 'HIGH'     ? 'bg-orange-50 text-orange-700 border-orange-200' :
-                                    f.severity === 'MEDIUM'   ? 'bg-yellow-50 text-yellow-700 border-yellow-200' :
-                                    'bg-blue-50 text-blue-700 border-blue-200'
-                                  }`}>
-                                     <FiAlertTriangle size={10} /> {f.severity}
-                                  </span>
-                                </td>
-                                <td className="px-5 py-4 font-bold text-gray-800">{f.title}</td>
-                                <td className="px-5 py-4 text-xs font-mono text-gray-500 break-all">{f.affectedAsset || '—'}</td>
-                                <td className="px-5 py-4 font-black text-gray-900">{f.cvssScore?.toFixed(1) || '—'}</td>
-                              </tr>
-                            ))
-                          )}
-                        </tbody>
-                      </table>
-                    </div>
-                  </section>
-                )}
-                
-                {!modules.execSummary && !modules.vulnTable && !modules.methodology && !modules.rawLogs && (
-                   <div className="flex-1 flex flex-col items-center justify-center text-gray-300 py-20 bg-gray-50 rounded-xl border border-dashed border-gray-200">
-                      <FiFileText size={48} className="mb-4 opacity-30 text-gray-400" />
-                      <p className="font-bold text-sm tracking-wide text-gray-500">Configuration Empty</p>
-                      <p className="text-xs text-gray-400 mt-1">Select modules from the sidebar to populate the report.</p>
-                   </div>
-                )}
-              </div>
+            {/* PDF Canvas Mockup */}
+            <div className="flex-1 bg-[#0a0a0a] rounded-xl overflow-hidden border border-[#2a2b30] shadow-[0_0_50px_rgba(0,0,0,0.5)] flex flex-col p-8 relative">
+              {/* Fake gradient light */}
+              <div className="absolute top-0 right-0 w-64 h-64 bg-white/5 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2 pointer-events-none" />
               
-              {/* PDF Footer */}
-              <div className="px-12 py-8 border-t-2 border-gray-100 text-[10px] font-bold text-gray-400 flex justify-between tracking-widest uppercase items-center bg-gray-50">
-                <span className="flex items-center gap-2"><FiShield size={12}/> HACKRACT SENTINEL PROTOCOL © {new Date().getFullYear()}</span>
-                <span>CONFIDENTIAL</span>
+              <div className="text-[#00c477] font-black text-lg tracking-[0.2em] mb-2 z-10">HACKRACT</div>
+              <div className="text-gray-500 text-[9px] font-mono tracking-widest uppercase mb-16 z-10">SYNTHETIC_SENTINEL_V4.0</div>
+
+              <div className="flex-1 flex flex-col justify-center z-10">
+                <div className="text-[#00c477] text-[10px] font-black tracking-widest uppercase mb-2">PROJECT_MANIFEST</div>
+                <h1 className="text-3xl font-black text-white uppercase leading-none mb-2 wrap-break-word">
+                  {projectName}<br/>SECURITY_AUDIT
+                </h1>
+              </div>
+
+              <div className="z-10 border-l border-[#00c477]/30 pl-4 mt-auto">
+                <div className="text-[8px] font-black text-gray-500 tracking-widest uppercase mb-1 flex justify-between">
+                  <span>GENERATED_FOR</span>
+                  <span className="text-[#00c477]">CONFIDENTIAL</span>
+                </div>
+                <div className="text-xs font-bold text-gray-200 uppercase tracking-wider mb-4">
+                  {orgName} <span className="text-red-500 text-[10px] ml-1 px-1 bg-red-500/20 rounded">LEVEL_9_TOP_SECRET</span>
+                </div>
+                
+                <div className="text-[8px] font-black text-gray-500 tracking-widest uppercase mb-1">DATE_ISSUED</div>
+                <div className="text-[10px] font-mono text-gray-300 tracking-widest flex items-center justify-between">
+                  <span>{today}</span>
+                  <div className="w-4 h-4 text-[#00c477]"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" /></svg></div>
+                </div>
               </div>
             </div>
-          )}
+          </div>
+
+          <button 
+            onClick={handleGeneratePdf}
+            disabled={generating}
+            className="w-full bg-[#a3ffcc] hover:bg-[#00c477] disabled:opacity-50 text-[#004d2e] rounded-xl py-4 flex items-center justify-center gap-3 transition-all font-black uppercase tracking-widest text-sm"
+          >
+            {generating ? <FiLoader className="animate-spin" size={18} /> : <FiFileText size={18} />}
+            {generating ? 'SYNTHESIZING_DOCUMENT...' : 'GENERATE_PDF_REPORT'}
+          </button>
+
+          <div className="grid grid-cols-2 gap-4">
+            <button 
+              onClick={handleJsonExport}
+              className="bg-[#141518] hover:bg-white/5 border border-[#1c1d21] rounded-xl py-3.5 flex items-center justify-center gap-2 text-[10px] font-bold text-gray-400 uppercase tracking-widest transition-colors"
+            >
+              <FiCode size={14} /> EXPORT_JSON
+            </button>
+            <button className="bg-[#141518] hover:bg-white/5 border border-[#1c1d21] rounded-xl py-3.5 flex items-center justify-center gap-2 text-[10px] font-bold text-gray-400 uppercase tracking-widest transition-colors">
+              <FiSend size={14} /> SECURE_EMAIL SUPPORT
+            </button>
+          </div>
         </div>
       </div>
     </div>

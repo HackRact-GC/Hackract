@@ -15,8 +15,11 @@ export const getMyInvitations = async (params) => {
   return response.data;
 };
 
-export const respondToInvitation = async (id, status) => {
-  const response = await api.patch(`/invitations/${id}/respond`, { status });
+export const respondToInvitation = async (id, payloadOrStatus) => {
+  const payload = typeof payloadOrStatus === 'string'
+    ? { status: payloadOrStatus }
+    : payloadOrStatus;
+  const response = await api.patch(`/invitations/${id}/respond`, payload);
   return response.data;
 };
 

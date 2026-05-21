@@ -8,7 +8,7 @@ const SEVERITY_OPTIONS = [
   { value: 'LOW', label: 'Low (0.0 – 3.9)' },
   { value: 'MEDIUM', label: 'Medium (4.0 – 6.9)' },
   { value: 'HIGH', label: 'High (7.0 – 8.9)' },
-  { value: 'CRITICAL', label: 'Critical (0.0 – 10.0)' }
+  { value: 'CRITICAL', label: 'Critical (9.0 – 10.0)' }
 ];
 
 const RecordFindingModal = ({ isOpen, onClose, onSave, assets = [], initialData = null }) => {

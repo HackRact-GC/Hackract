@@ -38,9 +38,12 @@ const OnboardingGuard = ({ children }) => {
             targetOnboardingRoute = '/onboarding/hacker';
         }
     } else if (isOrgAdmin) {
-        // Evaluate Organization status
+        // Evaluate Organization status and ensure ORG_ADMIN finishes onboarding
         const orgs = user.organizations || [];
-        if (orgs.length === 0) {
+        const hasDraftOrg = orgs.some((membership) =>
+            membership.organization && membership.organization.verificationStatus === 'DRAFT'
+        );
+        if (orgs.length === 0 || hasDraftOrg) {
             needsOnboarding = true;
             targetOnboardingRoute = '/onboarding/organization';
         }

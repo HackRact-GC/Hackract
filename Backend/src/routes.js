@@ -45,7 +45,7 @@ router.use("/projects", ProjectRouter);
 router.use("/national-id", NationalIDRouter);
 router.use("/chat", ChatRouter);
 router.use("/invitations", InvitationRouter);
-router.use("/pentests", ProjectAgreementRouter); // Mounts /api/v1/pentests/:id/agreements...
+router.use("/pentests", ProjectAgreementRouter); 
 router.use("/uploads", UploadRouter);
 router.use("/reports", ReportRouter);
 

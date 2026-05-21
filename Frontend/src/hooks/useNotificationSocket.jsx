@@ -74,10 +74,8 @@ const useNotificationSocket = (accessToken, user) => {
             // Don't notify for own messages
             if (message.senderId === user?.id) return;
 
-            // Suppress toast if user is already on the chat page
-            const path = window.location.pathname;
-            const onChatPage = ['/messages', '/org-messages', '/pa-messages'].includes(path);
-            if (onChatPage) return;
+            // Suppress toast and sound if the user is actively viewing this specific conversation
+            if (window.activeConversationId === message.conversationId) return;
 
             // Soft notification chime
             try {

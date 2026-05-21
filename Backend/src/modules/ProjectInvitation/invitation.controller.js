@@ -56,8 +56,8 @@ export const countMine = async (req, res, next) => {
 export const respond = async (req, res, next) => {
     try {
         const { id } = req.params;
-        const { status } = respondInvitationSchema.parse(req.body);
-        const invitation = await service.respondToInvitation(id, req.user.id, status, req);
+        const payload = respondInvitationSchema.parse(req.body);
+        const invitation = await service.respondToInvitation(id, req.user.id, payload, req);
         res.json({ success: true, data: invitation });
     } catch (e) { next(e); }
 };

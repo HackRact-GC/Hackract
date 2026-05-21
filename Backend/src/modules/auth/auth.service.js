@@ -572,13 +572,11 @@ class AuthService {
 
         const verification = await this.sendVerification(user, meta);
 
-        let auth = null;
-        if (user.isVerified) {
-            auth = await this.issueTokens(user, meta);
-        }
+        // Always issue tokens on registration (even if email verification is pending)
+        const auth = await this.issueTokens(user, meta);
 
         return {
-            ...(auth || {}),
+            ...auth,
             requiresEmailVerification: !user.isVerified,
             user: this.sanitizeUser(user),
             verification: {

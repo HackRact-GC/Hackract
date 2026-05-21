@@ -1,5 +1,4 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { motion } from 'framer-motion';
 import { useChatSocket } from '../hooks/useChatSocket';
 import * as chatApi from '../api/chatApi';
 import { useAuth } from '../context/authContext';
@@ -61,8 +60,7 @@ export default function Chat() {
         ? { ...c, lastMessageAt: msg.createdAt, lastMessagePreview: msg.content?.slice(0, 80) || '📎' }
         : c).sort((a, b) => new Date(b.lastMessageAt) - new Date(a.lastMessageAt))
     );
-    if (msg.senderId !== user?.id) playNotificationSound();
-  }, [user?.id]);
+  }, []);
 
   const handlePresenceUpdate = useCallback((userId, isOnline, lastSeenAt) => {
     setPresenceMap((prev) => ({ ...prev, [userId]: { isOnline, lastSeenAt } }));
@@ -101,6 +99,14 @@ export default function Chat() {
       setPresenceMap((prev) => ({ ...prev, ...pMap }));
     }).catch(console.error).finally(() => setLoadingConvs(false));
   }, [user]);
+
+  // Sync active conversation globally for notification filter
+  useEffect(() => {
+    window.activeConversationId = active?.id || null;
+    return () => {
+      window.activeConversationId = null;
+    };
+  }, [active]);
 
   const openConversation = useCallback(async (conv) => {
     if (prevConvId.current) { leaveConv(prevConvId.current); emitTypingStop(prevConvId.current); }

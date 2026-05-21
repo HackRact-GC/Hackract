@@ -6,8 +6,7 @@ import api from "../api/axiosConfig";
 import ProjectActivity from "./ProjectActivity.jsx";
 import KickoffChecklist from "./KickoffChecklist.jsx";
 import { useAuth } from "../context/authContext.jsx";
-import { FiDownload, FiExternalLink, FiFileText, FiArrowLeft, FiCode, FiPrinter, FiGlobe, FiServer, FiFileMinus, FiCalendar, FiPlus, FiUserPlus, FiTrash2, FiSearch, FiX, FiSend, FiEdit2, FiStar, FiSettings, FiUsers, FiFile } from "react-icons/fi";
-import SystemAdminDashboard from "../pages/Admin/SystemAdminDashboard.jsx";
+import { FiDownload, FiExternalLink, FiFileText, FiArrowLeft, FiCode, FiPrinter, FiGlobe, FiServer, FiFileMinus, FiCalendar, FiPlus, FiUserPlus, FiTrash2, FiSearch, FiX, FiSend, FiEdit2, FiStar, FiUsers, FiFile } from "react-icons/fi";
 import { getPrimaryRole, ROLES } from "../utils/roles.js";
 
 const InviteMemberModal = ({ projectId, onClose, onInvited }) => {
@@ -41,22 +40,6 @@ const InviteMemberModal = ({ projectId, onClose, onInvited }) => {
       onInvited();
     } catch (e) {
       toast.error(e?.response?.data?.error || "Failed to send invitation");
-    } finally {
-      setSending(null);
-    }
-  };
-
-  const addDirectly = async (hackerId) => {
-    setSending(hackerId);
-    try {
-      await api.post(`/projects/${projectId}/hackers`, {
-        hackerIds: [hackerId]
-      });
-      toast.success("Hacker added directly!");
-      onInvited();
-      onClose();
-    } catch (e) {
-      toast.error(e?.response?.data?.error || "Failed to add hacker");
     } finally {
       setSending(null);
     }
@@ -128,14 +111,6 @@ const InviteMemberModal = ({ projectId, onClose, onInvited }) => {
                     >
                       {sending === u.id ? <div className="w-4 h-4 border-2 border-white/10 border-t-[#00ff88] rounded-full animate-spin" /> : <FiSend size={14} />}
                     </button>
-                    <button
-                      disabled={sending === u.id}
-                      onClick={() => addDirectly(u.id)}
-                      className="p-3 bg-[#00ff88]/10 hover:bg-[#00ff88] text-[#00ff88] hover:text-black rounded-xl transition-all border border-[#00ff88]/20 hover:border-[#00ff88] disabled:opacity-50"
-                      title="Direct Add"
-                    >
-                      {sending === u.id ? <div className="w-4 h-4 border-2 border-black/20 border-t-black rounded-full animate-spin" /> : <FiUserPlus size={14} />}
-                    </button>
                   </div>
                 </div>
               ))
@@ -159,7 +134,15 @@ const WorkspaceView = ({ projectId, onBack }) => {
   const [loading, setLoading] = useState(true);
   //const [activeTab, setActiveTab] = useState(searchParams.get("tab") || "workflow");
   const [showInvite, setShowInvite] = useState(false);
+  const [aiInput, setAiInput] = useState('');
+  const [aiMessages, setAiMessages] = useState([
+    { sender: 'AI', text: 'Hello Admin. System is ready. How can I assist you with the project?' },
+  ]);
   const workspaceName = project?.name || "Project Workspace";
+
+  const isOrgAdmin = useMemo(() => {
+    return getPrimaryRole(user) === ROLES.ORG_ADMIN;
+  }, [user]);
 
   const isProjectAdmin = useMemo(() => {
     return project?.collaborators?.some(
@@ -179,15 +162,7 @@ const WorkspaceView = ({ projectId, onBack }) => {
     if (project.isPersonal) {
       return ["workflow", "findings"];
     }
-    const baseTabs = ["overview", "workflow", "findings"];
-    if (isProjectAdmin) {
-      baseTabs.push("admin-dashboard");
-    }
-    baseTabs.push("team");
-    if (canManage) {
-      baseTabs.push("settings");
-    }
-    return baseTabs;
+    return ["overview", "workflow", "findings", "team"];
   }, [project, isProjectAdmin, canManage]);
 
   const [activeTab, setActiveTab] = useState(() => {
@@ -280,6 +255,28 @@ const WorkspaceView = ({ projectId, onBack }) => {
     }
   };
 
+  const handleStatusChange = async (status) => {
+    try {
+      await api.patch(`/projects/${projectId}`, { status });
+      toast.success("Status updated");
+      loadProject();
+    } catch (err) {
+      toast.error(err.response?.data?.message || "Failed to update status");
+    }
+  };
+
+  const handleAiSend = (e) => {
+    e.preventDefault();
+    if (!aiInput.trim()) return;
+    const userMessage = aiInput.trim();
+    setAiMessages((prev) => [...prev, { sender: 'Admin', text: userMessage }]);
+    setAiInput('');
+
+    setTimeout(() => {
+      setAiMessages((prev) => [...prev, { sender: 'AI', text: 'Analyzing request... Please wait.' }]);
+    }, 800);
+  };
+
   if (loading) {
     return (
       <div className="flex flex-col items-center justify-center py-32 space-y-4">
@@ -327,7 +324,7 @@ const WorkspaceView = ({ projectId, onBack }) => {
             </div>
           </div>
 
-          {project.isPersonal && (
+          {project.isPersonal && isOrgAdmin && (
             <button
               onClick={handleDeleteProject}
               className="flex items-center gap-2 px-5 py-2.5 bg-rose-500/10 hover:bg-rose-500 text-rose-500 hover:text-white border border-rose-500/20 hover:border-rose-500 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all"
@@ -353,9 +350,9 @@ const WorkspaceView = ({ projectId, onBack }) => {
         {/* Content Area */}
         <div className="min-h-[400px]">
           {activeTab === "overview" && (
-            <div className="space-y-8 max-w-4xl">
+            <div className="space-y-8 max-w-6xl mx-auto">
               <div className="bg-black/70 backdrop-blur-md border border-white/10 p-8 rounded-4xl space-y-6">
-                <div className="flex items-center justify-between">
+                <div className="flex items-center justify-between gap-4 flex-wrap">
                    <h3 className="text-xs font-black text-white/40 uppercase tracking-[0.2em] flex items-center gap-3">
                     <FiFileText className="text-[#00ff88]" /> Operational Briefing
                   </h3>
@@ -399,50 +396,111 @@ const WorkspaceView = ({ projectId, onBack }) => {
                    </div>
                 </div>
               </div>
+
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                <div className="bg-black/70 backdrop-blur-md border border-white/10 p-8 rounded-4xl space-y-4">
+                  <h3 className="text-xs font-black text-white/40 uppercase tracking-[0.2em]">Activity Feed</h3>
+                  <div className="h-[360px] overflow-y-auto custom-scrollbar">
+                    <ProjectActivity projectId={projectId} />
+                  </div>
+                </div>
+
+                <div className="bg-black/70 backdrop-blur-md border border-white/10 p-8 rounded-4xl space-y-4">
+                  <h3 className="text-xs font-black text-white/40 uppercase tracking-[0.2em]">AI Security Assistant</h3>
+                  <div className="bg-[#0f1115] border border-white/5 rounded-2xl flex flex-col h-[360px]">
+                    <div className="flex-1 p-4 overflow-y-auto space-y-3">
+                      {aiMessages.map((msg, idx) => (
+                        <div key={`${msg.sender}-${idx}`} className={`flex ${msg.sender === 'Admin' ? 'justify-end' : 'justify-start'}`}>
+                          <div className={`px-3 py-2 rounded-xl text-xs ${msg.sender === 'Admin'
+                            ? 'bg-white/10 text-white'
+                            : 'bg-[#00ff88]/10 text-[#00ff88] border border-[#00ff88]/20'}`}>
+                            {msg.text}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                    <form onSubmit={handleAiSend} className="p-3 border-t border-white/5 flex items-center gap-2">
+                      <input
+                        type="text"
+                        value={aiInput}
+                        onChange={(e) => setAiInput(e.target.value)}
+                        placeholder="Ask AI to analyze logs..."
+                        className="flex-1 bg-black border border-white/10 rounded-xl px-3 py-2 text-xs text-white outline-none focus:border-[#00ff88]/50"
+                      />
+                      <button
+                        type="submit"
+                        disabled={!aiInput.trim()}
+                        className="px-3 py-2 rounded-lg bg-[#00ff88] text-black text-[10px] font-black uppercase tracking-widest disabled:opacity-50"
+                      >
+                        Send
+                      </button>
+                    </form>
+                  </div>
+                </div>
+              </div>
             </div>
           )}
           {activeTab === "workflow" && (
-            <div className="bg-black/70 backdrop-blur-md border border-white/10 p-12 rounded-4xl text-center space-y-6">
-              <div className="w-20 h-20 bg-[#00ff88]/10 border border-[#00ff88]/20 rounded-3xl flex items-center justify-center text-[#00ff88] mx-auto shadow-inner">
-                <FiExternalLink size={32} />
-              </div>
-              <div className="max-w-md mx-auto space-y-2">
-                <h3 className="text-xl font-bold">Collaborative Workflow Engine</h3>
-                <p className="text-sm text-white/60">
-                  This workspace is synchronized with a real-time graph editor. Launch the board to manage nodes, assets, and collaborative logic.
-                </p>
-              </div>
-              {project.workflows?.[0] ? (
-                <button
-                  onClick={() => {
-                    const workflowId = project.workflows[0].id;
-                    window.open(`/workflows/${workflowId}`, '_blank');
-                  }}
-                  className="px-8 py-4 bg-[#00ff88] text-black rounded-2xl text-[10px] font-black uppercase tracking-[0.2em] shadow-lg shadow-[#00ff88]/20 active:scale-95 transition-all"
+            <div className="space-y-6">
+              <div className="bg-black/70 backdrop-blur-md border border-white/10 p-6 rounded-3xl flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+                <div>
+                  <h3 className="text-xs font-black text-white/40 uppercase tracking-[0.2em]">Operational Status</h3>
+                  <p className="text-[10px] text-white/30 font-mono uppercase tracking-widest">Update project phase</p>
+                </div>
+                <select
+                  value={project.status}
+                  onChange={(e) => handleStatusChange(e.target.value)}
+                  className="w-full md:w-64 bg-[#0f1115] border border-white/20 rounded-xl px-4 py-3 text-white focus:border-[#00ff88]/50 transition-all outline-none appearance-none"
                 >
-                  Open Workflow Board <FiExternalLink className="inline ml-2" />
-                </button>
-              ) : (
-                <button
-                  onClick={async () => {
-                    try {
-                      const res = await api.post('/workflows', {
-                        pentestId: projectId,
-                        name: `${project.name} — Operational Workflow`
-                      });
-                      if (res.data?.success || res.data?.id) {
-                        toast.success("Workflow board initialized!");
-                        loadProject(); // Refresh to get the new workflow ID
+                  <option value="PLANNING">Planning</option>
+                  <option value="IN_PROGRESS">In Progress</option>
+                  <option value="REPORTING">Reporting</option>
+                  <option value="CLOSED">Closed</option>
+                </select>
+              </div>
+
+              <div className="bg-black/70 backdrop-blur-md border border-white/10 p-12 rounded-4xl text-center space-y-6">
+                <div className="w-20 h-20 bg-[#00ff88]/10 border border-[#00ff88]/20 rounded-3xl flex items-center justify-center text-[#00ff88] mx-auto shadow-inner">
+                  <FiExternalLink size={32} />
+                </div>
+                <div className="max-w-md mx-auto space-y-2">
+                  <h3 className="text-xl font-bold">Collaborative Workflow Engine</h3>
+                  <p className="text-sm text-white/60">
+                    This workspace is synchronized with a real-time graph editor. Launch the board to manage nodes, assets, and collaborative logic.
+                  </p>
+                </div>
+                {project.workflows?.[0] ? (
+                  <button
+                    onClick={() => {
+                      const workflowId = project.workflows[0].id;
+                      window.open(`/workflows/${workflowId}`, '_blank');
+                    }}
+                    className="px-8 py-4 bg-[#00ff88] text-black rounded-2xl text-[10px] font-black uppercase tracking-[0.2em] shadow-lg shadow-[#00ff88]/20 active:scale-95 transition-all"
+                  >
+                    Open Workflow Board <FiExternalLink className="inline ml-2" />
+                  </button>
+                ) : (
+                  <button
+                    onClick={async () => {
+                      try {
+                        const res = await api.post('/workflows', {
+                          pentestId: projectId,
+                          name: `${project.name} — Operational Workflow`
+                        });
+                        if (res.data?.success || res.data?.id) {
+                          toast.success("Workflow board initialized!");
+                          loadProject();
+                        }
+                      } catch (err) {
+                        toast.error("Failed to initialize board.");
                       }
-                    } catch (err) {
-                      toast.error("Failed to initialize board.");
-                    }
-                  }}
-                  className="px-8 py-4 bg-[#00ff88] text-black rounded-2xl text-[10px] font-black uppercase tracking-[0.2em] shadow-lg shadow-[#00ff88]/20 active:scale-95 transition-all"
-                >
-                  Initialize Board <FiExternalLink className="inline ml-2" />
-                </button>
-              )}
+                    }}
+                    className="px-8 py-4 bg-[#00ff88] text-black rounded-2xl text-[10px] font-black uppercase tracking-[0.2em] shadow-lg shadow-[#00ff88]/20 active:scale-95 transition-all"
+                  >
+                    Initialize Board <FiExternalLink className="inline ml-2" />
+                  </button>
+                )}
+              </div>
             </div>
           )}
 
@@ -455,56 +513,20 @@ const WorkspaceView = ({ projectId, onBack }) => {
                       <FiFileText className="text-[#00ff88]" /> Operative Discoveries
                     </h3>
                     <button
-                      onClick={() => navigate(`/findings/new?pentestId=${projectId}`)}
-                      className="px-4 py-1.5 bg-[#00ff88]/10 hover:bg-[#00ff88] text-[#00ff88] hover:text-black border border-[#00ff88]/20 hover:border-[#00ff88] rounded-xl text-[9px] font-black uppercase tracking-widest transition-all flex items-center gap-2"
-                    >
-                      <FiPlus /> Report Discovery
-                    </button>
-                  </div>
-                  {canManage && project.findings?.length > 0 && (
-                    <div className="flex items-center gap-2">
-                      <button
-                        onClick={async () => {
-                          try {
-                            const { data } = await api.get(`/findings/project/${projectId}/report`);
-                            const blob = new Blob([data.data], { type: 'text/markdown' });
-                            const url = window.URL.createObjectURL(blob);
-                            const a = document.createElement('a'); a.href = url; a.download = `Report_${project.id.split('-')[0]}.md`; a.click();
-                            toast.success("MD report exported.");
-                          } catch (e) { toast.error("Export failed."); }
-                        }}
-                        className="px-4 py-2 bg-white/10 hover:bg-[#00ff88] text-white/60 hover:text-black border border-white/10 hover:border-[#00ff88] rounded-xl text-[9px] font-black uppercase tracking-widest transition-all flex items-center gap-2"
-                      >
-                        <FiDownload /> MD
-                      </button>
-                      <button
-                        onClick={async () => {
-                          try {
-                            const { data } = await api.get(`/findings/project/${projectId}/report?format=json`);
-                            const blob = new Blob([JSON.stringify(data.data, null, 2)], { type: 'application/json' });
-                            const url = window.URL.createObjectURL(blob);
-                            const a = document.createElement('a'); a.href = url; a.download = `Report_${project.id.split('-')[0]}.json`; a.click();
-                            toast.success("JSON report exported.");
-                          } catch (e) { toast.error("Export failed."); }
-                        }}
-                        className="px-4 py-2 bg-white/10 hover:bg-[#00ff88] text-white/60 hover:text-black border border-white/10 hover:border-[#00ff88] rounded-xl text-[9px] font-black uppercase tracking-widest transition-all flex items-center gap-2"
-                      >
-                        <FiCode /> JSON
-                      </button>
-                      <button
-                        onClick={() => {
+                      onClick={() => {
                           const role = getPrimaryRole(user);
                           let path = "/reports";
                           if (role === ROLES.PROJECT_ADMIN) path = "/pa-reports";
                           if (role === ROLES.PENTESTER) path = "/hacker-reports";
                           navigate(`${path}?projectId=${projectId}`);
                         }}
-                        className="px-4 py-2 bg-white/10 hover:bg-[#00ff88] text-white/60 hover:text-black border border-white/10 hover:border-[#00ff88] rounded-xl text-[9px] font-black uppercase tracking-widest transition-all flex items-center gap-2"
-                      >
-                        <FiFile /> Build Report
-                      </button>
-                    </div>
-                  )}
+                      className="px-4 py-1.5 bg-[#00ff88]/10 hover:bg-[#00ff88] text-[#00ff88] hover:text-black border border-[#00ff88]/20 hover:border-[#00ff88] rounded-xl text-[9px] font-black uppercase tracking-widest transition-all flex items-center gap-2"
+                    >
+                      <FiPlus /> Report Generation
+                    </button>
+                    
+                  </div>
+                  
                 </div>
 
                 {!project.findings?.length ? (
@@ -543,11 +565,6 @@ const WorkspaceView = ({ projectId, onBack }) => {
             </div>
           )}
 
-          {activeTab === "admin-dashboard" && isProjectAdmin && (
-            <div className="bg-black/70 backdrop-blur-md border border-white/10 rounded-4xl overflow-hidden h-[800px]">
-              <SystemAdminDashboard project={project} />
-            </div>
-          )}
           {activeTab === "team" && (
             <div className="bg-black/70 backdrop-blur-md border border-white/10 p-8 rounded-4xl space-y-8">
               <div className="flex items-center justify-between">
@@ -555,7 +572,7 @@ const WorkspaceView = ({ projectId, onBack }) => {
                   <h3 className="text-xs font-black text-white/40 uppercase tracking-[0.2em] mb-1">Personnel Management</h3>
                   <p className="text-[10px] text-white/20 font-mono tracking-widest">AUTHORIZED PROJECT STAFF</p>
                 </div>
-                {canManage && (
+                {isOrgAdmin && (
                   <button
                     onClick={() => setShowInvite(true)}
                     className="px-4 py-2 bg-[#00ff88]/10 hover:bg-[#00ff88] text-[#00ff88] hover:text-black border border-[#00ff88]/20 hover:border-[#00ff88] rounded-xl text-[9px] font-black uppercase tracking-widest transition-all flex items-center gap-2"
@@ -623,75 +640,6 @@ const WorkspaceView = ({ projectId, onBack }) => {
             </div>
           )}
 
-          {activeTab === "settings" && canManage && (
-            <div className="max-w-4xl">
-              <div className="bg-[#0a0a0a] border border-white/5 rounded-2xl p-8 shadow-2xl">
-                <div className="flex items-center gap-3 mb-8">
-                  <div className="w-12 h-12 rounded-xl bg-[#00ff88]/10 flex items-center justify-center text-[#00ff88]">
-                    <FiSettings size={24} />
-                  </div>
-                  <div>
-                    <h2 className="text-xl font-bold text-white">Project Management</h2>
-                    <p className="text-sm text-white/40 font-mono uppercase tracking-widest">Global Configuration & Controls</p>
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                  <div className="space-y-6">
-                    <div>
-                      <label className="block text-[10px] font-black text-white/30 uppercase tracking-[0.2em] mb-2">Project Identity</label>
-                      <input
-                        type="text"
-                        defaultValue={project.name}
-                        onBlur={(e) => api.patch(`/projects/${projectId}`, { name: e.target.value }).then(() => toast.success("Name updated"))}
-                        className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:border-[#00ff88]/50 transition-all outline-none"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-[10px] font-black text-white/30 uppercase tracking-[0.2em] mb-2">Operational Status</label>
-                      <select
-                        defaultValue={project.status}
-                        onChange={(e) => api.patch(`/projects/${projectId}`, { status: e.target.value }).then(() => toast.success("Status updated"))}
-                        className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:border-[#00ff88]/50 transition-all outline-none appearance-none"
-                      >
-                        <option value="PLANNING">Planning</option>
-                        <option value="IN_PROGRESS">In Progress</option>
-                        <option value="REPORTING">Reporting</option>
-                        <option value="CLOSED">Closed</option>
-                      </select>
-                    </div>
-                  </div>
-
-                  <div className="space-y-6">
-                    <div>
-                      <label className="block text-[10px] font-black text-white/30 uppercase tracking-[0.2em] mb-2">Primary Scope</label>
-                      <textarea
-                        defaultValue={project.targetDomains?.join('\n')}
-                        placeholder="one domain per line"
-                        onBlur={(e) => api.patch(`/projects/${projectId}`, { targetDomains: e.target.value.split('\n').filter(Boolean) }).then(() => toast.success("Scope updated"))}
-                        className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white h-32 focus:border-[#00ff88]/50 transition-all outline-none resize-none font-mono text-xs"
-                      />
-                    </div>
-                  </div>
-                </div>
-
-                <div className="mt-12 pt-8 border-t border-white/5">
-                  <div className="p-6 rounded-2xl bg-rose-500/5 border border-rose-500/10 flex items-center justify-between">
-                    <div>
-                      <h4 className="text-rose-500 font-bold mb-1">Danger Zone</h4>
-                      <p className="text-[11px] text-white/40">Permanently delete this project and all associated data.</p>
-                    </div>
-                    <button
-                      onClick={handleDeleteProject}
-                      className="px-6 py-2.5 rounded-xl bg-rose-500 hover:bg-rose-600 text-white text-[11px] font-black uppercase tracking-widest transition-all shadow-lg shadow-rose-500/20"
-                    >
-                      Delete Project
-                    </button>
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
 
           {activeTab === "hiring" && canManage && (
             <div className="bg-black/70 backdrop-blur-md border border-white/10 p-8 rounded-4xl space-y-8">
@@ -729,7 +677,7 @@ const WorkspaceView = ({ projectId, onBack }) => {
       </motion.div>
 
       <AnimatePresence>
-        {showInvite && (
+        {showInvite && isOrgAdmin && (
           <InviteMemberModal
             projectId={projectId}
             onClose={() => setShowInvite(false)}
