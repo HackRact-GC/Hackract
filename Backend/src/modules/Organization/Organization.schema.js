@@ -6,12 +6,12 @@ export const createOrganizationSchema = Joi.object({
   name: Joi.string()
     .min(2)
     .max(100)
-    .pattern(/^[a-zA-Z0-9\s\-&.]+$/)
+    .pattern(/^[a-zA-Z0-9\s\-&.,'()]+$/)
     .required()
     .messages({
       'string.min': 'Organization name must be at least 2 characters',
       'string.max': 'Organization name cannot exceed 100 characters',
-      'string.pattern.base': 'Organization name can only contain letters, numbers, spaces, hyphens, ampersands, and periods',
+      'string.pattern.base': 'Organization name can only contain letters, numbers, spaces, hyphens, ampersands, periods, commas, apostrophes, and parentheses',
       'any.required': 'Organization name is required'
     }),
   slug: Joi.string()
@@ -67,12 +67,12 @@ export const updateOrganizationSchema = Joi.object({
   name: Joi.string()
     .min(2)
     .max(100)
-    .pattern(/^[a-zA-Z0-9\s\-&.]+$/)
+    .pattern(/^[a-zA-Z0-9\s\-&.,'()]+$/)
     .optional()
     .messages({
       'string.min': 'Organization name must be at least 2 characters',
       'string.max': 'Organization name cannot exceed 100 characters',
-      'string.pattern.base': 'Organization name can only contain letters, numbers, spaces, hyphens, ampersands, and periods'
+      'string.pattern.base': 'Organization name can only contain letters, numbers, spaces, hyphens, ampersands, periods, commas, apostrophes, and parentheses'
     }),
   slug: Joi.string()
     .min(2)

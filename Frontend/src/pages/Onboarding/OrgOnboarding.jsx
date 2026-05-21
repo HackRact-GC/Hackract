@@ -50,13 +50,17 @@ const OrgOnboarding = () => {
   const handleSubmit = async () => {
     setLoading(true);
     try {
+      const websiteFormatted = formData.website && !/^https?:\/\//i.test(formData.website.trim())
+        ? `https://${formData.website.trim()}`
+        : formData.website?.trim();
+
       const existingOrg = user?.organizations?.[0]?.organization;
       const orgPayload = {
         name: formData.name,
         description: formData.description || undefined,
         industry: formData.industry,
         companySize: formData.companySize,
-        website: formData.website,
+        website: websiteFormatted,
         addressLine1: formData.address,
         taxId: formData.taxId,
       };
@@ -77,7 +81,7 @@ const OrgOnboarding = () => {
         taxId: formData.taxId,
         industry: formData.industry,
         companySize: formData.companySize,
-        website: formData.website,
+        website: websiteFormatted,
         address: formData.address,
       });
 
