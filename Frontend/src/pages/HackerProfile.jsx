@@ -77,6 +77,33 @@ const HackerProfile = () => {
                   }
                 })
               : prev.certifications,
+            education: profile.education?.length > 0
+              ? profile.education.map(e => {
+                  try {
+                    return JSON.parse(e);
+                  } catch {
+                    return { school: e, degree: '', from: '', to: '' };
+                  }
+                })
+              : prev.education,
+            employment: profile.employment?.length > 0
+              ? profile.employment.map(e => {
+                  try {
+                    return JSON.parse(e);
+                  } catch {
+                    return { company: '', title: e, from: '', to: '' };
+                  }
+                })
+              : prev.employment,
+            other: profile.otherExperiences?.length > 0
+              ? profile.otherExperiences.map(o => {
+                  try {
+                    return JSON.parse(o);
+                  } catch {
+                    return { subject: o, description: '', file: null, fileUrl: null };
+                  }
+                })
+              : prev.other,
           }));
 
           if (profile.avatar) {
