@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import api from "../api/axiosConfig";
 import { motion, AnimatePresence } from "framer-motion";
 import toast from "react-hot-toast";
+import SignedAgreementModal from "../components/SignedAgreementModal";
 
 // ── Icons ───────────────────────────────────────────────────────────────────
 const Icons = {
@@ -208,6 +209,8 @@ const HackerDashboard = () => {
     const [invitations, setInvitations] = useState([]);
     const [fetchingInvites, setFetchingInvites] = useState(true);
     const [respondingId, setRespondingId] = useState(null);
+    const [signModalOpen, setSignModalOpen] = useState(false);
+    const [activeInvite, setActiveInvite] = useState(null);
 
     useEffect(() => {
       (async () => {
@@ -243,6 +246,33 @@ const HackerDashboard = () => {
       } catch (err) {
         const msg = err?.response?.data?.message || "Failed to respond";
         toast.error(msg);
+      } finally {
+        setRespondingId(null);
+      }
+    };
+
+    const openSignModal = (invite) => {
+      setActiveInvite(invite);
+      setSignModalOpen(true);
+    };
+
+    const handleSignedConfirm = async (fileData) => {
+      if (!activeInvite?.id) return;
+      setRespondingId(activeInvite.id);
+      try {
+        await api.patch(`/invitations/${activeInvite.id}/respond`, {
+          status: "ACCEPTED",
+          signedFile: fileData,
+        });
+        setInvitations(prev =>
+          prev.map(inv => inv.id === activeInvite.id ? { ...inv, status: "ACCEPTED" } : inv)
+        );
+        setPendingCount(c => Math.max(0, c - 1));
+        toast.success("Invitation accepted! Proceeding to workspace...");
+        const pentestId = activeInvite?.pentestId;
+        if (pentestId) {
+          navigate(`/projects/${pentestId}`);
+        }
       } finally {
         setRespondingId(null);
       }
@@ -350,7 +380,7 @@ const HackerDashboard = () => {
                       Decline
                     </button>
                     <button
-                      onClick={() => handleRespond(inv.id, "ACCEPTED")}
+                      onClick={() => openSignModal(inv)}
                       disabled={isResponding}
                       className="px-5 py-2 rounded-xl bg-[#00c477] text-black text-sm font-extrabold hover:bg-[#009a5e] transition-all shadow-[0_0_15px_rgba(0,255,136,0.2)] disabled:opacity-40 flex items-center gap-1.5"
                     >
@@ -362,6 +392,14 @@ const HackerDashboard = () => {
             </motion.div>
           );
         })}
+
+        <SignedAgreementModal
+          open={signModalOpen}
+          onClose={() => { setSignModalOpen(false); setActiveInvite(null); }}
+          onConfirm={handleSignedConfirm}
+          agreementUrl={activeInvite?.agreementFileUrl}
+          agreementTitle={activeInvite?.agreementTitle}
+        />
       </div>
     );
   };

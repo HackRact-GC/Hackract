@@ -77,6 +77,33 @@ const HackerProfile = () => {
                   }
                 })
               : prev.certifications,
+            education: profile.education?.length > 0
+              ? profile.education.map(e => {
+                  try {
+                    return JSON.parse(e);
+                  } catch {
+                    return { school: e, degree: '', from: '', to: '' };
+                  }
+                })
+              : prev.education,
+            employment: profile.employment?.length > 0
+              ? profile.employment.map(e => {
+                  try {
+                    return JSON.parse(e);
+                  } catch {
+                    return { company: '', title: e, from: '', to: '' };
+                  }
+                })
+              : prev.employment,
+            other: profile.otherExperiences?.length > 0
+              ? profile.otherExperiences.map(o => {
+                  try {
+                    return JSON.parse(o);
+                  } catch {
+                    return { subject: o, description: '', file: null, fileUrl: null };
+                  }
+                })
+              : prev.other,
           }));
 
           if (profile.avatar) {
@@ -212,15 +239,13 @@ const HackerProfile = () => {
                   </span>
                 )}
               </h1>
-              {user?.averageRating != null && user?.totalReviews > 0 && (
-                <div className="flex items-center gap-2 mt-2 px-3 py-1 rounded-lg bg-white/[0.03] border border-white/5 w-fit">
-                  <FiStar className="text-[#00c477] fill-[#00c477] text-xs" />
-                  <span className="text-white font-bold text-xs">{Number(user.averageRating).toFixed(1)}</span>
-                  <span className="text-[10px] text-gray-500 font-mono uppercase tracking-widest">
-                    Rating ({user.totalReviews} {user.totalReviews === 1 ? 'review' : 'reviews'})
-                  </span>
-                </div>
-              )}
+              <div className="flex items-center gap-2 mt-2 px-3 py-1 rounded-lg bg-white/[0.03] border border-white/5 w-fit">
+                <FiStar className="text-[#00c477] fill-[#00c477] text-xs" />
+                <span className="text-white font-bold text-xs">{Number(user?.averageRating || 0).toFixed(1)}</span>
+                <span className="text-[10px] text-gray-500 font-mono uppercase tracking-widest">
+                  Rating ({user?.totalReviews || 0} {(user?.totalReviews || 0) === 1 ? 'review' : 'reviews'})
+                </span>
+              </div>
             </div>
           </div>
         </div>

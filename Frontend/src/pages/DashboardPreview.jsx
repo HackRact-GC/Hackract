@@ -190,25 +190,19 @@ const DashboardPreview = () => {
                   <div className="text-xs text-[#00ff88] font-semibold flex items-center gap-1">
                     {user?.role === 'HACKER' ? 'Hacker' : 'Operative'}
                   </div>
-                  {user?.totalReviews > 0 ? (
                     <div className="flex items-center gap-1.5 mt-1">
                       <div className="flex items-center gap-0.5 text-yellow-500 text-xs">
                         {[...Array(5)].map((_, i) => (
                           <span key={i}>
-                            {i < Math.round(user.averageRating) ? '★' : '☆'}
+                            {i < Math.round(user?.averageRating || 0) ? '★' : '☆'}
                           </span>
                         ))}
                       </div>
-                      <span className="text-white font-bold text-xs">{Number(user.averageRating).toFixed(1)}</span>
+                      <span className="text-white font-bold text-xs">{Number(user?.averageRating || 0).toFixed(1)}</span>
                       <span className="text-[10px] text-gray-500 font-mono">
-                        ({user.totalReviews} {user.totalReviews === 1 ? 'review' : 'reviews'})
+                        ({user?.totalReviews || 0} {(user?.totalReviews || 0) === 1 ? 'review' : 'reviews'})
                       </span>
                     </div>
-                  ) : (
-                    <div className="text-yellow-500 text-xs mt-1 tracking-widest">
-                      ★★★★★ <span className="text-gray-500">Unrated</span>
-                    </div>
-                  )}
                 </div>
               </div>
 

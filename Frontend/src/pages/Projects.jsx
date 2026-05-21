@@ -12,6 +12,7 @@ import {
   FiBriefcase
 } from "react-icons/fi";
 import invitationService from "../services/invitation.service";
+import SignedAgreementModal from "../components/SignedAgreementModal";
 
 
 // ─── CONSTANTS & CONFIG ────────────────────────────────────────────────
@@ -390,6 +391,8 @@ const Projects = () => {
   const [appliedProjects, setAppliedProjects] = useState([]);
   const [pendingInvitations, setPendingInvitations] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [signModalOpen, setSignModalOpen] = useState(false);
+  const [activeInvite, setActiveInvite] = useState(null);
   const [activeTab, setActiveTab] = useState(() => {
     const params = new URLSearchParams(window.location.search);
     const tabParam = params.get("tab");
@@ -452,13 +455,24 @@ const Projects = () => {
   const displayPending = activeTab === 'ALL_ACCESS' || activeTab === 'INBOUND_REQS';
   const displayApplied = activeTab === 'ALL_ACCESS' || activeTab === 'APPLICATIONS';
 
-  const handleAccept = async (id) => {
+  const handleAccept = (id) => {
+    const invite = pendingInvitations.find((inv) => inv.id === id);
+    if (!invite) return;
+    setActiveInvite(invite);
+    setSignModalOpen(true);
+  };
+
+  const handleSignedConfirm = async (fileData) => {
+    if (!activeInvite?.id) return;
     try {
-      await invitationService.respondToInvitation(id, 'ACCEPTED');
+      await invitationService.respondToInvitation(activeInvite.id, {
+        status: 'ACCEPTED',
+        signedFile: fileData,
+      });
       toast.success("Assignment accepted. Target nodes acquired.");
       loadData();
     } catch (err) {
-      toast.error("Failed to accept assignment");
+      throw err;
     }
   };
 
@@ -677,6 +691,14 @@ const Projects = () => {
           </section>
         )}
       </div>
+
+      <SignedAgreementModal
+        open={signModalOpen}
+        onClose={() => { setSignModalOpen(false); setActiveInvite(null); }}
+        onConfirm={handleSignedConfirm}
+        agreementUrl={activeInvite?.agreementFileUrl}
+        agreementTitle={activeInvite?.agreementTitle}
+      />
     </div>
   );
 };

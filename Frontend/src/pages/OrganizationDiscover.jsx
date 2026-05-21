@@ -1,10 +1,11 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { FiSearch, FiStar, FiChevronLeft, FiChevronRight, FiCheck, FiSend, FiX, FiLoader, FiMessageSquare, FiUser } from 'react-icons/fi';
+import { FiSearch, FiStar, FiChevronLeft, FiChevronRight, FiCheck, FiSend, FiX, FiLoader, FiMessageSquare, FiUser, FiFileText } from 'react-icons/fi';
 import { motion, AnimatePresence } from 'framer-motion';
 import api from '../api/axiosConfig';
 import toast from 'react-hot-toast';
 import { useAuth } from '../context/authContext';
+import { uploadFile as uploadChatFile } from '../api/chatApi';
 
 // ─── STATUS BADGE ─────────────────────────────────────────────────────────────
 const RankBadge = ({ rank }) => {
@@ -24,16 +25,28 @@ const RankBadge = ({ rank }) => {
 
 // ─── INVITE MODAL ─────────────────────────────────────────────────────────────
 const InviteModal = ({ hacker, onClose }) => {
+  const { user } = useAuth();
   const [projects, setProjects] = useState([]);
   const [selectedProject, setSelectedProject] = useState('');
   const [message, setMessage] = useState('');
   const [loading, setLoading] = useState(false);
   const [fetching, setFetching] = useState(true);
+  const [agreementMode, setAgreementMode] = useState('UPLOAD');
+  const [agreementFile, setAgreementFile] = useState(null);
+  const [agreements, setAgreements] = useState([]);
+  const [selectedAgreementId, setSelectedAgreementId] = useState('');
+  const [agreementLoading, setAgreementLoading] = useState(false);
 
   useEffect(() => {
     (async () => {
+      const organizationId = user?.organizations?.[0]?.organizationId || user?.organizations?.[0]?.organization?.id;
+      if (!organizationId) {
+        setProjects([]);
+        setFetching(false);
+        return;
+      }
       try {
-        const { data } = await api.get('/pentests');
+        const { data } = await api.get(`/pentests?organizationId=${organizationId}`);
         // Support both response shapes
         const list = data?.data || data?.pentests || data || [];
         setProjects(Array.isArray(list) ? list : []);
@@ -44,19 +57,108 @@ const InviteModal = ({ hacker, onClose }) => {
         setFetching(false);
       }
     })();
+  }, [user]);
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const { data } = await api.get('/legal-agreements?isActive=true');
+        const list = data?.data || data || [];
+        setAgreements(Array.isArray(list) ? list : []);
+      } catch (err) {
+        console.error('Failed to load legal agreements', err);
+        setAgreements([]);
+      }
+    })();
   }, []);
+
+  const buildAgreementFile = (agreement) => {
+    const rawTitle = agreement?.title || 'agreement';
+    const safeTitle = rawTitle.replace(/[^a-z0-9]+/gi, '_').replace(/^_+|_+$/g, '') || 'agreement';
+    const version = agreement?.version ? `v${agreement.version}` : 'v1';
+    const fileName = `${safeTitle}_${version}.txt`;
+    const content = agreement?.content || '';
+    return new File([content], fileName, { type: 'text/plain' });
+  };
 
   const handleSend = async () => {
     if (!selectedProject) {
       toast.error('Please select a project');
       return;
     }
+    if (agreementMode === 'UPLOAD' && !agreementFile) {
+      toast.error('Please upload a legal agreement file');
+      return;
+    }
+    if (agreementMode === 'LEGAL_AGREEMENT' && !selectedAgreementId) {
+      toast.error('Please select a legal agreement');
+      return;
+    }
     setLoading(true);
     try {
+      setAgreementLoading(true);
+
+      const projectRes = await api.get(`/projects/${selectedProject}`);
+      const projectData = projectRes?.data?.data || projectRes?.data || {};
+      const collaborators = projectData?.collaborators || [];
+      const alreadyAssigned = collaborators.some((c) => c.userId === (hacker.userId || hacker.id));
+      if (alreadyAssigned) {
+        toast.error('This hacker is already assigned to the selected project.');
+        return;
+      }
+
+      const inviteRes = await api.get(`/invitations/project/${selectedProject}`);
+      const inviteList = Array.isArray(inviteRes?.data?.data)
+        ? inviteRes.data.data
+        : Array.isArray(inviteRes?.data)
+          ? inviteRes.data
+          : [];
+      const pendingInvite = inviteList.find((inv) => inv.status === 'PENDING' && (inv.hackerId === (hacker.userId || hacker.id) || inv.hacker?.id === (hacker.userId || hacker.id)));
+      if (pendingInvite) {
+        toast.error('This hacker already has a pending invitation for the selected project.');
+        return;
+      }
+
+      let agreementPayload = null;
+
+      if (agreementMode === 'UPLOAD') {
+        const fileData = await uploadChatFile(agreementFile);
+        agreementPayload = {
+          source: 'UPLOAD',
+          title: agreementFile?.name,
+          fileUrl: fileData.fileUrl,
+          fileName: fileData.fileName,
+          fileSize: fileData.fileSize,
+          fileMime: fileData.fileMime,
+        };
+      }
+
+      if (agreementMode === 'LEGAL_AGREEMENT') {
+        const agreement = agreements.find((a) => a.id === selectedAgreementId);
+        if (!agreement?.content) {
+          toast.error('Selected agreement is missing content.');
+          setAgreementLoading(false);
+          setLoading(false);
+          return;
+        }
+        const generatedFile = buildAgreementFile(agreement);
+        const fileData = await uploadChatFile(generatedFile);
+        agreementPayload = {
+          source: 'LEGAL_AGREEMENT',
+          legalAgreementId: agreement.id,
+          title: agreement.title,
+          fileUrl: fileData.fileUrl,
+          fileName: fileData.fileName,
+          fileSize: fileData.fileSize,
+          fileMime: fileData.fileMime,
+        };
+      }
+
       await api.post('/invitations', {
         pentestId: selectedProject,
         hackerId: hacker.userId || hacker.id,
         message: message.trim() || undefined,
+        agreement: agreementPayload,
       });
       toast.success(`Invitation sent to ${hacker.user?.handle || hacker.handle || hacker.name}!`);
       onClose();
@@ -64,6 +166,7 @@ const InviteModal = ({ hacker, onClose }) => {
       const msg = err?.response?.data?.error || err?.response?.data?.message || 'Failed to send invitation';
       toast.error(msg);
     } finally {
+      setAgreementLoading(false);
       setLoading(false);
     }
   };
@@ -71,6 +174,8 @@ const InviteModal = ({ hacker, onClose }) => {
   const hackerName   = hacker.user?.fullName || hacker.fullName || hacker.name || 'Unknown';
   const hackerHandle = hacker.user?.handle   || hacker.handle   || hacker.tag  || '';
   const hackerAvatar = hacker.user?.avatar   || hacker.avatar   || `https://api.dicebear.com/7.x/bottts/svg?seed=${hackerHandle}&baseColor=00ff88`;
+  const agreementReady = agreementMode === 'UPLOAD' ? !!agreementFile : !!selectedAgreementId;
+  const isSending = loading || agreementLoading;
 
   return (
     <motion.div
@@ -136,6 +241,68 @@ const InviteModal = ({ hacker, onClose }) => {
             )}
           </div>
 
+          {/* Legal agreement */}
+          <div>
+            <label className="text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-2 flex items-center gap-1.5">
+              <FiFileText className="text-[#00c477]" /> Legal Agreement <span className="text-[#00c477]">*</span>
+            </label>
+            <div className="flex gap-2 mb-3">
+              <button
+                onClick={() => setAgreementMode('UPLOAD')}
+                className={`flex-1 py-2 rounded-lg text-[11px] font-bold uppercase tracking-widest border transition-all ${
+                  agreementMode === 'UPLOAD'
+                    ? 'border-[#00c477]/50 text-[#00c477] bg-[#00c477]/10'
+                    : 'border-white/10 text-gray-500 hover:text-white hover:border-white/30'
+                }`}
+              >
+                Upload File
+              </button>
+              <button
+                onClick={() => setAgreementMode('LEGAL_AGREEMENT')}
+                className={`flex-1 py-2 rounded-lg text-[11px] font-bold uppercase tracking-widest border transition-all ${
+                  agreementMode === 'LEGAL_AGREEMENT'
+                    ? 'border-[#00c477]/50 text-[#00c477] bg-[#00c477]/10'
+                    : 'border-white/10 text-gray-500 hover:text-white hover:border-white/30'
+                }`}
+              >
+                Use Existing
+              </button>
+            </div>
+
+            {agreementMode === 'UPLOAD' ? (
+              <div>
+                <input
+                  type="file"
+                  accept=".pdf,.doc,.docx,.txt"
+                  onChange={(e) => setAgreementFile(e.target.files?.[0] || null)}
+                  className="block w-full text-xs text-gray-400 file:mr-3 file:py-2.5 file:px-4 file:rounded-lg file:border-0 file:bg-[#00c477]/10 file:text-[#00c477] file:font-bold file:uppercase file:text-[10px] file:tracking-widest hover:file:bg-[#00c477]/20"
+                />
+                {agreementFile && (
+                  <p className="text-[11px] text-gray-500 mt-2 font-mono truncate">{agreementFile.name}</p>
+                )}
+              </div>
+            ) : (
+              <div>
+                {agreements.length === 0 ? (
+                  <p className="text-sm text-gray-500 py-2">No active legal agreements found.</p>
+                ) : (
+                  <select
+                    value={selectedAgreementId}
+                    onChange={(e) => setSelectedAgreementId(e.target.value)}
+                    className="w-full bg-[#0c0c0c] border border-white/10 focus:border-[#00c477] rounded-xl px-4 py-3 text-sm text-white outline-none transition-all appearance-none cursor-pointer"
+                  >
+                    <option value="">— Choose an agreement —</option>
+                    {agreements.map((agreement) => (
+                      <option key={agreement.id} value={agreement.id}>
+                        {agreement.title} (v{agreement.version})
+                      </option>
+                    ))}
+                  </select>
+                )}
+              </div>
+            )}
+          </div>
+
           {/* Message */}
           <div>
             <label className="text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-2 flex items-center gap-1.5">
@@ -163,11 +330,11 @@ const InviteModal = ({ hacker, onClose }) => {
           </button>
           <button
             onClick={handleSend}
-            disabled={loading || !selectedProject || fetching}
+            disabled={isSending || !selectedProject || fetching || !agreementReady}
             className="flex-1 py-3 rounded-xl bg-[#00c477] text-black text-sm font-extrabold flex items-center justify-center gap-2 shadow-[0_0_20px_rgba(0,196,119,0.3)] hover:bg-[#00a865] transition-all disabled:opacity-40 disabled:cursor-not-allowed"
           >
-            {loading ? <FiLoader className="animate-spin" /> : <FiSend />}
-            {loading ? 'Sending...' : 'Send Invitation'}
+            {isSending ? <FiLoader className="animate-spin" /> : <FiSend />}
+            {isSending ? 'Sending...' : 'Send Invitation'}
           </button>
         </div>
       </motion.div>
@@ -446,10 +613,7 @@ const OrganizationDiscover = () => {
                 {loading ? 'Loading...' : `Showing ${filteredHackers.length} verified security researchers.`}
               </p>
             </div>
-            <div className="flex items-center gap-2 px-4 py-2 rounded-full border border-[#00c477]/20 bg-[#00c477]/5">
-              <div className="w-2 h-2 rounded-full bg-[#00c477] animate-pulse shadow-[0_0_8px_#00c477]" />
-              <span className="text-[10px] font-mono font-bold text-[#00c477] uppercase tracking-widest">Live_Datafeed: Synced</span>
-            </div>
+            
           </div>
 
           {loading ? (
