@@ -1,10 +1,12 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../../api/axiosConfig';
 import toast from 'react-hot-toast';
 import { FiCheckCircle, FiChevronRight, FiChevronLeft, FiBriefcase, FiMapPin } from 'react-icons/fi';
+import { useAuth } from '../../context/authContext.jsx';
 
 const OrgOnboarding = () => {
+  const { user } = useAuth();
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
   const [step, setStep] = useState(1);
@@ -20,6 +22,22 @@ const OrgOnboarding = () => {
     taxId: ''
   });
 
+  useEffect(() => {
+    const existingOrg = user?.organizations?.[0]?.organization;
+    if (existingOrg) {
+      setFormData((prev) => ({
+        ...prev,
+        name: existingOrg.name || prev.name,
+        description: existingOrg.description || prev.description,
+        industry: existingOrg.industry || prev.industry,
+        companySize: existingOrg.companySize || prev.companySize,
+        website: existingOrg.website || prev.website,
+        address: existingOrg.addressLine1 || prev.address,
+        taxId: existingOrg.taxId || prev.taxId,
+      }));
+    }
+  }, [user]);
+
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
@@ -32,27 +50,36 @@ const OrgOnboarding = () => {
   const handleSubmit = async () => {
     setLoading(true);
     try {
-      // 1. Create Organization
-      const createPayload = {
+      const existingOrg = user?.organizations?.[0]?.organization;
+      const orgPayload = {
         name: formData.name,
-        slug: generateSlug(formData.name),
-        description: formData.description || undefined
+        description: formData.description || undefined,
+        industry: formData.industry,
+        companySize: formData.companySize,
+        website: formData.website,
+        addressLine1: formData.address,
+        taxId: formData.taxId,
       };
-      const { data: createData } = await api.post('/organizations', createPayload);
-      const orgId = createData.data.id;
+      let orgId = existingOrg?.id;
 
-      // 2. Update Details
-      const updatePayload = {
+      if (!orgId) {
+        const { data: createData } = await api.post('/organizations', {
+          ...orgPayload,
+          slug: generateSlug(formData.name),
+        });
+        orgId = createData.data.id;
+      } else {
+        await api.patch(`/organizations/${orgId}`, orgPayload);
+      }
+
+      // submit-verification accepts only specific fields; send only those to avoid Joi unknown key errors.
+      await api.post(`/organizations/${orgId}/submit-verification`, {
+        taxId: formData.taxId,
         industry: formData.industry,
         companySize: formData.companySize,
         website: formData.website,
         address: formData.address,
-        taxId: formData.taxId
-      };
-      await api.patch(`/organizations/${orgId}`, updatePayload);
-
-      // 3. Submit for Verification
-      await api.post(`/organizations/${orgId}/submit-verification`, updatePayload);
+      });
 
       toast.success('Organization verified and submitted successfully!');
       setTimeout(() => {
@@ -226,20 +253,20 @@ const OrgOnboarding = () => {
         </button>
         
         {step < totalSteps ? (
-            <button 
-                onClick={nextStep}
-                className="flex items-center gap-2 px-6 py-2.5 bg-white text-black rounded-lg text-sm font-mono font-bold uppercase tracking-widest hover:bg-gray-200 transition-all active:scale-95 shadow-lg shadow-white/10"
-            >
-                Continue <FiChevronRight />
-            </button>
+          <button 
+            onClick={nextStep}
+            className="flex items-center gap-2 px-6 py-2.5 bg-[#00c477] text-black rounded-lg text-sm font-mono font-bold uppercase tracking-widest hover:bg-[#00ff9d] transition-all active:scale-95 shadow-lg shadow-[#00c477]/20"
+          >
+            Continue <FiChevronRight />
+          </button>
         ) : (
-            <button 
-                onClick={handleSubmit}
-                disabled={loading || !formData.address || !formData.taxId}
-                className="flex items-center gap-2 px-6 py-2.5 bg-sky-500 text-white rounded-lg text-sm font-mono font-bold uppercase tracking-widest hover:bg-sky-600 transition-all active:scale-95 shadow-lg shadow-sky-500/20 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-                {loading ? 'INITIALIZING...' : 'FINISH SETUP'} <FiCheckCircle />
-            </button>
+          <button 
+            onClick={handleSubmit}
+            disabled={loading || !formData.address || !formData.taxId}
+            className="flex items-center gap-2 px-6 py-2.5 bg-[#00c477] text-black rounded-lg text-sm font-mono font-bold uppercase tracking-widest hover:bg-[#00ff9d] transition-all active:scale-95 shadow-lg shadow-[#00c477]/20 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {loading ? 'INITIALIZING...' : 'FINISH SETUP'} <FiCheckCircle />
+          </button>
         )}
       </div>
 
