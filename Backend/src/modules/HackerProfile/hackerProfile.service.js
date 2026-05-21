@@ -169,6 +169,12 @@ export const upsertMyProfile = async (userId, payload) => {
     );
   }
 
+  if (payload.status === VerificationStatus.SUBMITTED) {
+    if (!payload.bio || String(payload.bio).trim().length < 10) {
+      throw new AppError('Bio is required and must be at least 10 characters to submit your profile.', 400);
+    }
+  }
+
   const nextStatus = payload.status === VerificationStatus.SUBMITTED
     ? VerificationStatus.SUBMITTED
     : (existing?.status || VerificationStatus.DRAFT);
