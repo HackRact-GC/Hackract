@@ -194,14 +194,18 @@ const HackerOnboarding = () => {
       } else {
         toast.success("Progress saved.");
       }
+      return true;
     } catch (err) {
       toast.error(err?.response?.data?.message || "Failed to save profile.");
+      return false;
     }
   };
 
   const handleSaveSection = async (section) => {
-    toggleEdit(section);
-    await saveProfile();
+    const saved = await saveProfile();
+    if (saved) {
+      toggleEdit(section);
+    }
   };
 
   const handleCompleteOnboarding = async () => {

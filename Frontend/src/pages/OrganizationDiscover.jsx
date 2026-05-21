@@ -613,10 +613,7 @@ const OrganizationDiscover = () => {
                 {loading ? 'Loading...' : `Showing ${filteredHackers.length} verified security researchers.`}
               </p>
             </div>
-            <div className="flex items-center gap-2 px-4 py-2 rounded-full border border-[#00c477]/20 bg-[#00c477]/5">
-              <div className="w-2 h-2 rounded-full bg-[#00c477] animate-pulse shadow-[0_0_8px_#00c477]" />
-              <span className="text-[10px] font-mono font-bold text-[#00c477] uppercase tracking-widest">Live_Datafeed: Synced</span>
-            </div>
+            
           </div>
 
           {loading ? (
