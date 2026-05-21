@@ -1,16 +1,12 @@
-import * as ReactFlow from "@xyflow/react";
-import { FiCpu, FiX } from "react-icons/fi";
-
-const { Handle, Position } = ReactFlow;
+import { Handle, Position } from '@xyflow/react';
+import { FiCpu, FiX } from 'react-icons/fi';
 
 const AiNode = ({ data, selected }) => {
   const activeUsers = Object.values(data.activeUsers || {});
   const showPresence = activeUsers.length > 0;
 
   return (
-    <div
-      className={`bg-[#0b0f19] border rounded-lg w-[280px] font-mono text-sm transition-all relative ${selected || showPresence ? "border-[#00ff88] shadow-[0_0_20px_rgba(0,255,136,0.6)]" : "border-[#00ff88]/50 shadow-[0_0_10px_rgba(0,255,136,0.3)]"}`}
-    >
+    <div className={`bg-[#0b0f19] border rounded-lg w-[280px] font-mono text-sm transition-all relative ${selected || showPresence ? 'border-[#00ff88] shadow-[0_0_20px_rgba(0,255,136,0.6)]' : 'border-[#00ff88]/50 shadow-[0_0_10px_rgba(0,255,136,0.3)]'}`}>
       {/* Presence Indicators (Figma Style) */}
       {showPresence && (
         <div className="absolute -top-6 right-0 flex -space-x-2">
@@ -18,10 +14,10 @@ const AiNode = ({ data, selected }) => {
             <div
               key={i}
               className="w-5 h-5 rounded-full border-2 border-[#0b0f19] flex items-center justify-center text-[10px] font-bold text-white shadow-lg animate-bounce"
-              style={{ backgroundColor: u.color || "#00ff88" }}
+              style={{ backgroundColor: u.color || '#00ff88' }}
               title={u.user}
             >
-              {u.user?.[0] || "U"}
+              {u.user?.[0] || 'U'}
             </div>
           ))}
         </div>
@@ -29,18 +25,14 @@ const AiNode = ({ data, selected }) => {
       <div className="p-2 flex justify-between items-center text-[#00ff88] border-b border-[#00ff88]/30">
         <div className="flex items-center gap-2">
           <FiCpu size={16} />
-          <span className="font-bold text-xs uppercase tracking-tighter">
-            AI Assistant
-          </span>
+          <span className="font-bold text-xs uppercase tracking-tighter">AI Assistant</span>
         </div>
         <div className="flex items-center gap-2">
           <input
             className="bg-transparent border-none text-right focus:outline-none text-gray-500 text-xs placeholder-gray-700 w-[100px]"
             placeholder="Task name..."
-            defaultValue={data.label || ""}
-            onBlur={(e) =>
-              data.onTitleChange && data.onTitleChange(e.target.value)
-            }
+            defaultValue={data.label || ''}
+            onBlur={(e) => data.onTitleChange && data.onTitleChange(e.target.value)}
           />
           <button
             className="text-gray-500 hover:text-red-500 transition-colors cursor-pointer"
@@ -56,10 +48,8 @@ const AiNode = ({ data, selected }) => {
           <textarea
             className="w-full h-20 bg-black border border-gray-800 text-gray-300 p-2 rounded resize-none focus:outline-none focus:border-[#00ff88]/50"
             placeholder="ask something..."
-            defaultValue={data.prompt || ""}
-            onChange={(e) =>
-              data.onDataChange && data.onDataChange({ prompt: e.target.value })
-            }
+            defaultValue={data.prompt || ''}
+            onChange={(e) => data.onDataChange && data.onDataChange({ prompt: e.target.value })}
           />
           <button className="absolute bottom-2 right-2 text-[#00ff88] hover:text-white transition-colors">
             ➤
@@ -71,22 +61,9 @@ const AiNode = ({ data, selected }) => {
         </button>
       </div>
 
-      <Handle
-        type="target"
-        position={Position.Left}
-        className="w-3 h-3 bg-[#00ff88] border-2 border-[#0b0f19]"
-      />
-      <Handle
-        type="source"
-        position={Position.Right}
-        className="w-3 h-3 bg-[#00ff88] border-2 border-[#0b0f19]"
-      />
-      <Handle
-        type="target"
-        position={Position.Top}
-        id="top"
-        className="w-3 h-3 bg-[#00ff88] border-2 border-[#0b0f19]"
-      />
+      <Handle type="target" position={Position.Left} className="w-3 h-3 bg-[#00ff88] border-2 border-[#0b0f19]" />
+      <Handle type="source" position={Position.Right} className="w-3 h-3 bg-[#00ff88] border-2 border-[#0b0f19]" />
+      <Handle type="target" position={Position.Top} id="top" className="w-3 h-3 bg-[#00ff88] border-2 border-[#0b0f19]" />
     </div>
   );
 };

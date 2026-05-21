@@ -5,16 +5,16 @@
 
 // ── Role type strings (must match the Prisma RoleType enum) ──────────
 export const ROLES = Object.freeze({
-  ORG_ADMIN: "ORG_ADMIN",
-  PROJECT_ADMIN: "PROJECT_ADMIN",
-  PENTESTER: "PENTESTER",
+  ORG_ADMIN: 'ORG_ADMIN',
+  PROJECT_ADMIN: 'PROJECT_ADMIN',
+  PENTESTER: 'PENTESTER',
 });
 
 // ── Default dashboard path for each role ─────────────────────────────
 export const DASHBOARD_BY_ROLE = Object.freeze({
-  [ROLES.ORG_ADMIN]: "/dashboard",
-  [ROLES.PROJECT_ADMIN]: "/admin-dashboard",
-  [ROLES.PENTESTER]: "/hacker-dashboard",
+  [ROLES.ORG_ADMIN]: '/dashboard',
+  [ROLES.PROJECT_ADMIN]: '/admin-dashboard',
+  [ROLES.PENTESTER]: '/hacker-dashboard',
 });
 
 // ── Helpers ──────────────────────────────────────────────────────────
@@ -25,7 +25,7 @@ export const DASHBOARD_BY_ROLE = Object.freeze({
  */
 export const getRoleTypes = (user) => {
   if (!user?.roles) return [];
-  return user.roles.map((r) => (typeof r === "string" ? r : r.type));
+  return user.roles.map((r) => (typeof r === 'string' ? r : r.type));
 };
 
 /**
@@ -54,7 +54,7 @@ export const getPrimaryRole = (user) => {
  */
 export const getDashboardPath = (user) => {
   const primary = getPrimaryRole(user);
-  return DASHBOARD_BY_ROLE[primary] || "/";
+  return DASHBOARD_BY_ROLE[primary] || '/';
 };
 
 /**
@@ -62,7 +62,5 @@ export const getDashboardPath = (user) => {
  */
 export const isOrgAdminMember = (user) => {
   if (!user?.organizations || !Array.isArray(user.organizations)) return false;
-  return user.organizations.some(
-    (org) => org.role === "admin" || org.role === "owner",
-  );
+  return user.organizations.some(org => org.role === 'admin' || org.role === 'owner');
 };

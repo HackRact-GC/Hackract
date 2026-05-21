@@ -1,32 +1,16 @@
-import { AnimatePresence, motion } from "framer-motion";
-import React, { useEffect, useState } from "react";
-import toast from "react-hot-toast";
+import React, { useState, useEffect } from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
+import { motion, AnimatePresence } from 'framer-motion';
+import api from '../api/axiosConfig';
+import toast from 'react-hot-toast';
+import { useAuth } from '../context/authContext.jsx';
 import {
-  FiActivity,
-  FiAlertTriangle,
-  FiArrowLeft,
-  FiAward,
-  FiBriefcase,
-  FiCalendar,
-  FiCheckCircle,
-  FiCpu,
-  FiFolder,
-  FiGlobe,
-  FiLock,
-  FiMapPin,
-  FiMessageSquare,
-  FiShield,
-  FiStar,
-  FiTarget,
-  FiTool,
-  FiTrendingUp,
-  FiUsers,
-  FiZap,
-} from "react-icons/fi";
-import { useNavigate, useParams } from "react-router-dom";
+  FiArrowLeft, FiStar, FiMapPin, FiShield, FiTool,
+  FiAward, FiBriefcase, FiMessageSquare, FiCheckCircle,
+  FiActivity, FiZap, FiCpu, FiTarget, FiUsers, FiLock,
+  FiTrendingUp, FiCalendar, FiGlobe, FiAlertTriangle, FiFolder,
+} from 'react-icons/fi';
 
-import api from "../api/axiosConfig";
-import { useAuth } from "../context/authContext.jsx";
 
 // ─── DATA NORMALISER ─────────────────────────────────────────────────────────
 // Converts the DB response into the shape the UI sections expect.
@@ -35,17 +19,14 @@ const normalise = (profile) => {
   const u = profile.user || {};
 
   // Merge led + collaborated projects, de-dup by id
-  const led = (u.pentestsLed || []).map((p) => ({ ...p, role: "Lead" }));
-  const collab = (u.pentestCollaborators || []).map((c) => ({
-    ...c.pentest,
-    role: "Collaborator",
-  }));
+  const led = (u.pentestsLed || []).map(p => ({ ...p, role: 'Lead' }));
+  const collab = (u.pentestCollaborators || []).map(c => ({ ...c.pentest, role: 'Collaborator' }));
   const seen = new Set();
   const projects = [...led, ...collab]
-    .filter((p) => p && p.id && !seen.has(p.id) && seen.add(p.id))
-    .map((p) => ({
+    .filter(p => p && p.id && !seen.has(p.id) && seen.add(p.id))
+    .map(p => ({
       id: p.id,
-      org: p.organization?.name || "[Confidential]",
+      org: p.organization?.name || '[Confidential]',
       year: new Date(p.createdAt).getFullYear(),
       title: p.name,
       status: p.status,
@@ -53,112 +34,78 @@ const normalise = (profile) => {
       organizationId: p.organizationId,
     }));
 
-  const reviews = (u.reviewsReceived || []).map((r) => ({
-    from: r.author?.fullName || r.author?.handle || "Anonymous",
+  const reviews = (u.reviewsReceived || []).map(r => ({
+    from: r.author?.fullName || r.author?.handle || 'Anonymous',
     rating: r.rating,
-    text: r.comment || "",
-    date: new Date(r.createdAt).toLocaleDateString("en-US", {
-      month: "short",
-      year: "numeric",
-    }),
+    text: r.comment || '',
+    date: new Date(r.createdAt).toLocaleDateString('en-US', { month: 'short', year: 'numeric' }),
     project: r.pentest?.name || null,
   }));
 
   const skills = profile.primarySkills || [];
 
   // Parse JSON strings for certifications, education, etc.
-  const certs = (profile.certifications || []).map((c) => {
+  const certs = (profile.certifications || []).map(c => {
     try {
       const parsed = JSON.parse(c);
-      return {
-        name: parsed.title || parsed.name,
-        body: parsed.provider || "Verified Cert",
-        verified: true,
-        ...parsed,
-      };
+      return { name: parsed.title || parsed.name, body: parsed.provider || 'Verified Cert', verified: true, ...parsed };
     } catch {
-      return { name: c, body: "Verified Cert", verified: true };
+      return { name: c, body: 'Verified Cert', verified: true };
     }
   });
 
-  const education = (profile.education || []).map((e) => {
+  const education = (profile.education || []).map(e => {
     try {
       const parsed = JSON.parse(e);
-      return {
-        school: parsed.school,
-        degree: parsed.degree,
-        year: parsed.to || parsed.from || "",
-        ...parsed,
-      };
+      return { school: parsed.school, degree: parsed.degree, year: parsed.to || parsed.from || '', ...parsed };
     } catch {
-      return { school: e, degree: "Degree", year: "" };
+      return { school: e, degree: 'Degree', year: '' };
     }
   });
 
-  const employment = (profile.employment || []).map((e) => {
+  const employment = (profile.employment || []).map(e => {
     try {
       const parsed = JSON.parse(e);
-      return {
-        company: parsed.company,
-        title: parsed.title,
-        year: `${parsed.from} - ${parsed.to}`,
-        ...parsed,
-      };
+      return { company: parsed.company, title: parsed.title, year: `${parsed.from} - ${parsed.to}`, ...parsed };
     } catch {
-      return { company: e, title: "Professional", year: "" };
+      return { company: e, title: 'Professional', year: '' };
     }
   });
 
-  const other = (profile.otherExperiences || []).map((o) => {
+  const other = (profile.otherExperiences || []).map(o => {
     try {
       const parsed = JSON.parse(o);
-      return {
-        subject: parsed.subject,
-        description: parsed.description,
-        ...parsed,
-      };
+      return { subject: parsed.subject, description: parsed.description, ...parsed };
     } catch {
-      return { subject: o, description: "" };
+      return { subject: o, description: '' };
     }
   });
 
   const trustScore = u.trustScore ?? 100;
-  const rank =
-    trustScore >= 95
-      ? "ELITE"
-      : trustScore >= 85
-        ? "PLATINUM"
-        : trustScore >= 70
-          ? "GOLD"
-          : "SILVER";
+  const rank = trustScore >= 95 ? 'ELITE' : trustScore >= 85 ? 'PLATINUM' : trustScore >= 70 ? 'GOLD' : 'SILVER';
 
   return {
     id: profile.id,
     userId: profile.userId,
-    name: u.fullName || "Unknown Hacker",
-    alias: u.fullName || "",
-    tag: u.handle ? `@${u.handle}` : "",
-    status: "ACTIVE SENTINEL",
-    rating:
-      u.averageRating != null && u.totalReviews > 0
-        ? +Number(u.averageRating).toFixed(1)
-        : reviews.length > 0
-          ? +(
-              reviews.reduce((s, r) => s + r.rating, 0) / reviews.length
-            ).toFixed(1)
-          : 4.5,
+    name: u.fullName || 'Unknown Hacker',
+    alias: u.fullName || '',
+    tag: u.handle ? `@${u.handle}` : '',
+    status: 'ACTIVE SENTINEL',
+    rating: u.averageRating != null && u.totalReviews > 0
+      ? +Number(u.averageRating).toFixed(1)
+      : (reviews.length > 0
+        ? +(reviews.reduce((s, r) => s + r.rating, 0) / reviews.length).toFixed(1)
+        : 4.5),
     totalReviews: u.totalReviews || reviews.length,
     rank,
     trustScore,
-    location: profile.country || "Remote",
-    avatar:
-      u.avatar ||
-      `https://api.dicebear.com/7.x/bottts/svg?seed=${u.handle}&baseColor=00ff88`,
-    bio: profile.bio || "",
+    location: profile.country || 'Remote',
+    avatar: u.avatar || `https://api.dicebear.com/7.x/bottts/svg?seed=${u.handle}&baseColor=00ff88`,
+    bio: profile.bio || '',
     arsenal: skills,
     skills,
     certifications: certs,
-    specialization: profile.specialization || "",
+    specialization: profile.specialization || '',
     yearsOfExperience: profile.yearsOfExperience || 0,
     portfolioLinks: profile.portfolioLinks || [],
     github: profile.githubUsername,
@@ -173,7 +120,7 @@ const normalise = (profile) => {
     education,
     employment,
     other,
-    isIdVerified: u.nationalIDVerification?.verificationStatus === "APPROVED",
+    isIdVerified: u.nationalIDVerification?.verificationStatus === 'APPROVED',
   };
 };
 
@@ -181,76 +128,43 @@ const TAB_ICONS = {
   ABOUT: FiActivity,
   "SKILLS & TOOLS": FiTool,
   CERTIFICATIONS: FiAward,
-  OTHER: FiCpu,
+  "OTHER": FiCpu,
   "PAST PROJECTS": FiBriefcase,
   REVIEWS: FiMessageSquare,
 };
 
-const TABS = [
-  "ABOUT",
-  "SKILLS & TOOLS",
-  "CERTIFICATIONS",
-  "PAST PROJECTS",
-  "REVIEWS",
-];
+const TABS = ["ABOUT", "SKILLS & TOOLS", "CERTIFICATIONS", "PAST PROJECTS", "REVIEWS"];
 
 const RANK_COLORS = {
-  ELITE: {
-    text: "text-purple-400",
-    border: "border-purple-400/30",
-    bg: "bg-purple-400/10",
-  },
-  PLATINUM: {
-    text: "text-blue-300",
-    border: "border-blue-300/30",
-    bg: "bg-blue-300/10",
-  },
-  GOLD: {
-    text: "text-yellow-400",
-    border: "border-yellow-400/30",
-    bg: "bg-yellow-400/10",
-  },
-  SILVER: {
-    text: "text-gray-300",
-    border: "border-gray-400/30",
-    bg: "bg-gray-400/10",
-  },
+  ELITE: { text: "text-purple-400", border: "border-purple-400/30", bg: "bg-purple-400/10" },
+  PLATINUM: { text: "text-blue-300", border: "border-blue-300/30", bg: "bg-blue-300/10" },
+  GOLD: { text: "text-yellow-400", border: "border-yellow-400/30", bg: "bg-yellow-400/10" },
+  SILVER: { text: "text-gray-300", border: "border-gray-400/30", bg: "bg-gray-400/10" },
 };
 
 // ─── SECTION COMPONENTS ───────────────────────────────────────────────────────
 
 const AboutSection = ({ hacker }) => (
-  <motion.div
-    initial={{ opacity: 0, y: 12 }}
-    animate={{ opacity: 1, y: 0 }}
-    className="space-y-8"
-  >
+  <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} className="space-y-8">
     {/* Bio Section */}
     <div className="bg-[#0a0a0a] border border-white/5 rounded-2xl p-8">
       <div className="flex items-center gap-3 mb-6">
         <div className="w-8 h-8 rounded-lg bg-[#00c477]/10 border border-[#00c477]/20 flex items-center justify-center">
           <FiActivity className="text-[#00c477] text-sm" />
         </div>
-        <h2 className="text-lg font-black text-white tracking-tight">
-          Dossier Overview
-        </h2>
+        <h2 className="text-lg font-black text-white tracking-tight">Dossier Overview</h2>
       </div>
-      <p className="text-gray-400 text-sm leading-relaxed mb-8">
-        {hacker.bio || "No bio provided."}
-      </p>
+      <p className="text-gray-400 text-sm leading-relaxed mb-8">{hacker.bio || 'No bio provided.'}</p>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+
+
         {/* Active Arsenal */}
         <div>
-          <p className="text-[9px] font-black text-gray-500 tracking-[0.3em] uppercase mb-4">
-            Core Skillset
-          </p>
+          <p className="text-[9px] font-black text-gray-500 tracking-[0.3em] uppercase mb-4">Core Skillset</p>
           <div className="flex flex-wrap gap-2">
-            {hacker.skills.map((t) => (
-              <span
-                key={t}
-                className="px-3 py-1.5 rounded-lg border border-white/10 bg-white/[0.03] text-[11px] text-gray-300 font-mono hover:border-[#00c477]/30 transition-colors"
-              >
+            {hacker.skills.map(t => (
+              <span key={t} className="px-3 py-1.5 rounded-lg border border-white/10 bg-white/[0.03] text-[11px] text-gray-300 font-mono hover:border-[#00c477]/30 transition-colors">
                 {t}
               </span>
             ))}
@@ -259,9 +173,7 @@ const AboutSection = ({ hacker }) => (
 
         {/* Verification Status */}
         <div className="space-y-3">
-          <p className="text-[9px] font-black text-gray-500 tracking-[0.3em] uppercase mb-4">
-            Verifications
-          </p>
+          <p className="text-[9px] font-black text-gray-500 tracking-[0.3em] uppercase mb-4">Verifications</p>
           <div className="flex items-center justify-between p-3 rounded-xl border border-white/5 bg-white/[0.02]">
             <span className="text-xs text-gray-400 font-mono">National ID</span>
             {hacker.isIdVerified ? (
@@ -275,9 +187,7 @@ const AboutSection = ({ hacker }) => (
             )}
           </div>
           <div className="flex items-center justify-between p-3 rounded-xl border border-white/5 bg-white/[0.02]">
-            <span className="text-xs text-gray-400 font-mono">
-              Email Status
-            </span>
+            <span className="text-xs text-gray-400 font-mono">Email Status</span>
             <span className="flex items-center gap-1.5 text-[10px] font-bold text-[#00c477] uppercase tracking-wider">
               <FiCheckCircle /> Confirmed
             </span>
@@ -293,30 +203,19 @@ const AboutSection = ({ hacker }) => (
           <div className="w-8 h-8 rounded-lg bg-[#00c477]/10 border border-[#00c477]/20 flex items-center justify-center">
             <FiShield className="text-[#00c477] text-sm" />
           </div>
-          <h2 className="text-lg font-black text-white tracking-tight">
-            Active Certifications
-          </h2>
+          <h2 className="text-lg font-black text-white tracking-tight">Active Certifications</h2>
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           {hacker.certifications.map((cert, i) => (
-            <div
-              key={i}
-              className="flex items-center gap-4 p-4 rounded-xl border border-white/5 bg-white/[0.02] hover:border-[#00c477]/20 transition-colors"
-            >
+            <div key={i} className="flex items-center gap-4 p-4 rounded-xl border border-white/5 bg-white/[0.02] hover:border-[#00c477]/20 transition-colors">
               <div className="w-10 h-10 rounded-xl bg-[#00c477]/10 border border-[#00c477]/20 flex items-center justify-center flex-shrink-0">
                 <FiShield className="text-[#00c477]" />
               </div>
               <div className="flex-1 min-w-0">
-                <p className="text-sm font-bold text-white truncate">
-                  {cert.name}
-                </p>
-                <p className="text-[10px] text-gray-500 font-mono uppercase tracking-widest truncate">
-                  {cert.provider || "Credential"}
-                </p>
+                <p className="text-sm font-bold text-white truncate">{cert.name}</p>
+                <p className="text-[10px] text-gray-500 font-mono uppercase tracking-widest truncate">{cert.provider || 'Credential'}</p>
               </div>
-              {cert.verified && (
-                <FiCheckCircle className="text-[#00c477] text-lg flex-shrink-0" />
-              )}
+              {cert.verified && <FiCheckCircle className="text-[#00c477] text-lg flex-shrink-0" />}
             </div>
           ))}
         </div>
@@ -330,27 +229,18 @@ const AboutSection = ({ hacker }) => (
           <div className="w-8 h-8 rounded-lg bg-[#00c477]/10 border border-[#00c477]/20 flex items-center justify-center">
             <FiBriefcase className="text-[#00c477] text-sm" />
           </div>
-          <h2 className="text-lg font-black text-white tracking-tight">
-            Professional Experience
-          </h2>
+          <h2 className="text-lg font-black text-white tracking-tight">Professional Experience</h2>
         </div>
         <div className="space-y-6">
           {hacker.employment.map((job, i) => (
-            <div
-              key={i}
-              className="flex items-start gap-4 p-4 rounded-xl border border-white/5 bg-white/[0.02]"
-            >
+            <div key={i} className="flex items-start gap-4 p-4 rounded-xl border border-white/5 bg-white/[0.02]">
               <div className="w-10 h-10 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center flex-shrink-0">
                 <FiBriefcase className="text-gray-500" />
               </div>
               <div>
                 <p className="text-sm font-bold text-white">{job.title}</p>
-                <p className="text-xs text-[#00c477] font-mono mt-0.5">
-                  {job.company}
-                </p>
-                <p className="text-[10px] text-gray-600 font-mono mt-1">
-                  {job.year}
-                </p>
+                <p className="text-xs text-[#00c477] font-mono mt-0.5">{job.company}</p>
+                <p className="text-[10px] text-gray-600 font-mono mt-1">{job.year}</p>
               </div>
             </div>
           ))}
@@ -365,25 +255,18 @@ const AboutSection = ({ hacker }) => (
           <div className="w-8 h-8 rounded-lg bg-[#00c477]/10 border border-[#00c477]/20 flex items-center justify-center">
             <FiAward className="text-[#00c477] text-sm" />
           </div>
-          <h2 className="text-lg font-black text-white tracking-tight">
-            Academic Background
-          </h2>
+          <h2 className="text-lg font-black text-white tracking-tight">Academic Background</h2>
         </div>
         <div className="space-y-6">
           {hacker.education.map((edu, i) => (
-            <div
-              key={i}
-              className="flex items-start gap-4 p-4 rounded-xl border border-white/5 bg-white/[0.02]"
-            >
+            <div key={i} className="flex items-start gap-4 p-4 rounded-xl border border-white/5 bg-white/[0.02]">
               <div className="w-10 h-10 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center flex-shrink-0">
                 <FiActivity className="text-gray-500" />
               </div>
               <div>
                 <p className="text-sm font-bold text-white">{edu.degree}</p>
                 <p className="text-xs text-gray-400 mt-0.5">{edu.school}</p>
-                <p className="text-[10px] text-gray-600 font-mono mt-1">
-                  {edu.from} — {edu.to}
-                </p>
+                <p className="text-[10px] text-gray-600 font-mono mt-1">{edu.from} — {edu.to}</p>
               </div>
             </div>
           ))}
@@ -398,26 +281,17 @@ const AboutSection = ({ hacker }) => (
           <div className="w-8 h-8 rounded-lg bg-[#00c477]/10 border border-[#00c477]/20 flex items-center justify-center">
             <FiBriefcase className="text-[#00c477] text-sm" />
           </div>
-          <h2 className="text-lg font-black text-white tracking-tight">
-            Engagement Log
-          </h2>
+          <h2 className="text-lg font-black text-white tracking-tight">Engagement Log</h2>
         </div>
         <div className="space-y-4">
           {hacker.projects.map((p, i) => (
-            <div
-              key={i}
-              className="flex items-start gap-4 p-4 rounded-xl border border-white/5 bg-white/[0.02] hover:border-white/10 transition-colors"
-            >
+            <div key={i} className="flex items-start gap-4 p-4 rounded-xl border border-white/5 bg-white/[0.02] hover:border-white/10 transition-colors">
               <div className="w-10 h-10 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center flex-shrink-0">
                 <FiBriefcase className="text-gray-500" />
               </div>
               <div className="flex-1 min-w-0">
-                <p className="text-sm font-bold text-white">
-                  {p.org} — {p.year}
-                </p>
-                <p className="text-xs text-gray-500 mt-0.5 truncate">
-                  {p.title}
-                </p>
+                <p className="text-sm font-bold text-white">{p.org} — {p.year}</p>
+                <p className="text-xs text-gray-500 mt-0.5 truncate">{p.title}</p>
               </div>
               <span className="px-3 py-1 rounded-full text-[9px] font-black font-mono tracking-widest uppercase text-[#00c477] bg-[#00c477]/10 border border-[#00c477]/20 flex-shrink-0">
                 {p.status}
@@ -431,28 +305,20 @@ const AboutSection = ({ hacker }) => (
 );
 
 const SkillsSection = ({ hacker }) => (
-  <motion.div
-    initial={{ opacity: 0, y: 12 }}
-    animate={{ opacity: 1, y: 0 }}
-    className="space-y-6"
-  >
+  <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} className="space-y-6">
     <div className="bg-[#0a0a0a] border border-white/5 rounded-2xl p-8">
       <div className="flex items-center gap-3 mb-6">
         <div className="w-8 h-8 rounded-lg bg-[#00c477]/10 border border-[#00c477]/20 flex items-center justify-center">
           <FiTool className="text-[#00c477] text-sm" />
         </div>
-        <h2 className="text-lg font-black text-white tracking-tight">
-          Core Skill Set
-        </h2>
+        <h2 className="text-lg font-black text-white tracking-tight">Core Skill Set</h2>
       </div>
       <div className="space-y-4">
         {hacker.skills.map((skill, i) => (
           <div key={skill}>
             <div className="flex justify-between mb-2">
               <span className="text-sm text-gray-300 font-mono">{skill}</span>
-              <span className="text-xs text-[#00c477] font-mono">
-                {95 - i * 5}%
-              </span>
+              <span className="text-xs text-[#00c477] font-mono">{95 - i * 5}%</span>
             </div>
             <div className="h-1.5 bg-white/5 rounded-full overflow-hidden">
               <motion.div
@@ -472,20 +338,13 @@ const SkillsSection = ({ hacker }) => (
         <div className="w-8 h-8 rounded-lg bg-[#00c477]/10 border border-[#00c477]/20 flex items-center justify-center">
           <FiCpu className="text-[#00c477] text-sm" />
         </div>
-        <h2 className="text-lg font-black text-white tracking-tight">
-          Active Toolchain
-        </h2>
+        <h2 className="text-lg font-black text-white tracking-tight">Active Toolchain</h2>
       </div>
       <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
         {hacker.arsenal.map((tool) => (
-          <div
-            key={tool}
-            className="flex items-center gap-3 p-3 rounded-xl border border-white/5 bg-white/[0.02] hover:border-[#00c477]/20 hover:bg-[#00c477]/5 transition-all group"
-          >
+          <div key={tool} className="flex items-center gap-3 p-3 rounded-xl border border-white/5 bg-white/[0.02] hover:border-[#00c477]/20 hover:bg-[#00c477]/5 transition-all group">
             <div className="w-2 h-2 rounded-full bg-[#00c477] shadow-[0_0_6px_#00c477] flex-shrink-0" />
-            <span className="text-xs text-gray-400 group-hover:text-gray-200 transition-colors font-mono truncate">
-              {tool}
-            </span>
+            <span className="text-xs text-gray-400 group-hover:text-gray-200 transition-colors font-mono truncate">{tool}</span>
           </div>
         ))}
       </div>
@@ -494,24 +353,16 @@ const SkillsSection = ({ hacker }) => (
 );
 
 const CertificationsSection = ({ hacker }) => (
-  <motion.div
-    initial={{ opacity: 0, y: 12 }}
-    animate={{ opacity: 1, y: 0 }}
-    className="space-y-4"
-  >
+  <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} className="space-y-4">
     <div className="bg-[#0a0a0a] border border-white/5 rounded-2xl p-8">
       <div className="flex items-center gap-3 mb-6">
         <div className="w-8 h-8 rounded-lg bg-[#00c477]/10 border border-[#00c477]/20 flex items-center justify-center">
           <FiAward className="text-[#00c477] text-sm" />
         </div>
-        <h2 className="text-lg font-black text-white tracking-tight">
-          Certifications & Credentials
-        </h2>
+        <h2 className="text-lg font-black text-white tracking-tight">Certifications & Credentials</h2>
       </div>
       {hacker.certifications.length === 0 ? (
-        <p className="text-gray-600 text-sm font-mono">
-          No certifications on record.
-        </p>
+        <p className="text-gray-600 text-sm font-mono">No certifications on record.</p>
       ) : (
         <div className="space-y-4">
           {hacker.certifications.map((cert, i) => (
@@ -531,8 +382,7 @@ const CertificationsSection = ({ hacker }) => (
                   <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mt-1">
                     {cert.provider && (
                       <span className="text-[10px] text-gray-500 font-mono uppercase tracking-widest">
-                        Provider:{" "}
-                        <span className="text-gray-400">{cert.provider}</span>
+                        Provider: <span className="text-gray-400">{cert.provider}</span>
                       </span>
                     )}
                     {cert.number && (
@@ -545,31 +395,18 @@ const CertificationsSection = ({ hacker }) => (
                 {cert.verified && (
                   <div className="flex items-center gap-2 px-3 py-1.5 rounded-full border border-[#00c477]/20 bg-[#00c477]/10">
                     <FiCheckCircle className="text-[#00c477] text-sm" />
-                    <span className="text-[9px] font-black text-[#00c477] font-mono tracking-widest uppercase">
-                      Verified
-                    </span>
+                    <span className="text-[9px] font-black text-[#00c477] font-mono tracking-widest uppercase">Verified</span>
                   </div>
                 )}
               </div>
 
               {cert.fileUrl && (
                 <div className="mt-4 pt-4 border-t border-white/5">
-                  <p className="text-[9px] font-black text-gray-500 tracking-widest uppercase mb-3">
-                    Attachment
-                  </p>
+                  <p className="text-[9px] font-black text-gray-500 tracking-widest uppercase mb-3">Attachment</p>
                   <div className="flex items-center gap-3">
                     {cert.fileUrl.match(/\.(jpeg|jpg|gif|png|svg)$/i) ? (
-                      <a
-                        href={cert.fileUrl}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="block w-full"
-                      >
-                        <img
-                          src={cert.fileUrl}
-                          alt={cert.name}
-                          className="w-full max-h-48 object-contain rounded-xl border border-white/10 bg-black/50"
-                        />
+                      <a href={cert.fileUrl} target="_blank" rel="noreferrer" className="block w-full">
+                        <img src={cert.fileUrl} alt={cert.name} className="w-full max-h-48 object-contain rounded-xl border border-white/10 bg-black/50" />
                       </a>
                     ) : (
                       <a
@@ -579,9 +416,7 @@ const CertificationsSection = ({ hacker }) => (
                         className="flex items-center gap-3 px-4 py-3 rounded-xl bg-white/[0.03] border border-white/10 hover:border-[#00c477]/30 transition-all w-full group"
                       >
                         <FiFolder className="text-gray-500 group-hover:text-[#00c477]" />
-                        <span className="text-xs text-gray-400 group-hover:text-gray-200 truncate">
-                          {cert.file || "View Document"}
-                        </span>
+                        <span className="text-xs text-gray-400 group-hover:text-gray-200 truncate">{cert.file || 'View Document'}</span>
                       </a>
                     )}
                   </div>
@@ -596,28 +431,20 @@ const CertificationsSection = ({ hacker }) => (
 );
 
 const ProjectsSection = ({ hacker }) => (
-  <motion.div
-    initial={{ opacity: 0, y: 12 }}
-    animate={{ opacity: 1, y: 0 }}
-    className="space-y-4"
-  >
+  <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} className="space-y-4">
     <div className="bg-[#0a0a0a] border border-white/5 rounded-2xl p-8">
       <div className="flex items-center gap-3 mb-6">
         <div className="w-8 h-8 rounded-lg bg-[#00c477]/10 border border-[#00c477]/20 flex items-center justify-center">
           <FiBriefcase className="text-[#00c477] text-sm" />
         </div>
-        <h2 className="text-lg font-black text-white tracking-tight">
-          Past Engagements
-        </h2>
+        <h2 className="text-lg font-black text-white tracking-tight">Past Engagements</h2>
       </div>
       {hacker.projects.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-16 gap-4">
           <div className="w-16 h-16 rounded-2xl bg-white/[0.02] border border-white/5 flex items-center justify-center">
             <FiLock className="text-gray-600 text-2xl" />
           </div>
-          <p className="text-gray-600 text-sm font-mono">
-            Engagement history is classified.
-          </p>
+          <p className="text-gray-600 text-sm font-mono">Engagement history is classified.</p>
         </div>
       ) : (
         <div className="space-y-4">
@@ -635,12 +462,11 @@ const ProjectsSection = ({ hacker }) => (
               <div className="flex-1">
                 <div className="flex items-center gap-2 flex-wrap">
                   <span className="text-sm font-bold text-white">{p.org}</span>
-                  <span className="text-[10px] text-gray-600 font-mono">
-                    — {p.year}
-                  </span>
+                  <span className="text-[10px] text-gray-600 font-mono">— {p.year}</span>
                 </div>
                 <p className="text-xs text-gray-400 mt-1">{p.title}</p>
               </div>
+
             </motion.div>
           ))}
         </div>
@@ -650,32 +476,19 @@ const ProjectsSection = ({ hacker }) => (
 );
 
 const OtherExperiencesSection = ({ hacker }) => (
-  <motion.div
-    initial={{ opacity: 0, y: 12 }}
-    animate={{ opacity: 1, y: 0 }}
-    className="space-y-4"
-  >
+  <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} className="space-y-4">
     <div className="bg-[#0a0a0a] border border-white/5 rounded-2xl p-8">
       <div className="flex items-center gap-3 mb-6">
         <div className="w-8 h-8 rounded-lg bg-[#00c477]/10 border border-[#00c477]/20 flex items-center justify-center">
           <FiCpu className="text-[#00c477] text-sm" />
         </div>
-        <h2 className="text-lg font-black text-white tracking-tight">
-          Additional Experiences
-        </h2>
+        <h2 className="text-lg font-black text-white tracking-tight">Additional Experiences</h2>
       </div>
       <div className="space-y-6">
         {hacker.other.map((exp, i) => (
-          <div
-            key={i}
-            className="p-6 rounded-2xl border border-white/5 bg-white/[0.02]"
-          >
-            <h3 className="text-base font-bold text-white mb-2">
-              {exp.subject}
-            </h3>
-            <p className="text-sm text-gray-400 leading-relaxed mb-4">
-              {exp.description}
-            </p>
+          <div key={i} className="p-6 rounded-2xl border border-white/5 bg-white/[0.02]">
+            <h3 className="text-base font-bold text-white mb-2">{exp.subject}</h3>
+            <p className="text-sm text-gray-400 leading-relaxed mb-4">{exp.description}</p>
             {exp.fileUrl && (
               <div className="flex items-center gap-3">
                 <a
@@ -685,9 +498,7 @@ const OtherExperiencesSection = ({ hacker }) => (
                   className="flex items-center gap-3 px-4 py-3 rounded-xl bg-white/[0.03] border border-white/10 hover:border-[#00c477]/30 transition-all group"
                 >
                   <FiFolder className="text-gray-500 group-hover:text-[#00c477]" />
-                  <span className="text-xs text-gray-400 group-hover:text-gray-200">
-                    {exp.file || "View Attachment"}
-                  </span>
+                  <span className="text-xs text-gray-400 group-hover:text-gray-200">{exp.file || 'View Attachment'}</span>
                 </a>
               </div>
             )}
@@ -701,28 +512,21 @@ const OtherExperiencesSection = ({ hacker }) => (
 const ReviewsSection = ({ hacker, isOrgAdmin, user, onSubmitReview }) => {
   const [rating, setRating] = useState(5);
   const [hoverRating, setHoverRating] = useState(0);
-  const [comment, setComment] = useState("");
-  const [selectedPentestId, setSelectedPentestId] = useState("");
+  const [comment, setComment] = useState('');
+  const [selectedPentestId, setSelectedPentestId] = useState('');
   const [submitting, setSubmitting] = useState(false);
 
-  const userOrgIds =
-    user?.organizations?.map((org) => org.organizationId) || [];
-  const orgProjects = (hacker.projects || []).filter((proj) =>
-    userOrgIds.includes(proj.organizationId),
-  );
+  const userOrgIds = user?.organizations?.map(org => org.organizationId) || [];
+  const orgProjects = (hacker.projects || []).filter(proj => userOrgIds.includes(proj.organizationId));
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setSubmitting(true);
     try {
-      await onSubmitReview({
-        rating,
-        comment,
-        pentestId: selectedPentestId || null,
-      });
+      await onSubmitReview({ rating, comment, pentestId: selectedPentestId || null });
       setRating(5);
-      setComment("");
-      setSelectedPentestId("");
+      setComment('');
+      setSelectedPentestId('');
     } catch (err) {
       // Error handled by parent toast
     } finally {
@@ -731,11 +535,7 @@ const ReviewsSection = ({ hacker, isOrgAdmin, user, onSubmitReview }) => {
   };
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 12 }}
-      animate={{ opacity: 1, y: 0 }}
-      className="space-y-6"
-    >
+    <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} className="space-y-6">
       {/* Rate Form for Org Admin */}
       {isOrgAdmin && (
         <div className="bg-[#0a0a0a] border border-white/5 rounded-2xl p-8 shadow-2xl relative overflow-hidden">
@@ -747,9 +547,7 @@ const ReviewsSection = ({ hacker, isOrgAdmin, user, onSubmitReview }) => {
             <div className="w-8 h-8 rounded-lg bg-[#00c477]/10 border border-[#00c477]/20 flex items-center justify-center">
               <FiStar className="text-[#00c477] text-sm" />
             </div>
-            <h2 className="text-lg font-black text-white tracking-tight">
-              Evaluate Pentester
-            </h2>
+            <h2 className="text-lg font-black text-white tracking-tight">Evaluate Pentester</h2>
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-5">
@@ -771,8 +569,8 @@ const ReviewsSection = ({ hacker, isOrgAdmin, user, onSubmitReview }) => {
                     <FiStar
                       className={`transition-all duration-150 ${
                         star <= (hoverRating || rating)
-                          ? "text-[#00c477] fill-[#00c477] scale-110 drop-shadow-[0_0_8px_rgba(0,196,119,0.4)]"
-                          : "text-gray-700"
+                          ? 'text-[#00c477] fill-[#00c477] scale-110 drop-shadow-[0_0_8px_rgba(0,196,119,0.4)]'
+                          : 'text-gray-700'
                       }`}
                     />
                   </button>
@@ -794,9 +592,7 @@ const ReviewsSection = ({ hacker, isOrgAdmin, user, onSubmitReview }) => {
                   onChange={(e) => setSelectedPentestId(e.target.value)}
                   className="w-full bg-[#0c0c0c] border border-white/5 focus:border-[#00c477]/40 rounded-xl px-4 py-3 text-sm text-gray-300 outline-none transition-all cursor-pointer font-mono"
                 >
-                  <option value="">
-                    -- General Evaluation (No Specific Project) --
-                  </option>
+                  <option value="">-- General Evaluation (No Specific Project) --</option>
                   {orgProjects.map((proj) => (
                     <option key={proj.id} value={proj.id}>
                       {proj.title} ({proj.org})
@@ -826,10 +622,8 @@ const ReviewsSection = ({ hacker, isOrgAdmin, user, onSubmitReview }) => {
               disabled={submitting}
               className="px-6 py-3 rounded-xl bg-[#00c477] hover:bg-[#009a5e] text-black font-black text-xs uppercase tracking-widest shadow-[0_0_20px_rgba(0,196,119,0.15)] hover:shadow-[0_0_30px_rgba(0,196,119,0.3)] transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
             >
-              {submitting && (
-                <div className="w-3.5 h-3.5 border-2 border-black border-t-transparent rounded-full animate-spin" />
-              )}
-              {submitting ? "Submitting..." : "Submit Evaluation"}
+              {submitting && <div className="w-3.5 h-3.5 border-2 border-black border-t-transparent rounded-full animate-spin" />}
+              {submitting ? 'Submitting...' : 'Submit Evaluation'}
             </button>
           </form>
         </div>
@@ -841,18 +635,14 @@ const ReviewsSection = ({ hacker, isOrgAdmin, user, onSubmitReview }) => {
           <div className="w-8 h-8 rounded-lg bg-[#00c477]/10 border border-[#00c477]/20 flex items-center justify-center">
             <FiMessageSquare className="text-[#00c477] text-sm" />
           </div>
-          <h2 className="text-lg font-black text-white tracking-tight">
-            Client Reviews
-          </h2>
+          <h2 className="text-lg font-black text-white tracking-tight">Client Reviews</h2>
         </div>
         {hacker.reviews.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-16 gap-4">
             <div className="w-16 h-16 rounded-2xl bg-white/[0.02] border border-white/5 flex items-center justify-center">
               <FiMessageSquare className="text-gray-600 text-2xl" />
             </div>
-            <p className="text-gray-600 text-sm font-mono">
-              No reviews available yet.
-            </p>
+            <p className="text-gray-600 text-sm font-mono">No reviews available yet.</p>
           </div>
         ) : (
           <div className="space-y-4">
@@ -876,20 +666,13 @@ const ReviewsSection = ({ hacker, isOrgAdmin, user, onSubmitReview }) => {
                     </div>
                     <div className="flex items-center gap-1 mt-1.5">
                       {[...Array(5)].map((_, j) => (
-                        <FiStar
-                          key={j}
-                          className={`text-xs ${j < r.rating ? "text-[#00c477] fill-[#00c477]" : "text-gray-700"}`}
-                        />
+                        <FiStar key={j} className={`text-xs ${j < r.rating ? 'text-[#00c477] fill-[#00c477]' : 'text-gray-700'}`} />
                       ))}
                     </div>
                   </div>
-                  <span className="text-[10px] text-gray-600 font-mono">
-                    {r.date}
-                  </span>
+                  <span className="text-[10px] text-gray-600 font-mono">{r.date}</span>
                 </div>
-                <p className="text-sm text-gray-400 leading-relaxed font-sans">
-                  "{r.text}"
-                </p>
+                <p className="text-sm text-gray-400 leading-relaxed font-sans">"{r.text}"</p>
               </motion.div>
             ))}
           </div>
@@ -905,16 +688,11 @@ const HackerPublicProfile = () => {
   const { hackerId } = useParams();
   const navigate = useNavigate();
   const { user } = useAuth();
-  const isOrgAdmin =
-    user?.roles?.some(
-      (r) => (typeof r === "string" ? r : r.type) === "ORG_ADMIN",
-    ) ||
-    user?.organizations?.some(
-      (org) => org.role === "admin" || org.role === "owner",
-    ) ||
-    false;
+  const isOrgAdmin = user?.roles?.some(r => (typeof r === 'string' ? r : r.type) === 'ORG_ADMIN') ||
+                     user?.organizations?.some(org => org.role === 'admin' || org.role === 'owner') ||
+                     false;
 
-  const [activeTab, setActiveTab] = useState("ABOUT");
+  const [activeTab, setActiveTab] = useState('ABOUT');
   const [assignModalOpen, setAssignModalOpen] = useState(false);
   const [hacker, setHacker] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -926,22 +704,19 @@ const HackerPublicProfile = () => {
         comment,
         pentestId,
       });
-      toast.success("Your review has been successfully submitted!");
+      toast.success('Your review has been successfully submitted!');
       // Reload profile data to immediately show updated average rating and new review
       const profileRes = await api.get(`/hacker-profiles/public/${hackerId}`);
-      const updatedProfile =
-        profileRes.data?.data?.profile ||
-        profileRes.data?.profile ||
-        profileRes.data;
+      const updatedProfile = profileRes.data?.data?.profile || profileRes.data?.profile || profileRes.data;
       setHacker(normalise(updatedProfile));
     } catch (err) {
-      toast.error(err?.response?.data?.message || "Failed to submit review");
+      toast.error(err?.response?.data?.message || 'Failed to submit review');
       throw err;
     }
   };
   const [projects, setProjects] = useState([]);
-  const [selectedProject, setSelectedProject] = useState("");
-  const [inviteMessage, setInviteMessage] = useState("");
+  const [selectedProject, setSelectedProject] = useState('');
+  const [inviteMessage, setInviteMessage] = useState('');
   const [inviting, setInviting] = useState(false);
 
   useEffect(() => {
@@ -953,12 +728,12 @@ const HackerPublicProfile = () => {
         setHacker(normalise(profile));
 
         // Load organization projects for invitation
-        const projRes = await api.get("/pentests");
+        const projRes = await api.get('/pentests');
         setProjects(projRes.data?.data || projRes.data?.pentests || []);
       } catch (err) {
-        console.error("Failed to load hacker profile", err);
-        toast.error("Hacker profile not found");
-        navigate("/discover");
+        console.error('Failed to load hacker profile', err);
+        toast.error('Hacker profile not found');
+        navigate('/discover');
       } finally {
         setLoading(false);
       }
@@ -968,12 +743,12 @@ const HackerPublicProfile = () => {
 
   const handleSendInvitation = async () => {
     if (!selectedProject) {
-      toast.error("Please select a project");
+      toast.error('Please select a project');
       return;
     }
     setInviting(true);
     try {
-      await api.post("/invitations", {
+      await api.post('/invitations', {
         pentestId: selectedProject,
         hackerId: hacker.userId,
         message: inviteMessage.trim() || undefined,
@@ -981,7 +756,7 @@ const HackerPublicProfile = () => {
       toast.success(`Invitation sent to ${hacker.name}!`);
       setAssignModalOpen(false);
     } catch (err) {
-      toast.error(err?.response?.data?.message || "Failed to send invitation");
+      toast.error(err?.response?.data?.message || 'Failed to send invitation');
     } finally {
       setInviting(false);
     }
@@ -991,9 +766,7 @@ const HackerPublicProfile = () => {
     return (
       <div className="w-full h-[60vh] flex flex-col items-center justify-center gap-4">
         <div className="w-12 h-12 border-2 border-[#00c477]/20 border-t-[#00c477] rounded-full animate-spin" />
-        <div className="text-[#00c477] font-mono text-xs uppercase animate-pulse tracking-widest">
-          Accessing Dossier...
-        </div>
+        <div className="text-[#00c477] font-mono text-xs uppercase animate-pulse tracking-widest">Accessing Dossier...</div>
       </div>
     );
   }
@@ -1004,27 +777,13 @@ const HackerPublicProfile = () => {
 
   const renderSection = () => {
     switch (activeTab) {
-      case "ABOUT":
-        return <AboutSection hacker={hacker} />;
-      case "SKILLS & TOOLS":
-        return <SkillsSection hacker={hacker} />;
-      case "CERTIFICATIONS":
-        return <CertificationsSection hacker={hacker} />;
-      case "OTHER":
-        return <OtherExperiencesSection hacker={hacker} />;
-      case "PAST PROJECTS":
-        return <ProjectsSection hacker={hacker} />;
-      case "REVIEWS":
-        return (
-          <ReviewsSection
-            hacker={hacker}
-            isOrgAdmin={isOrgAdmin}
-            user={user}
-            onSubmitReview={handleSubmitReview}
-          />
-        );
-      default:
-        return <AboutSection hacker={hacker} />;
+      case "ABOUT": return <AboutSection hacker={hacker} />;
+      case "SKILLS & TOOLS": return <SkillsSection hacker={hacker} />;
+      case "CERTIFICATIONS": return <CertificationsSection hacker={hacker} />;
+      case "OTHER": return <OtherExperiencesSection hacker={hacker} />;
+      case "PAST PROJECTS": return <ProjectsSection hacker={hacker} />;
+      case "REVIEWS": return <ReviewsSection hacker={hacker} isOrgAdmin={isOrgAdmin} user={user} onSubmitReview={handleSubmitReview} />;
+      default: return <AboutSection hacker={hacker} />;
     }
   };
 
@@ -1037,6 +796,7 @@ const HackerPublicProfile = () => {
 
   return (
     <div className="flex flex-col h-full -m-10">
+
       <div className="relative px-10 py-6 border-b border-white/5 bg-[#050505] overflow-hidden">
         {/* subtle radial glow */}
         <div className="absolute inset-0 pointer-events-none">
@@ -1045,13 +805,11 @@ const HackerPublicProfile = () => {
 
         {/* Back button */}
         <button
-          onClick={() => navigate("/discover")}
+          onClick={() => navigate('/discover')}
           className="flex items-center gap-2 text-gray-500 hover:text-[#00c477] transition-colors mb-6 group"
         >
           <FiArrowLeft className="group-hover:-translate-x-1 transition-transform" />
-          <span className="text-xs font-mono uppercase tracking-widest">
-            Back to Discover
-          </span>
+          <span className="text-xs font-mono uppercase tracking-widest">Back to Discover</span>
         </button>
 
         <div className="flex items-center justify-between gap-6">
@@ -1074,22 +832,15 @@ const HackerPublicProfile = () => {
 
             {/* Identity info */}
             <div>
-              <h1 className="text-3xl font-black text-white tracking-tight mb-0.5">
-                {hacker.name}
-              </h1>
-              <p className="text-xs text-gray-500 font-mono mb-2">
-                {hacker.tag}
-              </p>
+              <h1 className="text-3xl font-black text-white tracking-tight mb-0.5">{hacker.name}</h1>
+              <p className="text-xs text-gray-500 font-mono mb-2">{hacker.tag}</p>
 
               {hacker.rating != null && (
                 <div className="flex items-center gap-2 px-3 py-1 rounded-lg bg-white/[0.03] border border-white/5 w-fit">
                   <FiStar className="text-[#00c477] fill-[#00c477] text-xs" />
-                  <span className="text-white font-bold text-xs">
-                    {hacker.rating}
-                  </span>
+                  <span className="text-white font-bold text-xs">{hacker.rating}</span>
                   <span className="text-[10px] text-gray-500 font-mono uppercase tracking-widest">
-                    Rating ({hacker.totalReviews || 0}{" "}
-                    {hacker.totalReviews === 1 ? "review" : "reviews"})
+                    Rating ({hacker.totalReviews || 0} {hacker.totalReviews === 1 ? 'review' : 'reviews'})
                   </span>
                 </div>
               )}
@@ -1107,12 +858,16 @@ const HackerPublicProfile = () => {
             Assign to Project
           </motion.button>
         </div>
+
+
       </div>
 
       {/* ── Body ── */}
       <div className="flex flex-1 overflow-hidden">
+
         {/* Left sidebar: Tabs + System Telemetry */}
         <aside className="w-72 border-r border-white/5 bg-[#050505] flex flex-col overflow-y-auto">
+
           {/* Tab nav */}
           <nav className="p-4 space-y-1 flex-1">
             {dynamicTabs.map((tab) => {
@@ -1122,33 +877,30 @@ const HackerPublicProfile = () => {
                 <button
                   key={tab}
                   onClick={() => setActiveTab(tab)}
-                  className={`w-full flex items-center justify-between px-5 py-3.5 rounded-xl transition-all group relative ${
-                    isActive
-                      ? "bg-[#00c477]/10 border border-[#00c477]/20 text-[#00c477]"
-                      : "text-gray-500 hover:text-gray-200 hover:bg-white/[0.03] border border-transparent"
-                  }`}
+                  className={`w-full flex items-center justify-between px-5 py-3.5 rounded-xl transition-all group relative ${isActive
+                    ? 'bg-[#00c477]/10 border border-[#00c477]/20 text-[#00c477]'
+                    : 'text-gray-500 hover:text-gray-200 hover:bg-white/[0.03] border border-transparent'
+                    }`}
                 >
                   <div className="flex items-center gap-3">
-                    <Icon
-                      className={`text-base ${isActive ? "text-[#00c477]" : "group-hover:text-gray-300"}`}
-                    />
-                    <span className="text-[11px] font-black tracking-[0.15em] uppercase font-mono">
-                      {tab}
-                    </span>
+                    <Icon className={`text-base ${isActive ? 'text-[#00c477]' : 'group-hover:text-gray-300'}`} />
+                    <span className="text-[11px] font-black tracking-[0.15em] uppercase font-mono">{tab}</span>
                   </div>
-                  {isActive && (
-                    <div className="w-1.5 h-1.5 rounded-full bg-[#00c477] shadow-[0_0_6px_#00c477]" />
-                  )}
+                  {isActive && <div className="w-1.5 h-1.5 rounded-full bg-[#00c477] shadow-[0_0_6px_#00c477]" />}
                 </button>
               );
             })}
           </nav>
+
+
         </aside>
 
         {/* Main content */}
         <main className="flex-1 overflow-y-auto p-8 bg-[#050505]">
           <AnimatePresence mode="wait">
-            <div key={activeTab}>{renderSection()}</div>
+            <div key={activeTab}>
+              {renderSection()}
+            </div>
           </AnimatePresence>
         </main>
       </div>
@@ -1168,58 +920,40 @@ const HackerPublicProfile = () => {
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.92, y: 20 }}
               className="bg-[#0a0a0a] border border-white/10 rounded-2xl p-8 w-full max-w-md shadow-2xl"
-              onClick={(e) => e.stopPropagation()}
+              onClick={e => e.stopPropagation()}
             >
               <div className="flex items-center gap-4 mb-6">
                 <div className="w-12 h-12 rounded-xl bg-[#00c477]/10 border border-[#00c477]/20 flex items-center justify-center">
                   <FiBriefcase className="text-[#00c477] text-xl" />
                 </div>
                 <div>
-                  <h3 className="text-lg font-black text-white">
-                    Assign to Project
-                  </h3>
-                  <p className="text-xs text-gray-500 font-mono mt-0.5">
-                    Invite {hacker.name} to collaborate
-                  </p>
+                  <h3 className="text-lg font-black text-white">Assign to Project</h3>
+                  <p className="text-xs text-gray-500 font-mono mt-0.5">Invite {hacker.name} to collaborate</p>
                 </div>
               </div>
 
               <div className="space-y-3 mb-6 max-h-60 overflow-y-auto pr-2">
                 {projects.length === 0 ? (
-                  <p className="text-sm text-gray-500 py-4 text-center">
-                    No active projects found.
-                  </p>
+                  <p className="text-sm text-gray-500 py-4 text-center">No active projects found.</p>
                 ) : (
                   projects.map((project) => (
                     <label
                       key={project.id}
-                      className={`flex items-center gap-3 p-4 rounded-xl border cursor-pointer transition-all group ${
-                        selectedProject === project.id
-                          ? "border-[#00c477] bg-[#00c477]/5"
-                          : "border-white/5 bg-white/[0.02] hover:border-[#00c477]/20"
-                      }`}
+                      className={`flex items-center gap-3 p-4 rounded-xl border cursor-pointer transition-all group ${selectedProject === project.id
+                        ? 'border-[#00c477] bg-[#00c477]/5'
+                        : 'border-white/5 bg-white/[0.02] hover:border-[#00c477]/20'
+                        }`}
                       onClick={() => setSelectedProject(project.id)}
                     >
-                      <div
-                        className={`w-4 h-4 rounded-full border transition-colors flex items-center justify-center ${
-                          selectedProject === project.id
-                            ? "border-[#00c477]"
-                            : "border-white/20"
-                        }`}
-                      >
-                        {selectedProject === project.id && (
-                          <div className="w-2 h-2 rounded-full bg-[#00c477]" />
-                        )}
+                      <div className={`w-4 h-4 rounded-full border transition-colors flex items-center justify-center ${selectedProject === project.id ? 'border-[#00c477]' : 'border-white/20'
+                        }`}>
+                        {selectedProject === project.id && <div className="w-2 h-2 rounded-full bg-[#00c477]" />}
                       </div>
                       <div className="flex-1 min-w-0">
-                        <p
-                          className={`text-sm font-bold truncate ${selectedProject === project.id ? "text-white" : "text-gray-300"}`}
-                        >
+                        <p className={`text-sm font-bold truncate ${selectedProject === project.id ? 'text-white' : 'text-gray-300'}`}>
                           {project.name}
                         </p>
-                        <p className="text-[10px] text-gray-500 font-mono uppercase tracking-widest">
-                          {project.status}
-                        </p>
+                        <p className="text-[10px] text-gray-500 font-mono uppercase tracking-widest">{project.status}</p>
                       </div>
                     </label>
                   ))
@@ -1229,7 +963,7 @@ const HackerPublicProfile = () => {
               <div className="mb-6">
                 <textarea
                   value={inviteMessage}
-                  onChange={(e) => setInviteMessage(e.target.value)}
+                  onChange={e => setInviteMessage(e.target.value)}
                   placeholder="Personal invitation message..."
                   className="w-full bg-[#0c0c0c] border border-white/10 focus:border-[#00c477] rounded-xl px-4 py-3 text-sm text-white outline-none transition-all resize-none h-24"
                 />
@@ -1247,10 +981,8 @@ const HackerPublicProfile = () => {
                   disabled={inviting || !selectedProject}
                   className="flex-1 py-3 rounded-xl bg-[#00c477] hover:bg-[#009a5e] text-black font-black text-sm shadow-[0_0_20px_rgba(0,196,119,0.2)] hover:shadow-[0_0_35px_rgba(0,196,119,0.4)] transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                 >
-                  {inviting && (
-                    <div className="w-3 h-3 border-2 border-black border-t-transparent rounded-full animate-spin" />
-                  )}
-                  {inviting ? "Inviting..." : "Send Invitation"}
+                  {inviting && <div className="w-3 h-3 border-2 border-black border-t-transparent rounded-full animate-spin" />}
+                  {inviting ? 'Inviting...' : 'Send Invitation'}
                 </button>
               </div>
             </motion.div>

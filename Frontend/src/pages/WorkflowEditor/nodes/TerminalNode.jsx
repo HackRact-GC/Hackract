@@ -1,17 +1,13 @@
-import "@xterm/xterm/css/xterm.css";
-
-import { FitAddon } from "@xterm/addon-fit";
-import { SerializeAddon } from "@xterm/addon-serialize";
-import { Unicode11Addon } from "@xterm/addon-unicode11";
-import { WebLinksAddon } from "@xterm/addon-web-links";
-import { Terminal as XTerm } from "@xterm/xterm";
-import * as ReactFlow from "@xyflow/react";
-import React, { useEffect, useRef } from "react";
-import { FiAlertCircle, FiLink, FiTerminal, FiX } from "react-icons/fi";
-
-import { useTerminalSocket } from "../../../hooks/useTerminalSocket";
-
-const { Handle, Position } = ReactFlow;
+import React, { useEffect, useRef } from 'react';
+import { Handle, Position } from '@xyflow/react';
+import { FiTerminal, FiX, FiLink, FiAlertCircle } from 'react-icons/fi';
+import { Terminal as XTerm } from '@xterm/xterm';
+import { FitAddon } from '@xterm/addon-fit';
+import { WebLinksAddon } from '@xterm/addon-web-links';
+import { Unicode11Addon } from '@xterm/addon-unicode11';
+import { SerializeAddon } from '@xterm/addon-serialize';
+import '@xterm/xterm/css/xterm.css';
+import { useTerminalSocket } from '../../../hooks/useTerminalSocket';
 
 const TerminalNode = ({ data, selected }) => {
   const terminalRef = useRef(null);
@@ -20,9 +16,7 @@ const TerminalNode = ({ data, selected }) => {
   const activeUsers = Object.values(data.activeUsers || {});
   const showPresence = activeUsers.length > 0;
 
-  const { sendInput, sendResize, setOnOutput, isConnected } = useTerminalSocket(
-    data.workflowId,
-  );
+  const { sendInput, sendResize, setOnOutput, isConnected } = useTerminalSocket(data.workflowId);
 
   useEffect(() => {
     if (!terminalRef.current) return;
@@ -33,10 +27,10 @@ const TerminalNode = ({ data, selected }) => {
       fontSize: 11,
       fontFamily: '"Fira Code", monospace',
       theme: {
-        background: "#000000",
-        foreground: "#00ff88",
-        cursor: "#00ff88",
-        selectionBackground: "rgba(0, 255, 136, 0.3)",
+        background: '#000000',
+        foreground: '#00ff88',
+        cursor: '#00ff88',
+        selectionBackground: 'rgba(0, 255, 136, 0.3)',
       },
       allowProposedApi: true,
       scrollback: 1000,
@@ -111,9 +105,7 @@ const TerminalNode = ({ data, selected }) => {
   }, [isConnected, data.initialCommand, sendInput, data]);
 
   return (
-    <div
-      className={`bg-[#0b0f19] border rounded-lg w-[320px] font-mono text-sm transition-all relative select-none ${selected || showPresence ? "border-[#00ff88] shadow-[0_0_20px_rgba(0,255,136,0.6)]" : "border-[#00ff88]/50 shadow-[0_0_10px_rgba(0,255,136,0.3)]"}`}
-    >
+    <div className={`bg-[#0b0f19] border rounded-lg w-[320px] font-mono text-sm transition-all relative select-none ${selected || showPresence ? 'border-[#00ff88] shadow-[0_0_20px_rgba(0,255,136,0.6)]' : 'border-[#00ff88]/50 shadow-[0_0_10px_rgba(0,255,136,0.3)]'}`}>
       {/* Presence Indicators (Figma Style) */}
       {showPresence && (
         <div className="absolute -top-6 right-0 flex -space-x-2">
@@ -121,10 +113,10 @@ const TerminalNode = ({ data, selected }) => {
             <div
               key={i}
               className="w-5 h-5 rounded-full border-2 border-[#0b0f19] flex items-center justify-center text-[10px] font-bold text-white shadow-lg animate-bounce"
-              style={{ backgroundColor: u.color || "#00ff88" }}
+              style={{ backgroundColor: u.color || '#00ff88' }}
               title={u.user}
             >
-              {u.user?.[0] || "U"}
+              {u.user?.[0] || 'U'}
             </div>
           ))}
         </div>
@@ -132,15 +124,11 @@ const TerminalNode = ({ data, selected }) => {
       <div className="p-2 flex justify-between items-center text-[#00ff88] border-b border-[#00ff88]/30 bg-[#161a23] rounded-t-lg">
         <div className="flex items-center gap-2">
           <FiTerminal size={16} />
-          <span className="font-bold text-xs uppercase tracking-tighter">
-            Terminal
-          </span>
+          <span className="font-bold text-xs uppercase tracking-tighter">Terminal</span>
           <div className="flex items-center gap-1.5 ml-2">
-            <span
-              className={`w-2 h-2 rounded-full ${isConnected ? "bg-[#00ff88] shadow-[0_0_5px_#00ff88]" : "bg-red-500 animate-pulse"}`}
-            />
+            <span className={`w-2 h-2 rounded-full ${isConnected ? 'bg-[#00ff88] shadow-[0_0_5px_#00ff88]' : 'bg-red-500 animate-pulse'}`} />
             <span className="text-[9px] font-black tracking-widest opacity-60">
-              {isConnected ? "ONLINE" : "OFFLINE"}
+              {isConnected ? 'ONLINE' : 'OFFLINE'}
             </span>
           </div>
         </div>
@@ -148,10 +136,8 @@ const TerminalNode = ({ data, selected }) => {
           <input
             className="bg-transparent border-none text-right focus:outline-none text-gray-500 text-xs placeholder-gray-700 w-[120px] select-text"
             placeholder="Process title..."
-            defaultValue={data.label || ""}
-            onBlur={(e) =>
-              data.onTitleChange && data.onTitleChange(e.target.value)
-            }
+            defaultValue={data.label || ''}
+            onBlur={(e) => data.onTitleChange && data.onTitleChange(e.target.value)}
           />
           <button
             className="text-gray-500 hover:text-red-500 transition-colors cursor-pointer"
@@ -170,18 +156,11 @@ const TerminalNode = ({ data, selected }) => {
           onMouseDown={(e) => e.stopPropagation()}
           onClick={(e) => e.stopPropagation()}
         />
+
       </div>
 
-      <Handle
-        type="target"
-        position={Position.Left}
-        className="w-3 h-3 bg-[#00ff88] border-2 border-[#0b0f19]"
-      />
-      <Handle
-        type="source"
-        position={Position.Right}
-        className="w-3 h-3 bg-[#00ff88] border-2 border-[#0b0f19]"
-      />
+      <Handle type="target" position={Position.Left} className="w-3 h-3 bg-[#00ff88] border-2 border-[#0b0f19]" />
+      <Handle type="source" position={Position.Right} className="w-3 h-3 bg-[#00ff88] border-2 border-[#0b0f19]" />
     </div>
   );
 };

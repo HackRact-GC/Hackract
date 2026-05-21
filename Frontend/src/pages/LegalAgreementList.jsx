@@ -1,32 +1,22 @@
-import { AnimatePresence, motion } from "framer-motion";
-import { useCallback, useEffect, useState } from "react";
-import toast from "react-hot-toast";
-import {
-  FiBell,
-  FiCheckCircle,
-  FiEdit,
-  FiFileText,
-  FiPlus,
-  FiTrash2,
-  FiUsers,
-  FiXCircle,
-} from "react-icons/fi";
-import { useNavigate } from "react-router-dom";
-
-import useApi from "../hooks/useApi";
+import { useState, useEffect, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { motion, AnimatePresence } from 'framer-motion';
+import toast from 'react-hot-toast';
+import useApi from '../hooks/useApi';
+import { FiPlus, FiFileText, FiTrash2, FiBell, FiEdit, FiUsers, FiCheckCircle, FiXCircle } from 'react-icons/fi';
 
 const TYPE_LABELS = {
-  terms_of_service: "Terms of Service",
-  privacy_policy: "Privacy Policy",
-  nda: "NDA",
-  sla: "SLA",
+  terms_of_service: 'Terms of Service',
+  privacy_policy: 'Privacy Policy',
+  nda: 'NDA',
+  sla: 'SLA',
 };
 
 const TYPE_COLORS = {
-  terms_of_service: "text-blue-400 bg-blue-400/10 border-blue-400/20",
-  privacy_policy: "text-purple-400 bg-purple-400/10 border-purple-400/20",
-  nda: "text-amber-400 bg-amber-400/10 border-amber-400/20",
-  sla: "text-[#00c477] bg-[#00c477]/10 border-[#00c477]/20",
+  terms_of_service: 'text-blue-400 bg-blue-400/10 border-blue-400/20',
+  privacy_policy: 'text-purple-400 bg-purple-400/10 border-purple-400/20',
+  nda: 'text-amber-400 bg-amber-400/10 border-amber-400/20',
+  sla: 'text-[#00c477] bg-[#00c477]/10 border-[#00c477]/20',
 };
 
 export default function LegalAgreementList() {
@@ -41,10 +31,10 @@ export default function LegalAgreementList() {
 
   const fetchAgreements = useCallback(async () => {
     try {
-      const res = await api.get("/legal-agreements");
+      const res = await api.get('/legal-agreements');
       setAgreements(res.data.data || res.data || []);
     } catch {
-      toast.error("Failed to load agreements.");
+      toast.error('Failed to load agreements.');
     } finally {
       setLoading(false);
     }
@@ -59,9 +49,9 @@ export default function LegalAgreementList() {
     try {
       await api.delete(`/legal-agreements/${id}`);
       setAgreements((prev) => prev.filter((a) => a.id !== id));
-      toast.success("Agreement deleted.");
+      toast.success('Agreement deleted.');
     } catch {
-      toast.error("Failed to delete agreement.");
+      toast.error('Failed to delete agreement.');
     } finally {
       setDeletingId(null);
       setConfirmDelete(null);
@@ -74,7 +64,7 @@ export default function LegalAgreementList() {
       await api.post(`/legal-agreements/${id}/notify`);
       toast.success(`Users notified about "${title}".`);
     } catch {
-      toast.error("Failed to send notification.");
+      toast.error('Failed to send notification.');
     } finally {
       setNotifyingId(null);
     }
@@ -94,16 +84,13 @@ export default function LegalAgreementList() {
       <div className="max-w-6xl mx-auto">
         <div className="flex items-center justify-between mb-10">
           <div>
-            <h1 className="text-2xl font-black tracking-widest font-mono text-white uppercase">
-              Legal Agreements
-            </h1>
+            <h1 className="text-2xl font-black tracking-widest font-mono text-white uppercase">Legal Agreements</h1>
             <p className="text-xs font-mono text-gray-500 tracking-widest mt-1 uppercase">
-              {agreements.length} agreement{agreements.length !== 1 ? "s" : ""}{" "}
-              on file
+              {agreements.length} agreement{agreements.length !== 1 ? 's' : ''} on file
             </p>
           </div>
           <button
-            onClick={() => navigate("/org-agreement")}
+            onClick={() => navigate('/org-agreement')}
             className="flex items-center gap-2 px-5 py-2.5 bg-[#00c477] hover:bg-[#00e088] text-[#0a0a0a] font-black text-xs tracking-widest uppercase rounded-xl transition-all hover:shadow-[0_0_20px_rgba(0,196,119,0.4)] hover:-translate-y-0.5"
           >
             <FiPlus className="text-base" />
@@ -119,14 +106,10 @@ export default function LegalAgreementList() {
             className="flex flex-col items-center justify-center py-32 border border-white/5 rounded-2xl bg-[#0d0d0d]"
           >
             <FiFileText className="text-5xl text-gray-600 mb-4" />
-            <p className="text-gray-400 font-mono tracking-widest text-sm uppercase">
-              No agreements yet
-            </p>
-            <p className="text-gray-600 font-mono text-xs mt-1">
-              Create your first legal agreement to get started
-            </p>
+            <p className="text-gray-400 font-mono tracking-widest text-sm uppercase">No agreements yet</p>
+            <p className="text-gray-600 font-mono text-xs mt-1">Create your first legal agreement to get started</p>
             <button
-              onClick={() => navigate("/org-agreement")}
+              onClick={() => navigate('/org-agreement')}
               className="mt-6 px-5 py-2.5 bg-[#00c477]/10 border border-[#00c477]/20 text-[#00c477] font-mono text-xs tracking-widest uppercase rounded-lg hover:bg-[#00c477]/20 transition-colors"
             >
               Create Agreement
@@ -154,15 +137,9 @@ export default function LegalAgreementList() {
                     </div>
                     <div className="min-w-0">
                       <div className="flex items-center gap-3 flex-wrap mb-1.5">
-                        <h2 className="text-sm font-bold text-white truncate">
-                          {agreement.title}
-                        </h2>
-                        <span className="text-[10px] font-mono text-gray-500 shrink-0">
-                          v{agreement.version}
-                        </span>
-                        <span
-                          className={`px-2 py-0.5 rounded text-[10px] font-mono border tracking-widest uppercase shrink-0 ${TYPE_COLORS[agreement.type] || "text-gray-400 bg-gray-400/10 border-gray-400/20"}`}
-                        >
+                        <h2 className="text-sm font-bold text-white truncate">{agreement.title}</h2>
+                        <span className="text-[10px] font-mono text-gray-500 shrink-0">v{agreement.version}</span>
+                        <span className={`px-2 py-0.5 rounded text-[10px] font-mono border tracking-widest uppercase shrink-0 ${TYPE_COLORS[agreement.type] || 'text-gray-400 bg-gray-400/10 border-gray-400/20'}`}>
                           {TYPE_LABELS[agreement.type] || agreement.type}
                         </span>
                         {agreement.isActive ? (
@@ -178,15 +155,10 @@ export default function LegalAgreementList() {
                       <div className="flex items-center gap-4 text-[11px] text-gray-500 font-mono">
                         <span className="flex items-center gap-1.5">
                           <FiUsers className="text-xs" />
-                          {agreement._count?.signatures ?? 0} signature
-                          {(agreement._count?.signatures ?? 0) !== 1 ? "s" : ""}
+                          {agreement._count?.signatures ?? 0} signature{(agreement._count?.signatures ?? 0) !== 1 ? 's' : ''}
                         </span>
                         <span>
-                          Created{" "}
-                          {new Date(agreement.createdAt).toLocaleDateString(
-                            "en-US",
-                            { month: "short", day: "numeric", year: "numeric" },
-                          )}
+                          Created {new Date(agreement.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
                         </span>
                       </div>
                     </div>
@@ -195,18 +167,14 @@ export default function LegalAgreementList() {
                   {/* Right: actions */}
                   <div className="flex items-center gap-2 shrink-0">
                     <button
-                      onClick={() =>
-                        navigate(`/execute-agreement/${agreement.id}`)
-                      }
+                      onClick={() => navigate(`/execute-agreement/${agreement.id}`)}
                       title="View / Edit"
                       className="w-9 h-9 rounded-lg bg-[#111] border border-white/10 flex items-center justify-center text-gray-400 hover:text-white hover:border-white/20 transition-colors"
                     >
                       <FiEdit className="text-sm" />
                     </button>
                     <button
-                      onClick={() =>
-                        handleNotify(agreement.id, agreement.title)
-                      }
+                      onClick={() => handleNotify(agreement.id, agreement.title)}
                       disabled={notifyingId === agreement.id}
                       title="Notify users"
                       className="w-9 h-9 rounded-lg bg-[#111] border border-white/10 flex items-center justify-center text-gray-400 hover:text-[#00c477] hover:border-[#00c477]/30 transition-colors disabled:opacity-40"
@@ -231,8 +199,7 @@ export default function LegalAgreementList() {
                 {agreement.content && (
                   <div className="mt-4 pl-14">
                     <p className="text-xs text-gray-600 font-mono leading-relaxed line-clamp-2">
-                      {agreement.content.slice(0, 200)}
-                      {agreement.content.length > 200 ? "..." : ""}
+                      {agreement.content.slice(0, 200)}{agreement.content.length > 200 ? '...' : ''}
                     </p>
                   </div>
                 )}
@@ -259,12 +226,9 @@ export default function LegalAgreementList() {
               onClick={(e) => e.stopPropagation()}
               className="bg-[#111] border border-white/10 rounded-2xl p-6 w-full max-w-sm"
             >
-              <h3 className="text-base font-bold text-white mb-2">
-                Delete Agreement?
-              </h3>
+              <h3 className="text-base font-bold text-white mb-2">Delete Agreement?</h3>
               <p className="text-sm text-gray-400 mb-6">
-                This will permanently delete the agreement and all associated
-                signatures. This action cannot be undone.
+                This will permanently delete the agreement and all associated signatures. This action cannot be undone.
               </p>
               <div className="flex gap-3">
                 <button
@@ -272,7 +236,7 @@ export default function LegalAgreementList() {
                   disabled={deletingId === confirmDelete}
                   className="flex-1 py-2.5 bg-red-500 hover:bg-red-400 text-white font-black text-xs tracking-widest uppercase rounded-lg transition-colors disabled:opacity-60"
                 >
-                  {deletingId === confirmDelete ? "Deleting..." : "Delete"}
+                  {deletingId === confirmDelete ? 'Deleting...' : 'Delete'}
                 </button>
                 <button
                   onClick={() => setConfirmDelete(null)}

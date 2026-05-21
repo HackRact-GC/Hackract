@@ -1,12 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
-import toast from "react-hot-toast";
-import {
-  Link,
-  useLocation,
-  useNavigate,
-  useSearchParams,
-} from "react-router-dom";
+import { Link, useLocation, useSearchParams, useNavigate } from "react-router-dom";
 
+import toast from "react-hot-toast";
 import api from "../api/axiosConfig";
 
 const StatusBadge = ({ status, children }) => {
@@ -16,11 +11,7 @@ const StatusBadge = ({ status, children }) => {
     error: "bg-red-100 text-red-700 border-red-200",
   };
   return (
-    <span
-      className={`text-xs font-mono px-2 py-1 rounded border ${colors[status]}`}
-    >
-      {children}
-    </span>
+    <span className={`text-xs font-mono px-2 py-1 rounded border ${colors[status]}`}>{children}</span>
   );
 };
 
@@ -29,9 +20,7 @@ const VerifyEmail = () => {
   const location = useLocation();
   const [searchParams] = useSearchParams();
   const [status, setStatus] = useState("idle");
-  const [message, setMessage] = useState(
-    "Enter the 6-digit code we emailed you.",
-  );
+  const [message, setMessage] = useState("Enter the 6-digit code we emailed you.");
   const tokenFromUrl = useMemo(() => {
     const t = searchParams.get("token");
     return t ? String(t).trim() : "";
@@ -40,15 +29,10 @@ const VerifyEmail = () => {
   const initialEmail = useMemo(() => {
     const emailFromUrl = searchParams.get("email");
     const emailFromState = location?.state?.email;
-    return typeof emailFromState === "string"
-      ? emailFromState
-      : emailFromUrl || "";
+    return typeof emailFromState === "string" ? emailFromState : (emailFromUrl || "");
   }, [location?.state?.email, searchParams]);
 
-  const [form, setForm] = useState({
-    email: initialEmail,
-    code: tokenFromUrl || "",
-  });
+  const [form, setForm] = useState({ email: initialEmail, code: tokenFromUrl || "" });
   const [countdown, setCountdown] = useState(20);
   const [isResending, setIsResending] = useState(false);
 
@@ -77,9 +61,7 @@ const VerifyEmail = () => {
     setStatus("loading");
     setMessage("Resending code...");
     try {
-      const { data } = await api.post("/auth/resend-verification", {
-        email: form.email,
-      });
+      const { data } = await api.post("/auth/resend-verification", { email: form.email });
       setCountdown(20);
       setStatus("success");
       const msg = data?.message || "Verification code resent!";
@@ -129,30 +111,22 @@ const VerifyEmail = () => {
   return (
     <div className="flex flex-col gap-6 w-full">
       <div className="space-y-2 text-center md:text-left">
-        <h2 className="text-3xl font-bold font-mono tracking-tighter">
-          Verify email
-        </h2>
+        <h2 className="text-3xl font-bold font-mono tracking-tighter">Verify email</h2>
         <p className="text-gray-500 text-xs font-mono tracking-wide">
           Completing verification secures your account.
         </p>
       </div>
 
       <div className="flex items-center gap-2">
-        <StatusBadge status={status === "idle" ? "loading" : status}>
-          {status || "loading"}
-        </StatusBadge>
+        <StatusBadge status={status === "idle" ? "loading" : status}>{status || "loading"}</StatusBadge>
         <p className="text-sm font-mono text-gray-800">{message}</p>
       </div>
 
       <form className="space-y-6" onSubmit={handleSubmit}>
         <div className="flex flex-col gap-2">
-          <label className="text-xs font-bold tracking-widest uppercase text-gray-500 font-sans">
-            Email
-          </label>
+          <label className="text-xs font-bold tracking-widest uppercase text-gray-500 font-sans">Email</label>
           <div className="flex items-center w-full bg-gray-100 rounded-sm px-3 py-3 border border-transparent focus-within:border-black transition-all duration-300">
-            <span className="text-xs font-mono text-gray-500 mr-2 select-none">
-              root@hackract:~$
-            </span>
+            <span className="text-xs font-mono text-gray-500 mr-2 select-none">root@hackract:~$</span>
             <input
               type="email"
               name="email"
@@ -165,13 +139,9 @@ const VerifyEmail = () => {
           </div>
         </div>
         <div className="flex flex-col gap-2">
-          <label className="text-xs font-bold tracking-widest uppercase text-gray-500 font-sans">
-            6-digit access code
-          </label>
+          <label className="text-xs font-bold tracking-widest uppercase text-gray-500 font-sans">6-digit access code</label>
           <div className="flex items-center w-full bg-gray-100 rounded-sm px-3 py-3 border border-transparent focus-within:border-black transition-all duration-300">
-            <span className="text-xs font-mono text-gray-500 mr-2 select-none">
-              otp_verify:
-            </span>
+            <span className="text-xs font-mono text-gray-500 mr-2 select-none">otp_verify:</span>
             <input
               type="text"
               name="code"
@@ -190,9 +160,7 @@ const VerifyEmail = () => {
           disabled={status === "loading"}
           className="w-full bg-black text-[#00c477] font-mono font-bold py-3 uppercase tracking-widest hover:bg-[#00c477] hover:text-black transition-all duration-300 mt-2 cursor-pointer shadow-lg disabled:opacity-60"
         >
-          {status === "loading" && !isResending
-            ? "Validating..."
-            : "Execute Verification"}
+          {status === "loading" && !isResending ? "Validating..." : "Execute Verification"}
         </button>
 
         <button
@@ -201,11 +169,7 @@ const VerifyEmail = () => {
           onClick={handleResend}
           className="w-full bg-transparent text-gray-900 border border-gray-900 font-mono font-bold py-3 uppercase tracking-widest hover:bg-gray-100 transition-all duration-300 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
         >
-          {isResending
-            ? "Resending..."
-            : countdown > 0
-              ? `Resend code in ${countdown}s`
-              : "Resend Code"}
+          {isResending ? "Resending..." : countdown > 0 ? `Resend code in ${countdown}s` : "Resend Code"}
         </button>
       </form>
 

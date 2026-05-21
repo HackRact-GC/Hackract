@@ -1,5 +1,4 @@
 import { useNavigate, useParams } from "react-router-dom";
-
 import WorkspaceView from "../components/WorkspaceView.jsx";
 
 const ProjectWorkspace = () => {

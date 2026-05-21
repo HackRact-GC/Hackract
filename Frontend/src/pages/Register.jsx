@@ -1,23 +1,23 @@
-import { useAuth0 } from "@auth0/auth0-react";
 import { useEffect, useState } from "react";
 import { FaEye, FaEyeSlash, FaGithub } from "react-icons/fa";
 import { FcGoogle } from "react-icons/fc";
 import { Link, useLocation, useNavigate } from "react-router-dom";
-
+import { useAuth0 } from "@auth0/auth0-react";
 import { useAuth } from "../context/authContext.jsx";
 import { validatePassword } from "../utils/validators";
 
-const InputField = ({
-  label,
-  type,
-  placeholder,
-  id,
-  name,
-  value,
-  onChange,
-  icon = null,
-  onIconClick = null,
-  required = true,
+
+const InputField = ({ 
+  label, 
+  type, 
+  placeholder, 
+  id, 
+  name, 
+  value, 
+  onChange, 
+  icon, 
+  onIconClick, 
+  required = true 
 }) => (
   <div className="flex flex-col gap-2 group">
     <label
@@ -27,9 +27,7 @@ const InputField = ({
       {label}
     </label>
     <div className="flex items-center w-full bg-gray-100 rounded-sm px-3 py-3 border border-transparent focus-within:border-black transition-all duration-300">
-      <span className="text-xs font-mono text-gray-500 mr-2 select-none">
-        root@hackract:~$
-      </span>
+      <span className="text-xs font-mono text-gray-500 mr-2 select-none">root@hackract:~$</span>
       <input
         type={type}
         id={id}
@@ -112,7 +110,7 @@ const Register = () => {
     if (name === "password") {
       if (!validatePassword(value)) {
         setPasswordError(
-          "Password must be at least 8 characters, include uppercase, lowercase, and a special character.",
+          "Password must be at least 8 characters, include uppercase, lowercase, and a special character."
         );
       } else {
         setPasswordError("");
@@ -134,7 +132,7 @@ const Register = () => {
   const handleGoogleLogin = () => {
     loginWithRedirect({
       authorizationParams: {
-        connection: "google-oauth2",
+        connection: 'google-oauth2',
         audience: import.meta.env.VITE_AUTH0_AUDIENCE,
       },
     });
@@ -143,7 +141,7 @@ const Register = () => {
   const handleGithubLogin = () => {
     loginWithRedirect({
       authorizationParams: {
-        connection: "github",
+        connection: 'github',
         audience: import.meta.env.VITE_AUTH0_AUDIENCE,
       },
     });
@@ -156,7 +154,7 @@ const Register = () => {
 
     if (!validatePassword(form.password)) {
       setPasswordError(
-        "Password must be at least 8 characters, include uppercase, lowercase, and a special character.",
+        "Password must be at least 8 characters, include uppercase, lowercase, and a special character."
       );
       return;
     }
@@ -178,9 +176,7 @@ const Register = () => {
 
       if (accountType === "ORGANIZATION") {
         if (!form.organization.name.trim()) {
-          setErrorMessage(
-            "Organization name is required for organization registration.",
-          );
+          setErrorMessage("Organization name is required for organization registration.");
           return;
         }
         payload.organization = {
@@ -190,17 +186,13 @@ const Register = () => {
 
       const result = await register(payload);
 
-      setSuccessMessage(
-        result?.message ||
-          "Registration successful. Check your email for verification code.",
-      );
+      setSuccessMessage(result?.message || "Registration successful. Check your email for verification code.");
       console.info("[ui] registration success", result);
       setTimeout(() => {
         navigate(`/verify-email?email=${encodeURIComponent(form.email)}`);
       }, 1500);
     } catch (err) {
-      const backendError =
-        err?.response?.data?.error || err?.response?.data?.message;
+      const backendError = err?.response?.data?.error || err?.response?.data?.message;
       setErrorMessage(backendError || "Registration failed. Please try again.");
       console.error("[ui] registration failed", err?.response?.data || err);
     }
@@ -253,7 +245,7 @@ const Register = () => {
             {errorMessage}
           </div>
         )}
-
+        
         <InputField
           label="Full Name"
           type="text"
@@ -277,11 +269,7 @@ const Register = () => {
           type="email"
           id="email"
           name="email"
-          placeholder={
-            accountType === "ORGANIZATION"
-              ? "name@company.com"
-              : "username@domain.com"
-          }
+          placeholder={accountType === "ORGANIZATION" ? "name@company.com" : "username@domain.com"}
           value={form.email}
           onChange={handleChange}
         />
@@ -297,9 +285,7 @@ const Register = () => {
           onIconClick={() => setShowPassword((prev) => !prev)}
         />
         {passwordError && (
-          <div className="text-red-500 text-xs font-mono mt-1">
-            {passwordError}
-          </div>
+          <div className="text-red-500 text-xs font-mono mt-1">{passwordError}</div>
         )}
         <InputField
           label="Confirm Password"
@@ -316,9 +302,7 @@ const Register = () => {
         {accountType === "ORGANIZATION" && (
           <>
             <div className="pt-2 border-t border-gray-200">
-              <p className="text-[10px] font-mono uppercase tracking-widest text-gray-500 mb-4">
-                Organization Details
-              </p>
+              <p className="text-[10px] font-mono uppercase tracking-widest text-gray-500 mb-4">Organization Details</p>
             </div>
 
             <InputField
@@ -331,8 +315,7 @@ const Register = () => {
               onChange={handleOrganizationChange}
             />
             <p className="text-[11px] font-mono text-amber-700 bg-amber-50 border border-amber-200 px-3 py-2 rounded">
-              Organization signup requires a company email (public domains are
-              rejected by backend).
+              Organization signup requires a company email (public domains are rejected by backend).
             </p>
           </>
         )}
@@ -348,9 +331,7 @@ const Register = () => {
 
       <div className="flex items-center gap-4">
         <div className="h-px flex-1 bg-gray-200"></div>
-        <span className="text-[10px] font-mono text-gray-400 uppercase tracking-widest">
-          or connect via
-        </span>
+        <span className="text-[10px] font-mono text-gray-400 uppercase tracking-widest">or connect via</span>
         <div className="h-px flex-1 bg-gray-200"></div>
       </div>
 
@@ -369,10 +350,7 @@ const Register = () => {
 
       <div className="text-center text-xs font-mono text-gray-500 mt-4">
         Already have an account?{" "}
-        <Link
-          to="/login"
-          className="underline hover:text-black transition-colors font-bold uppercase"
-        >
+        <Link to="/login" className="underline hover:text-black transition-colors font-bold uppercase">
           Sign in
         </Link>
       </div>

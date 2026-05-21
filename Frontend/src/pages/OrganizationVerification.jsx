@@ -1,19 +1,9 @@
-import React, { useEffect, useState } from "react";
-import toast from "react-hot-toast";
-import {
-  FiAlertTriangle,
-  FiBriefcase,
-  FiCheckCircle,
-  FiChevronRight,
-  FiFileText,
-  FiGlobe,
-  FiMapPin,
-  FiShield,
-} from "react-icons/fi";
-import { useNavigate, useParams } from "react-router-dom";
-
-import api from "../api/axiosConfig";
-import { useAuth } from "../context/authContext.jsx";
+import React, { useState, useEffect } from 'react';
+import { useNavigate, useParams } from 'react-router-dom';
+import { useAuth } from '../context/authContext.jsx';
+import api from '../api/axiosConfig';
+import toast from 'react-hot-toast';
+import { FiCheckCircle, FiAlertTriangle, FiFileText, FiShield, FiBriefcase, FiChevronRight, FiGlobe, FiMapPin } from 'react-icons/fi';
 
 const OrganizationVerification = () => {
   const { user } = useAuth();
@@ -22,13 +12,13 @@ const OrganizationVerification = () => {
   const [loading, setLoading] = useState(true);
   const [organization, setOrganization] = useState(null);
   const [submitting, setSubmitting] = useState(false);
-
+  
   const [formData, setFormData] = useState({
-    taxId: "",
-    industry: "",
-    companySize: "",
-    website: "",
-    address: "",
+    taxId: '',
+    industry: '',
+    companySize: '',
+    website: '',
+    address: ''
   });
 
   const fetchData = async () => {
@@ -37,16 +27,16 @@ const OrganizationVerification = () => {
       setOrganization(data.data);
       if (data.data) {
         setFormData({
-          taxId: data.data.taxId || "",
-          industry: data.data.industry || "",
-          companySize: data.data.companySize || "",
-          website: data.data.website || "",
-          address: data.data.address || "",
+          taxId: data.data.taxId || '',
+          industry: data.data.industry || '',
+          companySize: data.data.companySize || '',
+          website: data.data.website || '',
+          address: data.data.address || ''
         });
       }
     } catch (error) {
-      toast.error("Failed to load organization status");
-      navigate("/home");
+      toast.error('Failed to load organization status');
+      navigate('/home');
     } finally {
       setLoading(false);
     }
@@ -62,29 +52,25 @@ const OrganizationVerification = () => {
     e.preventDefault();
     setSubmitting(true);
     try {
-      await api.post(
-        `/organizations/${organizationId}/submit-verification`,
-        formData,
-      );
-      toast.success("Organization verification submitted for review!");
+      await api.post(`/organizations/${organizationId}/submit-verification`, formData);
+      toast.success('Organization verification submitted for review!');
       fetchData();
     } catch (error) {
-      toast.error(error.response?.data?.message || "Submission failed");
+      toast.error(error.response?.data?.message || 'Submission failed');
     } finally {
       setSubmitting(false);
     }
   };
 
-  if (loading)
-    return (
-      <div className="min-h-screen bg-[#050505] flex items-center justify-center font-mono text-[#00c477]">
-        <div className="animate-pulse">VERIFYING_ENTITY_CREDENTIALS...</div>
-      </div>
-    );
+  if (loading) return (
+    <div className="min-h-screen bg-[#050505] flex items-center justify-center font-mono text-[#00c477]">
+       <div className="animate-pulse">VERIFYING_ENTITY_CREDENTIALS...</div>
+    </div>
+  );
 
-  const status = organization?.verificationStatus || "DRAFT";
-  const isApproved = status === "APPROVED";
-  const isSubmitted = status === "SUBMITTED";
+  const status = organization?.verificationStatus || 'DRAFT';
+  const isApproved = status === 'APPROVED';
+  const isSubmitted = status === 'SUBMITTED';
 
   return (
     <div className="min-h-screen bg-[#050505] text-white p-8 font-sans">
@@ -92,40 +78,27 @@ const OrganizationVerification = () => {
         {/* Header */}
         <div className="flex items-center justify-between border-b border-white/10 pb-6">
           <div className="flex items-center gap-4">
-            <div
-              className={`h-12 w-12 rounded-xl flex items-center justify-center text-2xl ${isApproved ? "bg-[#00c477]/20 text-[#00c477]" : "bg-sky-500/20 text-sky-500"}`}
-            >
+            <div className={`h-12 w-12 rounded-xl flex items-center justify-center text-2xl ${isApproved ? 'bg-[#00c477]/20 text-[#00c477]' : 'bg-sky-500/20 text-sky-500'}`}>
               {isApproved ? <FiCheckCircle /> : <FiBriefcase />}
             </div>
             <div>
-              <h1 className="text-2xl font-bold tracking-tight">
-                Organization Verification
-              </h1>
-              <p className="text-gray-400 text-sm">
-                Register your business entity to launch security programs.
-              </p>
+              <h1 className="text-2xl font-bold tracking-tight">Organization Verification</h1>
+              <p className="text-gray-400 text-sm">Register your business entity to launch security programs.</p>
             </div>
           </div>
-          <div
-            className={`px-4 py-1.5 rounded-full text-xs font-mono uppercase tracking-widest ${
-              isApproved
-                ? "bg-[#00c477]/20 text-[#00c477] border border-[#00c477]/30"
-                : isSubmitted
-                  ? "bg-blue-500/20 text-blue-500 border border-blue-500/30"
-                  : "bg-amber-500/20 text-amber-500 border border-amber-500/30"
-            }`}
-          >
+          <div className={`px-4 py-1.5 rounded-full text-xs font-mono uppercase tracking-widest ${
+            isApproved ? 'bg-[#00c477]/20 text-[#00c477] border border-[#00c477]/30' : 
+            isSubmitted ? 'bg-blue-500/20 text-blue-500 border border-blue-500/30' :
+            'bg-amber-500/20 text-amber-500 border border-amber-500/30'
+          }`}>
             Status: {status}
           </div>
         </div>
 
         {isApproved && (
           <div className="bg-[#00c477]/10 border border-[#00c477]/30 p-4 rounded-xl flex items-center gap-4">
-            <FiCheckCircle className="text-[#00c477] text-2xl shrink-0" />
-            <p className="text-sm text-[#00c477]">
-              Your organization is <strong>APPROVED</strong>. You can now define
-              security programs and invite operators.
-            </p>
+             <FiCheckCircle className="text-[#00c477] text-2xl shrink-0" />
+             <p className="text-sm text-[#00c477]">Your organization is <strong>APPROVED</strong>. You can now define security programs and invite operators.</p>
           </div>
         )}
 
@@ -137,34 +110,26 @@ const OrganizationVerification = () => {
                 <FiFileText className="text-sky-400" />
                 Business Profile
               </h2>
-
+              
               <form onSubmit={handleSubmit} className="space-y-4">
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-1">
-                    <label className="text-xs text-gray-400 uppercase font-mono tracking-tighter">
-                      Tax ID / Registration #
-                    </label>
-                    <input
+                    <label className="text-xs text-gray-400 uppercase font-mono tracking-tighter">Tax ID / Registration #</label>
+                    <input 
                       disabled={isApproved || isSubmitted}
                       value={formData.taxId}
-                      onChange={(e) =>
-                        setFormData({ ...formData, taxId: e.target.value })
-                      }
+                      onChange={(e) => setFormData({...formData, taxId: e.target.value})}
                       className="w-full bg-black/40 border border-white/10 rounded-lg px-4 py-2.5 focus:outline-none focus:border-sky-400 transition-colors"
                       placeholder="e.g. VAT-12345678"
                       required
                     />
                   </div>
                   <div className="space-y-1">
-                    <label className="text-xs text-gray-400 uppercase font-mono tracking-tighter">
-                      Industry
-                    </label>
-                    <select
+                    <label className="text-xs text-gray-400 uppercase font-mono tracking-tighter">Industry</label>
+                    <select 
                       disabled={isApproved || isSubmitted}
                       value={formData.industry}
-                      onChange={(e) =>
-                        setFormData({ ...formData, industry: e.target.value })
-                      }
+                      onChange={(e) => setFormData({...formData, industry: e.target.value})}
                       className="w-full bg-black/40 border border-white/10 rounded-lg px-4 py-2.5 focus:outline-none focus:border-sky-400 transition-colors appearance-none"
                       required
                     >
@@ -182,18 +147,11 @@ const OrganizationVerification = () => {
 
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-1">
-                    <label className="text-xs text-gray-400 uppercase font-mono tracking-tighter">
-                      Company Size
-                    </label>
-                    <select
+                    <label className="text-xs text-gray-400 uppercase font-mono tracking-tighter">Company Size</label>
+                    <select 
                       disabled={isApproved || isSubmitted}
                       value={formData.companySize}
-                      onChange={(e) =>
-                        setFormData({
-                          ...formData,
-                          companySize: e.target.value,
-                        })
-                      }
+                      onChange={(e) => setFormData({...formData, companySize: e.target.value})}
                       className="w-full bg-black/40 border border-white/10 rounded-lg px-4 py-2.5 focus:outline-none focus:border-sky-400 transition-colors appearance-none"
                       required
                     >
@@ -209,13 +167,11 @@ const OrganizationVerification = () => {
                     <label className="text-xs text-gray-400 uppercase font-mono tracking-tighter flex items-center gap-1">
                       <FiGlobe className="text-[10px]" /> Website
                     </label>
-                    <input
+                    <input 
                       disabled={isApproved || isSubmitted}
                       type="url"
                       value={formData.website}
-                      onChange={(e) =>
-                        setFormData({ ...formData, website: e.target.value })
-                      }
+                      onChange={(e) => setFormData({...formData, website: e.target.value})}
                       className="w-full bg-black/40 border border-white/10 rounded-lg px-4 py-2.5 focus:outline-none focus:border-sky-400 transition-colors"
                       placeholder="https://company.com"
                       required
@@ -227,12 +183,10 @@ const OrganizationVerification = () => {
                   <label className="text-xs text-gray-400 uppercase font-mono tracking-tighter flex items-center gap-1">
                     <FiMapPin className="text-[10px]" /> Business Address
                   </label>
-                  <textarea
+                  <textarea 
                     disabled={isApproved || isSubmitted}
                     value={formData.address}
-                    onChange={(e) =>
-                      setFormData({ ...formData, address: e.target.value })
-                    }
+                    onChange={(e) => setFormData({...formData, address: e.target.value})}
                     rows={3}
                     className="w-full bg-black/40 border border-white/10 rounded-lg px-4 py-2.5 focus:outline-none focus:border-sky-400 transition-colors resize-none"
                     placeholder="Enter full legal address..."
@@ -241,18 +195,12 @@ const OrganizationVerification = () => {
                 </div>
 
                 <div className="pt-4">
-                  <button
+                  <button 
                     type="submit"
                     disabled={isApproved || isSubmitted || submitting}
                     className="w-full bg-sky-500 hover:bg-sky-600 text-white font-bold py-2.5 rounded-lg transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-sky-500/20 flex items-center justify-center gap-2"
                   >
-                    {submitting
-                      ? "PROCESSING..."
-                      : isSubmitted
-                        ? "PENDING REVIEW"
-                        : isApproved
-                          ? "ENTITY VERIFIED"
-                          : "SUBMIT BUSINESS PROFILE"}
+                    {submitting ? 'PROCESSING...' : isSubmitted ? 'PENDING REVIEW' : isApproved ? 'ENTITY VERIFIED' : 'SUBMIT BUSINESS PROFILE'}
                   </button>
                 </div>
               </form>
@@ -266,34 +214,19 @@ const OrganizationVerification = () => {
                 <FiShield className="text-sky-400" />
                 Vetting Guidelines
               </h2>
-
+              
               <ul className="space-y-4">
                 <li className="flex gap-3">
-                  <div className="h-5 w-5 rounded-full bg-sky-400/20 flex items-center justify-center text-[10px] text-sky-400 shrink-0 font-bold">
-                    1
-                  </div>
-                  <p className="text-xs text-gray-400 leading-relaxed">
-                    Ensure your **Tax ID** matches the legal name provided
-                    during registration.
-                  </p>
+                  <div className="h-5 w-5 rounded-full bg-sky-400/20 flex items-center justify-center text-[10px] text-sky-400 shrink-0 font-bold">1</div>
+                  <p className="text-xs text-gray-400 leading-relaxed">Ensure your **Tax ID** matches the legal name provided during registration.</p>
                 </li>
                 <li className="flex gap-3">
-                  <div className="h-5 w-5 rounded-full bg-sky-400/20 flex items-center justify-center text-[10px] text-sky-400 shrink-0 font-bold">
-                    2
-                  </div>
-                  <p className="text-xs text-gray-400 leading-relaxed">
-                    Our compliance team will review your business standing
-                    within **24-48 hours**.
-                  </p>
+                  <div className="h-5 w-5 rounded-full bg-sky-400/20 flex items-center justify-center text-[10px] text-sky-400 shrink-0 font-bold">2</div>
+                  <p className="text-xs text-gray-400 leading-relaxed">Our compliance team will review your business standing within **24-48 hours**.</p>
                 </li>
                 <li className="flex gap-3">
-                  <div className="h-5 w-5 rounded-full bg-sky-400/20 flex items-center justify-center text-[10px] text-sky-400 shrink-0 font-bold">
-                    3
-                  </div>
-                  <p className="text-xs text-gray-400 leading-relaxed">
-                    Once approved, you can initiate payments and launch private
-                    security engagements.
-                  </p>
+                  <div className="h-5 w-5 rounded-full bg-sky-400/20 flex items-center justify-center text-[10px] text-sky-400 shrink-0 font-bold">3</div>
+                  <p className="text-xs text-gray-400 leading-relaxed">Once approved, you can initiate payments and launch private security engagements.</p>
                 </li>
               </ul>
 
@@ -303,9 +236,7 @@ const OrganizationVerification = () => {
                   Important
                 </div>
                 <p className="text-[10px] text-gray-400 leading-relaxed">
-                  Hackract requires all organizations to be verified before
-                  interacting with hackers to ensure financial and legal
-                  security for all parties.
+                  Hackract requires all organizations to be verified before interacting with hackers to ensure financial and legal security for all parties.
                 </p>
               </div>
             </div>
@@ -317,3 +248,4 @@ const OrganizationVerification = () => {
 };
 
 export default OrganizationVerification;
+

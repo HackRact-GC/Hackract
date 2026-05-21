@@ -1,6 +1,5 @@
 import { useState } from "react";
 import toast from "react-hot-toast";
-
 import api from "../api/axiosConfig";
 
 const ForgotPassword = () => {
@@ -12,14 +11,10 @@ const ForgotPassword = () => {
     setLoading(true);
     try {
       const { data } = await api.post("/auth/forgot-password", { email });
-      const msg =
-        data?.message || "If an account exists, a reset link has been sent.";
+      const msg = data?.message || "If an account exists, a reset link has been sent.";
       toast.success(msg);
     } catch (error) {
-      const msg =
-        error?.response?.data?.error ||
-        error?.response?.data?.message ||
-        "Unable to send reset email.";
+      const msg = error?.response?.data?.error || error?.response?.data?.message || "Unable to send reset email.";
       toast.error(msg);
     } finally {
       setLoading(false);
@@ -29,19 +24,13 @@ const ForgotPassword = () => {
   return (
     <div className="flex flex-col gap-6 w-full">
       <div className="space-y-2 text-center md:text-left">
-        <h2 className="text-3xl font-bold font-mono tracking-tighter">
-          Forgot password
-        </h2>
-        <p className="text-gray-500 text-xs font-mono tracking-wide">
-          We'll email you a reset link.
-        </p>
+        <h2 className="text-3xl font-bold font-mono tracking-tighter">Forgot password</h2>
+        <p className="text-gray-500 text-xs font-mono tracking-wide">We'll email you a reset link.</p>
       </div>
 
       <form className="flex flex-col gap-4" onSubmit={handleSubmit}>
         <div className="flex flex-col gap-2">
-          <label className="text-xs font-bold tracking-widest uppercase text-gray-500">
-            Email
-          </label>
+          <label className="text-xs font-bold tracking-widest uppercase text-gray-500">Email</label>
           <input
             type="email"
             value={email}
