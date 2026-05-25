@@ -686,6 +686,20 @@ const WorkspaceView = ({ projectId, onBack }) => {
                         <FiPlus /> Report Generation
                       </button>
                     )}
+                    <button
+                      onClick={() => {
+                          const role = getPrimaryRole(user);
+                          let path = "/reports";
+                          if (role === ROLES.PROJECT_ADMIN) path = "/pa-reports";
+                          if (role === ROLES.PENTESTER) path = "/hacker-reports";
+                          navigate(`${path}?projectId=${projectId}`);
+                        }}
+                      className="px-4 py-1.5 bg-[#00ff88]/10 hover:bg-[#00ff88] text-[#00ff88] hover:text-black border border-[#00ff88]/20 hover:border-[#00ff88] rounded-xl text-[9px] font-black uppercase tracking-widest transition-all flex items-center gap-2"
+                    >
+                      {isOrgAdmin ? <FiFileText /> : <FiPlus />}
+                      {isOrgAdmin ? "View Report" : "Report Generation"}
+                    </button>
+                    
                   </div>
                   
                 </div>

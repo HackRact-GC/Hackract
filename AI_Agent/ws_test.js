@@ -1,5 +1,5 @@
 const WebSocket = require('ws');
-const ws = new WebSocket('ws://localhost:8008/ws/test-debug-' + Date.now());
+const ws = new WebSocket('ws://127.0.0.1:8008/ws/test-debug-' + Date.now());
 let msgCount = 0;
 
 ws.on('open', () => {

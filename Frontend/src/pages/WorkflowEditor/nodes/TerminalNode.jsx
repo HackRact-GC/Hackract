@@ -1,6 +1,6 @@
 import React, { useEffect, useRef } from 'react';
-import { Handle, Position } from '@xyflow/react';
-import { FiTerminal, FiX, FiLink, FiAlertCircle } from 'react-icons/fi';
+import { Handle, Position, NodeResizer } from '@xyflow/react';
+import { FiTerminal, FiX } from 'react-icons/fi';
 import { Terminal as XTerm } from '@xterm/xterm';
 import { FitAddon } from '@xterm/addon-fit';
 import { WebLinksAddon } from '@xterm/addon-web-links';
@@ -34,7 +34,6 @@ const TerminalNode = ({ data, selected }) => {
   useEffect(() => {
     if (!terminalRef.current) return;
 
-    // Initialize xterm.js
     const term = new XTerm({
       cursorBlink: true,
       fontSize: 11,
@@ -49,7 +48,6 @@ const TerminalNode = ({ data, selected }) => {
       scrollback: 1000,
     });
 
-    // Load Addons
     const fitAddon = new FitAddon();
     const webLinksAddon = new WebLinksAddon();
     const unicode11Addon = new Unicode11Addon();
@@ -110,8 +108,9 @@ const TerminalNode = ({ data, selected }) => {
 
       term.write(data);
     });
+    term.onData((data) => { sendInput(data); });
+    setOnOutput((data) => { term.write(data); });
 
-    // Handle resizing
     const handleResize = () => {
       if (fitAddonRef.current && terminalRef.current) {
         fitAddonRef.current.fit();
@@ -119,16 +118,11 @@ const TerminalNode = ({ data, selected }) => {
       }
     };
 
-    // Observer to handle container resizing
-    const resizeObserver = new ResizeObserver(() => {
-      handleResize();
-    });
-
+    const resizeObserver = new ResizeObserver(() => { handleResize(); });
     if (terminalRef.current) {
       resizeObserver.observe(terminalRef.current);
     }
 
-    // Initial sync
     setTimeout(handleResize, 200);
 
     return () => {
@@ -137,11 +131,8 @@ const TerminalNode = ({ data, selected }) => {
     };
   }, [sendInput, sendResize, setOnOutput, data.workflowId]);
 
-  // Handle Auto-Execution of commands
   useEffect(() => {
     if (isConnected && data.initialCommand && xtermRef.current) {
-      console.log(`🤖 Auto-executing command: ${data.initialCommand}`);
-      // Send the command followed by Enter (\r)
       sendInput(`${data.initialCommand}\r`);
 
         const nextTranscript = transcriptRef.current
@@ -165,8 +156,23 @@ const TerminalNode = ({ data, selected }) => {
   }, [isConnected, data.initialCommand, sendInput, data]);
 
   return (
-    <div className={`bg-[#0b0f19] border rounded-lg w-[320px] font-mono text-sm transition-all relative select-none ${selected || showPresence ? 'border-[#00ff88] shadow-[0_0_20px_rgba(0,255,136,0.6)]' : 'border-[#00ff88]/50 shadow-[0_0_10px_rgba(0,255,136,0.3)]'}`}>
-      {/* Presence Indicators (Figma Style) */}
+    <div
+      className={`bg-[#0b0f19] border rounded-lg font-mono text-sm transition-all relative select-none flex flex-col h-full min-w-[280px] min-h-[200px] ${
+        selected || showPresence
+          ? 'border-[#00ff88] shadow-[0_0_20px_rgba(0,255,136,0.6)]'
+          : 'border-[#00ff88]/50 shadow-[0_0_10px_rgba(0,255,136,0.3)]'
+      }`}
+    >
+      {/* NodeResizer — drag any edge or corner to resize */}
+      <NodeResizer
+        minWidth={280}
+        minHeight={200}
+        isVisible={selected}
+        lineClassName="!border-[#00ff88]/60 hover:!border-[#00ff88]"
+        handleClassName="!w-2.5 !h-2.5 !rounded-sm !bg-[#00ff88] !border-[#0b0f19] !border-2 hover:!scale-125 transition-transform"
+      />
+
+      {/* Presence Indicators */}
       {showPresence && (
         <div className="absolute -top-6 right-0 flex -space-x-2">
           {activeUsers.map((u, i) => (
@@ -181,7 +187,9 @@ const TerminalNode = ({ data, selected }) => {
           ))}
         </div>
       )}
-      <div className="p-2 flex justify-between items-center text-[#00ff88] border-b border-[#00ff88]/30 bg-[#161a23] rounded-t-lg">
+
+      {/* Header */}
+      <div className="p-2 flex justify-between items-center text-[#00ff88] border-b border-[#00ff88]/30 bg-[#161a23] rounded-t-lg shrink-0">
         <div className="flex items-center gap-2">
           <FiTerminal size={16} />
           <span className="font-bold text-xs uppercase tracking-tighter">Terminal</span>
@@ -208,15 +216,14 @@ const TerminalNode = ({ data, selected }) => {
         </div>
       </div>
 
-      <div className="p-3 space-y-3">
-        {/* Real Terminal Area */}
+      {/* Terminal area — fills remaining height */}
+      <div className="p-3 flex-1 flex flex-col">
         <div
-          className="w-full h-48 bg-black border border-[#00ff88]/30 rounded overflow-hidden shadow-inner select-text"
+          className="flex-1 bg-black border border-[#00ff88]/30 rounded overflow-hidden shadow-inner select-text"
           ref={terminalRef}
           onMouseDown={(e) => e.stopPropagation()}
           onClick={(e) => e.stopPropagation()}
         />
-
       </div>
 
       <Handle type="target" position={Position.Left} className="w-3 h-3 bg-[#00ff88] border-2 border-[#0b0f19]" />
