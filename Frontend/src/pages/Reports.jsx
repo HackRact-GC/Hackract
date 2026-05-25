@@ -4,6 +4,7 @@ import { FiDownload, FiCode, FiSend, FiFileText, FiZoomIn, FiMaximize2, FiArrowL
 import api from '../api/axiosConfig';
 import toast from 'react-hot-toast';
 import jsPDF from 'jspdf';
+import { useAuth } from '../context/authContext.jsx';
 
 // Checkbox Component
 const CheckboxOption = ({ id, label, checked, onChange }) => (
@@ -40,6 +41,7 @@ const ToggleSwitch = ({ label, icon: Icon, checked, onChange }) => (
 );
 
 const Reports = () => {
+  const { user } = useAuth();
   const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
   const projectId = searchParams.get('projectId');
@@ -103,7 +105,21 @@ const Reports = () => {
         api.get(`/projects/${projectId}`),
         api.get(`/findings?pentestId=${projectId}&limit=100`)
       ]);
-      setProject(pRes.data?.data ?? pRes.data);
+      const projData = pRes.data?.data ?? pRes.data;
+
+      // Check authorization: only project lead, global org admin, organization owner/admin, or project admin
+      const userCollab = projData.collaborators?.find(c => c.userId === user?.id);
+      const isProjectAdmin = userCollab?.role === 'PROJECT_ADMIN';
+      const isOrgAdmin = user?.roles?.some(r => r.type === 'ORG_ADMIN');
+      const isLead = projData.leadPentesterId === user?.id;
+
+      if (!isOrgAdmin && !isLead && !isProjectAdmin) {
+        toast.error("Unauthorized: Only project administrators can access report generation");
+        navigate(-1);
+        return;
+      }
+
+      setProject(projData);
       setFindings(fRes.data?.data ?? fRes.data ?? []);
     } catch (e) {
       toast.error("Failed to load report data");
@@ -365,7 +381,13 @@ const Reports = () => {
                     className="w-full bg-[#141518] border border-white/10 rounded-xl px-4 py-3 text-sm text-white outline-none focus:border-[#00c477] appearance-none"
                   >
                     <option value="" disabled>Select a project to analyze...</option>
-                    {availableProjects.map(p => (
+                    {availableProjects.filter(p => {
+                      const isOrgAdmin = user?.roles?.some(r => r.type === 'ORG_ADMIN');
+                      const isLead = p.leadPentesterId === user?.id;
+                      const userCollab = p.collaborators?.find(c => c.userId === user?.id);
+                      const isProjectAdmin = userCollab?.role === 'PROJECT_ADMIN';
+                      return isOrgAdmin || isLead || isProjectAdmin;
+                    }).map(p => (
                       <option key={p.id} value={p.id}>{p.name || 'Untitled Project'}</option>
                     ))}
                   </select>

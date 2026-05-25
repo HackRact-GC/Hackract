@@ -325,16 +325,16 @@ const WorkspaceView = ({ projectId, onBack }) => {
   };
 
   const handleRemoveMember = async (userId) => {
-    if (!window.confirm("Are you sure you want to remove this member from the project?")) return;
+    if (!window.confirm("Are you sure you want to ban this hacker from the project?")) return;
     try {
       await api.delete(`/projects/${projectId}/collaborators/${userId}`);
-      toast.success("Member removed from project");
+      toast.success("Hacker banned from project");
       setProject(prev => ({
         ...prev,
         collaborators: prev.collaborators.filter(c => c.userId !== userId)
       }));
     } catch (err) {
-      toast.error(err.response?.data?.message || "Failed to remove member");
+      toast.error(err.response?.data?.message || "Failed to ban hacker");
     }
   };
 
@@ -549,71 +549,75 @@ const WorkspaceView = ({ projectId, onBack }) => {
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                <div className="bg-black/70 backdrop-blur-md border border-white/10 p-8 rounded-4xl space-y-4">
-                  <h3 className="text-xs font-black text-white/40 uppercase tracking-[0.2em]">Activity Feed</h3>
-                  <div className="h-[360px] overflow-y-auto custom-scrollbar">
-                    <ProjectActivity projectId={projectId} />
-                  </div>
-                </div>
-
-                <div className="bg-black/70 backdrop-blur-md border border-white/10 p-8 rounded-4xl space-y-4">
-                  <h3 className="text-xs font-black text-white/40 uppercase tracking-[0.2em]">AI Security Assistant</h3>
-                  <div className="bg-[#0f1115] border border-white/5 rounded-2xl flex flex-col h-[360px]">
-                    <div className="flex-1 p-4 overflow-y-auto space-y-3">
-                      {aiMessages.map((msg, idx) => (
-                        <div key={`${msg.sender}-${idx}`} className={`flex ${msg.sender === 'Admin' ? 'justify-end' : 'justify-start'}`}>
-                          <div className={`px-3 py-2 rounded-xl text-xs ${msg.sender === 'Admin'
-                            ? 'bg-white/10 text-white whitespace-pre-wrap'
-                            : 'bg-[#00ff88]/10 text-[#00ff88] border border-[#00ff88]/20 prose prose-invert max-w-none'}`}>
-                            {msg.sender === 'Admin' ? (
-                              msg.text
-                            ) : (
-                              <div dangerouslySetInnerHTML={{ __html: renderAssistantMarkdown(msg.text) }} />
-                            )}
-                          </div>
-                        </div>
-                      ))}
+              {canManage && (
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                  <div className="bg-black/70 backdrop-blur-md border border-white/10 p-8 rounded-4xl space-y-4">
+                    <h3 className="text-xs font-black text-white/40 uppercase tracking-[0.2em]">Activity Feed</h3>
+                    <div className="h-[360px] overflow-y-auto custom-scrollbar">
+                      <ProjectActivity projectId={projectId} />
                     </div>
-                    <form onSubmit={handleAiSend} className="p-3 border-t border-white/5 flex items-center gap-2">
-                      <input
-                        type="text"
-                        value={aiInput}
-                        onChange={(e) => setAiInput(e.target.value)}
-                        placeholder="Ask AI to analyze logs..."
-                        className="flex-1 bg-black border border-white/10 rounded-xl px-3 py-2 text-xs text-white outline-none focus:border-[#00ff88]/50"
-                      />
-                      <button
-                        type="submit"
-                        disabled={!aiInput.trim() || aiSending}
-                        className="px-3 py-2 rounded-lg bg-[#00ff88] text-black text-[10px] font-black uppercase tracking-widest disabled:opacity-50"
-                      >
-                        {aiSending ? '...' : 'Send'}
-                      </button>
-                    </form>
+                  </div>
+
+                  <div className="bg-black/70 backdrop-blur-md border border-white/10 p-8 rounded-4xl space-y-4">
+                    <h3 className="text-xs font-black text-white/40 uppercase tracking-[0.2em]">AI Security Assistant</h3>
+                    <div className="bg-[#0f1115] border border-white/5 rounded-2xl flex flex-col h-[360px]">
+                      <div className="flex-1 p-4 overflow-y-auto space-y-3">
+                        {aiMessages.map((msg, idx) => (
+                          <div key={`${msg.sender}-${idx}`} className={`flex ${msg.sender === 'Admin' ? 'justify-end' : 'justify-start'}`}>
+                            <div className={`px-3 py-2 rounded-xl text-xs ${msg.sender === 'Admin'
+                              ? 'bg-white/10 text-white whitespace-pre-wrap'
+                              : 'bg-[#00ff88]/10 text-[#00ff88] border border-[#00ff88]/20 prose prose-invert max-w-none'}`}>
+                              {msg.sender === 'Admin' ? (
+                                msg.text
+                              ) : (
+                                <div dangerouslySetInnerHTML={{ __html: renderAssistantMarkdown(msg.text) }} />
+                              )}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                      <form onSubmit={handleAiSend} className="p-3 border-t border-white/5 flex items-center gap-2">
+                        <input
+                          type="text"
+                          value={aiInput}
+                          onChange={(e) => setAiInput(e.target.value)}
+                          placeholder="Ask AI to analyze logs..."
+                          className="flex-1 bg-black border border-white/10 rounded-xl px-3 py-2 text-xs text-white outline-none focus:border-[#00ff88]/50"
+                        />
+                        <button
+                          type="submit"
+                          disabled={!aiInput.trim() || aiSending}
+                          className="px-3 py-2 rounded-lg bg-[#00ff88] text-black text-[10px] font-black uppercase tracking-widest disabled:opacity-50"
+                        >
+                          {aiSending ? '...' : 'Send'}
+                        </button>
+                      </form>
+                    </div>
                   </div>
                 </div>
-              </div>
+              )}
             </div>
           )}
           {activeTab === "workflow" && (
             <div className="space-y-6">
-              <div className="bg-black/70 backdrop-blur-md border border-white/10 p-6 rounded-3xl flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-                <div>
-                  <h3 className="text-xs font-black text-white/40 uppercase tracking-[0.2em]">Operational Status</h3>
-                  <p className="text-[10px] text-white/30 font-mono uppercase tracking-widest">Update project phase</p>
+              {canManage && (
+                <div className="bg-black/70 backdrop-blur-md border border-white/10 p-6 rounded-3xl flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+                  <div>
+                    <h3 className="text-xs font-black text-white/40 uppercase tracking-[0.2em]">Operational Status</h3>
+                    <p className="text-[10px] text-white/30 font-mono uppercase tracking-widest">Update project phase</p>
+                  </div>
+                  <select
+                    value={project.status}
+                    onChange={(e) => handleStatusChange(e.target.value)}
+                    className="w-full md:w-64 bg-[#0f1115] border border-white/20 rounded-xl px-4 py-3 text-white focus:border-[#00ff88]/50 transition-all outline-none appearance-none"
+                  >
+                    <option value="PLANNING">Planning</option>
+                    <option value="IN_PROGRESS">In Progress</option>
+                    <option value="REPORTING">Reporting</option>
+                    <option value="CLOSED">Closed</option>
+                  </select>
                 </div>
-                <select
-                  value={project.status}
-                  onChange={(e) => handleStatusChange(e.target.value)}
-                  className="w-full md:w-64 bg-[#0f1115] border border-white/20 rounded-xl px-4 py-3 text-white focus:border-[#00ff88]/50 transition-all outline-none appearance-none"
-                >
-                  <option value="PLANNING">Planning</option>
-                  <option value="IN_PROGRESS">In Progress</option>
-                  <option value="REPORTING">Reporting</option>
-                  <option value="CLOSED">Closed</option>
-                </select>
-              </div>
+              )}
 
               <div className="bg-black/70 backdrop-blur-md border border-white/10 p-12 rounded-4xl text-center space-y-6">
                 <div className="w-20 h-20 bg-[#00ff88]/10 border border-[#00ff88]/20 rounded-3xl flex items-center justify-center text-[#00ff88] mx-auto shadow-inner">
@@ -668,19 +672,20 @@ const WorkspaceView = ({ projectId, onBack }) => {
                     <h3 className="text-xs font-black text-white/40 uppercase tracking-[0.2em] flex items-center gap-3">
                       <FiFileText className="text-[#00ff88]" /> Operative Discoveries
                     </h3>
-                    <button
-                      onClick={() => {
-                          const role = getPrimaryRole(user);
-                          let path = "/reports";
-                          if (role === ROLES.PROJECT_ADMIN) path = "/pa-reports";
-                          if (role === ROLES.PENTESTER) path = "/hacker-reports";
-                          navigate(`${path}?projectId=${projectId}`);
-                        }}
-                      className="px-4 py-1.5 bg-[#00ff88]/10 hover:bg-[#00ff88] text-[#00ff88] hover:text-black border border-[#00ff88]/20 hover:border-[#00ff88] rounded-xl text-[9px] font-black uppercase tracking-widest transition-all flex items-center gap-2"
-                    >
-                      <FiPlus /> Report Generation
-                    </button>
-                    
+                    {canManage && (
+                      <button
+                        onClick={() => {
+                             const role = getPrimaryRole(user);
+                             let path = "/reports";
+                             if (role === ROLES.PROJECT_ADMIN) path = "/pa-reports";
+                             if (role === ROLES.PENTESTER) path = "/hacker-reports";
+                             navigate(`${path}?projectId=${projectId}`);
+                           }}
+                        className="px-4 py-1.5 bg-[#00ff88]/10 hover:bg-[#00ff88] text-[#00ff88] hover:text-black border border-[#00ff88]/20 hover:border-[#00ff88] rounded-xl text-[9px] font-black uppercase tracking-widest transition-all flex items-center gap-2"
+                      >
+                        <FiPlus /> Report Generation
+                      </button>
+                    )}
                   </div>
                   
                 </div>
@@ -781,7 +786,7 @@ const WorkspaceView = ({ projectId, onBack }) => {
                             )}
                             <button
                               onClick={() => handleRemoveMember(member.userId)}
-                              title="Remove from Project"
+                              title="Ban Hacker"
                               className="p-2.5 rounded-xl bg-rose-500/5 hover:bg-rose-500/10 text-rose-500/40 hover:text-rose-500 transition-all border border-white/5"
                             >
                               <FiTrash2 size={14} />
