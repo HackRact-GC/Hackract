@@ -85,6 +85,8 @@ const Login = () => {
     };
 
     const handleGoogleLogin = () => {
+        // default social login from the login page to HACKER flow
+        window.localStorage.setItem('selected_account_type', 'HACKER');
         loginWithRedirect({
             authorizationParams: {
                 connection: 'google-oauth2',
@@ -94,6 +96,7 @@ const Login = () => {
     };
 
     const handleGithubLogin = () => {
+        window.localStorage.setItem('selected_account_type', 'HACKER');
         loginWithRedirect({
             authorizationParams: {
                 connection: 'github',

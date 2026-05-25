@@ -130,6 +130,8 @@ const Register = () => {
   };
 
   const handleGoogleLogin = () => {
+    // persist the user's selection so we can redirect after the OAuth roundtrip
+    window.localStorage.setItem('selected_account_type', accountType);
     loginWithRedirect({
       authorizationParams: {
         connection: 'google-oauth2',
@@ -139,6 +141,7 @@ const Register = () => {
   };
 
   const handleGithubLogin = () => {
+    window.localStorage.setItem('selected_account_type', accountType);
     loginWithRedirect({
       authorizationParams: {
         connection: 'github',
