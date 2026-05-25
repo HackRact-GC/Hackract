@@ -624,20 +624,59 @@ Params: `query` (string), `max_results` (int)."""
             except asyncio.CancelledError:
                 raise
             except Exception as e:
+                error_str = str(e)
+                err_type = type(e).__name__
+
+                # Fatal errors — abort the loop immediately (no point retrying)
+                FATAL_ERRORS = (
+                    "AuthenticationError", "InvalidApiKeyError",
+                    "RateLimitError", "ModelNotFoundError",
+                    "BadCredentials", "Bad credentials",
+                )
+                is_fatal = (
+                    err_type in FATAL_ERRORS
+                    or any(k in error_str for k in FATAL_ERRORS)
+                )
+                if is_fatal:
+                    self.logger.error(
+                        heading="Fatal LLM Error — aborting",
+                        content=error_str,
+                    )
+                    friendly = self._format_fatal_error(e)
+                    await self._emit_status("error", friendly)
+                    return friendly
+
                 self.logger.error(
                     heading="Error in agent loop",
-                    content=str(e)
+                    content=error_str,
                 )
                 # Add error to messages and continue
                 self.messages.append({
                     "role": "user",
-                    "content": f"Error occurred: {str(e)}. Please try a different approach."
+                    "content": f"Error occurred: {error_str}. Please try a different approach.",
                 })
 
         if not final_response:
             final_response = "Maximum iterations reached without completing the task."
 
         return final_response
+
+    def _format_fatal_error(self, error: Exception) -> str:
+        """Return a short, user-friendly message for fatal LLM errors."""
+        error_str = str(error)
+        err_type = type(error).__name__
+        if err_type in ("AuthenticationError", "InvalidApiKeyError") or any(
+            k in error_str for k in ("Bad credentials", "Invalid API key", "api_key client option must be set")
+        ):
+            return (
+                "Authentication failed: Your API key is missing or invalid. "
+                "Please update API_KEY in AI_Agent/.env and restart the agent."
+            )
+        if err_type == "RateLimitError" or "rate limit" in error_str.lower():
+            return "Rate limit exceeded. Please wait a moment and try again."
+        if err_type == "ModelNotFoundError" or "model not found" in error_str.lower():
+            return f"Model not found: '{self.config.model.chat_model}'. Please check your CHAT_MODEL setting."
+        return f"Fatal error: {error_str.split(' - ')[0]}"
 
     def _parse_agent_response(self, response: str) -> Optional[Dict[str, Any]]:
         """Parse agent's JSON response"""

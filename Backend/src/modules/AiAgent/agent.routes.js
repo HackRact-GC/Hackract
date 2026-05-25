@@ -60,6 +60,7 @@ router.use(protect);
  */
 router.post('/', checkLegalSignature, controller.create);
 router.get('/', controller.list);
+router.get('/health', controller.health);
 
 /**
  * @swagger
@@ -109,8 +110,12 @@ router.get('/', controller.list);
  *         description: Unauthorized
  */
 router.get('/:id', controller.get);
+router.get('/:id/logs', controller.logs);
 router.patch('/:id', checkLegalSignature, controller.update);
 
+router.post('/:id/chat', checkLegalSignature, controller.chat);
+router.post('/:id/chat/stream', checkLegalSignature, controller.chatStream);
+router.post('/:id/stop', checkLegalSignature, controller.stop);
 router.post('/:id/test', checkLegalSignature, controller.test);
 router.post('/:id/deploy', checkLegalSignature, controller.deploy);
 

@@ -4,6 +4,7 @@ from typing import List, Dict, Any, Optional, AsyncIterator
 import litellm
 from litellm import acompletion
 import os
+import json
 
 
 class LLM:
@@ -205,17 +206,53 @@ class ModelManager:
     def __init__(self, config):
         self.config = config
         
-        # Chat model (main reasoning)
-        self.chat_llm = LLM(
-            model=config.model.chat_model,
-            api_key=config.model.api_key,
-            temperature=config.model.temperature,
-            max_tokens=config.model.max_tokens,
-            max_context_tokens=config.model.max_context_tokens,
-            provider=config.model.provider,
-            ollama_base_url=config.model.ollama_base_url,
-            custom_api_base=config.model.custom_api_base,
-        )
+        # If configured to use a local stub (for testing) or no API key is present,
+        # use a minimal StubLLM that returns deterministic responses. This allows
+        # the developer to test end-to-end socket and UI flows without external
+        # LLM credentials.
+        use_stub = os.getenv("LLM_STUB", "false").lower() == "true"
+        no_key = not (config.model.api_key or "").strip()
+
+        if use_stub or (no_key and config.model.provider != "ollama"):
+            class StubLLM:
+                def __init__(self, model=None, api_key=None, **kwargs):
+                    self.model = model or "stub-model"
+                async def chat(self, messages, temperature=None, max_tokens=None, stream=False):
+                    # Build a valid agent JSON response instructing the 'response' tool
+                    last = ""
+                    for m in reversed(messages):
+                        if m.get("role") == "user":
+                            last = m.get("content", "")
+                            break
+                    message_text = f"[stub reply] Received: {last}"
+                    payload = {
+                        "thoughts": "StubLLM generated response",
+                        "tool_name": "response",
+                        "tool_args": {"message": message_text}
+                    }
+                    reply = json.dumps(payload)
+                    if stream:
+                        async def gen():
+                            # yield the JSON in two chunks to simulate streaming
+                            half = len(reply) // 2
+                            yield reply[:half]
+                            yield reply[half:]
+                        return gen()
+                    return reply
+
+            self.chat_llm = StubLLM(model=config.model.chat_model)
+        else:
+            # Chat model (main reasoning)
+            self.chat_llm = LLM(
+                model=config.model.chat_model,
+                api_key=config.model.api_key,
+                temperature=config.model.temperature,
+                max_tokens=config.model.max_tokens,
+                max_context_tokens=config.model.max_context_tokens,
+                provider=config.model.provider,
+                ollama_base_url=config.model.ollama_base_url,
+                custom_api_base=config.model.custom_api_base,
+            )
         
         # Utility model (quick tasks like parsing, formatting)
         self.utility_llm = LLM(

@@ -58,6 +58,10 @@ router.post('/generate', async (req, res, next) => {
       throw new AppError('You do not have access to this project', 403);
     }
 
+    if (isOrgAdmin) {
+      throw new AppError('Organization administrators are not allowed to generate reports.', 403);
+    }
+
     // Generate the PDF buffer
     const pdfBuffer = await generatePdfReport(projectId, modules);
 
@@ -72,6 +76,70 @@ router.post('/generate', async (req, res, next) => {
 
     res.setHeader('Content-Type', 'application/pdf');
     res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+    res.setHeader('Content-Length', pdfBuffer.length);
+    res.setHeader('Cache-Control', 'no-cache');
+    res.send(pdfBuffer);
+
+  } catch (err) {
+    next(err);
+  }
+});
+
+/**
+ * POST /api/v1/reports/preview
+ * Body: { projectId, modules: { execSummary, vulnTable, methodology, rawLogs } }
+ * Response: application/pdf binary stream (browser inline viewing)
+ */
+router.post('/preview', async (req, res, next) => {
+  try {
+    const { projectId, modules = {} } = req.body;
+
+    if (!projectId) {
+      throw new AppError('projectId is required', 400);
+    }
+
+    // Verify the requesting user has access to this project
+    const project = await prisma.pentest.findUnique({
+      where: { id: projectId },
+      select: {
+        id: true,
+        name: true,
+        organizationId: true,
+        leadPentesterId: true,
+        collaborators: { select: { userId: true } },
+      },
+    });
+
+    if (!project) {
+      throw new AppError('Project not found', 404);
+    }
+
+    const userId   = req.user.id;
+    const userRole = req.user.roles?.map(r => r.type) || [];
+
+    const isCollaborator = project.collaborators.some(c => c.userId === userId);
+    const isLead         = project.leadPentesterId === userId;
+    const isOrgAdmin     = userRole.includes('ORG_ADMIN');
+    const isProjectAdmin = userRole.includes('PROJECT_ADMIN');
+
+    // Check org membership for org projects
+    let isOrgMember = false;
+    if (project.organizationId) {
+      const member = await prisma.organizationMember.findFirst({
+        where: { organizationId: project.organizationId, userId },
+      });
+      isOrgMember = Boolean(member);
+    }
+
+    if (!isCollaborator && !isLead && !isOrgAdmin && !isProjectAdmin && !isOrgMember) {
+      throw new AppError('You do not have access to this project', 403);
+    }
+
+    // Generate the PDF buffer
+    const pdfBuffer = await generatePdfReport(projectId, modules);
+
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `inline; filename="preview.pdf"`);
     res.setHeader('Content-Length', pdfBuffer.length);
     res.setHeader('Cache-Control', 'no-cache');
     res.send(pdfBuffer);
@@ -104,6 +172,31 @@ router.get('/project/:projectId/json', async (req, res, next) => {
     });
 
     if (!project) throw new AppError('Project not found', 404);
+
+    const userId   = req.user.id;
+    const userRole = req.user.roles?.map(r => r.type) || [];
+
+    const isCollaborator = project.collaborators.some(c => c.userId === userId);
+    const isLead         = project.leadPentesterId === userId;
+    const isOrgAdmin     = userRole.includes('ORG_ADMIN');
+    const isProjectAdmin = userRole.includes('PROJECT_ADMIN');
+
+    // Check org membership for org projects
+    let isOrgMember = false;
+    if (project.organizationId) {
+      const member = await prisma.organizationMember.findFirst({
+        where: { organizationId: project.organizationId, userId },
+      });
+      isOrgMember = Boolean(member);
+    }
+
+    if (!isCollaborator && !isLead && !isOrgAdmin && !isProjectAdmin && !isOrgMember) {
+      throw new AppError('You do not have access to this project', 403);
+    }
+
+    if (isOrgAdmin) {
+      throw new AppError('Organization administrators are not allowed to export reports.', 403);
+    }
 
     const filename = `Hackract-Report-${projectId.split('-')[0].toUpperCase()}.json`;
     res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
