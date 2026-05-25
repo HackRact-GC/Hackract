@@ -1,6 +1,6 @@
 import React from "react";
 import { useAuth } from "../context/authContext";
-import HackerDashboard from "./HackerDashboard";
+import HackerDashboard from "./HackerDashboardView";
 import OrganizationDashboard from "./OrganizationDashboard";
 
 /**

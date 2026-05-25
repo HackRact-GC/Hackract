@@ -9,6 +9,7 @@ import jwt from "jsonwebtoken";
 import prisma from "./src/database/prismaClient.js";
 import { upsertUserPresence } from "./src/modules/Chat/chat.repository.js";
 import { setupTerminalSocket } from "./src/modules/Terminal/terminal.socket.js";
+import { setupAgentSocket } from "./src/modules/AiAgent/agent.socket.js";
 import { initializeStorage } from "./src/utils/s3Upload.js";
 
 const PORT = process.env.PORT || 3000;
@@ -235,6 +236,7 @@ const startServer = async () => {
   });
 
   setupTerminalSocket(io);
+  setupAgentSocket(io, decodeSocketUser);
 
   // ── Helper: broadcast a new message to all participants in a conversation ──
   // Called from chat REST API (via the io instance attached to app)

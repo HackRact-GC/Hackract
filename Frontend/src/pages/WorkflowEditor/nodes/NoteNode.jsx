@@ -1,13 +1,28 @@
-import { Handle, Position } from '@xyflow/react';
-import { FiFileText, FiX, FiLink, FiAlertCircle } from 'react-icons/fi';
+import { Handle, Position, NodeResizer } from '@xyflow/react';
+import { FiFileText, FiX } from 'react-icons/fi';
 
 const NoteNode = ({ data, selected }) => {
   const activeUsers = Object.values(data.activeUsers || {});
   const showPresence = activeUsers.length > 0;
 
   return (
-    <div className={`bg-[#0b0f19] border rounded-lg w-[260px] font-mono text-sm transition-all relative ${selected || showPresence ? 'border-[#00ff88] shadow-[0_0_20px_rgba(0,255,136,0.6)]' : 'border-[#00ff88]/50 shadow-[0_0_10px_rgba(0,255,136,0.3)]'}`}>
-      {/* Presence Indicators (Figma Style) */}
+    <div
+      className={`bg-[#0b0f19] border rounded-lg font-mono text-sm transition-all relative flex flex-col h-full min-w-[220px] min-h-[160px] ${
+        selected || showPresence
+          ? 'border-[#00ff88] shadow-[0_0_20px_rgba(0,255,136,0.6)]'
+          : 'border-[#00ff88]/50 shadow-[0_0_10px_rgba(0,255,136,0.3)]'
+      }`}
+    >
+      {/* NodeResizer — drag any edge or corner to resize */}
+      <NodeResizer
+        minWidth={220}
+        minHeight={160}
+        isVisible={selected}
+        lineClassName="!border-[#00ff88]/60 hover:!border-[#00ff88]"
+        handleClassName="!w-2.5 !h-2.5 !rounded-sm !bg-[#00ff88] !border-[#0b0f19] !border-2 hover:!scale-125 transition-transform"
+      />
+
+      {/* Presence Indicators */}
       {showPresence && (
         <div className="absolute -top-6 right-0 flex -space-x-2">
           {activeUsers.map((u, i) => (
@@ -22,8 +37,9 @@ const NoteNode = ({ data, selected }) => {
           ))}
         </div>
       )}
+
       {/* Header */}
-      <div className="p-2 flex justify-between items-center text-[#00ff88] border-b border-[#00ff88]/30">
+      <div className="p-2 flex justify-between items-center text-[#00ff88] border-b border-[#00ff88]/30 shrink-0">
         <div className="flex items-center gap-2">
           <FiFileText size={16} />
           <span className="font-bold text-xs uppercase tracking-tighter">Research Note</span>
@@ -44,11 +60,11 @@ const NoteNode = ({ data, selected }) => {
         </div>
       </div>
 
-      {/* Body */}
-      <div className="p-3 space-y-3">
+      {/* Body — textarea fills remaining height */}
+      <div className="p-3 flex-1 flex flex-col">
         <textarea
-          className="w-full h-24 bg-black border border-gray-800 text-gray-300 p-2 rounded resize-none focus:outline-none focus:border-[#00ff88]/50"
-          placeholder="taking note about what i am doing"
+          className="flex-1 w-full bg-black border border-gray-800 text-gray-300 p-2 rounded resize-none focus:outline-none focus:border-[#00ff88]/50"
+          placeholder="Taking note about what I am doing..."
           defaultValue={data.text || ''}
           onChange={(e) => data.onDataChange && data.onDataChange({ text: e.target.value })}
         />

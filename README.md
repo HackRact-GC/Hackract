@@ -13,16 +13,18 @@ Make sure you have the following installed:
 
 🟦 Node.js & npm
 
+PostgreSQL must be running locally before you start the backend. The backend reads `Backend/.env` and connects to `DATABASE_URL` on port `5432`.
+
 ⚙️ Backend Setup
 ```bash
-cd frontend
+cd Backend
 npm install 
 npm run dev
 ```
 
 🎨 Frontend Setup
 ```bash
-cd backend
+cd Frontend
 npm install 
 npm run dev
 ```

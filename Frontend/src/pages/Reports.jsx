@@ -7,10 +7,10 @@ import jsPDF from 'jspdf';
 import { useAuth } from '../context/authContext.jsx';
 
 // Checkbox Component
-const CheckboxOption = ({ id, label, checked, onChange }) => (
+const CheckboxOption = ({ id, label, checked, onChange, disabled }) => (
   <div
-    onClick={onChange}
-    className="flex items-center justify-between p-4 bg-[#141518] rounded-xl cursor-pointer border transition-colors border-white/5 hover:border-white/10"
+    onClick={!disabled ? onChange : undefined}
+    className={`flex items-center justify-between p-4 bg-[#141518] rounded-xl border transition-colors border-white/5 ${disabled ? 'cursor-not-allowed opacity-75' : 'cursor-pointer hover:border-white/10'}`}
   >
     <div>
       <div className="text-[9px] font-bold text-gray-500 uppercase tracking-widest font-mono mb-1">
@@ -18,22 +18,23 @@ const CheckboxOption = ({ id, label, checked, onChange }) => (
       </div>
       <div className="text-sm font-bold text-gray-200">{label}</div>
     </div>
-    <div className={`w-5 h-5 flex items-center justify-center rounded-md border transition-colors ${checked ? 'bg-[#00c477] border-[#00c477]' : 'bg-[#1e1e24] border-gray-600'}`}>
+    <div className={`w-5 h-5 flex items-center justify-center rounded-md border transition-colors ${checked ? 'bg-[#00c477] border-[#00c477]' : 'bg-[#1e1e24] border-gray-600'} ${disabled ? 'opacity-65' : ''}`}>
       {checked && <svg className="w-3 h-3 text-black" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" /></svg>}
     </div>
   </div>
 );
 
 // Toggle Switch Component
-const ToggleSwitch = ({ label, icon: Icon, checked, onChange }) => (
+const ToggleSwitch = ({ label, icon: Icon, checked, onChange, disabled }) => (
   <div className="flex items-center justify-between py-3">
     <div className="flex items-center gap-3">
       {Icon && <Icon className="text-gray-500 w-4 h-4" />}
       <span className="text-sm font-medium text-gray-300">{label}</span>
     </div>
     <button
-      onClick={onChange}
-      className={`w-10 h-5 rounded-full relative transition-colors ${checked ? 'bg-[#00c477]' : 'bg-[#2a2b30]'}`}
+      onClick={!disabled ? onChange : undefined}
+      disabled={disabled}
+      className={`w-10 h-5 rounded-full relative transition-colors ${checked ? 'bg-[#00c477]' : 'bg-[#2a2b30]'} ${disabled ? 'cursor-not-allowed opacity-60' : ''}`}
     >
       <div className={`absolute top-0.5 w-4 h-4 rounded-full bg-white transition-transform ${checked ? 'translate-x-[22px]' : 'translate-x-0.5'}`} />
     </button>
@@ -45,6 +46,7 @@ const Reports = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
   const projectId = searchParams.get('projectId');
+  const isOrgAdmin = user?.roles?.some(r => r.type === 'ORG_ADMIN') || false;
 
   const [loading, setLoading] = useState(!!projectId);
   const [generating, setGenerating] = useState(false);
@@ -324,6 +326,30 @@ const Reports = () => {
     }
   };
 
+  const handlePreviewLiveReport = async () => {
+    if (!projectId) return toast.error('No project selected to preview.');
+    setPreviewLoading(true);
+    setPreviewModalOpen(true);
+    setPageNumber(1);
+    setScale(1.0);
+    
+    try {
+      const response = await api.post(
+        '/reports/preview',
+        { projectId, modules },
+        { responseType: 'blob' }
+      );
+      const blob = new Blob([response.data], { type: 'application/pdf' });
+      setPreviewPdfBlob(blob);
+    } catch (err) {
+      console.error(err);
+      toast.error('Preview synthesis failed. Please try again.');
+      setPreviewModalOpen(false);
+    } finally {
+      setPreviewLoading(false);
+    }
+  };
+
   const getSeverityStyle = (severity) => {
     switch (severity?.toUpperCase()) {
       case 'CRITICAL': return 'bg-red-500/10 text-red-500 border-red-500/20';
@@ -347,7 +373,23 @@ const Reports = () => {
             <button onClick={() => navigate(-1)} className="text-gray-500 hover:text-white transition-colors">
               <FiArrowLeft size={18} />
             </button>
-
+            <h1 className="text-gray-300 text-sm font-medium leading-relaxed">
+              {isOrgAdmin ? (
+                <span>View high-fidelity audit reports for the <span className="font-bold text-white uppercase">{projectName}</span> architecture. Review findings and compliance documentation.</span>
+              ) : (
+                <span>Configure and synthesize high-fidelity audit reports for the <span className="font-bold text-white uppercase">{projectName}</span> architecture. Select parameters, review findings, and deploy documentation.</span>
+              )}
+            </h1>
+          </div>
+        </div>
+        <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2 bg-[#00c477]/10 px-4 py-2 rounded border border-[#00c477]/20">
+            <div className="w-1.5 h-1.5 rounded-full bg-[#00c477] animate-pulse" />
+            <span className="text-[10px] font-black text-[#00c477] uppercase tracking-widest">FINDINGS: {findings.length} DETECTED</span>
+          </div>
+          <div className="flex items-center gap-2 bg-[#3b82f6]/10 px-4 py-2 rounded border border-[#3b82f6]/20">
+            <div className="w-1.5 h-1.5 rounded-full bg-[#3b82f6]" />
+            <span className="text-[10px] font-black text-[#3b82f6] uppercase tracking-widest">COMPLIANCE: SOC2 READY</span>
           </div>
         </div>
 
@@ -393,17 +435,21 @@ const Reports = () => {
                   </select>
                 </div>
 
-                <h3 className="text-[10px] font-bold text-gray-500 uppercase tracking-widest font-mono mb-4">Select Format</h3>
-                <div className="grid grid-cols-2 gap-4">
-                  <button onClick={() => setExportFormat('pdf')} className={`p-6 rounded-xl border flex flex-col items-center gap-4 transition-all ${exportFormat === 'pdf' ? 'border-[#00c477] bg-[#00c477]/10 text-[#00c477]' : 'border-white/5 bg-[#141518] hover:border-white/20 text-gray-400'}`}>
-                    <FiFileText size={32} />
-                    <span className="font-bold tracking-widest uppercase">PDF Document</span>
-                  </button>
-                  <button onClick={() => setExportFormat('json')} className={`p-6 rounded-xl border flex flex-col items-center gap-4 transition-all ${exportFormat === 'json' ? 'border-[#00c477] bg-[#00c477]/10 text-[#00c477]' : 'border-white/5 bg-[#141518] hover:border-white/20 text-gray-400'}`}>
-                    <FiCode size={32} />
-                    <span className="font-bold tracking-widest uppercase">JSON Payload</span>
-                  </button>
-                </div>
+                {!isOrgAdmin && (
+                  <>
+                    <h3 className="text-[10px] font-bold text-gray-500 uppercase tracking-widest font-mono mb-4">Select Format</h3>
+                    <div className="grid grid-cols-2 gap-4 mb-4">
+                      <button onClick={() => setExportFormat('pdf')} className={`p-6 rounded-xl border flex flex-col items-center gap-4 transition-all ${exportFormat === 'pdf' ? 'border-[#00c477] bg-[#00c477]/10 text-[#00c477]' : 'border-white/5 bg-[#141518] hover:border-white/20 text-gray-400'}`}>
+                        <FiFileText size={32} />
+                        <span className="font-bold tracking-widest uppercase">PDF Document</span>
+                      </button>
+                      <button onClick={() => setExportFormat('json')} className={`p-6 rounded-xl border flex flex-col items-center gap-4 transition-all ${exportFormat === 'json' ? 'border-[#00c477] bg-[#00c477]/10 text-[#00c477]' : 'border-white/5 bg-[#141518] hover:border-white/20 text-gray-400'}`}>
+                        <FiCode size={32} />
+                        <span className="font-bold tracking-widest uppercase">JSON Payload</span>
+                      </button>
+                    </div>
+                  </>
+                )}
                 <div className="flex gap-4 mt-auto pt-6">
                   <button onClick={() => navigate(-1)} className="px-6 py-3.5 rounded-xl border border-white/10 text-xs font-bold text-gray-300 uppercase tracking-widest hover:bg-white/5 transition-colors">
                     Cancel
@@ -439,16 +485,26 @@ const Reports = () => {
                 >
                   Standard Parameters
                 </button>
-                <button
-                  onClick={() => setActiveConfigTab('ai-guided')}
-                  className={`flex-1 py-2 rounded-lg text-xs font-black uppercase tracking-wider transition-all flex items-center justify-center gap-2 ${activeConfigTab === 'ai-guided' ? 'bg-[#00c477] text-black shadow-lg' : 'text-gray-400 hover:text-white'}`}
-                >
-                  <FiCpu className="animate-pulse" /> AI-Guided Drafts
-                </button>
+                {!isOrgAdmin && (
+                  <button
+                    onClick={() => setActiveConfigTab('ai-guided')}
+                    className={`flex-1 py-2 rounded-lg text-xs font-black uppercase tracking-wider transition-all flex items-center justify-center gap-2 ${activeConfigTab === 'ai-guided' ? 'bg-[#00c477] text-black shadow-lg' : 'text-gray-400 hover:text-white'}`}
+                  >
+                    <FiCpu className="animate-pulse" /> AI-Guided Drafts
+                  </button>
+                )}
               </div>
 
               <div className="bg-[#0f1115] border border-[#1c1d21] rounded-2xl p-6 flex-1 flex flex-col mt-4">
-                {activeConfigTab === 'standard' ? (
+                {isOrgAdmin && (
+                  <div className="bg-[#3b82f6]/10 border border-[#3b82f6]/20 rounded-xl p-4 text-xs text-gray-400 mb-6 flex items-center gap-3">
+                    <div className="w-2 h-2 rounded-full bg-[#3b82f6]" />
+                    <span className="text-left">
+                      <strong>READ-ONLY VIEW:</strong> As an organization administrator, you have read-only access to this report manifest.
+                    </span>
+                  </div>
+                )}
+                {activeConfigTab === 'standard' || isOrgAdmin ? (
                   <>
                     {/* Grid Options */}
                     <div className="grid grid-cols-2 gap-4 mb-8">
@@ -748,7 +804,7 @@ const Reports = () => {
                     Previous_Step
                   </button>
                   <button onClick={() => setStep(3)} className="flex-1 bg-[#a3ffcc] hover:bg-[#00c477] text-[#004d2e] rounded-xl text-xs font-black uppercase tracking-widest transition-colors flex items-center justify-center">
-                    Compile_Preview
+                    {isOrgAdmin ? 'View_Deployment_Status' : 'Compile_Preview'}
                   </button>
                 </div>
               </div>
@@ -764,10 +820,15 @@ const Reports = () => {
                 <h2 className="text-xl font-black text-white tracking-widest uppercase">Synthesis_&_Deployment</h2>
               </div>
               <div className="bg-[#0f1115] border border-[#1c1d21] rounded-2xl p-6 flex-1 flex flex-col justify-center items-center text-center">
-                <FiSend size={48} className="text-[#00c477] mb-6 animate-pulse" />
-                <h3 className="text-lg font-black text-white uppercase tracking-widest mb-2">Ready for Deployment</h3>
-                <p className="text-sm text-gray-500 mb-8 max-w-[250px]">
-                  All parameters configured. The {exportFormat === 'pdf' ? 'PDF document' : 'JSON payload'} is ready to be compiled and securely downloaded to your local system.
+                <FiSend size={48} className={isOrgAdmin ? "text-[#3b82f6] mb-6 animate-pulse" : "text-[#00c477] mb-6 animate-pulse"} />
+                <h3 className="text-lg font-black text-white uppercase tracking-widest mb-2">
+                  {isOrgAdmin ? 'Report Preview Mode' : 'Ready for Deployment'}
+                </h3>
+                <p className="text-sm text-gray-500 mb-8 max-w-[280px]">
+                  {isOrgAdmin 
+                    ? 'This report is ready in the portal. As an organization administrator, you can view the live findings and project overview. New PDF or JSON generation is restricted.'
+                    : `All parameters configured. The ${exportFormat === 'pdf' ? 'PDF document' : 'JSON payload'} is ready to be compiled and securely downloaded to your local system.`
+                  }
                 </p>
                 <div className="flex gap-4 w-full mt-auto">
                   <button onClick={() => setStep(2)} className="px-6 py-3.5 rounded-xl border border-white/10 text-xs font-bold text-gray-300 uppercase tracking-widest hover:bg-white/5 transition-colors">
@@ -775,11 +836,11 @@ const Reports = () => {
                   </button>
                   <button
                     onClick={exportFormat === 'pdf' ? handleGeneratePdf : handleJsonExport}
-                    disabled={generating}
-                    className="flex-1 bg-[#a3ffcc] hover:bg-[#00c477] disabled:opacity-50 text-[#004d2e] rounded-xl text-xs font-black uppercase tracking-widest transition-colors flex items-center justify-center gap-2"
+                    disabled={generating || isOrgAdmin}
+                    className="flex-1 bg-[#a3ffcc] hover:bg-[#00c477] disabled:opacity-50 disabled:bg-gray-800/80 disabled:text-gray-500 rounded-xl text-xs font-black uppercase tracking-widest transition-colors flex items-center justify-center gap-2"
                   >
                     {generating ? <FiLoader className="animate-spin" size={16} /> : <FiDownload size={16} />}
-                    {generating ? 'Downloading...' : 'Download_Now'}
+                    {isOrgAdmin ? 'Generation Restricted' : (generating ? 'Downloading...' : 'Download_Now')}
                   </button>
                 </div>
               </div>
@@ -843,17 +904,16 @@ const Reports = () => {
               >
                 <FiFileText size={18} /> PREVIEW DOCUMENT
               </button>
-
             </div>
           ) : (
             <button
               id="generate_report_project"
               onClick={handlePreviewPdf}
-              disabled={generating}
-              className="w-full bg-[#a3ffcc] hover:bg-[#00c477] disabled:opacity-50 text-[#004d2e] rounded-xl py-4 flex items-center justify-center gap-3 transition-all font-black uppercase tracking-widest text-sm"
+              disabled={generating || isOrgAdmin}
+              className="w-full bg-[#a3ffcc] hover:bg-[#00c477] disabled:opacity-50 disabled:bg-gray-800/80 disabled:text-gray-500 rounded-xl py-4 flex items-center justify-center gap-3 transition-all font-black uppercase tracking-widest text-sm"
             >
               {generating ? <FiLoader className="animate-spin" size={18} /> : <FiFileText size={18} />}
-              {generating ? 'SYNTHESIZING_PREVIEW...' : 'PREVIEW DOCUMENT'}
+              {isOrgAdmin ? 'GENERATION RESTRICTED' : (generating ? 'SYNTHESIZING_PREVIEW...' : 'PREVIEW DOCUMENT')}
             </button>
           )}
 
@@ -931,3 +991,4 @@ const Reports = () => {
 };
 
 export default Reports;
+

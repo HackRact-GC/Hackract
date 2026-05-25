@@ -83,6 +83,8 @@ class AgentConfig:
 
 def load_config(validate: bool = True) -> AgentConfig:
     """Load configuration from environment variables. Set validate=False to allow startup without API key (e.g. configure via UI)."""
+    # Reload environment variables from .env (overriding existing) so runtime updates are picked up
+    load_dotenv(override=True)
     
     # Smart defaults for provider and models
     provider = os.getenv("LLM_PROVIDER")

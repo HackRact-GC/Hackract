@@ -60,6 +60,10 @@ router.post('/generate', async (req, res, next) => {
       throw new AppError('Unauthorized: Only project administrators or organization admins can generate reports', 403);
     }
 
+    if (isOrgAdmin) {
+      throw new AppError('Organization administrators are not allowed to generate reports.', 403);
+    }
+
     // Generate the PDF buffer
     const pdfBuffer = await generatePdfReport(projectId, modules);
 
@@ -75,6 +79,72 @@ router.post('/generate', async (req, res, next) => {
 
     res.setHeader('Content-Type', 'application/pdf');
     res.setHeader('Content-Disposition', `inline; filename="${filename}"`);
+    res.setHeader('Content-Length', pdfBuffer.length);
+    res.setHeader('Cache-Control', 'no-cache');
+    res.send(pdfBuffer);
+
+  } catch (err) {
+    next(err);
+  }
+});
+
+/**
+ * POST /api/v1/reports/preview
+ * Body: { projectId, modules: { execSummary, vulnTable, methodology, rawLogs } }
+ * Response: application/pdf binary stream (browser inline viewing)
+ */
+router.post('/preview', async (req, res, next) => {
+  try {
+    const { projectId, modules = {} } = req.body;
+
+    if (!projectId) {
+      throw new AppError('projectId is required', 400);
+    }
+
+    // Verify the requesting user has access to this project
+    const project = await prisma.pentest.findUnique({
+      where: { id: projectId },
+      select: {
+        id: true,
+        name: true,
+        organizationId: true,
+        leadPentesterId: true,
+        collaborators: { select: { userId: true, role: true } },
+      },
+    });
+
+    if (!project) {
+      throw new AppError('Project not found', 404);
+    }
+
+    const userId   = req.user.id;
+    const userRole = req.user.roles?.map(r => r.type) || [];
+
+    const userCollab     = project.collaborators.find(c => c.userId === userId);
+    const isLead         = project.leadPentesterId === userId;
+    const isOrgAdmin     = userRole.includes('ORG_ADMIN');
+
+    // Check org membership for org projects
+    let isOrgAdminMember = false;
+    if (project.organizationId) {
+      const member = await prisma.organizationMember.findFirst({
+        where: { organizationId: project.organizationId, userId, role: { in: ['owner', 'admin'] } },
+      });
+      isOrgAdminMember = Boolean(member);
+    }
+
+    const isProjectAdmin = userCollab?.role === 'PROJECT_ADMIN' || userRole.includes('PROJECT_ADMIN');
+    const isAuthorized = isLead || isOrgAdmin || isOrgAdminMember || isProjectAdmin;
+
+    if (!isAuthorized) {
+      throw new AppError('You do not have access to this project', 403);
+    }
+
+    // Generate the PDF buffer
+    const pdfBuffer = await generatePdfReport(projectId, modules);
+
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `inline; filename="preview.pdf"`);
     res.setHeader('Content-Length', pdfBuffer.length);
     res.setHeader('Cache-Control', 'no-cache');
     res.send(pdfBuffer);
@@ -270,6 +340,7 @@ Original Remediation: ${finding.remediation || 'N/A'}
     }
 
     res.json({ success: true, data: results });
+
   } catch (err) {
     next(err);
   }
@@ -319,6 +390,10 @@ router.get('/project/:projectId/json', async (req, res, next) => {
 
     if (!isAuthorized) {
       throw new AppError('Unauthorized: Only project administrators or organization admins can generate reports', 403);
+    }
+
+    if (isOrgAdmin) {
+      throw new AppError('Organization administrators are not allowed to export reports.', 403);
     }
 
     const filename = `Hackract-Report-${projectId.split('-')[0].toUpperCase()}.json`;

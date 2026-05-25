@@ -14,7 +14,13 @@ import asyncio
 import json
 import uuid
 import os
+import sys
 from datetime import datetime
+
+if hasattr(sys.stdout, 'reconfigure'):
+    sys.stdout.reconfigure(encoding='utf-8')
+if hasattr(sys.stderr, 'reconfigure'):
+    sys.stderr.reconfigure(encoding='utf-8')
 
 from agent import Agent
 from config import load_config, ConfigValidationError
@@ -279,6 +285,8 @@ async def websocket_endpoint(websocket: WebSocket, session_id: str):
                 })
                 continue
             message_data = json.loads(data)
+            # Debug: log incoming WS messages for troubleshooting
+            print(f"[ws] received for session {session_id}: {message_data}")
             
             # Handle stop command: flag + kill subprocess + cancel in-flight agent task (LLM stream)
             if message_data.get("type") == "stop":
@@ -589,7 +597,10 @@ async def list_memories():
 
 # Serve static files (Frontend)
 # Prefer React build in static_build/, fall back to legacy static/ for dev
-_static_dir = "static_build" if os.path.isdir("static_build") else "static"
+# Resolve paths relative to this file so the server can be started from any cwd
+_base_dir = os.path.dirname(os.path.abspath(__file__))
+_static_build_dir = os.path.join(_base_dir, "static_build")
+_static_dir = _static_build_dir if os.path.isdir(_static_build_dir) else os.path.join(_base_dir, "static")
 app.mount("/", StaticFiles(directory=_static_dir, html=True), name="static")
 
 

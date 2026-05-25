@@ -277,6 +277,10 @@ const WorkflowEditor = ({ workflowId: propWorkflowId, isOrgView = false }) => {
     }
   };
 
+  const recordAgentRun = useCallback((meta) => {
+    saveToDatabase(nodesRef.current, edgesRef.current, 'AGENT_RAN', meta);
+  }, []);
+
   const onDataChange = useCallback((id, newData) => {
     setNodes(nds => nds.map(node => {
       if (node.id === id) {
@@ -352,6 +356,8 @@ const WorkflowEditor = ({ workflowId: propWorkflowId, isOrgView = false }) => {
         onTitleChange: (newTitle) => updateNodeTitle(id, newTitle),
         onDataChange: (newData) => onDataChange(id, newData),
         onRunAutomation: (host) => runAutomation(host, id),
+        onAgentRan: (details) => recordAgentRun(details),
+        pentestId: projectInfo.id,
         activeUsers: {},
         workflowId
       },
@@ -364,7 +370,7 @@ const WorkflowEditor = ({ workflowId: propWorkflowId, isOrgView = false }) => {
 
     emitWorkflowChange(newNodes, currentEdges);
     saveToDatabase(newNodes, currentEdges, "ADD_NODE", { type, label: defaultLabel });
-  }, [emitWorkflowChange, deleteNode, updateNodeTitle, onDataChange, runAutomation, setNodes, workflowId, localUser]);
+  }, [emitWorkflowChange, deleteNode, updateNodeTitle, onDataChange, runAutomation, recordAgentRun, projectInfo.id, setNodes, workflowId, localUser]);
 
   const restoreCheckpoint = useCallback((snapshot) => {
     if (!snapshot || !snapshot.nodes || !snapshot.edges) return;
@@ -377,6 +383,8 @@ const WorkflowEditor = ({ workflowId: propWorkflowId, isOrgView = false }) => {
         onLinkFinding: (findingId) => linkFinding(node.id, findingId),
         onDataChange: (newData) => onDataChange(node.id, newData),
         onRunAutomation: (host) => runAutomation(host, node.id),
+        onAgentRan: (details) => recordAgentRun(details),
+        pentestId: projectInfo.id,
         findings,
         activeUsers: activeNodes[node.id] || {},
         workflowId
@@ -386,7 +394,7 @@ const WorkflowEditor = ({ workflowId: propWorkflowId, isOrgView = false }) => {
     setEdges(snapshot.edges);
     emitWorkflowChange(restoredNodes, snapshot.edges);
     saveToDatabase(restoredNodes, snapshot.edges, "RESTORE_CHECKPOINT", { label: "Reverted to a previous version" });
-  }, [deleteNode, updateNodeTitle, linkFinding, onDataChange, runAutomation, findings, activeNodes, setNodes, setEdges, emitWorkflowChange, workflowId, localUser]);
+  }, [deleteNode, updateNodeTitle, linkFinding, onDataChange, runAutomation, recordAgentRun, projectInfo.id, findings, activeNodes, setNodes, setEdges, emitWorkflowChange, workflowId, localUser]);
 
   const createCheckpoint = useCallback(() => {
     saveToDatabase(nodesRef.current, edgesRef.current, "CREATE_CHECKPOINT", { label: "User created a manual checkpoint" }, true);
@@ -481,6 +489,8 @@ const WorkflowEditor = ({ workflowId: propWorkflowId, isOrgView = false }) => {
               onLinkFinding: (findingId) => linkFinding(node.id, findingId),
               onDataChange: (newData) => onDataChange(node.id, newData),
               onRunAutomation: (host) => runAutomation(host, node.id),
+              onAgentRan: (details) => recordAgentRun(details),
+              pentestId: data.pentestId,
               findings: data.pentest?.findings || [],
               activeUsers: activeNodes[node.id] || {},
               workflowId
@@ -604,6 +614,9 @@ const WorkflowEditor = ({ workflowId: propWorkflowId, isOrgView = false }) => {
     [reactFlowInstance, addNode]
   );
 
+  // Debounce ref for resize saves
+  const resizeSaveDebounce = useRef(null);
+
   // General Change Handler (Moving, editing nodes)
   const handleNodesChange = useCallback((changes) => {
     onNodesChange(changes);
@@ -612,6 +625,8 @@ const WorkflowEditor = ({ workflowId: propWorkflowId, isOrgView = false }) => {
     const isDraggingNow = changes.some(c => c.type === 'position' && c.dragging === true);
     const dragEnded = changes.some(c => c.type === 'position' && c.dragging === false);
     const hasRemoval = changes.some(c => c.type === 'remove');
+    // NodeResizer emits 'dimensions' when user drags a resize handle
+    const hasResize = changes.some(c => c.type === 'dimensions');
 
     // Update drag-in-progress ref so remote patches skip position merge
     if (isDraggingNow) isDraggingRef.current = true;
@@ -629,11 +644,9 @@ const WorkflowEditor = ({ workflowId: propWorkflowId, isOrgView = false }) => {
             type: node.type,
             label: node.data?.label || node.id
           };
-          console.log('[HISTORY][TRACE] Capturing removal metadata:', removalMeta);
         }
       }
 
-      // Use a micro-delay so React Flow finishes applying the change to state first
       setTimeout(() => {
         const nds = nodesRef.current;
         const eds = edgesRef.current;
@@ -641,16 +654,21 @@ const WorkflowEditor = ({ workflowId: propWorkflowId, isOrgView = false }) => {
         // Broadcast live position to peers
         emitWorkflowChange(nds, eds);
 
-        // Only persist to DB on deletion (movement is currently ignored per user request)
-        if (dragEnded) {
-          console.log('[HISTORY][TRACE] Skipped persisting MOVE_NODE (disabled)');
-          // saveToDatabase(nds, eds, 'MOVE_NODE');
-        }
         if (hasRemoval) {
-          console.log('[HISTORY][TRACE] Persisting DELETE_NODE with meta:', removalMeta);
           saveToDatabase(nds, eds, 'DELETE_NODE', removalMeta);
         }
       }, 10);
+    }
+
+    // Persist resize — debounced so we don't hammer DB on every drag pixel
+    if (hasResize) {
+      if (resizeSaveDebounce.current) clearTimeout(resizeSaveDebounce.current);
+      resizeSaveDebounce.current = setTimeout(() => {
+        const nds = nodesRef.current;
+        const eds = edgesRef.current;
+        emitWorkflowChange(nds, eds);
+        saveToDatabase(nds, eds, 'GRAPH_CHANGED', { label: 'Resized node' });
+      }, 600);
     }
   }, [onNodesChange, emitWorkflowChange, reactFlowInstance]);
 
