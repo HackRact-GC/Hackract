@@ -89,7 +89,13 @@ const HackerProfile = () => {
             employment: profile.employment?.length > 0
               ? profile.employment.map(e => {
                   try {
-                    return JSON.parse(e);
+                    const parsed = JSON.parse(e);
+                    return {
+                      company: parsed.company || '',
+                      title: parsed.title || '',
+                      from: toIsoDate(parsed.from),
+                      to: toIsoDate(parsed.to),
+                    };
                   } catch {
                     return { company: '', title: e, from: '', to: '' };
                   }
@@ -148,6 +154,42 @@ const HackerProfile = () => {
   const toggleEdit = (section) => {
     setEditMode(prev => ({ ...prev, [section]: !prev[section] }));
     setNewItem({}); // Reset new item state when toggling
+  };
+
+  const toIsoDate = (value) => {
+    if (!value || typeof value !== 'string') return '';
+
+    const trimmed = value.trim();
+    if (!trimmed) return '';
+    if (/^present$/i.test(trimmed)) return '';
+    if (/^\d{4}-\d{2}-\d{2}$/.test(trimmed)) return trimmed;
+
+    const parsed = new Date(trimmed);
+    if (Number.isNaN(parsed.getTime())) return '';
+
+    return parsed.toISOString().slice(0, 10);
+  };
+
+  const formatEmploymentDate = (value) => {
+    if (!value) return '';
+    if (/^present$/i.test(value)) return 'Present';
+
+    if (/^\d{4}-\d{2}-\d{2}$/.test(value)) {
+      return new Intl.DateTimeFormat(undefined, { month: 'short', year: 'numeric' }).format(new Date(`${value}T00:00:00`));
+    }
+
+    return value;
+  };
+
+  const formatEmploymentRange = (job) => {
+    const start = formatEmploymentDate(job.from);
+    const end = job.to ? formatEmploymentDate(job.to) : 'Present';
+
+    if (!start && !job.to) return 'Present';
+    if (!start) return `Until ${end}`;
+    if (!job.to) return `${start} - Present`;
+
+    return `${start} - ${end}`;
   };
 
   const saveProfileWith = async (overrides = {}) => {
@@ -478,13 +520,14 @@ const HackerProfile = () => {
                   <input type="text" placeholder="Company Name" value={newItem.company || ''} onChange={e => setNewItem({ ...newItem, company: e.target.value })} className="w-full bg-[#111] border border-[#00c477] rounded-lg p-2 text-sm focus:outline-none" />
                   <input type="text" placeholder="Title" value={newItem.title || ''} onChange={e => setNewItem({ ...newItem, title: e.target.value })} className="w-full bg-[#111] border border-[#00c477] rounded-lg p-2 text-sm focus:outline-none" />
                   <div className="flex gap-2">
-                    <input type="text" placeholder="From (e.g. Jan 2020)" value={newItem.from || ''} onChange={e => setNewItem({ ...newItem, from: e.target.value })} className="w-1/2 bg-[#111] border border-[#00c477] rounded-lg p-2 text-sm focus:outline-none" />
-                    <input type="text" placeholder="To (e.g. Present)" value={newItem.to || ''} onChange={e => setNewItem({ ...newItem, to: e.target.value })} className="w-1/2 bg-[#111] border border-[#00c477] rounded-lg p-2 text-sm focus:outline-none" />
+                    <input type="date" value={newItem.from || ''} onChange={e => setNewItem({ ...newItem, from: e.target.value })} className="w-1/2 bg-[#111] border border-[#00c477] rounded-lg p-2 text-sm focus:outline-none text-white [&::-webkit-calendar-picker-indicator]:invert" />
+                    <input type="date" value={newItem.to || ''} onChange={e => setNewItem({ ...newItem, to: e.target.value })} className="w-1/2 bg-[#111] border border-[#00c477] rounded-lg p-2 text-sm focus:outline-none text-white [&::-webkit-calendar-picker-indicator]:invert" />
                   </div>
+                  <p className="text-xs text-gray-400">Leave “To” blank if you are currently working here.</p>
                   <div className="flex gap-2 pt-2">
                     <button onClick={() => {
                       if (newItem.company || newItem.title) {
-                        setForm({ ...form, employment: [...form.employment, { company: newItem.company, title: newItem.title, from: newItem.from, to: newItem.to }] });
+                        setForm({ ...form, employment: [...form.employment, { company: newItem.company, title: newItem.title, from: newItem.from || '', to: newItem.to || '' }] });
                       }
                       toggleEdit('employment');
                     }} className="px-4 py-1.5 bg-[#00c477] text-black text-sm rounded-full font-bold">Add & Done</button>
@@ -497,7 +540,7 @@ const HackerProfile = () => {
                 {form.employment.length > 0 ? form.employment.map((job, idx) => (
                   <div key={idx} className="group/item relative border-b border-white/5 pb-4 last:border-0 last:pb-0">
                     <h3 className="font-bold text-lg">{job.title} {job.company ? `| ${job.company}` : ''}</h3>
-                    {(job.from || job.to) && <p className="text-sm text-gray-400 mb-2">{job.from} - {job.to}</p>}
+                    <p className="text-sm text-gray-400 mb-2">{formatEmploymentRange(job)}</p>
                     <button onClick={() => setForm({ ...form, employment: form.employment.filter((_, i) => i !== idx) })} className="absolute top-0 right-0 hidden group-hover/item:flex w-8 h-8 rounded-full bg-red-500/10 text-red-500 items-center justify-center hover:bg-red-500 hover:text-white">
                       <FiTrash2 size={14} />
                     </button>
