@@ -2,12 +2,61 @@ import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import toast from "react-hot-toast";
+import DOMPurify from "dompurify";
 import api from "../api/axiosConfig";
+import { generateWorkflowAssistantResponse } from "../api/assistantApi";
 import ProjectActivity from "./ProjectActivity.jsx";
 import KickoffChecklist from "./KickoffChecklist.jsx";
 import { useAuth } from "../context/authContext.jsx";
 import { FiDownload, FiExternalLink, FiFileText, FiArrowLeft, FiCode, FiPrinter, FiGlobe, FiServer, FiFileMinus, FiCalendar, FiPlus, FiUserPlus, FiTrash2, FiSearch, FiX, FiSend, FiEdit2, FiStar, FiUsers, FiFile } from "react-icons/fi";
 import { getPrimaryRole, ROLES } from "../utils/roles.js";
+import { marked } from "marked";
+
+marked.setOptions({ breaks: true, gfm: true });
+
+const renderAssistantMarkdown = (text) => {
+  const html = marked.parse(String(text ?? ""));
+  return DOMPurify.sanitize(html, {
+    ALLOWED_TAGS: [
+      'p', 'br', 'strong', 'em', 'b', 'i', 'u', 's', 'del', 'a', 'ul', 'ol', 'li',
+      'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'blockquote', 'pre', 'code', 'hr',
+      'table', 'thead', 'tbody', 'tr', 'th', 'td',
+    ],
+    ALLOWED_ATTR: ['href', 'title', 'target', 'rel', 'class'],
+  });
+};
+
+const DEFAULT_ASSISTANT_MESSAGES = [
+  { sender: 'AI', text: 'Hello Admin. System is ready. How can I assist you with the project?' },
+];
+
+const getAssistantStorageKey = (projectId, userId) => `hackract_project_ai_chat:${projectId || 'unknown'}:${userId || 'guest'}`;
+
+const normalizeAssistantMessages = (messages) => {
+  if (!Array.isArray(messages)) return DEFAULT_ASSISTANT_MESSAGES;
+
+  const normalized = messages
+    .map((message) => ({
+      sender: message?.sender === 'Admin' ? 'Admin' : 'AI',
+      text: String(message?.text ?? '').trim(),
+    }))
+    .filter((message) => message.text.length > 0);
+
+  return normalized.length > 0 ? normalized : DEFAULT_ASSISTANT_MESSAGES;
+};
+
+const loadAssistantMessages = (storageKey) => {
+  if (typeof window === 'undefined' || !storageKey) return DEFAULT_ASSISTANT_MESSAGES;
+
+  try {
+    const raw = window.localStorage.getItem(storageKey);
+    if (!raw) return DEFAULT_ASSISTANT_MESSAGES;
+
+    return normalizeAssistantMessages(JSON.parse(raw));
+  } catch {
+    return DEFAULT_ASSISTANT_MESSAGES;
+  }
+};
 
 const InviteMemberModal = ({ projectId, onClose, onInvited }) => {
   const [search, setSearch] = useState("");
@@ -135,9 +184,14 @@ const WorkspaceView = ({ projectId, onBack }) => {
   //const [activeTab, setActiveTab] = useState(searchParams.get("tab") || "workflow");
   const [showInvite, setShowInvite] = useState(false);
   const [aiInput, setAiInput] = useState('');
-  const [aiMessages, setAiMessages] = useState([
-    { sender: 'AI', text: 'Hello Admin. System is ready. How can I assist you with the project?' },
-  ]);
+  const [aiSending, setAiSending] = useState(false);
+  const [assistantActivity, setAssistantActivity] = useState([]);
+  const [assistantFindings, setAssistantFindings] = useState([]);
+  const assistantStorageKey = useMemo(
+    () => getAssistantStorageKey(projectId, user?.id),
+    [projectId, user?.id]
+  );
+  const [aiMessages, setAiMessages] = useState(() => loadAssistantMessages(assistantStorageKey));
   const workspaceName = project?.name || "Project Workspace";
 
   const isOrgAdmin = useMemo(() => {
@@ -196,6 +250,46 @@ const WorkspaceView = ({ projectId, onBack }) => {
     if (projectId) loadProject();
   }, [projectId]);
 
+  useEffect(() => {
+    setAiMessages(loadAssistantMessages(assistantStorageKey));
+  }, [assistantStorageKey]);
+
+  useEffect(() => {
+    if (!projectId) return;
+
+    let isMounted = true;
+
+    const loadAssistantContext = async () => {
+      try {
+        const [activityRes, findingsRes] = await Promise.all([
+          api.get(`/projects/${projectId}/activity`),
+          api.get('/findings', { params: { pentestId: projectId, limit: 5 } }),
+        ]);
+
+        if (!isMounted) return;
+
+        setAssistantActivity(Array.isArray(activityRes.data?.data) ? activityRes.data.data.slice(0, 5) : []);
+        setAssistantFindings(Array.isArray(findingsRes.data?.data) ? findingsRes.data.data.slice(0, 5) : []);
+      } catch (error) {
+        if (!isMounted) return;
+        setAssistantActivity([]);
+        setAssistantFindings([]);
+      }
+    };
+
+    loadAssistantContext();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [projectId]);
+
+  useEffect(() => {
+    if (typeof window === 'undefined' || !assistantStorageKey) return;
+
+    window.localStorage.setItem(assistantStorageKey, JSON.stringify(normalizeAssistantMessages(aiMessages)));
+  }, [assistantStorageKey, aiMessages]);
+
   const projectAdmin = useMemo(
     () => project?.collaborators?.find((c) => c.role === "PROJECT_ADMIN"),
     [project]
@@ -231,16 +325,16 @@ const WorkspaceView = ({ projectId, onBack }) => {
   };
 
   const handleRemoveMember = async (userId) => {
-    if (!window.confirm("Are you sure you want to remove this member from the project?")) return;
+    if (!window.confirm("Are you sure you want to ban this hacker from the project?")) return;
     try {
       await api.delete(`/projects/${projectId}/collaborators/${userId}`);
-      toast.success("Member removed from project");
+      toast.success("Hacker banned from project");
       setProject(prev => ({
         ...prev,
         collaborators: prev.collaborators.filter(c => c.userId !== userId)
       }));
     } catch (err) {
-      toast.error(err.response?.data?.message || "Failed to remove member");
+      toast.error(err.response?.data?.message || "Failed to ban hacker");
     }
   };
 
@@ -265,16 +359,74 @@ const WorkspaceView = ({ projectId, onBack }) => {
     }
   };
 
-  const handleAiSend = (e) => {
+  const assistantContext = useMemo(() => {
+    if (!project) return '';
+
+    const recentActivityLines = assistantActivity.length
+      ? assistantActivity.map((item) => {
+          const actor = item.user?.fullName || item.user?.handle || 'System';
+          const message = item.message || item.action || 'No message available';
+          return `- ${actor}: ${message}`;
+        })
+      : ['- No recent activity captured.'];
+
+    const recentFindingLines = assistantFindings.length
+      ? assistantFindings.map((finding) => {
+          const title = finding.title || 'Untitled finding';
+          const severity = finding.severity || 'UNKNOWN';
+          const status = finding.status || 'UNKNOWN';
+          const asset = finding.affectedAsset ? ` | Asset: ${finding.affectedAsset}` : '';
+          return `- ${title} [${severity} | ${status}]${asset}`;
+        })
+      : ['- No recent findings recorded.'];
+
+    const lines = [
+      `Project: ${project.name || 'Unnamed project'}`,
+      `Organization: ${project.organization?.name || 'Independent'}`,
+      `Status: ${project.status || 'Unknown'}`,
+      project.description ? `Brief: ${project.description}` : null,
+      project.targetDomains?.length ? `Target domains: ${project.targetDomains.join(', ')}` : null,
+      project.ipRanges?.length ? `IP ranges: ${project.ipRanges.join(', ')}` : null,
+      project.excludedAssets ? `Excluded assets: ${project.excludedAssets}` : null,
+      `Collaborators: ${project.collaborators?.length || 0}`,
+      `Hackers assigned: ${hackers.length}`,
+      `Applicants awaiting review: ${applicants.length}`,
+      '',
+      'Recent activity:',
+      ...recentActivityLines,
+      '',
+      'Recent findings:',
+      ...recentFindingLines,
+    ].filter(Boolean);
+
+    return lines.join('\n');
+  }, [project, hackers.length, applicants.length, assistantActivity, assistantFindings]);
+
+  const handleAiSend = async (e) => {
     e.preventDefault();
-    if (!aiInput.trim()) return;
+    if (!aiInput.trim() || aiSending) return;
+
     const userMessage = aiInput.trim();
     setAiMessages((prev) => [...prev, { sender: 'Admin', text: userMessage }]);
     setAiInput('');
+    setAiSending(true);
 
-    setTimeout(() => {
-      setAiMessages((prev) => [...prev, { sender: 'AI', text: 'Analyzing request... Please wait.' }]);
-    }, 800);
+    try {
+      const result = await generateWorkflowAssistantResponse({
+        prompt: userMessage,
+        context: assistantContext,
+        timeoutMs: 45000,
+      });
+
+      const assistantText = String(result?.response || result?.content || '').trim() || 'No response returned from the AI assistant.';
+      setAiMessages((prev) => [...prev, { sender: 'AI', text: assistantText }]);
+    } catch (err) {
+      const errorText = err?.message || 'The AI assistant could not be reached. Please try again.';
+      toast.error(errorText);
+      setAiMessages((prev) => [...prev, { sender: 'AI', text: errorText }]);
+    } finally {
+      setAiSending(false);
+    }
   };
 
   if (loading) {
@@ -397,67 +549,75 @@ const WorkspaceView = ({ projectId, onBack }) => {
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                <div className="bg-black/70 backdrop-blur-md border border-white/10 p-8 rounded-4xl space-y-4">
-                  <h3 className="text-xs font-black text-white/40 uppercase tracking-[0.2em]">Activity Feed</h3>
-                  <div className="h-[360px] overflow-y-auto custom-scrollbar">
-                    <ProjectActivity projectId={projectId} />
-                  </div>
-                </div>
-
-                <div className="bg-black/70 backdrop-blur-md border border-white/10 p-8 rounded-4xl space-y-4">
-                  <h3 className="text-xs font-black text-white/40 uppercase tracking-[0.2em]">AI Security Assistant</h3>
-                  <div className="bg-[#0f1115] border border-white/5 rounded-2xl flex flex-col h-[360px]">
-                    <div className="flex-1 p-4 overflow-y-auto space-y-3">
-                      {aiMessages.map((msg, idx) => (
-                        <div key={`${msg.sender}-${idx}`} className={`flex ${msg.sender === 'Admin' ? 'justify-end' : 'justify-start'}`}>
-                          <div className={`px-3 py-2 rounded-xl text-xs ${msg.sender === 'Admin'
-                            ? 'bg-white/10 text-white'
-                            : 'bg-[#00ff88]/10 text-[#00ff88] border border-[#00ff88]/20'}`}>
-                            {msg.text}
-                          </div>
-                        </div>
-                      ))}
+              {canManage && (
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                  <div className="bg-black/70 backdrop-blur-md border border-white/10 p-8 rounded-4xl space-y-4">
+                    <h3 className="text-xs font-black text-white/40 uppercase tracking-[0.2em]">Activity Feed</h3>
+                    <div className="h-[360px] overflow-y-auto custom-scrollbar">
+                      <ProjectActivity projectId={projectId} />
                     </div>
-                    <form onSubmit={handleAiSend} className="p-3 border-t border-white/5 flex items-center gap-2">
-                      <input
-                        type="text"
-                        value={aiInput}
-                        onChange={(e) => setAiInput(e.target.value)}
-                        placeholder="Ask AI to analyze logs..."
-                        className="flex-1 bg-black border border-white/10 rounded-xl px-3 py-2 text-xs text-white outline-none focus:border-[#00ff88]/50"
-                      />
-                      <button
-                        type="submit"
-                        disabled={!aiInput.trim()}
-                        className="px-3 py-2 rounded-lg bg-[#00ff88] text-black text-[10px] font-black uppercase tracking-widest disabled:opacity-50"
-                      >
-                        Send
-                      </button>
-                    </form>
+                  </div>
+
+                  <div className="bg-black/70 backdrop-blur-md border border-white/10 p-8 rounded-4xl space-y-4">
+                    <h3 className="text-xs font-black text-white/40 uppercase tracking-[0.2em]">AI Security Assistant</h3>
+                    <div className="bg-[#0f1115] border border-white/5 rounded-2xl flex flex-col h-[360px]">
+                      <div className="flex-1 p-4 overflow-y-auto space-y-3">
+                        {aiMessages.map((msg, idx) => (
+                          <div key={`${msg.sender}-${idx}`} className={`flex ${msg.sender === 'Admin' ? 'justify-end' : 'justify-start'}`}>
+                            <div className={`px-3 py-2 rounded-xl text-xs ${msg.sender === 'Admin'
+                              ? 'bg-white/10 text-white whitespace-pre-wrap'
+                              : 'bg-[#00ff88]/10 text-[#00ff88] border border-[#00ff88]/20 prose prose-invert max-w-none'}`}>
+                              {msg.sender === 'Admin' ? (
+                                msg.text
+                              ) : (
+                                <div dangerouslySetInnerHTML={{ __html: renderAssistantMarkdown(msg.text) }} />
+                              )}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                      <form onSubmit={handleAiSend} className="p-3 border-t border-white/5 flex items-center gap-2">
+                        <input
+                          type="text"
+                          value={aiInput}
+                          onChange={(e) => setAiInput(e.target.value)}
+                          placeholder="Ask AI to analyze logs..."
+                          className="flex-1 bg-black border border-white/10 rounded-xl px-3 py-2 text-xs text-white outline-none focus:border-[#00ff88]/50"
+                        />
+                        <button
+                          type="submit"
+                          disabled={!aiInput.trim() || aiSending}
+                          className="px-3 py-2 rounded-lg bg-[#00ff88] text-black text-[10px] font-black uppercase tracking-widest disabled:opacity-50"
+                        >
+                          {aiSending ? '...' : 'Send'}
+                        </button>
+                      </form>
+                    </div>
                   </div>
                 </div>
-              </div>
+              )}
             </div>
           )}
           {activeTab === "workflow" && (
             <div className="space-y-6">
-              <div className="bg-black/70 backdrop-blur-md border border-white/10 p-6 rounded-3xl flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-                <div>
-                  <h3 className="text-xs font-black text-white/40 uppercase tracking-[0.2em]">Operational Status</h3>
-                  <p className="text-[10px] text-white/30 font-mono uppercase tracking-widest">Update project phase</p>
+              {canManage && (
+                <div className="bg-black/70 backdrop-blur-md border border-white/10 p-6 rounded-3xl flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+                  <div>
+                    <h3 className="text-xs font-black text-white/40 uppercase tracking-[0.2em]">Operational Status</h3>
+                    <p className="text-[10px] text-white/30 font-mono uppercase tracking-widest">Update project phase</p>
+                  </div>
+                  <select
+                    value={project.status}
+                    onChange={(e) => handleStatusChange(e.target.value)}
+                    className="w-full md:w-64 bg-[#0f1115] border border-white/20 rounded-xl px-4 py-3 text-white focus:border-[#00ff88]/50 transition-all outline-none appearance-none"
+                  >
+                    <option value="PLANNING">Planning</option>
+                    <option value="IN_PROGRESS">In Progress</option>
+                    <option value="REPORTING">Reporting</option>
+                    <option value="CLOSED">Closed</option>
+                  </select>
                 </div>
-                <select
-                  value={project.status}
-                  onChange={(e) => handleStatusChange(e.target.value)}
-                  className="w-full md:w-64 bg-[#0f1115] border border-white/20 rounded-xl px-4 py-3 text-white focus:border-[#00ff88]/50 transition-all outline-none appearance-none"
-                >
-                  <option value="PLANNING">Planning</option>
-                  <option value="IN_PROGRESS">In Progress</option>
-                  <option value="REPORTING">Reporting</option>
-                  <option value="CLOSED">Closed</option>
-                </select>
-              </div>
+              )}
 
               <div className="bg-black/70 backdrop-blur-md border border-white/10 p-12 rounded-4xl text-center space-y-6">
                 <div className="w-20 h-20 bg-[#00ff88]/10 border border-[#00ff88]/20 rounded-3xl flex items-center justify-center text-[#00ff88] mx-auto shadow-inner">
@@ -512,6 +672,20 @@ const WorkspaceView = ({ projectId, onBack }) => {
                     <h3 className="text-xs font-black text-white/40 uppercase tracking-[0.2em] flex items-center gap-3">
                       <FiFileText className="text-[#00ff88]" /> Operative Discoveries
                     </h3>
+                    {canManage && (
+                      <button
+                        onClick={() => {
+                             const role = getPrimaryRole(user);
+                             let path = "/reports";
+                             if (role === ROLES.PROJECT_ADMIN) path = "/pa-reports";
+                             if (role === ROLES.PENTESTER) path = "/hacker-reports";
+                             navigate(`${path}?projectId=${projectId}`);
+                           }}
+                        className="px-4 py-1.5 bg-[#00ff88]/10 hover:bg-[#00ff88] text-[#00ff88] hover:text-black border border-[#00ff88]/20 hover:border-[#00ff88] rounded-xl text-[9px] font-black uppercase tracking-widest transition-all flex items-center gap-2"
+                      >
+                        <FiPlus /> Report Generation
+                      </button>
+                    )}
                     <button
                       onClick={() => {
                           const role = getPrimaryRole(user);
@@ -626,7 +800,7 @@ const WorkspaceView = ({ projectId, onBack }) => {
                             )}
                             <button
                               onClick={() => handleRemoveMember(member.userId)}
-                              title="Remove from Project"
+                              title="Ban Hacker"
                               className="p-2.5 rounded-xl bg-rose-500/5 hover:bg-rose-500/10 text-rose-500/40 hover:text-rose-500 transition-all border border-white/5"
                             >
                               <FiTrash2 size={14} />

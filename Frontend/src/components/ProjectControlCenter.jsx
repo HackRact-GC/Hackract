@@ -638,21 +638,12 @@ const ProjectControlCenter = ({ projectId, onBack }) => {
                           <div className="text-sm font-bold text-gray-200 tracking-wider uppercase truncate">{hacker.user?.fullName || hacker.user?.email}</div>
                           <div className="flex items-center gap-3 mt-1 flex-wrap">
                             <span className="text-[9px] bg-[#1a3a2d] text-[#00c477] px-1.5 py-0.5 uppercase tracking-widest">ACCEPTED</span>
-                            <span className="text-[9px] text-gray-500 uppercase tracking-widest">LATENCY: {Math.floor(Math.random() * 40 + 5)}ms</span>
                           </div>
                         </div>
                       </div>
 
                       <div className="flex items-center justify-between sm:justify-end gap-8">
-                        <div className="hidden md:block">
-                          <div className="text-[9px] text-gray-500 uppercase tracking-widest mb-1">TASK_CAPACITY</div>
-                          <div className="flex gap-1">
-                            <div className="w-4 h-1.5 bg-[#00c477]" />
-                            <div className="w-4 h-1.5 bg-[#00c477]" />
-                            <div className="w-4 h-1.5 bg-[#00c477]/20" />
-                            <div className="w-4 h-1.5 bg-[#00c477]/20" />
-                          </div>
-                        </div>
+                        
 
                         {isLead ? (
                           <div className="flex items-center gap-2">
