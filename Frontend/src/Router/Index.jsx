@@ -28,6 +28,7 @@ import OrganizationLayout from "../layouts/OrganizationLayout.jsx";
 import ProjectAdminLayout from "../layouts/ProjectAdminLayout.jsx";
 import OrganizationDashboard from "../pages/OrganizationDashboard.jsx";
 import Reports from "../pages/Reports.jsx";
+import AiAgentLogsPage from "../pages/AiAgentLogsPage.jsx";
 import OrganizationDiscover from "../pages/OrganizationDiscover.jsx";
 import HackerPublicProfile from "../pages/HackerPublicProfile.jsx";
 import OrganizationProjects from "../pages/OrganizationProjects.jsx";
@@ -143,6 +144,10 @@ const router = createBrowserRouter([
           {
             path: "hacker-reports",
             element: <Reports />,
+          },
+          {
+            path: "ai-agent/:sessionId/logs",
+            element: <AiAgentLogsPage />,
           },
         ],
       },

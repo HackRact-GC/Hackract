@@ -522,7 +522,8 @@ const WorkspaceView = ({ projectId, onBack }) => {
                         }}
                       className="px-4 py-1.5 bg-[#00ff88]/10 hover:bg-[#00ff88] text-[#00ff88] hover:text-black border border-[#00ff88]/20 hover:border-[#00ff88] rounded-xl text-[9px] font-black uppercase tracking-widest transition-all flex items-center gap-2"
                     >
-                      <FiPlus /> Report Generation
+                      {isOrgAdmin ? <FiFileText /> : <FiPlus />}
+                      {isOrgAdmin ? "View Report" : "Report Generation"}
                     </button>
                     
                   </div>
