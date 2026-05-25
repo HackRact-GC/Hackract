@@ -2,7 +2,6 @@ import { useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useAuth0 } from "@auth0/auth0-react";
 import { FcGoogle } from "react-icons/fc";
-import { FaGithub } from "react-icons/fa";
 import { useAuth } from "../context/authContext.jsx";
 import PasswordField from "../components/PasswordField.jsx";
 
@@ -96,10 +95,11 @@ const Login = () => {
     };
 
     const handleGithubLogin = () => {
+        // removed GitHub option — keep behavior consistent with Google
         window.localStorage.setItem('selected_account_type', 'HACKER');
         loginWithRedirect({
             authorizationParams: {
-                connection: 'github',
+                connection: 'google-oauth2',
                 audience: import.meta.env.VITE_AUTH0_AUDIENCE,
             },
         });
@@ -160,16 +160,13 @@ const Login = () => {
             </div>
 
             <div className="flex gap-4 w-full">
-                <SocialButton
-                    icon={<FcGoogle />}
-                    label="Google"
-                    onClick={handleGoogleLogin}
-                />
-                <SocialButton
-                    icon={<FaGithub />}
-                    label="Github"
-                    onClick={handleGithubLogin}
-                />
+                <div className="w-full">
+                    <SocialButton
+                        icon={<FcGoogle />}
+                        label="Google"
+                        onClick={handleGoogleLogin}
+                    />
+                </div>
             </div>
 
             <div className="text-center text-xs font-mono text-gray-500 mt-4">

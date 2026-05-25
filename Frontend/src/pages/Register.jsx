@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { FaEye, FaEyeSlash, FaGithub } from "react-icons/fa";
+import { FaEye, FaEyeSlash } from "react-icons/fa";
 import { FcGoogle } from "react-icons/fc";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useAuth0 } from "@auth0/auth0-react";
@@ -135,16 +135,6 @@ const Register = () => {
     loginWithRedirect({
       authorizationParams: {
         connection: 'google-oauth2',
-        audience: import.meta.env.VITE_AUTH0_AUDIENCE,
-      },
-    });
-  };
-
-  const handleGithubLogin = () => {
-    window.localStorage.setItem('selected_account_type', accountType);
-    loginWithRedirect({
-      authorizationParams: {
-        connection: 'github',
         audience: import.meta.env.VITE_AUTH0_AUDIENCE,
       },
     });
@@ -332,24 +322,25 @@ const Register = () => {
         </button>
       </form>
 
-      <div className="flex items-center gap-4">
-        <div className="h-px flex-1 bg-gray-200"></div>
-        <span className="text-[10px] font-mono text-gray-400 uppercase tracking-widest">or connect via</span>
-        <div className="h-px flex-1 bg-gray-200"></div>
-      </div>
+      {accountType !== "ORGANIZATION" && (
+        <>
+          <div className="flex items-center gap-4">
+            <div className="h-px flex-1 bg-gray-200"></div>
+            <span className="text-[10px] font-mono text-gray-400 uppercase tracking-widest">or connect via</span>
+            <div className="h-px flex-1 bg-gray-200"></div>
+          </div>
 
-      <div className="flex gap-4 w-full">
-        <SocialButton
-          icon={<FcGoogle />}
-          label="Google"
-          onClick={handleGoogleLogin}
-        />
-        <SocialButton
-          icon={<FaGithub />}
-          label="Github"
-          onClick={handleGithubLogin}
-        />
-      </div>
+          <div className="flex gap-4 w-full">
+            <div className="w-full">
+              <SocialButton
+                icon={<FcGoogle />}
+                label="Google"
+                onClick={handleGoogleLogin}
+              />
+            </div>
+          </div>
+        </>
+      )}
 
       <div className="text-center text-xs font-mono text-gray-500 mt-4">
         Already have an account?{" "}
