@@ -1,5 +1,5 @@
 import * as service from './assistant.service.js';
-import { createAssistantSchema, updateAssistantSchema } from './assistant.schema.js';
+import { createAssistantSchema, updateAssistantSchema, generateAssistantResponseSchema } from './assistant.schema.js';
 
 export const create = async (req, res, next) => {
     try {
@@ -31,5 +31,13 @@ export const remove = async (req, res, next) => {
     try {
         await service.deleteAssistant(req.params.id);
         res.status(204).send();
+    } catch (e) { next(e); }
+};
+
+export const generate = async (req, res, next) => {
+    try {
+        const payload = generateAssistantResponseSchema.parse(req.body);
+        const result = await service.generateAssistantResponse(payload);
+        res.status(200).json({ success: true, data: result });
     } catch (e) { next(e); }
 };

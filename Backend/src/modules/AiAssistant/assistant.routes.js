@@ -12,6 +12,9 @@ const router = express.Router();
  */
 
 router.use(protect);
+
+router.post('/generate', controller.generate);
+
 router.use(restrictTo('ORG_ADMIN')); // Managing assistants is admin only
 
 /**
