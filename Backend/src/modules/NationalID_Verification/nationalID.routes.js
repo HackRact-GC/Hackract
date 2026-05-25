@@ -1,6 +1,6 @@
 import express from 'express';
 import * as controller from './nationalID.controller.js';
-import { protect } from '../../middleware/Auth.middleware.js';
+import { protect, restrictTo } from '../../middleware/Auth.middleware.js';
 import { validate } from '../auth/auth.schema.js';
 import { 
     createSchema, 
@@ -204,12 +204,12 @@ router.post('/initiate-verification', protect, controller.initiateVerification);
 router.post('/verify-otp', protect, controller.verifyOtp);
 router.get('/status', protect, controller.getStatus);
 
-router.post('/', protect, validate(createSchema), controller.create);
-router.get('/', protect, controller.getAll);
-router.delete('/', protect, controller.removeAll);
+router.post('/', protect, restrictTo('ORG_ADMIN'), validate(createSchema), controller.create);
+router.get('/', protect, restrictTo('ORG_ADMIN'), controller.getAll);
+router.delete('/', protect, restrictTo('ORG_ADMIN'), controller.removeAll);
 
-router.get('/:id', protect, controller.getById);
-router.put('/:id', protect, validate(updateSchema), controller.update);
-router.delete('/:id', protect, controller.remove);
+router.get('/:id', protect, restrictTo('ORG_ADMIN'), controller.getById);
+router.put('/:id', protect, restrictTo('ORG_ADMIN'), validate(updateSchema), controller.update);
+router.delete('/:id', protect, restrictTo('ORG_ADMIN'), controller.remove);
 
 export default router;

@@ -22,6 +22,20 @@ const step2Schema = z.object({
   otp: z.string().length(6, 'OTP must be 6 digits').regex(/^\d+$/, 'OTP must be numeric')
 });
 
+const getNationalIdErrorMessage = (error, fallback) => {
+  const payload = error?.response?.data || {};
+
+  if (payload.errorCode === 'FAN_NOT_FOUND') {
+    return 'This FAN does not exist in the Government Registry.';
+  }
+
+  if (payload.errorCode === 'FAN_EMAIL_MISMATCH') {
+    return 'Your Hackract login email does not match the government-registered email for this FAN.';
+  }
+
+  return payload.message || payload.error || fallback;
+};
+
 const EthiopiaIDVerification = () => {
   const navigate = useNavigate();
   const [step, setStep] = useState(1); // 1: Details, 2: OTP
@@ -88,7 +102,7 @@ const EthiopiaIDVerification = () => {
         setStep(2);
       }
     } catch (error) {
-      toast.error(error.response?.data?.message || 'Initiation failed');
+      toast.error(getNationalIdErrorMessage(error, 'Could not start Fayda verification.'));
     } finally {
       setSubmitting(false);
     }
@@ -103,7 +117,7 @@ const EthiopiaIDVerification = () => {
       if (result.error) toast.error(result.error);
       else toast.success('A new OTP has been sent.');
     } catch (error) {
-      toast.error(error.response?.data?.message || 'Failed to resend OTP');
+      toast.error(getNationalIdErrorMessage(error, 'Failed to resend OTP.'));
     } finally {
       setSubmitting(false);
     }
@@ -119,7 +133,7 @@ const EthiopiaIDVerification = () => {
       fetchStatus();
       setStep(1); // Reset step on success
     } catch (error) {
-      toast.error(error.response?.data?.message || 'OTP verification failed');
+      toast.error(getNationalIdErrorMessage(error, 'OTP verification failed.'));
     } finally {
       setSubmitting(false);
     }

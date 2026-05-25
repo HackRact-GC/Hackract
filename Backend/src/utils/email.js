@@ -213,6 +213,49 @@ const buildNationalIdOtpContent = ({ friendlyName, code, verifyUrl, expiresLabel
         });
 };
 
+let cachedTransport = null;
+
+const parseBool = (value, fallback = false) => {
+    if (value === undefined || value === null || value === '') return fallback;
+    return ['true', '1', 'yes', 'on'].includes(String(value).trim().toLowerCase());
+};
+
+const parsePositiveInt = (value, fallback) => {
+    const parsed = Number(value);
+    return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback;
+};
+
+const normalizeSmtpHost = (host) =>
+    String(host || '')
+        .trim()
+        .replace(/^smtp:\/\//i, '')
+        .replace(/^smtps:\/\//i, '')
+        .replace(/^https?:\/\//i, '')
+        .replace(/\/+$/, '');
+
+const getSmtpErrorMessage = (error) => {
+    const code = error?.code || error?.command;
+    const reason = error?.message || 'Unknown SMTP error';
+
+    if (['ECONNABORTED', 'ETIMEDOUT', 'ESOCKET'].includes(error?.code)) {
+        return `SMTP connection timed out (${reason}). Verify SMTP_HOST, SMTP_PORT, network/firewall access, and provider SMTP status.`;
+    }
+
+    if (['EAUTH', '535', '534'].includes(String(code))) {
+        return 'SMTP authentication failed. Verify SMTP_USER and SMTP_PASS from your email provider.';
+    }
+
+    if (error?.code === 'ENOTFOUND') {
+        return `SMTP host was not found (${reason}). Verify SMTP_HOST.`;
+    }
+
+    if (error?.code === 'ECONNREFUSED') {
+        return `SMTP connection was refused (${reason}). Verify SMTP_PORT and SMTP_SECURE.`;
+    }
+
+    return `Email delivery failed: ${reason}. Please check your SMTP configuration.`;
+};
+
 const getSmtpTransport = () => {
     const requiredVars = ['SMTP_HOST', 'SMTP_PORT', 'SMTP_USER', 'SMTP_PASS'];
     const missing = requiredVars.filter((key) => !process.env[key]);
@@ -226,6 +269,15 @@ const getSmtpTransport = () => {
         );
     }
 
+    const host = normalizeSmtpHost(process.env.SMTP_HOST);
+    if (!host) {
+        throw new AppError(
+            'Email is not configured: invalid SMTP_HOST',
+            500,
+            AuthErrorCodes.EMAIL_DELIVERY_FAILED
+        );
+    }
+
     const port = Number(process.env.SMTP_PORT);
     if (!Number.isFinite(port) || port <= 0) {
         throw new AppError(
@@ -236,17 +288,6 @@ const getSmtpTransport = () => {
         );
     }
 
-    const secure = String(process.env.SMTP_SECURE || '').toLowerCase() === 'true' || port === 465;
-    const transporter = nodemailer.createTransport({
-        host: process.env.SMTP_HOST,
-        port,
-        secure,
-        auth: {
-            user: process.env.SMTP_USER,
-            pass: process.env.SMTP_PASS,
-        },
-    });
-
     const from = process.env.SMTP_FROM || process.env.SMTP_USER;
     if (!from) {
         throw new AppError(
@@ -256,7 +297,54 @@ const getSmtpTransport = () => {
         );
     }
 
+    if (cachedTransport) {
+        return cachedTransport;
+    }
+
+    const secure = parseBool(process.env.SMTP_SECURE, port === 465);
+    const requireTLS = parseBool(process.env.SMTP_REQUIRE_TLS, port === 587);
+    const connectionTimeout = parsePositiveInt(process.env.SMTP_CONNECTION_TIMEOUT_MS, 30000);
+    const greetingTimeout = parsePositiveInt(process.env.SMTP_GREETING_TIMEOUT_MS, 30000);
+    const socketTimeout = parsePositiveInt(process.env.SMTP_SOCKET_TIMEOUT_MS, 60000);
+
+    const transporter = nodemailer.createTransport({
+        host,
+        port,
+        secure,
+        requireTLS,
+        auth: {
+            user: process.env.SMTP_USER,
+            pass: process.env.SMTP_PASS,
+        },
+        connectionTimeout,
+        greetingTimeout,
+        socketTimeout,
+        logger: parseBool(process.env.SMTP_DEBUG, false),
+        debug: parseBool(process.env.SMTP_DEBUG, false),
+        tls: {
+            servername: host,
+            rejectUnauthorized: !parseBool(process.env.SMTP_ALLOW_SELF_SIGNED, false),
+        },
+    });
+
+    cachedTransport = { transporter, from };
     return { transporter, from };
+};
+
+export const verifyEmailConfiguration = async () => {
+    const { transporter } = getSmtpTransport();
+
+    try {
+        await transporter.verify();
+        return { ok: true };
+    } catch (error) {
+        console.error('SMTP verify error', error);
+        throw new AppError(
+            getSmtpErrorMessage(error),
+            500,
+            AuthErrorCodes.EMAIL_DELIVERY_FAILED
+        );
+    }
 };
 
 export const sendVerificationEmail = async ({ to, name, verifyUrl, code, expiresAt, ipAddress, userAgent }) => {
@@ -282,9 +370,8 @@ export const sendVerificationEmail = async ({ to, name, verifyUrl, code, expires
         return;
     } catch (error) {
         console.error('SMTP error', error);
-        const reason = error?.message || 'Unknown SMTP error';
         throw new AppError(
-            `Email delivery failed: ${reason}. Please check your SMTP configuration.`,
+            getSmtpErrorMessage(error),
             500,
             AuthErrorCodes.EMAIL_DELIVERY_FAILED
         );
@@ -314,9 +401,8 @@ export const sendPasswordResetEmail = async ({ to, name, resetUrl, expiresAt, ip
         return;
     } catch (error) {
         console.error('SMTP error', error);
-        const reason = error?.message || 'Unknown SMTP error';
         throw new AppError(
-            `Email delivery failed: ${reason}. Please check your SMTP configuration.`,
+            getSmtpErrorMessage(error),
             500,
             AuthErrorCodes.EMAIL_DELIVERY_FAILED
         );
@@ -346,9 +432,8 @@ export const sendNationalIdOtpEmail = async ({ to, name, code, verifyUrl, expire
         return;
     } catch (error) {
         console.error('SMTP error', error);
-        const reason = error?.message || 'Unknown SMTP error';
         throw new AppError(
-            `Email delivery failed: ${reason}. Please check your SMTP configuration.`,
+            getSmtpErrorMessage(error),
             500,
             AuthErrorCodes.EMAIL_DELIVERY_FAILED
         );
@@ -370,9 +455,8 @@ export const sendEmail = async ({ to, subject, html, text }) => {
         return;
     } catch (error) {
         console.error('SMTP error', error);
-        const reason = error?.message || 'Unknown SMTP error';
         throw new AppError(
-            `Email delivery failed: ${reason}. Please check your SMTP configuration.`,
+            getSmtpErrorMessage(error),
             500,
             AuthErrorCodes.EMAIL_DELIVERY_FAILED
         );

@@ -248,26 +248,22 @@ class NationalIDService {
     async initiateVerification(userId, fan) {
         if (!fan) throw new AppError('FAN is required', 400);
 
-        let citizen = await prisma.citizen.findUnique({ where: { fan } });
-        const user = await prisma.user.findUnique({ where: { id: userId } });
-        
-        // Auto-create citizen for any 16 digit number to bypass verification for now
+        const citizen = await prisma.citizen.findUnique({ where: { fan } });
         if (!citizen) {
-            citizen = await prisma.citizen.create({
-                data: {
-                    fan,
-                    email: user.email,
-                    firstName: user.fullName?.split(' ')[0] || 'Verified',
-                    lastName: user.fullName?.split(' ')[1] || 'User'
-                }
-            });
+            throw new AppError('This FAN does not exist in the Government Registry.', 404, 'FAN_NOT_FOUND');
+        }
+
+        const user = await prisma.user.findUnique({ where: { id: userId } });
+        if (!user) {
+            throw new AppError('User not found', 404);
         }
 
         const isSameEmail = user.email.toLowerCase() === citizen.email.toLowerCase();
         if (!isSameEmail) {
             throw new AppError(
-                'Your account email must match the official email associated with this National ID in the Government Registry.',
-                400
+                'The email on your Hackract account does not match the government-registered email for this FAN.',
+                400,
+                'FAN_EMAIL_MISMATCH'
             );
         }
 
@@ -321,7 +317,21 @@ class NationalIDService {
         if (!fan || !otp) throw new AppError('FAN and OTP are required', 400);
 
         const citizen = await prisma.citizen.findUnique({ where: { fan } });
-        if (!citizen) throw new AppError('Citizen not found', 404);
+        if (!citizen) throw new AppError('This FAN does not exist in the Government Registry.', 404, 'FAN_NOT_FOUND');
+
+        const user = await prisma.user.findUnique({ where: { id: userId } });
+        if (!user) {
+            throw new AppError('User not found', 404);
+        }
+
+        const isSameEmail = user.email.toLowerCase() === citizen.email.toLowerCase();
+        if (!isSameEmail) {
+            throw new AppError(
+                'The email on your Hackract account does not match the government-registered email for this FAN.',
+                400,
+                'FAN_EMAIL_MISMATCH'
+            );
+        }
 
         const otpRecord = await prisma.otpVerification.findFirst({
             where: { citizenId: citizen.id, verified: false },

@@ -4,7 +4,7 @@ import ApiResponse from '../../utils/ApiResponse.js';
 
 export const create = asyncHandler(async (req, res) => {
     const data = req.validatedBody || req.body;
-    const result = await nationalIDService.create(data, req.user?.id);
+    const result = await nationalIDService.create(data);
     ApiResponse.success(res, result, 'Citizen record created successfully', 201);
 });
 
@@ -23,7 +23,7 @@ export const getById = asyncHandler(async (req, res) => {
 export const update = asyncHandler(async (req, res) => {
     const { id } = req.params;
     const data = req.validatedBody || req.body;
-    const result = await nationalIDService.update(id, data, req.user?.id);
+    const result = await nationalIDService.update(id, data);
     ApiResponse.success(res, result, 'Citizen record updated successfully');
 });
 

@@ -12,6 +12,7 @@ const HackerOnboarding = () => {
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [isNationalIdVerified, setIsNationalIdVerified] = useState(false);
+  const [step, setStep] = useState(1); // 1 = profile, 2 = ID verification / review
   const navigate = useNavigate();
 
   // Avatar / Identity
@@ -149,6 +150,18 @@ const HackerOnboarding = () => {
     setNewItem({});
   };
 
+  const handleNext = () => {
+    // simple validation before moving to ID verification
+    if (!form.bio || form.bio.length < 10) {
+      toast.error('Please provide a description (min 10 characters) before continuing.');
+      setStep(1);
+      return;
+    }
+    setStep(2);
+  };
+
+  const handleBack = () => setStep(1);
+
   const saveProfile = async (finalStatus) => {
     try {
       const payload = {
@@ -235,15 +248,12 @@ const HackerOnboarding = () => {
         <div className="bg-[#0c0c0c] border border-[#00c477]/30 rounded-2xl p-6 flex flex-col md:flex-row justify-between items-center gap-4">
           <div>
             <h1 className="text-2xl font-bold text-[#00c477]">Complete Your Operator Profile</h1>
-            <p className="text-gray-400 text-sm">Provide your details to unlock the mission dashboard.</p>
+            <p className="text-gray-400 text-sm">Fill your profile, then verify your ID to unlock the dashboard.</p>
           </div>
-          <button
-            onClick={handleCompleteOnboarding}
-            disabled={submitting}
-            className="px-8 py-3 bg-[#00c477] text-black font-black uppercase tracking-widest rounded-xl hover:bg-[#00ff9d] transition-all disabled:opacity-50"
-          >
-            {submitting ? "Submitting..." : "Complete Profile"}
-          </button>
+          <div className="flex items-center gap-3">
+            <div className="text-sm text-gray-400">Step</div>
+            <div className="px-3 py-1 bg-white/5 rounded-full font-mono text-sm">{step} / 2</div>
+          </div>
         </div>
 
         {/* TOP PROFILE CARD */}
@@ -274,30 +284,35 @@ const HackerOnboarding = () => {
           </div>
         </div>
 
-        {/* TWO COLUMN LAYOUT */}
-        <div className="grid grid-cols-1 lg:grid-cols-[300px_1fr] gap-6">
+        {/* TWO COLUMN LAYOUT (profile step) */}
+        {step === 1 && (
+          <div className="grid grid-cols-1 lg:grid-cols-[300px_1fr] gap-6">
 
           {/* LEFT COLUMN */}
           <div className="space-y-6">
 
-            {/* Verifications */}
-            <div className="bg-[#0c0c0c] border border-white/5 rounded-2xl p-6">
-              <h2 className="text-lg font-bold mb-4">Verifications</h2>
-              {isNationalIdVerified ? (
-                <div className="flex items-center gap-2 text-sm">
-                  <FiCheckCircle className="text-[#00c477]" />
-                  <span>ID: Verified</span>
+            {/* Verifications - only show on step 2 */}
+            {step === 2 && (
+              <div className="bg-[#0c0c0c] border border-white/5 rounded-2xl p-6">
+                <h2 className="text-lg font-bold mb-4">Verifications</h2>
+                <div className="space-y-3">
+                  {isNationalIdVerified ? (
+                    <div className="flex items-center gap-2 text-sm">
+                      <FiCheckCircle className="text-[#00c477]" />
+                      <span>ID: Verified</span>
+                    </div>
+                  ) : (
+                    <div className="flex flex-col gap-3">
+                      <p className="text-sm text-gray-300">Your ID is not verified yet. Please proceed to the national ID verification flow.</p>
+                      <div className="flex gap-2">
+                        <button onClick={() => navigate('/national-id-verification')} className="px-3 py-2 bg-[#00c477] text-black rounded-lg font-bold">Start Verification</button>
+                        <button onClick={() => setStep(1)} className="px-3 py-2 bg-white/10 text-white rounded-lg">Back</button>
+                      </div>
+                    </div>
+                  )}
                 </div>
-              ) : (
-                <div className="flex items-center justify-between text-sm">
-                  <div className="flex items-center gap-2 text-gray-400">
-                    <FiShield />
-                    <span>ID: Unverified</span>
-                  </div>
-                  <button onClick={() => navigate('/national-id-verification')} className="w-8 h-8 rounded-full border border-white/20 flex items-center justify-center hover:bg-white/10 text-[#00c477]"><FiPlus size={16} /></button>
-                </div>
-              )}
-            </div>
+              </div>
+            )}
 
             {/* Education */}
             <div className="bg-[#0c0c0c] border border-white/5 rounded-2xl p-6 relative group">
@@ -599,7 +614,58 @@ const HackerOnboarding = () => {
             </div>
 
           </div>
+          {/* Step controls: Next button shown on profile step */}
+          <div className="col-span-1 lg:col-span-2 flex justify-end mt-4">
+            {step === 1 && (
+              <button onClick={handleNext} className="px-6 py-2 bg-[#00c477] text-black rounded-lg font-bold">Next: ID Verification</button>
+            )}
+          </div>
         </div>
+        )}
+
+        {/* STEP 2 — ID Verification & Image Preview (polished UI) */}
+        {step === 2 && (
+          <div className="bg-[#0c0c0c] border border-white/5 rounded-2xl p-6">
+            <div className="max-w-[1200px] mx-auto">
+              <div className="bg-[#0b0b0b] border border-white/5 rounded-2xl p-6 flex flex-col lg:flex-row gap-6 items-start">
+                {/* Left column: verifications + generator controls */}
+                <div className="w-full lg:w-80 space-y-6">
+                  <div className="bg-[#0c0c0c] p-4 rounded-lg border border-white/5">
+                    <h3 className="text-lg font-bold mb-2">Verifications</h3>
+                    {isNationalIdVerified ? (
+                      <div className="flex items-center gap-3 text-sm text-gray-300">
+                        <FiCheckCircle className="text-[#00c477]" />
+                        <span>ID: Verified</span>
+                      </div>
+                    ) : (
+                      <div className="space-y-3">
+                        <div className="flex items-center gap-3 text-sm text-gray-300">
+                          <FiShield />
+                          <span>ID: Unverified</span>
+                        </div>
+                        <div className="flex gap-2">
+                          <button onClick={() => navigate('/national-id-verification')} className="flex-1 px-3 py-2 bg-[#00c477] text-black rounded-lg font-bold">Start Verification</button>
+                          <button onClick={() => setStep(1)} className="px-3 py-2 bg-white/10 text-white rounded-lg">Back</button>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Generate Image controls removed per user request */}
+                </div>
+
+                {/* Right column removed: image preview area deleted per request */}
+              </div>
+            </div>
+          </div>
+        )}
+        {/* Final action area: Complete Profile shown on step 2 */}
+        {step === 2 && (
+          <div className="max-w-[1200px] mx-auto mt-6 flex justify-end gap-3">
+            <button onClick={handleBack} className="px-4 py-2 bg-white/10 text-white rounded-lg">Back</button>
+            <button onClick={handleCompleteOnboarding} disabled={submitting} className="px-6 py-2 bg-[#00c477] text-black rounded-lg font-bold">{submitting ? 'Submitting...' : 'Complete Profile'}</button>
+          </div>
+        )}
       </div>
     </div>
   );
