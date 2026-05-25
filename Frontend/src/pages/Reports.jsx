@@ -165,21 +165,10 @@ const Reports = () => {
             <button onClick={() => navigate(-1)} className="text-gray-500 hover:text-white transition-colors">
               <FiArrowLeft size={18} />
             </button>
-            <h1 className="text-gray-300 text-sm font-medium leading-relaxed">
-              Configure and synthesize high-fidelity audit reports for the <span className="font-bold text-white uppercase">{projectName}</span> architecture. Select parameters, review findings, and deploy documentation.
-            </h1>
+            
           </div>
         </div>
-        <div className="flex items-center gap-4">
-          <div className="flex items-center gap-2 bg-[#00c477]/10 px-4 py-2 rounded border border-[#00c477]/20">
-            <div className="w-1.5 h-1.5 rounded-full bg-[#00c477] animate-pulse" />
-            <span className="text-[10px] font-black text-[#00c477] uppercase tracking-widest">FINDINGS: {findings.length} DETECTED</span>
-          </div>
-          <div className="flex items-center gap-2 bg-[#3b82f6]/10 px-4 py-2 rounded border border-[#3b82f6]/20">
-            <div className="w-1.5 h-1.5 rounded-full bg-[#3b82f6]" />
-            <span className="text-[10px] font-black text-[#3b82f6] uppercase tracking-widest">COMPLIANCE: SOC2 READY</span>
-          </div>
-        </div>
+        
       </div>
 
       <div className="flex flex-1 p-8 gap-8 max-w-[1600px] mx-auto w-full">
@@ -415,17 +404,6 @@ const Reports = () => {
             {generating ? 'SYNTHESIZING_DOCUMENT...' : 'GENERATE_PDF_REPORT'}
           </button>
 
-          <div className="grid grid-cols-2 gap-4">
-            <button 
-              onClick={handleJsonExport}
-              className="bg-[#141518] hover:bg-white/5 border border-[#1c1d21] rounded-xl py-3.5 flex items-center justify-center gap-2 text-[10px] font-bold text-gray-400 uppercase tracking-widest transition-colors"
-            >
-              <FiCode size={14} /> EXPORT_JSON
-            </button>
-            <button className="bg-[#141518] hover:bg-white/5 border border-[#1c1d21] rounded-xl py-3.5 flex items-center justify-center gap-2 text-[10px] font-bold text-gray-400 uppercase tracking-widest transition-colors">
-              <FiSend size={14} /> SECURE_EMAIL SUPPORT
-            </button>
-          </div>
         </div>
       </div>
     </div>
