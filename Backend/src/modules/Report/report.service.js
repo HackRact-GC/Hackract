@@ -468,9 +468,47 @@ export async function generatePdfReport(projectId, modules = {}) {
 
         doc.moveDown(1);
 
+        let desc = f.description || 'No description provided.';
+        let impactText = '';
+        
+        if (desc.includes('### Severity & Impact')) {
+          const parts = desc.split('### Severity & Impact');
+          desc = parts[0].replace('### Description', '').trim();
+          impactText = parts[1].trim();
+        } else if (desc.includes('### Impact')) {
+          const parts = desc.split('### Impact');
+          desc = parts[0].replace('### Description', '').trim();
+          impactText = parts[1].trim();
+        }
+
         doc.fontSize(10).font('Helvetica-Bold').fillColor(C.white).text('Technical Description', { characterSpacing: 1 });
         doc.moveDown(0.5);
-        bodyText(doc, f.description || 'No description provided.');
+        bodyText(doc, desc);
+
+        if (impactText) {
+          doc.moveDown(1);
+          doc.fontSize(10).font('Helvetica-Bold').fillColor(C.white).text('Severity & Business Impact', { characterSpacing: 1 });
+          doc.moveDown(0.5);
+          bodyText(doc, impactText);
+        }
+
+        if (f.proof) {
+          let proofText = f.proof;
+          try {
+            const parsedProof = JSON.parse(f.proof);
+            if (Array.isArray(parsedProof)) {
+              proofText = parsedProof.join('\n');
+            }
+          } catch (e) {
+            // Treat as raw text
+          }
+          if (proofText.trim()) {
+            doc.moveDown(1);
+            doc.fontSize(10).font('Helvetica-Bold').fillColor(C.white).text('Evidence / Proof', { characterSpacing: 1 });
+            doc.moveDown(0.5);
+            bodyText(doc, proofText);
+          }
+        }
 
         doc.moveDown(1);
 

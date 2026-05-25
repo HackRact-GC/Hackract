@@ -26,6 +26,38 @@ const renderAssistantMarkdown = (text) => {
   });
 };
 
+const DEFAULT_ASSISTANT_MESSAGES = [
+  { sender: 'AI', text: 'Hello Admin. System is ready. How can I assist you with the project?' },
+];
+
+const getAssistantStorageKey = (projectId, userId) => `hackract_project_ai_chat:${projectId || 'unknown'}:${userId || 'guest'}`;
+
+const normalizeAssistantMessages = (messages) => {
+  if (!Array.isArray(messages)) return DEFAULT_ASSISTANT_MESSAGES;
+
+  const normalized = messages
+    .map((message) => ({
+      sender: message?.sender === 'Admin' ? 'Admin' : 'AI',
+      text: String(message?.text ?? '').trim(),
+    }))
+    .filter((message) => message.text.length > 0);
+
+  return normalized.length > 0 ? normalized : DEFAULT_ASSISTANT_MESSAGES;
+};
+
+const loadAssistantMessages = (storageKey) => {
+  if (typeof window === 'undefined' || !storageKey) return DEFAULT_ASSISTANT_MESSAGES;
+
+  try {
+    const raw = window.localStorage.getItem(storageKey);
+    if (!raw) return DEFAULT_ASSISTANT_MESSAGES;
+
+    return normalizeAssistantMessages(JSON.parse(raw));
+  } catch {
+    return DEFAULT_ASSISTANT_MESSAGES;
+  }
+};
+
 const InviteMemberModal = ({ projectId, onClose, onInvited }) => {
   const [search, setSearch] = useState("");
   const [results, setResults] = useState([]);
@@ -155,9 +187,11 @@ const WorkspaceView = ({ projectId, onBack }) => {
   const [aiSending, setAiSending] = useState(false);
   const [assistantActivity, setAssistantActivity] = useState([]);
   const [assistantFindings, setAssistantFindings] = useState([]);
-  const [aiMessages, setAiMessages] = useState([
-    { sender: 'AI', text: 'Hello Admin. System is ready. How can I assist you with the project?' },
-  ]);
+  const assistantStorageKey = useMemo(
+    () => getAssistantStorageKey(projectId, user?.id),
+    [projectId, user?.id]
+  );
+  const [aiMessages, setAiMessages] = useState(() => loadAssistantMessages(assistantStorageKey));
   const workspaceName = project?.name || "Project Workspace";
 
   const isOrgAdmin = useMemo(() => {
@@ -217,6 +251,10 @@ const WorkspaceView = ({ projectId, onBack }) => {
   }, [projectId]);
 
   useEffect(() => {
+    setAiMessages(loadAssistantMessages(assistantStorageKey));
+  }, [assistantStorageKey]);
+
+  useEffect(() => {
     if (!projectId) return;
 
     let isMounted = true;
@@ -245,6 +283,12 @@ const WorkspaceView = ({ projectId, onBack }) => {
       isMounted = false;
     };
   }, [projectId]);
+
+  useEffect(() => {
+    if (typeof window === 'undefined' || !assistantStorageKey) return;
+
+    window.localStorage.setItem(assistantStorageKey, JSON.stringify(normalizeAssistantMessages(aiMessages)));
+  }, [assistantStorageKey, aiMessages]);
 
   const projectAdmin = useMemo(
     () => project?.collaborators?.find((c) => c.role === "PROJECT_ADMIN"),
