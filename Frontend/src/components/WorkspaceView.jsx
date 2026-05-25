@@ -2,12 +2,29 @@ import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import toast from "react-hot-toast";
+import DOMPurify from "dompurify";
 import api from "../api/axiosConfig";
+import { generateWorkflowAssistantResponse } from "../api/assistantApi";
 import ProjectActivity from "./ProjectActivity.jsx";
 import KickoffChecklist from "./KickoffChecklist.jsx";
 import { useAuth } from "../context/authContext.jsx";
 import { FiDownload, FiExternalLink, FiFileText, FiArrowLeft, FiCode, FiPrinter, FiGlobe, FiServer, FiFileMinus, FiCalendar, FiPlus, FiUserPlus, FiTrash2, FiSearch, FiX, FiSend, FiEdit2, FiStar, FiUsers, FiFile } from "react-icons/fi";
 import { getPrimaryRole, ROLES } from "../utils/roles.js";
+import { marked } from "marked";
+
+marked.setOptions({ breaks: true, gfm: true });
+
+const renderAssistantMarkdown = (text) => {
+  const html = marked.parse(String(text ?? ""));
+  return DOMPurify.sanitize(html, {
+    ALLOWED_TAGS: [
+      'p', 'br', 'strong', 'em', 'b', 'i', 'u', 's', 'del', 'a', 'ul', 'ol', 'li',
+      'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'blockquote', 'pre', 'code', 'hr',
+      'table', 'thead', 'tbody', 'tr', 'th', 'td',
+    ],
+    ALLOWED_ATTR: ['href', 'title', 'target', 'rel', 'class'],
+  });
+};
 
 const InviteMemberModal = ({ projectId, onClose, onInvited }) => {
   const [search, setSearch] = useState("");
@@ -135,6 +152,9 @@ const WorkspaceView = ({ projectId, onBack }) => {
   //const [activeTab, setActiveTab] = useState(searchParams.get("tab") || "workflow");
   const [showInvite, setShowInvite] = useState(false);
   const [aiInput, setAiInput] = useState('');
+  const [aiSending, setAiSending] = useState(false);
+  const [assistantActivity, setAssistantActivity] = useState([]);
+  const [assistantFindings, setAssistantFindings] = useState([]);
   const [aiMessages, setAiMessages] = useState([
     { sender: 'AI', text: 'Hello Admin. System is ready. How can I assist you with the project?' },
   ]);
@@ -194,6 +214,36 @@ const WorkspaceView = ({ projectId, onBack }) => {
 
   useEffect(() => {
     if (projectId) loadProject();
+  }, [projectId]);
+
+  useEffect(() => {
+    if (!projectId) return;
+
+    let isMounted = true;
+
+    const loadAssistantContext = async () => {
+      try {
+        const [activityRes, findingsRes] = await Promise.all([
+          api.get(`/projects/${projectId}/activity`),
+          api.get('/findings', { params: { pentestId: projectId, limit: 5 } }),
+        ]);
+
+        if (!isMounted) return;
+
+        setAssistantActivity(Array.isArray(activityRes.data?.data) ? activityRes.data.data.slice(0, 5) : []);
+        setAssistantFindings(Array.isArray(findingsRes.data?.data) ? findingsRes.data.data.slice(0, 5) : []);
+      } catch (error) {
+        if (!isMounted) return;
+        setAssistantActivity([]);
+        setAssistantFindings([]);
+      }
+    };
+
+    loadAssistantContext();
+
+    return () => {
+      isMounted = false;
+    };
   }, [projectId]);
 
   const projectAdmin = useMemo(
@@ -265,16 +315,74 @@ const WorkspaceView = ({ projectId, onBack }) => {
     }
   };
 
-  const handleAiSend = (e) => {
+  const assistantContext = useMemo(() => {
+    if (!project) return '';
+
+    const recentActivityLines = assistantActivity.length
+      ? assistantActivity.map((item) => {
+          const actor = item.user?.fullName || item.user?.handle || 'System';
+          const message = item.message || item.action || 'No message available';
+          return `- ${actor}: ${message}`;
+        })
+      : ['- No recent activity captured.'];
+
+    const recentFindingLines = assistantFindings.length
+      ? assistantFindings.map((finding) => {
+          const title = finding.title || 'Untitled finding';
+          const severity = finding.severity || 'UNKNOWN';
+          const status = finding.status || 'UNKNOWN';
+          const asset = finding.affectedAsset ? ` | Asset: ${finding.affectedAsset}` : '';
+          return `- ${title} [${severity} | ${status}]${asset}`;
+        })
+      : ['- No recent findings recorded.'];
+
+    const lines = [
+      `Project: ${project.name || 'Unnamed project'}`,
+      `Organization: ${project.organization?.name || 'Independent'}`,
+      `Status: ${project.status || 'Unknown'}`,
+      project.description ? `Brief: ${project.description}` : null,
+      project.targetDomains?.length ? `Target domains: ${project.targetDomains.join(', ')}` : null,
+      project.ipRanges?.length ? `IP ranges: ${project.ipRanges.join(', ')}` : null,
+      project.excludedAssets ? `Excluded assets: ${project.excludedAssets}` : null,
+      `Collaborators: ${project.collaborators?.length || 0}`,
+      `Hackers assigned: ${hackers.length}`,
+      `Applicants awaiting review: ${applicants.length}`,
+      '',
+      'Recent activity:',
+      ...recentActivityLines,
+      '',
+      'Recent findings:',
+      ...recentFindingLines,
+    ].filter(Boolean);
+
+    return lines.join('\n');
+  }, [project, hackers.length, applicants.length, assistantActivity, assistantFindings]);
+
+  const handleAiSend = async (e) => {
     e.preventDefault();
-    if (!aiInput.trim()) return;
+    if (!aiInput.trim() || aiSending) return;
+
     const userMessage = aiInput.trim();
     setAiMessages((prev) => [...prev, { sender: 'Admin', text: userMessage }]);
     setAiInput('');
+    setAiSending(true);
 
-    setTimeout(() => {
-      setAiMessages((prev) => [...prev, { sender: 'AI', text: 'Analyzing request... Please wait.' }]);
-    }, 800);
+    try {
+      const result = await generateWorkflowAssistantResponse({
+        prompt: userMessage,
+        context: assistantContext,
+        timeoutMs: 45000,
+      });
+
+      const assistantText = String(result?.response || result?.content || '').trim() || 'No response returned from the AI assistant.';
+      setAiMessages((prev) => [...prev, { sender: 'AI', text: assistantText }]);
+    } catch (err) {
+      const errorText = err?.message || 'The AI assistant could not be reached. Please try again.';
+      toast.error(errorText);
+      setAiMessages((prev) => [...prev, { sender: 'AI', text: errorText }]);
+    } finally {
+      setAiSending(false);
+    }
   };
 
   if (loading) {
@@ -412,9 +520,13 @@ const WorkspaceView = ({ projectId, onBack }) => {
                       {aiMessages.map((msg, idx) => (
                         <div key={`${msg.sender}-${idx}`} className={`flex ${msg.sender === 'Admin' ? 'justify-end' : 'justify-start'}`}>
                           <div className={`px-3 py-2 rounded-xl text-xs ${msg.sender === 'Admin'
-                            ? 'bg-white/10 text-white'
-                            : 'bg-[#00ff88]/10 text-[#00ff88] border border-[#00ff88]/20'}`}>
-                            {msg.text}
+                            ? 'bg-white/10 text-white whitespace-pre-wrap'
+                            : 'bg-[#00ff88]/10 text-[#00ff88] border border-[#00ff88]/20 prose prose-invert max-w-none'}`}>
+                            {msg.sender === 'Admin' ? (
+                              msg.text
+                            ) : (
+                              <div dangerouslySetInnerHTML={{ __html: renderAssistantMarkdown(msg.text) }} />
+                            )}
                           </div>
                         </div>
                       ))}
@@ -429,10 +541,10 @@ const WorkspaceView = ({ projectId, onBack }) => {
                       />
                       <button
                         type="submit"
-                        disabled={!aiInput.trim()}
+                        disabled={!aiInput.trim() || aiSending}
                         className="px-3 py-2 rounded-lg bg-[#00ff88] text-black text-[10px] font-black uppercase tracking-widest disabled:opacity-50"
                       >
-                        Send
+                        {aiSending ? '...' : 'Send'}
                       </button>
                     </form>
                   </div>
