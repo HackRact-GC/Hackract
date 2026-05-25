@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
-import { FiDownload, FiCode, FiSend, FiFileText, FiZoomIn, FiMaximize2, FiArrowLeft, FiLoader, FiCpu, FiCheck, FiEdit3, FiSettings } from 'react-icons/fi';
+import { FiDownload, FiCode, FiSend, FiFileText, FiZoomIn, FiMaximize2, FiArrowLeft, FiLoader, FiCpu, FiCheck, FiEdit3, FiSettings, FiX } from 'react-icons/fi';
 import api from '../api/axiosConfig';
 import toast from 'react-hot-toast';
 import jsPDF from 'jspdf';
@@ -43,13 +43,13 @@ const Reports = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
   const projectId = searchParams.get('projectId');
-  
+
   const [loading, setLoading] = useState(!!projectId);
   const [generating, setGenerating] = useState(false);
   const [project, setProject] = useState(null);
   const [findings, setFindings] = useState([]);
   const [availableProjects, setAvailableProjects] = useState([]);
-  
+
   const [step, setStep] = useState(projectId ? 2 : 1);
   const [exportFormat, setExportFormat] = useState('pdf');
 
@@ -65,9 +65,28 @@ const Reports = () => {
 
   const [activeConfigTab, setActiveConfigTab] = useState('standard');
   const [aiGenerating, setAiGenerating] = useState(false);
-  const [aiDrafts, setAiDrafts] = useState([]);
+  const [pdfPreviewUrl, setPdfPreviewUrl] = useState(null);
+  const [showPreviewModal, setShowPreviewModal] = useState(false);
+
+  // ── Task 1: persist drafts across step navigation via localStorage ────────
+  const DRAFT_KEY = `hackract_ai_drafts_${projectId}`;
+  const [aiDrafts, setAiDraftsRaw] = useState(() => {
+    try {
+      const saved = localStorage.getItem(`hackract_ai_drafts_${projectId}`);
+      return saved ? JSON.parse(saved) : [];
+    } catch { return []; }
+  });
+  const setAiDrafts = (updater) => {
+    setAiDraftsRaw(prev => {
+      const next = typeof updater === 'function' ? updater(prev) : updater;
+      try { localStorage.setItem(`hackract_ai_drafts_${projectId}`, JSON.stringify(next)); } catch { }
+      return next;
+    });
+  };
+
   const [selectedDraftFindingId, setSelectedDraftFindingId] = useState(null);
   const [refinementPrompts, setRefinementPrompts] = useState({});
+  const [refinementSections, setRefinementSections] = useState({});
   const [refiningId, setRefiningId] = useState(null);
   const [savingId, setSavingId] = useState(null);
   const [savedStatus, setSavedStatus] = useState({});
@@ -100,7 +119,7 @@ const Reports = () => {
   const handleGenerateAiDrafts = async () => {
     if (!projectId) return toast.error('No project selected.');
     setAiGenerating(true);
-    const toastId = toast.loading('Initializing Sentinel AI analysis...');
+    const toastId = toast.loading('Initializing AI analysis...');
     try {
       const res = await api.post('/reports/ai-draft', { projectId });
       const data = res.data?.data || [];
@@ -117,19 +136,34 @@ const Reports = () => {
     }
   };
 
+  const REFINE_SECTIONS = [
+    { value: 'all', label: 'Entire Finding' },
+    { value: 'target', label: 'Target Asset' },
+    { value: 'description', label: 'Finding Description' },
+    { value: 'severityImpact', label: 'Severity & Business Impact' },
+    { value: 'evidence', label: 'Evidence / Proof' },
+    { value: 'remediation', label: 'Possible Remediation' },
+  ];
+
   const handleRefineFinding = async (findingId) => {
     const customPrompt = refinementPrompts[findingId] || '';
     if (!customPrompt.trim()) return toast.error('Please enter refinement instructions.');
+    const section = refinementSections[findingId] || 'all';
     setRefiningId(findingId);
     try {
-      const res = await api.post('/reports/ai-draft', { projectId, findingId, prompt: customPrompt });
+      const res = await api.post('/reports/ai-draft', { projectId, findingId, prompt: customPrompt, section });
       const data = res.data?.data || [];
       if (data.length > 0) {
         const updatedDraft = data[0];
-        setAiDrafts(prev => prev.map(d => d.findingId === findingId ? updatedDraft : d));
+        // ── If refining a single section, merge only that field ──────────────
+        setAiDrafts(prev => prev.map(d => {
+          if (d.findingId !== findingId) return d;
+          if (section === 'all') return updatedDraft;
+          return { ...d, aiDraft: { ...d.aiDraft, [section]: updatedDraft.aiDraft[section] } };
+        }));
         setRefinementPrompts(prev => ({ ...prev, [findingId]: '' }));
         setSavedStatus(prev => ({ ...prev, [findingId]: false }));
-        toast.success('Finding draft refined by AI!');
+        toast.success(`${section === 'all' ? 'Finding' : REFINE_SECTIONS.find(s => s.value === section)?.label} refined by AI!`);
       }
     } catch (err) {
       console.error(err);
@@ -209,6 +243,37 @@ const Reports = () => {
     toast.success('JSON report downloaded!');
   };
 
+  // ── Main preview handler ────────────────────────────────────────────────────
+  const handlePreviewPdf = async () => {
+    if (!projectId) return toast.error('No project selected to preview.');
+
+    setGenerating(true);
+    const toastId = toast.loading('Synthesizing PDF preview…');
+
+    try {
+      const response = await api.post(
+        '/reports/generate',
+        { projectId, modules },
+        { responseType: 'blob' }
+      );
+
+      const blob = new Blob([response.data], { type: 'application/pdf' });
+      if (pdfPreviewUrl) {
+        URL.revokeObjectURL(pdfPreviewUrl);
+      }
+      const url = URL.createObjectURL(blob);
+      setPdfPreviewUrl(url);
+      setShowPreviewModal(true);
+
+      toast.success('Preview generated successfully!', { id: toastId });
+    } catch (err) {
+      console.error(err);
+      toast.error('Preview synthesis failed. Please try again.', { id: toastId });
+    } finally {
+      setGenerating(false);
+    }
+  };
+
   // ── Main generate handler ───────────────────────────────────────────────────
   const handleGeneratePdf = async () => {
     if (!projectId) return toast.error('No project selected to generate PDF.');
@@ -266,23 +331,23 @@ const Reports = () => {
             <button onClick={() => navigate(-1)} className="text-gray-500 hover:text-white transition-colors">
               <FiArrowLeft size={18} />
             </button>
-            
+
           </div>
         </div>
-        
+
       </div>
 
       <div className="flex flex-1 p-8 gap-8 max-w-[1600px] mx-auto w-full">
         {/* Left Column - Configuration */}
         <div className="flex-1 max-w-[700px] flex flex-col gap-6">
-          
+
           {/* Progress Bar */}
           <div className="flex gap-2 mb-2">
             <div className={`h-1 flex-1 rounded-full ${step >= 1 ? (step === 1 ? 'bg-linear-to-r from-[#00c477] to-[#1c1d21]' : 'bg-[#00c477]') : 'bg-[#1c1d21]'}`} />
             <div className={`h-1 flex-1 rounded-full ${step >= 2 ? (step === 2 ? 'bg-linear-to-r from-[#00c477] to-[#1c1d21]' : 'bg-[#00c477]') : 'bg-[#1c1d21]'}`} />
             <div className={`h-1 flex-1 rounded-full ${step >= 3 ? (step === 3 ? 'bg-linear-to-r from-[#00c477] to-[#1c1d21]' : 'bg-[#00c477]') : 'bg-[#1c1d21]'}`} />
           </div>
-          
+
           {step === 1 && (
             <>
               <div className="flex items-center gap-3">
@@ -294,8 +359,8 @@ const Reports = () => {
               <div className="bg-[#0f1115] border border-[#1c1d21] rounded-2xl p-6 flex-1 flex flex-col">
                 <div className="mb-8">
                   <h3 className="text-[10px] font-bold text-gray-500 uppercase tracking-widest font-mono mb-4">Target Project</h3>
-                  <select 
-                    value={projectId || ''} 
+                  <select
+                    value={projectId || ''}
                     onChange={e => setSearchParams({ projectId: e.target.value })}
                     className="w-full bg-[#141518] border border-white/10 rounded-xl px-4 py-3 text-sm text-white outline-none focus:border-[#00c477] appearance-none"
                   >
@@ -321,11 +386,11 @@ const Reports = () => {
                   <button onClick={() => navigate(-1)} className="px-6 py-3.5 rounded-xl border border-white/10 text-xs font-bold text-gray-300 uppercase tracking-widest hover:bg-white/5 transition-colors">
                     Cancel
                   </button>
-                  <button 
+                  <button
                     onClick={() => {
                       if (!projectId) return toast.error('Please select a Target Project first.');
                       setStep(2);
-                    }} 
+                    }}
                     className="flex-1 bg-[#a3ffcc] hover:bg-[#00c477] text-[#004d2e] rounded-xl text-xs font-black uppercase tracking-widest transition-colors flex items-center justify-center"
                   >
                     Next_Step
@@ -396,14 +461,14 @@ const Reports = () => {
                         </div>
                         <div className="overflow-y-auto flex-1 p-2 space-y-1">
                           {loading ? (
-                             <div className="flex justify-center py-8 text-[#00c477]"><FiLoader className="animate-spin" /></div>
+                            <div className="flex justify-center py-8 text-[#00c477]"><FiLoader className="animate-spin" /></div>
                           ) : findings.length === 0 ? (
-                             <div className="text-center text-xs text-gray-600 py-8 font-mono">NO FINDINGS DETECTED</div>
+                            <div className="text-center text-xs text-gray-600 py-8 font-mono">NO FINDINGS DETECTED</div>
                           ) : (
                             findings.slice(0, 6).map((f, i) => (
                               <div key={f.id} className="grid grid-cols-12 gap-2 px-2 py-2.5 items-center hover:bg-white/5 rounded-lg transition-colors cursor-default">
                                 <div className="col-span-2 text-[10px] font-mono text-[#00c477]">
-                                   #RX-{String(i + 1).padStart(3, '0')}
+                                  #RX-{String(i + 1).padStart(3, '0')}
                                 </div>
                                 <div className="col-span-6 text-xs text-gray-300 font-medium truncate" title={f.title}>
                                   {f.title}
@@ -431,12 +496,12 @@ const Reports = () => {
                         <FiLoader className="animate-spin text-3xl" />
                         <div className="w-full max-w-md bg-black/50 border border-[#00c477]/30 rounded p-4 text-xs space-y-2 h-48 overflow-y-auto">
                           <div className="text-gray-500">[SYSTEM] SYSTEM OVERLINK INITIATED...</div>
-                          <div className="text-[#00c477]">[SEC_SENTINEL] ACCESSING TELEMETRY FOR WORKSPACE RX-{(projectId || 'DEFAULT').substring(0, 6).toUpperCase()}</div>
-                          <div className="text-[#00c477] animate-pulse">[SEC_SENTINEL] RETRIEVING DISCOVERED VULNERABILITY RECORDS...</div>
-                          <div className="text-yellow-500">[SEC_SENTINEL] PIPING DATA THROUGH AI TRANSLATOR...</div>
-                          <div className="text-white/40">[SEC_SENTINEL] STRUCTURING DESCRIPTION & ACTIONABLE REMEDIATION ROADMAP...</div>
+                          <div className="text-[#00c477]">[SYSTEM] ACCESSING TELEMETRY FOR WORKSPACE RX-{(projectId || 'DEFAULT').substring(0, 6).toUpperCase()}</div>
+                          <div className="text-[#00c477] animate-pulse">[SYSTEM] RETRIEVING DISCOVERED VULNERABILITY RECORDS...</div>
+                          <div className="text-yellow-500">[SYSTEM] PIPING DATA THROUGH AI TRANSLATOR...</div>
+                          <div className="text-white/40">[SYSTEM] STRUCTURING DESCRIPTION & ACTIONABLE REMEDIATION ROADMAP...</div>
                         </div>
-                        <div className="text-[10px] uppercase tracking-[0.2em] font-bold text-gray-500">PLEASE WAIT: AGENT SYNTHESIZING DRAFT MODEL</div>
+                        <div className="text-[10px] uppercase tracking-[0.2em] font-bold text-gray-500">PLEASE WAIT: AI SYNTHESIZING DRAFT MODEL</div>
                       </div>
                     ) : aiDrafts.length === 0 ? (
                       <div className="flex-1 flex flex-col justify-center items-center py-12 px-6 text-center space-y-6">
@@ -480,7 +545,7 @@ const Reports = () => {
                                 className={`p-3 rounded-xl border cursor-pointer transition-all text-left ${isSelected ? 'bg-[#00c477]/10 border-[#00c477]' : 'bg-[#141518] border-white/5 hover:border-white/10'}`}
                               >
                                 <div className="flex justify-between items-start gap-1">
-                                  <div className="text-[9px] font-mono text-gray-500 uppercase">RX-{String(index+1).padStart(3, '0')}</div>
+                                  <div className="text-[9px] font-mono text-gray-500 uppercase">RX-{String(index + 1).padStart(3, '0')}</div>
                                   {isSaved && (
                                     <span className="text-[9px] font-black bg-[#00c477]/20 text-[#00c477] px-1 rounded flex items-center gap-0.5">
                                       <FiCheck size={8} /> SAVED
@@ -588,24 +653,40 @@ const Reports = () => {
                                 {/* AI Refinement & Save */}
                                 <div className="mt-4 pt-4 border-t border-white/5 flex flex-col gap-3 bg-[#111215] p-4 rounded-xl border border-white/5">
                                   <div>
-                                    <div className="flex justify-between items-center mb-1">
+                                    <div className="flex justify-between items-center mb-2">
                                       <span className="text-[8px] font-black text-[#00c477] uppercase tracking-widest font-mono flex items-center gap-1"><FiCpu /> Refine with AI Assistant</span>
-                                      {refiningId === selectedDraftFindingId && <span className="text-[8px] font-mono text-yellow-500">Refining...</span>}
+                                      {refiningId === selectedDraftFindingId && <span className="text-[8px] font-mono text-yellow-500 animate-pulse">Refining...</span>}
                                     </div>
+
+                                    {/* Task 2: Section selector dropdown */}
+                                    <div className="mb-2">
+                                      <label className="block text-[8px] font-bold text-gray-500 uppercase tracking-widest font-mono mb-1">Refine Section</label>
+                                      <select
+                                        value={refinementSections[selectedDraftFindingId] || 'all'}
+                                        onChange={(e) => setRefinementSections(prev => ({ ...prev, [selectedDraftFindingId]: e.target.value }))}
+                                        className="w-full bg-black border border-white/10 rounded-lg px-3 py-2 text-xs text-white outline-none focus:border-[#00c477] cursor-pointer"
+                                      >
+                                        {REFINE_SECTIONS.map(s => (
+                                          <option key={s.value} value={s.value}>{s.label}</option>
+                                        ))}
+                                      </select>
+                                    </div>
+
                                     <div className="flex gap-2">
                                       <input
                                         type="text"
-                                        placeholder="e.g. 'explain impact in terms of regulatory compliance' or 'add details for nginx'"
+                                        placeholder={`e.g. 'explain impact for compliance' or 'add nginx steps'`}
                                         value={refinementPrompts[selectedDraftFindingId] || ''}
                                         onChange={(e) => setRefinementPrompts(prev => ({ ...prev, [selectedDraftFindingId]: e.target.value }))}
+                                        onKeyDown={(e) => { if (e.key === 'Enter') handleRefineFinding(selectedDraftFindingId); }}
                                         className="flex-1 bg-black border border-white/10 rounded-lg px-3 py-2 text-xs text-white outline-none focus:border-[#00c477]"
                                       />
                                       <button
                                         onClick={() => handleRefineFinding(selectedDraftFindingId)}
                                         disabled={refiningId === selectedDraftFindingId || !(refinementPrompts[selectedDraftFindingId] || '').trim()}
-                                        className="px-4 py-2 bg-[#00c477] hover:bg-[#00c477]/80 text-black text-xs font-bold rounded-lg transition-colors flex items-center justify-center disabled:opacity-50"
+                                        className="px-4 py-2 bg-[#00c477] hover:bg-[#00c477]/80 text-black text-xs font-bold rounded-lg transition-colors flex items-center justify-center gap-1 disabled:opacity-50"
                                       >
-                                        Refine
+                                        <FiSend size={12} /> Refine
                                       </button>
                                     </div>
                                   </div>
@@ -670,13 +751,13 @@ const Reports = () => {
                   <button onClick={() => setStep(2)} className="px-6 py-3.5 rounded-xl border border-white/10 text-xs font-bold text-gray-300 uppercase tracking-widest hover:bg-white/5 transition-colors">
                     Previous_Step
                   </button>
-                  <button 
-                    onClick={exportFormat === 'pdf' ? handleGeneratePdf : handleJsonExport} 
-                    disabled={generating} 
+                  <button
+                    onClick={exportFormat === 'pdf' ? handleGeneratePdf : handleJsonExport}
+                    disabled={generating}
                     className="flex-1 bg-[#a3ffcc] hover:bg-[#00c477] disabled:opacity-50 text-[#004d2e] rounded-xl text-xs font-black uppercase tracking-widest transition-colors flex items-center justify-center gap-2"
                   >
                     {generating ? <FiLoader className="animate-spin" size={16} /> : <FiDownload size={16} />}
-                    {generating ? 'Deploying...' : 'Deploy_Now'}
+                    {generating ? 'Downloading...' : 'Download_Now'}
                   </button>
                 </div>
               </div>
@@ -693,8 +774,8 @@ const Reports = () => {
                 <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Live_Print_Preview</span>
               </div>
               <div className="flex gap-2 text-gray-500">
-                <button className="hover:text-white transition-colors"><FiZoomIn size={16}/></button>
-                <button className="hover:text-white transition-colors"><FiMaximize2 size={16}/></button>
+                <button className="hover:text-white transition-colors"><FiZoomIn size={16} /></button>
+                <button className="hover:text-white transition-colors"><FiMaximize2 size={16} /></button>
               </div>
             </div>
 
@@ -702,14 +783,14 @@ const Reports = () => {
             <div className="flex-1 bg-[#0a0a0a] rounded-xl overflow-hidden border border-[#2a2b30] shadow-[0_0_50px_rgba(0,0,0,0.5)] flex flex-col p-8 relative">
               {/* Fake gradient light */}
               <div className="absolute top-0 right-0 w-64 h-64 bg-white/5 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2 pointer-events-none" />
-              
+
               <div className="text-[#00c477] font-black text-lg tracking-[0.2em] mb-2 z-10">HACKRACT</div>
               <div className="text-gray-500 text-[9px] font-mono tracking-widest uppercase mb-16 z-10">SYNTHETIC_SENTINEL_V4.0</div>
 
               <div className="flex-1 flex flex-col justify-center z-10">
                 <div className="text-[#00c477] text-[10px] font-black tracking-widest uppercase mb-2">PROJECT_MANIFEST</div>
                 <h1 className="text-3xl font-black text-white uppercase leading-none mb-2 wrap-break-word">
-                  {projectName}<br/>SECURITY_AUDIT
+                  {projectName}<br />SECURITY_AUDIT
                 </h1>
               </div>
 
@@ -721,7 +802,7 @@ const Reports = () => {
                 <div className="text-xs font-bold text-gray-200 uppercase tracking-wider mb-4">
                   {orgName} <span className="text-red-500 text-[10px] ml-1 px-1 bg-red-500/20 rounded">LEVEL_9_TOP_SECRET</span>
                 </div>
-                
+
                 <div className="text-[8px] font-black text-gray-500 tracking-widest uppercase mb-1">DATE_ISSUED</div>
                 <div className="text-[10px] font-mono text-gray-300 tracking-widest flex items-center justify-between">
                   <span>{today}</span>
@@ -731,17 +812,98 @@ const Reports = () => {
             </div>
           </div>
 
-          <button 
-            onClick={handleGeneratePdf}
-            disabled={generating}
-            className="w-full bg-[#a3ffcc] hover:bg-[#00c477] disabled:opacity-50 text-[#004d2e] rounded-xl py-4 flex items-center justify-center gap-3 transition-all font-black uppercase tracking-widest text-sm"
-          >
-            {generating ? <FiLoader className="animate-spin" size={18} /> : <FiFileText size={18} />}
-            {generating ? 'SYNTHESIZING_DOCUMENT...' : 'GENERATE_PDF_REPORT'}
-          </button>
+          {pdfPreviewUrl ? (
+            <div className="flex flex-col gap-2">
+              <button
+                id="generate_report_project"
+                onClick={() => setShowPreviewModal(true)}
+                className="w-full bg-[#a3ffcc] hover:bg-[#00c477] text-[#004d2e] rounded-xl py-4 flex items-center justify-center gap-3 transition-all font-black uppercase tracking-widest text-sm"
+              >
+                <FiFileText size={18} /> PREVIEW DOCUMENT
+              </button>
+
+            </div>
+          ) : (
+            <button
+              id="generate_report_project"
+              onClick={handlePreviewPdf}
+              disabled={generating}
+              className="w-full bg-[#a3ffcc] hover:bg-[#00c477] disabled:opacity-50 text-[#004d2e] rounded-xl py-4 flex items-center justify-center gap-3 transition-all font-black uppercase tracking-widest text-sm"
+            >
+              {generating ? <FiLoader className="animate-spin" size={18} /> : <FiFileText size={18} />}
+              {generating ? 'SYNTHESIZING_PREVIEW...' : 'PREVIEW DOCUMENT'}
+            </button>
+          )}
 
         </div>
       </div>
+
+      {showPreviewModal && pdfPreviewUrl && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
+          <div className="bg-[#0f1115] border border-[#2a2b30] rounded-2xl w-full max-w-6xl h-[85vh] flex flex-col overflow-hidden shadow-2xl">
+            {/* Modal Header */}
+            <div className="flex items-center justify-between px-6 py-4 border-b border-[#1c1d21]">
+              <div className="flex items-center gap-2">
+                <div className="w-2.5 h-2.5 rounded-full bg-[#00c477] animate-pulse" />
+                <h3 className="text-sm font-black text-white uppercase tracking-widest font-mono">
+                  HackRact Sentinel - Live Report Preview
+                </h3>
+              </div>
+              <button
+                onClick={() => setShowPreviewModal(false)}
+                className="text-gray-400 hover:text-white transition-colors p-1"
+              >
+                <FiX size={20} />
+              </button>
+            </div>
+
+            {/* Modal Body */}
+            <div className="flex-1 bg-[#07080a] p-4 relative">
+              <object
+                data={pdfPreviewUrl}
+                type="application/pdf"
+                className="w-full h-full border border-white/5 rounded-xl"
+              >
+                <iframe
+                  src={pdfPreviewUrl}
+                  className="w-full h-full border-none rounded-xl"
+                  title="PDF Report Preview"
+                />
+              </object>
+            </div>
+
+            {/* Modal Footer */}
+            <div className="flex justify-between items-center px-6 py-4 border-t border-[#1c1d21] bg-[#0d0f12]">
+              <span className="text-[10px] font-mono text-gray-500 uppercase">
+                PROJECT: {projectName}
+              </span>
+              <div className="flex gap-3">
+                <button
+                  onClick={() => setShowPreviewModal(false)}
+                  className="px-5 py-2.5 rounded-lg border border-white/10 text-xs font-bold text-gray-300 uppercase tracking-widest hover:bg-white/5 transition-colors"
+                >
+                  Close
+                </button>
+                <button
+                  onClick={() => {
+                    const a = document.createElement('a');
+                    const name = (project?.name || 'Report').replace(/\s+/g, '-').substring(0, 40);
+                    a.href = pdfPreviewUrl;
+                    a.download = `Hackract-Report-${name}.pdf`;
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+                    toast.success('Report downloaded successfully!');
+                  }}
+                  className="px-6 py-2.5 bg-[#00c477] hover:bg-[#00c477]/80 text-black rounded-lg text-xs font-black uppercase tracking-widest transition-colors flex items-center gap-2"
+                >
+                  <FiDownload size={14} /> Download PDF
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

@@ -1,5 +1,39 @@
 import PDFDocument from 'pdfkit';
 import prisma from '../../database/prismaClient.js';
+import fs from 'fs';
+import path from 'path';
+
+async function downloadImageHelper(url) {
+  // Check if it's a local upload
+  const match = url.match(/uploads\/([^\s\/?#]+)/);
+  if (match) {
+    const filename = match[1];
+    const localPath = path.join(process.cwd(), 'public', 'uploads', filename);
+    if (fs.existsSync(localPath)) {
+      try {
+        const buffer = fs.readFileSync(localPath);
+        return { buffer, url };
+      } catch (err) {
+        console.error(`Failed to read local file ${localPath}:`, err);
+      }
+    }
+  }
+
+  // Otherwise fetch it
+  try {
+    const res = await fetch(url);
+    if (res.ok) {
+      const contentType = res.headers.get('content-type') || '';
+      if (contentType.startsWith('image/')) {
+        const arrayBuffer = await res.arrayBuffer();
+        return { buffer: Buffer.from(arrayBuffer), url };
+      }
+    }
+  } catch (err) {
+    console.error(`Failed to fetch remote image from ${url}:`, err);
+  }
+  return null;
+}
 
 // ── Color palette ──────────────────────────────────────────────────────────────
 const C = {
@@ -448,7 +482,8 @@ export async function generatePdfReport(projectId, modules = {}) {
       const displayRoadmap = findings.slice(0, 2);
       const remainingRoadmap = findings.length - displayRoadmap.length;
 
-      displayRoadmap.forEach((f, idx) => {
+      for (let idx = 0; idx < displayRoadmap.length; idx++) {
+        const f = displayRoadmap[idx];
         const sevColor = SEVERITY_COLOR[f.severity] || C.info;
 
         doc.rect(ml, doc.y, contentW, 36).fill(C.surface);
@@ -506,7 +541,66 @@ export async function generatePdfReport(projectId, modules = {}) {
             doc.moveDown(1);
             doc.fontSize(10).font('Helvetica-Bold').fillColor(C.white).text('Evidence / Proof', { characterSpacing: 1 });
             doc.moveDown(0.5);
-            bodyText(doc, proofText);
+
+            // Extract all image/URL items
+            const imgRegex = /(data:image\/[a-zA-Z+\-\/]+;base64,[^\s]+|https?:\/\/[^\s]+)/gi;
+            const matches = proofText.match(imgRegex) || [];
+            
+            // Clean up the text by removing the matched URLs/data URIs
+            let cleanText = proofText;
+            matches.forEach(m => {
+              cleanText = cleanText.replace(m, '');
+            });
+            cleanText = cleanText.replace(/\n\s*\n/g, '\n').trim(); // clean extra newlines
+
+            if (cleanText) {
+              bodyText(doc, cleanText);
+              doc.moveDown(0.5);
+            }
+
+            // Render each image match
+            for (const match of matches) {
+              let imgInfo = null;
+              if (match.startsWith('data:')) {
+                // Parse base64
+                const dataMatch = match.match(/^data:(image\/[a-zA-Z+\-\/]+);base64,(.+)$/i);
+                if (dataMatch) {
+                  imgInfo = {
+                    buffer: Buffer.from(dataMatch[2], 'base64'),
+                    url: 'base64 data'
+                  };
+                }
+              } else {
+                // Download URL
+                imgInfo = await downloadImageHelper(match);
+              }
+
+              if (imgInfo && imgInfo.buffer) {
+                try {
+                  doc.moveDown(0.5);
+                  // Ensure there is enough space on page or add page if needed
+                  if (doc.y + 220 > doc.page.height - doc.page.margins.bottom) {
+                    doc.addPage();
+                  }
+                  doc.image(imgInfo.buffer, {
+                    fit: [contentW, 200],
+                    align: 'center'
+                  });
+                  doc.moveDown(0.5);
+                  doc.fontSize(8).font('Courier').fillColor(C.textMuted).text(`[Evidence Image: ${imgInfo.url.substring(0, 80)}]`, { align: 'center' });
+                  doc.moveDown(0.5);
+                } catch (imgErr) {
+                  console.error("Failed to render image in PDF:", imgErr);
+                  // Fallback: print URL/text since rendering failed
+                  doc.fontSize(9).font('Courier').fillColor(C.critical).text(`[Failed to render image: ${match.substring(0, 60)}...]`);
+                  doc.moveDown(0.5);
+                }
+              } else {
+                // Not an image or failed to fetch, print it as text/link
+                doc.fontSize(9).font('Courier').fillColor(C.accent).text(match);
+                doc.moveDown(0.5);
+              }
+            }
           }
         }
 
@@ -523,7 +617,7 @@ export async function generatePdfReport(projectId, modules = {}) {
         doc.moveDown(2);
         drawHRule(doc, { color: C.border });
         doc.moveDown(1.5);
-      });
+      }
 
       if (remainingRoadmap > 0) {
         doc.moveDown(0.5);

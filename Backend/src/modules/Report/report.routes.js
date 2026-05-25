@@ -72,7 +72,7 @@ router.post('/generate', async (req, res, next) => {
     const filename = `Hackract-Report-${safeName}-${projectId.split('-')[0].toUpperCase()}.pdf`;
 
     res.setHeader('Content-Type', 'application/pdf');
-    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+    res.setHeader('Content-Disposition', `inline; filename="${filename}"`);
     res.setHeader('Content-Length', pdfBuffer.length);
     res.setHeader('Cache-Control', 'no-cache');
     res.send(pdfBuffer);
@@ -89,7 +89,7 @@ router.post('/generate', async (req, res, next) => {
  */
 router.post('/ai-draft', async (req, res, next) => {
   try {
-    const { projectId, findingId, prompt: customPrompt } = req.body;
+    const { projectId, findingId, prompt: customPrompt, section = 'all' } = req.body;
 
     if (!projectId) {
       throw new AppError('projectId is required', 400);
@@ -166,7 +166,7 @@ Ensure your output is valid JSON. Do not include any markdown formatting like \`
     const results = [];
 
     for (const finding of findings) {
-      const userMessage = `Format this finding:
+      let userMessage = `Format this finding:
 Title: ${finding.title}
 Original Description: ${finding.description || 'N/A'}
 Severity: ${finding.severity}
@@ -174,8 +174,15 @@ CVSS Score: ${finding.cvssScore || 'N/A'}
 Affected Asset: ${finding.affectedAsset || 'N/A'}
 Evidence/Proof: ${finding.proof || 'N/A'}
 Original Remediation: ${finding.remediation || 'N/A'}
-${customPrompt ? `Additional refinement instructions: ${customPrompt}` : ''}
 `;
+
+      if (customPrompt) {
+        if (section && section !== 'all') {
+          userMessage += `\nCRITICAL INSTRUCTION: The user specifically wants to refine ONLY the "${section}" field of the finding. Focus intensely on applying this instruction to that field: "${customPrompt}"`;
+        } else {
+          userMessage += `\nAdditional refinement instructions: ${customPrompt}`;
+        }
+      }
 
       let aiResult;
       try {
