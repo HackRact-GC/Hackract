@@ -1,55 +1,15 @@
-import { Handle, Position, useReactFlow } from '@xyflow/react';
-import { FiCpu, FiLoader, FiSend, FiX } from 'react-icons/fi';
+import { Handle, Position, useStore } from '@xyflow/react';
+import { FiAlertCircle, FiCornerUpLeft, FiCpu, FiLoader, FiSend, FiX } from 'react-icons/fi';
 import { useEffect, useMemo, useRef, useState } from 'react';
-
-const OLLAMA_CHAT_URL = 'http://localhost:11434/api/chat';
-const ALLOWED_INPUT_NODE_TYPES = new Set(['note', 'agent', 'terminal']);
+import { generateWorkflowAssistantResponse } from '../../../api/assistantApi';
+import {
+  buildWorkflowAssistantPrompt,
+  buildWorkflowNodeContextLines,
+  extractConnectedNodeContext,
+  formatWorkflowAssistantError,
+} from '../utils/aiNodePrompt';
 
 const makeMessageId = () => `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
-
-const extractConnectedNodeContent = (node) => {
-  if (!node || !ALLOWED_INPUT_NODE_TYPES.has(node.type)) {
-    return '';
-  }
-
-  if (node.type === 'note') {
-    return String(node.data.text || node.data.prompt || node.data.content || '').trim();
-  }
-
-  if (node.type === 'agent') {
-    const logContent = Array.isArray(node.data.logs)
-      ? node.data.logs
-          .map((log) => log?.message)
-          .filter(Boolean)
-          .join('\n')
-      : '';
-
-    return String(
-      node.data.objective ||
-      node.data.prompt ||
-      node.data.label ||
-      logContent ||
-      node.data.status ||
-      '',
-    ).trim();
-  }
-
-  if (node.type === 'terminal') {
-    const terminalOutput = Array.isArray(node.data.outputLines)
-      ? node.data.outputLines.join('\n')
-      : '';
-
-    return String(
-      node.data.output ||
-      terminalOutput ||
-      node.data.initialCommand ||
-      node.data.command ||
-      '',
-    ).trim();
-  }
-
-  return '';
-};
 
 const normalizeMessages = (messages) => {
   if (!Array.isArray(messages)) return [];
@@ -63,16 +23,22 @@ const normalizeMessages = (messages) => {
         role: message.role === 'assistant' ? 'assistant' : 'user',
         content: String(message.content || '').trim(),
         source: message.source || '',
+        repliedNodes: Array.isArray(message.repliedNodes) ? message.repliedNodes : [],
       };
     })
     .filter((message) => message && message.content);
 };
 
 const AiNode = ({ id, data, selected }) => {
-  const { getNodes, getEdges } = useReactFlow();
+  const nodes = useStore((state) => state.nodes);
+  const edges = useStore((state) => state.edges);
   const [isLoading, setIsLoading] = useState(false);
   const [draft, setDraft] = useState(data.draft ?? data.prompt ?? '');
+  const [panelWidth, setPanelWidth] = useState(Number(data.panelWidth) || 360);
   const [messages, setMessages] = useState(() => normalizeMessages(data.messages));
+  const [status, setStatus] = useState(data.status || 'idle');
+  const [response, setResponse] = useState(data.response || '');
+  const [errorMessage, setErrorMessage] = useState(data.error || '');
   const scrollRef = useRef(null);
 
   const activeUsers = Object.values(data.activeUsers || {});
@@ -87,35 +53,53 @@ const AiNode = ({ id, data, selected }) => {
   }, [data.draft, data.prompt]);
 
   useEffect(() => {
+    const nextWidth = Number(data.panelWidth) || 360;
+    setPanelWidth(Math.max(320, Math.min(640, nextWidth)));
+  }, [data.panelWidth]);
+
+  useEffect(() => {
+    setStatus(data.status || 'idle');
+    setResponse(data.response || '');
+    setErrorMessage(data.error || '');
+  }, [data.status, data.response, data.error]);
+
+  useEffect(() => {
     if (scrollRef.current) {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
     }
   }, [messages]);
 
-  const incomingMessages = useMemo(() => {
-    const nodes = getNodes();
-    const edges = getEdges();
-    const incomingEdges = edges.filter((edge) => edge.target === id);
+  const connectedNodeContexts = useMemo(() => {
+    const incomingEdges = edges
+      .filter((edge) => edge.target === id)
+      .sort((left, right) => {
+        const leftSource = String(left.source || '');
+        const rightSource = String(right.source || '');
 
-    return incomingEdges
-      .map((edge) => nodes.find((node) => node.id === edge.source))
-      .filter((node) => node && ALLOWED_INPUT_NODE_TYPES.has(node.type))
-      .flatMap((node, index) => {
-        const label = node.data.label || node.type || 'Connected Node';
-        const content = extractConnectedNodeContent(node);
-
-        if (!content) {
-          return [];
+        if (leftSource !== rightSource) {
+          return leftSource.localeCompare(rightSource);
         }
 
-        return [{
-          id: `${node.id}-${index}-${makeMessageId()}`,
-          role: 'user',
-          content,
-          source: label,
-        }];
+        return String(left.id || '').localeCompare(String(right.id || ''));
       });
-  }, [getEdges, getNodes, id]);
+
+    return incomingEdges
+      .map((edge, index) => extractConnectedNodeContext(nodes.find((node) => node.id === edge.source), index, edge.id))
+      .filter(Boolean);
+  }, [edges, id, nodes]);
+
+  const contextPreview = useMemo(() => buildWorkflowNodeContextLines(connectedNodeContexts), [connectedNodeContexts]);
+
+  const repliedNodeLabels = useMemo(() => {
+    const uniqueLabels = new Set();
+    connectedNodeContexts.forEach((context) => {
+      if (context?.sourceLabel) {
+        uniqueLabels.add(context.sourceLabel);
+      }
+    });
+
+    return Array.from(uniqueLabels).sort((left, right) => left.localeCompare(right));
+  }, [connectedNodeContexts]);
 
   const persistMessages = (nextMessages, extraData = {}) => {
     const cleanedMessages = normalizeMessages(nextMessages);
@@ -125,7 +109,7 @@ const AiNode = ({ id, data, selected }) => {
       data.onDataChange({
         messages: cleanedMessages,
         draft: extraData.draft ?? draft,
-        prompt: extraData.draft ?? draft,
+        prompt: extraData.prompt ?? extraData.draft ?? draft,
         ...extraData,
       });
     }
@@ -133,68 +117,91 @@ const AiNode = ({ id, data, selected }) => {
 
   const handleAsk = async () => {
     const typedDraft = draft.trim();
-    const connectedDrafts = incomingMessages.map((message) => message.content);
-    const hasConnectedInput = connectedDrafts.length > 0;
+    const hasConnectedInput = connectedNodeContexts.length > 0;
 
     if (!typedDraft && !hasConnectedInput) {
       return;
     }
 
-    const connectedContent = connectedDrafts.join('\n');
-    const userContent = [connectedContent, typedDraft].filter(Boolean).join('\n\n');
+    const composedPrompt = buildWorkflowAssistantPrompt({
+      userPrompt: typedDraft,
+      contexts: connectedNodeContexts,
+    });
     const userMessage = {
       id: makeMessageId(),
       role: 'user',
-      content: userContent,
-      source: typedDraft ? 'You' : 'Connected nodes',
+      content: typedDraft || 'Using connected node context.',
+      source: typedDraft ? 'You + connected nodes' : 'Connected nodes',
+      repliedNodes: repliedNodeLabels,
     };
     const nextMessages = [...messages, userMessage];
 
-    persistMessages(nextMessages, { draft: '' });
+    setStatus('loading');
+    setErrorMessage('');
+    setResponse('');
+    persistMessages(nextMessages, {
+      draft: '',
+      prompt: typedDraft,
+      status: 'loading',
+      error: '',
+      response: '',
+      context: contextPreview.join('\n\n'),
+      sourceNodes: connectedNodeContexts,
+    });
     setDraft('');
     setIsLoading(true);
 
     try {
-      const response = await fetch(OLLAMA_CHAT_URL, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          model: 'qwen3:0.6b',
-          messages: [
-            {
-              role: 'system',
-              content: 'You are a helpful AI assistant inside a workflow editor. Keep replies concise, clear, and useful.',
-            },
-            ...nextMessages.map((message) => ({
-              role: message.role,
-              content: message.source ? `[${message.source}] ${message.content}` : message.content,
-            })),
-          ],
-          stream: false,
-        }),
+      const assistantResult = await generateWorkflowAssistantResponse({
+        prompt: typedDraft,
+        context: contextPreview.join('\n\n'),
+        sourceNodes: connectedNodeContexts,
+        model: data.model,
+        assistantId: data.assistantId,
+        timeoutMs: connectedNodeContexts.length > 0 ? 45000 : 25000,
       });
 
-      const json = await response.json();
-      const assistantText = String(json.message?.content || json.response || '').trim();
+      const assistantText = String(assistantResult.response || assistantResult.content || '').trim();
       const assistantMessage = {
         id: makeMessageId(),
         role: 'assistant',
-        content: assistantText || 'No response returned from Ollama.',
+        content: assistantText || 'No response returned from the AI assistant.',
         source: 'AI Assistant',
       };
 
-      persistMessages([...nextMessages, assistantMessage]);
+      setStatus('success');
+      setResponse(assistantMessage.content);
+      persistMessages([...nextMessages, assistantMessage], {
+        status: 'success',
+        error: '',
+        response: assistantMessage.content,
+        prompt: typedDraft,
+        context: contextPreview.join('\n\n'),
+        sourceNodes: connectedNodeContexts,
+      });
     } catch (err) {
-      console.error('Error calling Ollama:', err);
+      const friendlyMessage = formatWorkflowAssistantError(err);
+      console.error('Error calling AI assistant:', err);
+      setStatus('error');
+      setErrorMessage(friendlyMessage);
       persistMessages([
         ...nextMessages,
         {
           id: makeMessageId(),
           role: 'assistant',
-          content: 'Error: Could not connect to AI assistant. Is Ollama running?',
+          content: friendlyMessage,
           source: 'AI Assistant',
+          isError: true,
         },
-      ], { draft: '' });
+      ], {
+        draft: '',
+        status: 'error',
+        error: friendlyMessage,
+        response: '',
+        prompt: typedDraft,
+        context: contextPreview.join('\n\n'),
+        sourceNodes: connectedNodeContexts,
+      });
     } finally {
       setIsLoading(false);
     }
@@ -208,7 +215,10 @@ const AiNode = ({ id, data, selected }) => {
   };
 
   return (
-    <div className={`bg-[#0b0f19] border rounded-lg w-[320px] font-mono text-sm transition-all relative ${selected || showPresence ? 'border-[#00ff88] shadow-[0_0_20px_rgba(0,255,136,0.6)]' : 'border-[#00ff88]/50 shadow-[0_0_10px_rgba(0,255,136,0.3)]'}`}>
+    <div
+      className={`bg-[#0b0f19] border rounded-lg font-mono text-sm transition-all relative ${selected || showPresence ? 'border-[#00ff88] shadow-[0_0_20px_rgba(0,255,136,0.6)]' : 'border-[#00ff88]/50 shadow-[0_0_10px_rgba(0,255,136,0.3)]'}`}
+      style={{ width: `${panelWidth}px` }}
+    >
       {showPresence && (
         <div className="absolute -top-6 right-0 flex -space-x-2">
           {activeUsers.map((u, i) => (
@@ -246,14 +256,43 @@ const AiNode = ({ id, data, selected }) => {
       </div>
 
       <div className="p-3 space-y-3">
+        <div className="flex items-center gap-2">
+          <label className="text-[10px] uppercase tracking-[0.2em] text-gray-500">Width</label>
+          <input
+            type="range"
+            min={320}
+            max={640}
+            step={10}
+            value={panelWidth}
+            onChange={(event) => {
+              const nextWidth = Number(event.target.value) || 360;
+              setPanelWidth(nextWidth);
+              data.onDataChange && data.onDataChange({ panelWidth: nextWidth });
+            }}
+            className="flex-1 accent-[#00ff88]"
+          />
+          <span className="text-[10px] text-gray-500 w-10 text-right">{panelWidth}</span>
+        </div>
+
+        <div className="rounded-lg border border-[#00ff88]/15 bg-black/40 p-2">
+          <div className="flex items-center justify-between gap-2 text-[10px] uppercase tracking-[0.2em] text-gray-500">
+            <span className="flex items-center gap-1.5">
+              <FiAlertCircle size={10} className="text-[#00ff88]" />
+              Upstream nodes
+            </span>
+            <span>{connectedNodeContexts.length}</span>
+          </div>
+        </div>
+
         <div ref={scrollRef} className="bg-black/60 border border-gray-800 rounded-lg p-2 max-h-72 overflow-y-auto space-y-2">
           {messages.length === 0 ? (
             <div className="text-gray-600 text-xs leading-relaxed">
-              Chat history will appear here. Connect upstream nodes or type a message below.
+              Assistant output and chat history will appear here. Connect upstream nodes or type a message below.
             </div>
           ) : (
             messages.map((message) => {
               const isAssistant = message.role === 'assistant';
+              const hasReplySources = !isAssistant && Array.isArray(message.repliedNodes) && message.repliedNodes.length > 0;
 
               return (
                 <div key={message.id} className={`flex ${isAssistant ? 'justify-start' : 'justify-end'}`}>
@@ -261,6 +300,12 @@ const AiNode = ({ id, data, selected }) => {
                     <div className="mb-1 text-[10px] uppercase tracking-[0.2em] text-gray-500">
                       {message.source || (isAssistant ? 'AI Assistant' : 'You')}
                     </div>
+                    {hasReplySources && (
+                      <div className="mb-2 inline-flex max-w-full items-center gap-1.5 rounded-md border border-[#00ff88]/30 bg-[#00ff88]/10 px-2 py-1 text-[10px] text-[#c9ffe2]">
+                        <FiCornerUpLeft size={10} />
+                        <span className="truncate">{message.repliedNodes.join(', ')}</span>
+                      </div>
+                    )}
                     {message.content}
                   </div>
                 </div>
@@ -272,28 +317,32 @@ const AiNode = ({ id, data, selected }) => {
         <div className="space-y-2 border-t border-[#00ff88]/10 pt-3">
           <textarea
             className="w-full min-h-24 bg-black border border-gray-800 text-gray-300 p-3 rounded-lg resize-none focus:outline-none focus:border-[#00ff88]/50"
-            placeholder={incomingMessages.length > 0 ? 'Type a reply or ask follow-up...' : 'Ask something...'}
+            placeholder={connectedNodeContexts.length > 0 ? 'Ask about the connected node output...' : 'Ask something...'}
             value={draft}
             onChange={(e) => {
               const nextDraft = e.target.value;
               setDraft(nextDraft);
-              data.onDataChange && data.onDataChange({ draft: nextDraft, prompt: nextDraft });
+              setErrorMessage('');
+              if (status === 'error') {
+                setStatus('idle');
+              }
+              data.onDataChange && data.onDataChange({ draft: nextDraft, prompt: nextDraft, error: '', status: status === 'error' ? 'idle' : status });
             }}
             onKeyDown={handleDraftKeyDown}
           />
 
           <div className="flex items-center justify-between gap-2">
             <div className="text-[10px] text-gray-500 leading-tight">
-              Connected nodes are included as user input when you send.
+              Connected nodes are merged into the prompt in deterministic source order.
             </div>
             <button
               className="inline-flex items-center gap-2 rounded-lg border border-[#00ff88]/50 px-3 py-2 text-[#00ff88] hover:bg-[#00ff88]/10 disabled:opacity-50 disabled:cursor-not-allowed"
               onClick={handleAsk}
               disabled={isLoading}
-              title="Send to Ollama"
+              title="Send to AI assistant"
             >
               {isLoading ? <FiLoader className="animate-spin" /> : <FiSend size={14} />}
-              <span className="text-xs font-medium">Send</span>
+              <span className="text-xs font-medium">{isLoading ? 'Running...' : 'Send'}</span>
             </button>
           </div>
         </div>

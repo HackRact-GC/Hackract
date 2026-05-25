@@ -13,10 +13,23 @@ const TerminalNode = ({ data, selected }) => {
   const terminalRef = useRef(null);
   const xtermRef = useRef(null);
   const fitAddonRef = useRef(null);
+  const transcriptRef = useRef(String(data.terminalTranscript || data.output || '').trim());
+  const inputBufferRef = useRef(String(data.terminalInput || '').trim());
   const activeUsers = Object.values(data.activeUsers || {});
   const showPresence = activeUsers.length > 0;
 
   const { sendInput, sendResize, setOnOutput, isConnected } = useTerminalSocket(data.workflowId);
+
+  useEffect(() => {
+    transcriptRef.current = String(data.terminalTranscript || data.output || '').trim();
+    inputBufferRef.current = String(data.terminalInput || '').trim();
+  }, [data.terminalTranscript, data.output, data.terminalInput]);
+
+  const publishTerminalState = (patch) => {
+    if (data.onDataChange) {
+      data.onDataChange(patch);
+    }
+  };
 
   useEffect(() => {
     if (!terminalRef.current) return;
@@ -55,11 +68,46 @@ const TerminalNode = ({ data, selected }) => {
 
     // Handle user input
     term.onData((data) => {
+      if (data === '\r') {
+        const command = inputBufferRef.current.trim();
+        if (command) {
+          transcriptRef.current = transcriptRef.current
+            ? `${transcriptRef.current}\n${command}`
+            : command;
+
+          publishTerminalState({
+            terminalInput: '',
+            terminalTranscript: transcriptRef.current,
+            output: transcriptRef.current,
+            outputLines: transcriptRef.current.split(/\r?\n/).filter(Boolean),
+          });
+        }
+
+        inputBufferRef.current = '';
+      } else if (data === '\u007f' || data === '\b') {
+        inputBufferRef.current = inputBufferRef.current.slice(0, -1);
+        publishTerminalState({ terminalInput: inputBufferRef.current });
+      } else if (/^[\x20-\x7E]$/.test(data)) {
+        inputBufferRef.current = `${inputBufferRef.current}${data}`;
+        publishTerminalState({ terminalInput: inputBufferRef.current });
+      }
+
       sendInput(data);
     });
 
     // Handle backend output
     setOnOutput((data) => {
+      const plainText = String(data || '');
+      transcriptRef.current = transcriptRef.current
+        ? `${transcriptRef.current}\n${plainText}`
+        : plainText;
+
+      publishTerminalState({
+        terminalTranscript: transcriptRef.current,
+        output: transcriptRef.current,
+        outputLines: transcriptRef.current.split(/\r?\n/).filter(Boolean),
+      });
+
       term.write(data);
     });
 
@@ -95,6 +143,18 @@ const TerminalNode = ({ data, selected }) => {
       console.log(`🤖 Auto-executing command: ${data.initialCommand}`);
       // Send the command followed by Enter (\r)
       sendInput(`${data.initialCommand}\r`);
+
+        const nextTranscript = transcriptRef.current
+          ? `${transcriptRef.current}\n${data.initialCommand}`
+          : data.initialCommand;
+        transcriptRef.current = nextTranscript;
+        inputBufferRef.current = '';
+        publishTerminalState({
+          terminalInput: '',
+          terminalTranscript: nextTranscript,
+          output: nextTranscript,
+          outputLines: nextTranscript.split(/\r?\n/).filter(Boolean),
+        });
 
       // Clear the initialCommand in the local state so it doesn't run again on re-connects
       // We use data.onDataChange if available to update the node's permanent state
