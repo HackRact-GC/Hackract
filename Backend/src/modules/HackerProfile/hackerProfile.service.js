@@ -27,9 +27,14 @@ export const getMyProfile = async (userId) => {
  * Public profile — used by ORG_ADMIN to view a hacker's full approved profile.
  * Fetches by userId and includes user info + completed pentest projects.
  */
-export const getPublicProfile = async (userId) => {
-  const profile = await prisma.hackerProfile.findUnique({
-    where: { userId },
+export const getPublicProfile = async (userIdOrProfileId) => {
+  const profile = await prisma.hackerProfile.findFirst({
+    where: {
+      OR: [
+        { userId: userIdOrProfileId },
+        { id: userIdOrProfileId }
+      ]
+    },
     include: {
       user: {
         select: {
@@ -79,7 +84,7 @@ export const getPublicProfile = async (userId) => {
   if (!profile) return null;
 
   const ratingAggregate = await prisma.review.aggregate({
-    where: { subjectId: userId },
+    where: { subjectId: profile.userId },
     _avg: { rating: true },
     _count: { rating: true },
   });

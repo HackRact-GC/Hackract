@@ -101,9 +101,9 @@ router.post('/generate', async (req, res, next) => {
       throw new AppError('projectId is required', 400);
     }
 
-    const { project, isOrgAdmin } = await requireReportManager(projectId, req.user);
+    const { project, isOrgAdmin, isOrgAdminMember } = await requireReportManager(projectId, req.user);
 
-    if (isOrgAdmin) {
+    if (isOrgAdmin || isOrgAdminMember) {
       throw new AppError('Organization administrators are not allowed to generate reports.', 403);
     }
 
@@ -111,33 +111,6 @@ router.post('/generate', async (req, res, next) => {
 
     res.setHeader('Content-Type', 'application/pdf');
     res.setHeader('Content-Disposition', `inline; filename="${buildReportFilename(project)}"`);
-    res.setHeader('Content-Length', pdfBuffer.length);
-    res.setHeader('Cache-Control', 'no-cache');
-    res.send(pdfBuffer);
-  } catch (err) {
-    next(err);
-  }
-});
-
-/**
- * POST /api/v1/reports/preview
- * Body: { projectId, modules: { execSummary, vulnTable, methodology, rawLogs } }
- * Response: application/pdf binary stream for inline viewing
- */
-router.post('/preview', async (req, res, next) => {
-  try {
-    const { projectId, modules = {} } = req.body;
-
-    if (!projectId) {
-      throw new AppError('projectId is required', 400);
-    }
-
-    await requireProjectReader(projectId, req.user);
-
-    const pdfBuffer = await generatePdfReport(projectId, modules);
-
-    res.setHeader('Content-Type', 'application/pdf');
-    res.setHeader('Content-Disposition', 'inline; filename="preview.pdf"');
     res.setHeader('Content-Length', pdfBuffer.length);
     res.setHeader('Cache-Control', 'no-cache');
     res.send(pdfBuffer);
@@ -159,7 +132,11 @@ router.post('/ai-draft', async (req, res, next) => {
       throw new AppError('projectId is required', 400);
     }
 
-    await requireReportManager(projectId, req.user, 'draft report content');
+    const { project, isOrgAdmin, isOrgAdminMember } = await requireReportManager(projectId, req.user, 'draft report content');
+
+    if (isOrgAdmin || isOrgAdminMember) {
+      throw new AppError('Organization administrators are not allowed to draft report content.', 403);
+    }
 
     let findings = [];
     if (findingId) {
@@ -229,6 +206,7 @@ Original Remediation: ${finding.remediation || 'N/A'}
           .replace(/^```(?:json)?/i, '')
           .replace(/```$/, '')
           .trim();
+
         const parsedJson = JSON.parse(cleanText);
         parsed = {
           target: parsedJson.target || fallback.target,
@@ -250,7 +228,42 @@ Original Remediation: ${finding.remediation || 'N/A'}
       });
     }
 
-    res.json({ success: true, data: results });
+    return res.json({ success: true, data: results });
+  } catch (err) {
+    next(err);
+  }
+});
+
+/**
+ * POST /api/v1/reports/preview
+ * Body: { projectId, modules: { execSummary, vulnTable, methodology, rawLogs } }
+ * Response: application/pdf binary stream (browser inline viewing)
+ */
+router.post('/preview', async (req, res, next) => {
+  try {
+    const { projectId, modules = {} } = req.body;
+
+    if (!projectId) {
+      throw new AppError('projectId is required', 400);
+    }
+
+    const { project } = await requireProjectReader(projectId, req.user);
+
+    const pdfBuffer = await generatePdfReport(projectId, modules);
+
+    const safeName = (project.name || 'Report')
+      .replace(/[^a-z0-9\-_ ]/gi, '')
+      .trim()
+      .replace(/\s+/g, '-')
+      .substring(0, 50);
+
+    const filename = `Hackract-Report-${safeName}-${projectId.split('-')[0].toUpperCase()}.pdf`;
+
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `inline; filename="${filename}"`);
+    res.setHeader('Content-Length', pdfBuffer.length);
+    res.setHeader('Cache-Control', 'no-cache');
+    res.send(pdfBuffer);
   } catch (err) {
     next(err);
   }
@@ -263,9 +276,9 @@ Original Remediation: ${finding.remediation || 'N/A'}
 router.get('/project/:projectId/json', async (req, res, next) => {
   try {
     const { projectId } = req.params;
-    const { isOrgAdmin } = await requireReportManager(projectId, req.user, 'export reports');
+    const { isOrgAdmin, isOrgAdminMember } = await requireReportManager(projectId, req.user, 'export reports');
 
-    if (isOrgAdmin) {
+    if (isOrgAdmin || isOrgAdminMember) {
       throw new AppError('Organization administrators are not allowed to export reports.', 403);
     }
 
@@ -282,6 +295,8 @@ router.get('/project/:projectId/json', async (req, res, next) => {
         },
       },
     });
+
+    if (!project) throw new AppError('Project not found', 404);
 
     const filename = `Hackract-Report-${projectId.split('-')[0].toUpperCase()}.json`;
     res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
