@@ -1,4 +1,4 @@
-import { Handle, Position, useStore } from '@xyflow/react';
+import { Handle, Position, useStore, NodeResizer } from '@xyflow/react';
 import { FiAlertCircle, FiCornerUpLeft, FiCpu, FiLoader, FiSend, FiX } from 'react-icons/fi';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { generateWorkflowAssistantResponse } from '../../../api/assistantApi';
@@ -40,8 +40,6 @@ const AiNode = ({ id, data, selected }) => {
   const [response, setResponse] = useState(data.response || '');
   const [errorMessage, setErrorMessage] = useState(data.error || '');
   const scrollRef = useRef(null);
-import { Handle, Position, NodeResizer } from '@xyflow/react';
-import { FiCpu, FiX } from 'react-icons/fi';
 
   const activeUsers = Object.values(data.activeUsers || {});
   const showPresence = activeUsers.length > 0;
@@ -73,17 +71,17 @@ import { FiCpu, FiX } from 'react-icons/fi';
 
   const connectedNodeContexts = useMemo(() => {
     const incomingEdges = edges
-      .filter((edge) => edge.target === id)
-      .sort((left, right) => {
-        const leftSource = String(left.source || '');
-        const rightSource = String(right.source || '');
+       .filter((edge) => edge.target === id)
+       .sort((left, right) => {
+         const leftSource = String(left.source || '');
+         const rightSource = String(right.source || '');
 
-        if (leftSource !== rightSource) {
-          return leftSource.localeCompare(rightSource);
-        }
+         if (leftSource !== rightSource) {
+           return leftSource.localeCompare(rightSource);
+         }
 
-        return String(left.id || '').localeCompare(String(right.id || ''));
-      });
+         return String(left.id || '').localeCompare(String(right.id || ''));
+       });
 
     return incomingEdges
       .map((edge, index) => extractConnectedNodeContext(nodes.find((node) => node.id === edge.source), index, edge.id))
@@ -218,14 +216,12 @@ import { FiCpu, FiX } from 'react-icons/fi';
 
   return (
     <div
-      className={`bg-[#0b0f19] border rounded-lg font-mono text-sm transition-all relative ${selected || showPresence ? 'border-[#00ff88] shadow-[0_0_20px_rgba(0,255,136,0.6)]' : 'border-[#00ff88]/50 shadow-[0_0_10px_rgba(0,255,136,0.3)]'}`}
-      style={{ width: `${panelWidth}px` }}
-    >
       className={`bg-[#0b0f19] border rounded-lg font-mono text-sm transition-all relative flex flex-col h-full min-w-[240px] min-h-[180px] ${
         selected || showPresence
           ? 'border-[#00ff88] shadow-[0_0_20px_rgba(0,255,136,0.6)]'
           : 'border-[#00ff88]/50 shadow-[0_0_10px_rgba(0,255,136,0.3)]'
       }`}
+      style={{ width: `${panelWidth}px` }}
     >
       {/* NodeResizer — drag any edge or corner to resize */}
       <NodeResizer
@@ -252,7 +248,6 @@ import { FiCpu, FiX } from 'react-icons/fi';
         </div>
       )}
 
-      <div className="p-2 flex justify-between items-center text-[#00ff88] border-b border-[#00ff88]/30">
       {/* Header */}
       <div className="p-2 flex justify-between items-center text-[#00ff88] border-b border-[#00ff88]/30 shrink-0">
         <div className="flex items-center gap-2">
@@ -275,7 +270,9 @@ import { FiCpu, FiX } from 'react-icons/fi';
         </div>
       </div>
 
-      <div className="p-3 space-y-3">
+      {/* Body */}
+      <div className="p-3 flex flex-col gap-3 flex-1">
+        {/* Width Slider */}
         <div className="flex items-center gap-2">
           <label className="text-[10px] uppercase tracking-[0.2em] text-gray-500">Width</label>
           <input
@@ -290,18 +287,11 @@ import { FiCpu, FiX } from 'react-icons/fi';
               data.onDataChange && data.onDataChange({ panelWidth: nextWidth });
             }}
             className="flex-1 accent-[#00ff88]"
-      {/* Body */}
-      <div className="p-3 flex flex-col gap-3 flex-1">
-        <div className="relative flex-1 flex flex-col">
-          <textarea
-            className="flex-1 w-full bg-black border border-gray-800 text-gray-300 p-2 rounded resize-none focus:outline-none focus:border-[#00ff88]/50"
-            placeholder="Ask something..."
-            defaultValue={data.prompt || ''}
-            onChange={(e) => data.onDataChange && data.onDataChange({ prompt: e.target.value })}
           />
-          <span className="text-[10px] text-gray-500 w-10 text-right">{panelWidth}</span>
+          <span className="text-[10px] text-gray-500 w-10 text-right">{panelWidth}px</span>
         </div>
 
+        {/* Upstream nodes indicator */}
         <div className="rounded-lg border border-[#00ff88]/15 bg-black/40 p-2">
           <div className="flex items-center justify-between gap-2 text-[10px] uppercase tracking-[0.2em] text-gray-500">
             <span className="flex items-center gap-1.5">
@@ -312,6 +302,7 @@ import { FiCpu, FiX } from 'react-icons/fi';
           </div>
         </div>
 
+        {/* Chat History */}
         <div ref={scrollRef} className="bg-black/60 border border-gray-800 rounded-lg p-2 max-h-72 overflow-y-auto space-y-2">
           {messages.length === 0 ? (
             <div className="text-gray-600 text-xs leading-relaxed">
@@ -342,6 +333,7 @@ import { FiCpu, FiX } from 'react-icons/fi';
           )}
         </div>
 
+        {/* Input */}
         <div className="space-y-2 border-t border-[#00ff88]/10 pt-3">
           <textarea
             className="w-full min-h-24 bg-black border border-gray-800 text-gray-300 p-3 rounded-lg resize-none focus:outline-none focus:border-[#00ff88]/50"
@@ -374,9 +366,6 @@ import { FiCpu, FiX } from 'react-icons/fi';
             </button>
           </div>
         </div>
-        <button className="bg-transparent border border-[#00ff88]/50 text-[#00ff88] text-xs px-3 py-1 rounded hover:bg-[#00ff88]/10 w-[120px] shrink-0">
-          Generate Report
-        </button>
       </div>
 
       <Handle type="target" position={Position.Left} className="w-3 h-3 bg-[#00ff88] border-2 border-[#0b0f19]" />

@@ -56,12 +56,10 @@ router.post('/generate', async (req, res, next) => {
     const isProjectAdmin = userCollab?.role === 'PROJECT_ADMIN' || userRole.includes('PROJECT_ADMIN');
     const isAuthorized = isLead || isOrgAdmin || isOrgAdminMember || isProjectAdmin;
 
-    if (!isAuthorized) {
-      throw new AppError('Unauthorized: Only project administrators or organization admins can generate reports', 403);
-    }
-
-    if (isOrgAdmin) {
-      throw new AppError('Organization administrators are not allowed to generate reports.', 403);
+    // Only PROJECT_ADMIN collaborators and personal project leads can generate reports.
+    // ORG_ADMINs use the /preview route instead (read-only access).
+    if (!isProjectAdmin && !isLead) {
+      throw new AppError('Unauthorized: Only project administrators or project leads can generate reports', 403);
     }
 
     // Generate the PDF buffer
@@ -96,19 +94,11 @@ router.post('/generate', async (req, res, next) => {
 router.post('/ai-draft', async (req, res, next) => {
   try {
     const { projectId, findingId, prompt: customPrompt, section = 'all' } = req.body;
- * POST /api/v1/reports/preview
- * Body: { projectId, modules: { execSummary, vulnTable, methodology, rawLogs } }
- * Response: application/pdf binary stream (browser inline viewing)
- */
-router.post('/preview', async (req, res, next) => {
-  try {
-    const { projectId, modules = {} } = req.body;
 
     if (!projectId) {
       throw new AppError('projectId is required', 400);
     }
 
-    // Verify the requesting user has access to this project
     const project = await prisma.pentest.findUnique({
       where: { id: projectId },
       select: {
@@ -116,10 +106,6 @@ router.post('/preview', async (req, res, next) => {
         organizationId: true,
         leadPentesterId: true,
         collaborators: { select: { userId: true, role: true } },
-        name: true,
-        organizationId: true,
-        leadPentesterId: true,
-        collaborators: { select: { userId: true } },
       },
     });
 
@@ -127,12 +113,12 @@ router.post('/preview', async (req, res, next) => {
       throw new AppError('Project not found', 404);
     }
 
-    const userId   = req.user.id;
+    const userId = req.user.id;
     const userRole = req.user.roles?.map(r => r.type) || [];
 
-    const userCollab     = project.collaborators.find(c => c.userId === userId);
-    const isLead         = project.leadPentesterId === userId;
-    const isOrgAdmin     = userRole.includes('ORG_ADMIN');
+    const userCollab = project.collaborators.find(c => c.userId === userId);
+    const isLead = project.leadPentesterId === userId;
+    const isOrgAdmin = userRole.includes('ORG_ADMIN');
 
     let isOrgAdminMember = false;
     if (project.organizationId) {
@@ -149,7 +135,6 @@ router.post('/preview', async (req, res, next) => {
       throw new AppError('Unauthorized: Only project administrators or organization admins can generate reports', 403);
     }
 
-    // Load findings
     let findings = [];
     if (findingId) {
       const singleFinding = await prisma.finding.findFirst({
@@ -242,7 +227,7 @@ Original Remediation: ${finding.remediation || 'N/A'}
           cleanText = cleanText.substring(0, cleanText.length - 3);
         }
         cleanText = cleanText.trim();
-        
+
         const parsedJson = JSON.parse(cleanText);
         parsed = {
           target: parsedJson.target || parsed.target,
@@ -252,7 +237,7 @@ Original Remediation: ${finding.remediation || 'N/A'}
           remediation: parsedJson.remediation || parsedJson.reremediation || parsed.remediation
         };
       } catch (parseErr) {
-        console.warn("AI response parsing failed. Using regex fallback.", parseErr);
+        console.warn('AI response parsing failed. Using regex fallback.', parseErr);
         const text = aiResult.response;
         const targetMatch = text.match(/(?:Target|Asset):\s*([^\n]+)/i);
         const descMatch = text.match(/Description:\s*([\s\S]+?)(?=Severity|Risk|Evidence|Remediation|$)/i);
@@ -284,30 +269,75 @@ Original Remediation: ${finding.remediation || 'N/A'}
       });
     }
 
-    res.json({ success: true, data: results });
-    const isCollaborator = project.collaborators.some(c => c.userId === userId);
-    const isLead         = project.leadPentesterId === userId;
-    const isOrgAdmin     = userRole.includes('ORG_ADMIN');
-    const isProjectAdmin = userRole.includes('PROJECT_ADMIN');
+    return res.json({ success: true, data: results });
+  } catch (err) {
+    next(err);
+  }
+});
 
-    // Check org membership for org projects
-    let isOrgMember = false;
+/**
+ * POST /api/v1/reports/preview
+ * Body: { projectId, modules: { execSummary, vulnTable, methodology, rawLogs } }
+ * Response: application/pdf binary stream (browser inline viewing)
+ */
+router.post('/preview', async (req, res, next) => {
+  try {
+    const { projectId, modules = {} } = req.body;
+
+    if (!projectId) {
+      throw new AppError('projectId is required', 400);
+    }
+
+    const project = await prisma.pentest.findUnique({
+      where: { id: projectId },
+      select: {
+        id: true,
+        organizationId: true,
+        leadPentesterId: true,
+        name: true,
+        collaborators: { select: { userId: true, role: true } },
+      },
+    });
+
+    if (!project) {
+      throw new AppError('Project not found', 404);
+    }
+
+    const userId = req.user.id;
+    const userRole = req.user.roles?.map(r => r.type) || [];
+
+    const userCollab = project.collaborators.find(c => c.userId === userId);
+    const isLead = project.leadPentesterId === userId;
+    const isOrgAdmin = userRole.includes('ORG_ADMIN');
+
+    let isOrgAdminMember = false;
     if (project.organizationId) {
       const member = await prisma.organizationMember.findFirst({
-        where: { organizationId: project.organizationId, userId },
+        where: { organizationId: project.organizationId, userId, role: { in: ['owner', 'admin'] } },
       });
-      isOrgMember = Boolean(member);
+      isOrgAdminMember = Boolean(member);
     }
 
-    if (!isCollaborator && !isLead && !isOrgAdmin && !isProjectAdmin && !isOrgMember) {
-      throw new AppError('You do not have access to this project', 403);
+    const isProjectAdmin = userCollab?.role === 'PROJECT_ADMIN' || userRole.includes('PROJECT_ADMIN');
+    const isCollaborator = Boolean(userCollab);
+    const isAuthorized = isLead || isOrgAdmin || isOrgAdminMember || isProjectAdmin || isCollaborator;
+
+    if (!isAuthorized) {
+      throw new AppError('Unauthorized: You do not have access to preview reports for this project', 403);
     }
 
-    // Generate the PDF buffer
     const pdfBuffer = await generatePdfReport(projectId, modules);
 
+    const safeName = (project.name || 'Report')
+      .replace(/[^a-z0-9\-_ ]/gi, '')
+      .trim()
+      .replace(/\s+/g, '-')
+      .substring(0, 50);
+
+    const filename = `Hackract-Report-${safeName}-${projectId.split('-')[0].toUpperCase()}.pdf`;
+
     res.setHeader('Content-Type', 'application/pdf');
-    res.setHeader('Content-Disposition', `inline; filename="preview.pdf"`);
+    res.setHeader('Content-Disposition', `inline; filename="${filename}"`);
     res.setHeader('Content-Length', pdfBuffer.length);
     res.setHeader('Cache-Control', 'no-cache');
     res.send(pdfBuffer);
@@ -357,30 +387,10 @@ router.get('/project/:projectId/json', async (req, res, next) => {
     }
 
     const isProjectAdmin = userCollab?.role === 'PROJECT_ADMIN' || userRole.includes('PROJECT_ADMIN');
-    const isAuthorized = isLead || isOrgAdmin || isOrgAdminMember || isProjectAdmin;
 
-    if (!isAuthorized) {
-      throw new AppError('Unauthorized: Only project administrators or organization admins can generate reports', 403);
-    const isCollaborator = project.collaborators.some(c => c.userId === userId);
-    const isLead         = project.leadPentesterId === userId;
-    const isOrgAdmin     = userRole.includes('ORG_ADMIN');
-    const isProjectAdmin = userRole.includes('PROJECT_ADMIN');
-
-    // Check org membership for org projects
-    let isOrgMember = false;
-    if (project.organizationId) {
-      const member = await prisma.organizationMember.findFirst({
-        where: { organizationId: project.organizationId, userId },
-      });
-      isOrgMember = Boolean(member);
-    }
-
-    if (!isCollaborator && !isLead && !isOrgAdmin && !isProjectAdmin && !isOrgMember) {
-      throw new AppError('You do not have access to this project', 403);
-    }
-
-    if (isOrgAdmin) {
-      throw new AppError('Organization administrators are not allowed to export reports.', 403);
+    // Only PROJECT_ADMIN collaborators and personal project leads can export JSON.
+    if (!isProjectAdmin && !isLead) {
+      throw new AppError('Unauthorized: Only project administrators or project leads can export report data', 403);
     }
 
     const filename = `Hackract-Report-${projectId.split('-')[0].toUpperCase()}.json`;
