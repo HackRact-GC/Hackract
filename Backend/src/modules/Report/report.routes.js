@@ -8,120 +8,12 @@ const router = express.Router();
 
 router.use(protect);
 
-const getRoleTypes = (user) => user.roles?.map((role) => role.type) || [];
-
-const getProjectAccess = async (projectId, user) => {
-    const project = await prisma.pentest.findUnique({
-        where: { id: projectId },
-        select: {
-            id: true,
-            name: true,
-            organizationId: true,
-            leadPentesterId: true,
-            collaborators: { select: { userId: true, role: true } },
-        },
-    });
-
-    if (!project) {
-        throw new AppError('Project not found', 404);
-    }
-
-    const userId = user.id;
-    const userRoles = getRoleTypes(user);
-    const userCollab = project.collaborators.find((collaborator) => collaborator.userId === userId);
-    const isLead = project.leadPentesterId === userId;
-    const isOrgAdmin = userRoles.includes('ORG_ADMIN');
-    const isProjectAdmin = userCollab?.role === 'PROJECT_ADMIN' || userRoles.includes('PROJECT_ADMIN');
-
-    let isOrgAdminMember = false;
-    let isOrgMember = false;
-    if (project.organizationId) {
-        const member = await prisma.organizationMember.findFirst({
-            where: { organizationId: project.organizationId, userId },
-        });
-        isOrgMember = Boolean(member);
-        isOrgAdminMember = member?.role === 'owner' || member?.role === 'admin';
-    }
-
-    const isCollaborator = Boolean(userCollab);
-
-    return {
-        project,
-        isCollaborator,
-        isLead,
-        isOrgAdmin,
-        isOrgAdminMember,
-        isOrgMember,
-        isProjectAdmin,
-    };
-};
-
-const requireReportManager = async (projectId, user, action = 'generate reports') => {
-    const access = await getProjectAccess(projectId, user);
-    const isAuthorized = access.isLead || access.isOrgAdmin || access.isOrgAdminMember || access.isProjectAdmin;
-
-    if (!isAuthorized) {
-        throw new AppError(`Unauthorized: Only project administrators or organization admins can ${action}`, 403);
-    }
-
-    return access;
-};
-
-const requireProjectReader = async (projectId, user) => {
-    const access = await getProjectAccess(projectId, user);
-    const isAuthorized = access.isCollaborator || access.isLead || access.isOrgAdmin || access.isProjectAdmin || access.isOrgMember;
-
-    if (!isAuthorized) {
-        throw new AppError('You do not have access to this project', 403);
-    }
-
-    return access;
-};
-
-const buildReportFilename = (project) => {
-    const safeName = (project.name || 'Report')
-        .replace(/[^a-z0-9\-_ ]/gi, '')
-        .trim()
-        .replace(/\s+/g, '-')
-        .substring(0, 50);
-
-    return `Hackract-Report-${safeName}-${project.id.split('-')[0].toUpperCase()}.pdf`;
-};
-
 /**
  * POST /api/v1/reports/generate
  * Body: { projectId, modules: { execSummary, vulnTable, methodology, rawLogs } }
- * Response: application/pdf binary stream
+ * Response: application/pdf binary stream (browser auto-downloads)
  */
 router.post('/generate', async (req, res, next) => {
-    try {
-        const { projectId, modules = {} } = req.body;
-        if (!projectId) throw new AppError('projectId is required', 400);
-
-        const { project, isOrgAdmin, isOrgAdminMember } = await requireReportManager(projectId, req.user);
-
-        if (isOrgAdmin || isOrgAdminMember) {
-            throw new AppError('Organization administrators are not allowed to generate reports.', 403);
-        }
-
-        const pdfBuffer = await generatePdfReport(projectId, modules);
-
-        res.setHeader('Content-Type', 'application/pdf');
-        res.setHeader('Content-Disposition', `inline; filename="${buildReportFilename(project)}"`);
-        res.setHeader('Content-Length', pdfBuffer.length);
-        res.setHeader('Cache-Control', 'no-cache');
-        res.send(pdfBuffer);
-    } catch (err) {
-        next(err);
-    }
-});
-
-/**
- * POST /api/v1/reports/preview
- * Body: { projectId, modules: { execSummary, vulnTable, methodology, rawLogs } }
- * Response: application/pdf binary stream (browser inline viewing)
- */
-router.post('/preview', async (req, res, next) => {
     try {
         const { projectId, modules = {} } = req.body;
 
@@ -129,15 +21,55 @@ router.post('/preview', async (req, res, next) => {
             throw new AppError('projectId is required', 400);
         }
 
-        const { project } = await requireProjectReader(projectId, req.user);
+        // Verify the requesting user has access to this project
+        const project = await prisma.pentest.findUnique({
+            where: { id: projectId },
+            select: {
+                id: true,
+                name: true,
+                organizationId: true,
+                leadPentesterId: true,
+                collaborators: { select: { userId: true, role: true } },
+            },
+        });
 
+        if (!project) {
+            throw new AppError('Project not found', 404);
+        }
+
+        const userId = req.user.id;
+        const userRole = req.user.roles?.map(r => r.type) || [];
+
+        const userCollab = project.collaborators.find(c => c.userId === userId);
+        const isLead = project.leadPentesterId === userId;
+        const isOrgAdmin = userRole.includes('ORG_ADMIN');
+
+        // Check org membership for org projects
+        let isOrgAdminMember = false;
+        if (project.organizationId) {
+            const member = await prisma.organizationMember.findFirst({
+                where: { organizationId: project.organizationId, userId, role: { in: ['owner', 'admin'] } },
+            });
+            isOrgAdminMember = Boolean(member);
+        }
+
+        const isProjectAdmin = userCollab?.role === 'PROJECT_ADMIN' || userRole.includes('PROJECT_ADMIN');
+        const isAuthorized = isLead || isOrgAdmin || isOrgAdminMember || isProjectAdmin;
+
+        if (!isAuthorized) {
+            throw new AppError('Unauthorized: Only project administrators or organization admins can generate reports', 403);
+        }
+
+        // Generate the PDF buffer
         const pdfBuffer = await generatePdfReport(projectId, modules);
 
+        // Sanitise the project name for use as a filename
         const safeName = (project.name || 'Report')
             .replace(/[^a-z0-9\-_ ]/gi, '')
             .trim()
             .replace(/\s+/g, '-')
             .substring(0, 50);
+
 
         const filename = `Hackract-Report-${safeName}-${projectId.split('-')[0].toUpperCase()}.pdf`;
 
@@ -146,6 +78,7 @@ router.post('/preview', async (req, res, next) => {
         res.setHeader('Content-Length', pdfBuffer.length);
         res.setHeader('Cache-Control', 'no-cache');
         res.send(pdfBuffer);
+
     } catch (err) {
         next(err);
     }
@@ -153,83 +86,190 @@ router.post('/preview', async (req, res, next) => {
 
 /**
  * POST /api/v1/reports/ai-draft
- * Body: { projectId, findingId, prompt, section }
+ * Body: { projectId, findingId, prompt }
  * Returns structured documentation drafts for project findings generated by the AI assistant.
  */
 router.post('/ai-draft', async (req, res, next) => {
     try {
         const { projectId, findingId, prompt: customPrompt, section = 'all' } = req.body;
-        if (!projectId) throw new AppError('projectId is required', 400);
 
-        const { project, isOrgAdmin, isOrgAdminMember } = await requireReportManager(projectId, req.user, 'draft report content');
-
-        if (isOrgAdmin || isOrgAdminMember) {
-            throw new AppError('Organization administrators are not allowed to draft report content.', 403);
+        if (!projectId) {
+            throw new AppError('projectId is required', 400);
         }
 
+        // Verify the requesting user has access to this project
+        const project = await prisma.pentest.findUnique({
+            where: { id: projectId },
+            select: {
+                id: true,
+                organizationId: true,
+                leadPentesterId: true,
+                collaborators: { select: { userId: true, role: true } },
+            },
+        });
+
+        if (!project) {
+            throw new AppError('Project not found', 404);
+        }
+
+        const userId = req.user.id;
+        const userRole = req.user.roles?.map(r => r.type) || [];
+
+        const userCollab = project.collaborators.find(c => c.userId === userId);
+        const isLead = project.leadPentesterId === userId;
+        const isOrgAdmin = userRole.includes('ORG_ADMIN');
+
+        let isOrgAdminMember = false;
+        if (project.organizationId) {
+            const member = await prisma.organizationMember.findFirst({
+                where: { organizationId: project.organizationId, userId, role: { in: ['owner', 'admin'] } },
+            });
+            isOrgAdminMember = Boolean(member);
+        }
+
+        const isProjectAdmin = userCollab?.role === 'PROJECT_ADMIN' || userRole.includes('PROJECT_ADMIN');
+        const isAuthorized = isLead || isOrgAdmin || isOrgAdminMember || isProjectAdmin;
+
+        if (!isAuthorized) {
+            throw new AppError('Unauthorized: Only project administrators or organization admins can generate reports', 403);
+        }
+
+        // Load findings
         let findings = [];
         if (findingId) {
-            const singleFinding = await prisma.finding.findFirst({ where: { id: findingId, pentestId: projectId } });
-            if (!singleFinding) throw new AppError('Finding not found in this project', 404);
+            const singleFinding = await prisma.finding.findFirst({
+                where: { id: findingId, pentestId: projectId }
+            });
+            if (!singleFinding) {
+                throw new AppError('Finding not found in this project', 404);
+            }
             findings = [singleFinding];
         } else {
-            findings = await prisma.finding.findMany({ where: { pentestId: projectId }, orderBy: [{ severity: 'asc' }, { createdAt: 'desc' }] });
+            findings = await prisma.finding.findMany({
+                where: { pentestId: projectId },
+                orderBy: [{ severity: 'asc' }, { createdAt: 'desc' }]
+            });
         }
 
-        if (findings.length === 0) return res.json({ success: true, data: [] });
+        if (findings.length === 0) {
+            return res.json({ success: true, data: [] });
+        }
 
         const { generateAssistantResponse } = await import('../AiAssistant/assistant.service.js');
 
-        const systemPrompt = `You are an expert penetration tester and security assistant. Return only valid JSON with these keys: target, description, severityImpact, evidence, remediation.`;
+        const systemPrompt = `You are an expert penetration tester and security assistant. Your job is to format a security finding into structured, professional documentation.
+You must output a JSON object containing the following keys:
+- target: A concise string identifying the target asset, endpoint, or system affected.
+- description: A clear, professional description of the vulnerability, explaining what it is and how it functions.
+- severityImpact: A detailed explanation of the severity, risk level, CVSS (if applicable), and both technical and business impact of this vulnerability.
+- evidence: Step-by-step description of how the vulnerability can be verified or exploited, including payloads, endpoints, or evidence details.
+- remediation: Clear, actionable, step-by-step remediation instructions for fixing the vulnerability.
+
+Ensure your output is valid JSON. Do not include any markdown formatting like \`\`\`json or \`\`\` around the JSON response. Just return the JSON object directly.`;
+
         const results = [];
+
         for (const finding of findings) {
-            let userMessage = `Format this finding:\nTitle: ${finding.title}\nOriginal Description: ${finding.description || 'N/A'}\nSeverity: ${finding.severity}\nCVSS Score: ${finding.cvssScore || 'N/A'}\nAffected Asset: ${finding.affectedAsset || 'N/A'}\nEvidence/Proof: ${finding.proof || 'N/A'}\nOriginal Remediation: ${finding.remediation || 'N/A'}\n`;
+            let userMessage = `Format this finding:
+Title: ${finding.title}
+Original Description: ${finding.description || 'N/A'}
+Severity: ${finding.severity}
+CVSS Score: ${finding.cvssScore || 'N/A'}
+Affected Asset: ${finding.affectedAsset || 'N/A'}
+Evidence/Proof: ${finding.proof || 'N/A'}
+Original Remediation: ${finding.remediation || 'N/A'}
+`;
+
             if (customPrompt) {
-                userMessage += section && section !== 'all'
-                    ? `\nRefine only the "${section}" field using this instruction: ${customPrompt}`
-                    : `\nAdditional refinement instructions: ${customPrompt}`;
+                if (section && section !== 'all') {
+                    userMessage += `\nCRITICAL INSTRUCTION: The user specifically wants to refine ONLY the "${section}" field of the finding. Focus intensely on applying this instruction to that field: "${customPrompt}"`;
+                } else {
+                    userMessage += `\nAdditional refinement instructions: ${customPrompt}`;
+                }
             }
 
             let aiResult;
             try {
-                aiResult = await generateAssistantResponse({ prompt: userMessage, systemPrompt, model: process.env.AI_ASSISTANT_MODEL || 'qwen3:0.6b' });
+                aiResult = await generateAssistantResponse({
+                    prompt: userMessage,
+                    systemPrompt,
+                    model: process.env.AI_ASSISTANT_MODEL || 'qwen3:0.6b'
+                });
             } catch (err) {
                 console.error(`AI generation failed for finding ${finding.id}:`, err);
-                aiResult = { response: '{}' };
+                aiResult = {
+                    response: JSON.stringify({
+                        target: finding.affectedAsset || 'N/A',
+                        description: finding.description || 'N/A',
+                        severityImpact: `Severity: ${finding.severity}, CVSS: ${finding.cvssScore || 'N/A'}`,
+                        evidence: finding.proof || 'N/A',
+                        remediation: finding.remediation || 'N/A'
+                    })
+                };
             }
 
-            const fallback = {
+            let parsed = {
                 target: finding.affectedAsset || 'N/A',
                 description: finding.description || 'N/A',
                 severityImpact: `Severity: ${finding.severity}. CVSS: ${finding.cvssScore || 'N/A'}`,
                 evidence: finding.proof || 'N/A',
-                remediation: finding.remediation || 'N/A',
+                remediation: finding.remediation || 'N/A'
             };
 
-            let parsed = fallback;
             try {
-                const cleanText = aiResult.response
-                    .trim()
-                    .replace(/^```(?:json)?/i, '')
-                    .replace(/```$/, '')
-                    .trim();
+                let cleanText = aiResult.response.trim();
+                if (cleanText.startsWith('```json')) {
+                    cleanText = cleanText.substring(7);
+                } else if (cleanText.startsWith('```')) {
+                    cleanText = cleanText.substring(3);
+                }
+                if (cleanText.endsWith('```')) {
+                    cleanText = cleanText.substring(0, cleanText.length - 3);
+                }
+                cleanText = cleanText.trim();
 
                 const parsedJson = JSON.parse(cleanText);
                 parsed = {
-                    target: parsedJson.target || fallback.target,
-                    description: parsedJson.description || fallback.description,
-                    severityImpact: parsedJson.severityImpact || parsedJson.severity || fallback.severityImpact,
-                    evidence: parsedJson.evidence || fallback.evidence,
-                    remediation: parsedJson.remediation || parsedJson.reremediation || fallback.remediation,
+                    target: parsedJson.target || parsed.target,
+                    description: parsedJson.description || parsed.description,
+                    severityImpact: parsedJson.severityImpact || parsedJson.severity || parsed.severityImpact,
+                    evidence: parsedJson.evidence || parsed.evidence,
+                    remediation: parsedJson.remediation || parsedJson.reremediation || parsed.remediation
                 };
             } catch (parseErr) {
-                console.warn('AI response parsing failed. Using finding fallback.', parseErr);
+                console.warn("AI response parsing failed. Using regex fallback.", parseErr);
+                const text = aiResult.response;
+                const targetMatch = text.match(/(?:Target|Asset):\s*([^\n]+)/i);
+                const descMatch = text.match(/Description:\s*([\s\S]+?)(?=Severity|Risk|Evidence|Remediation|$)/i);
+                const severityMatch = text.match(/(?:Severity|Impact):\s*([\s\S]+?)(?=Evidence|Remediation|$)/i);
+                const evidenceMatch = text.match(/Evidence:\s*([\s\S]+?)(?=Remediation|$)/i);
+                const remediationMatch = text.match(/Remediation:\s*([\s\S]+)/i);
+
+                parsed = {
+                    target: targetMatch ? targetMatch[1].trim() : parsed.target,
+                    description: descMatch ? descMatch[1].trim() : parsed.description,
+                    severityImpact: severityMatch ? severityMatch[1].trim() : parsed.severityImpact,
+                    evidence: evidenceMatch ? evidenceMatch[1].trim() : parsed.evidence,
+                    remediation: remediationMatch ? remediationMatch[1].trim() : parsed.remediation
+                };
             }
 
-            results.push({ findingId: finding.id, title: finding.title, severity: finding.severity, cvssScore: finding.cvssScore, aiDraft: parsed });
+            results.push({
+                findingId: finding.id,
+                title: finding.title,
+                severity: finding.severity,
+                cvssScore: finding.cvssScore,
+                aiDraft: {
+                    target: parsed.target,
+                    description: parsed.description,
+                    severityImpact: parsed.severityImpact,
+                    evidence: parsed.evidence,
+                    remediation: parsed.remediation
+                }
+            });
         }
 
-        return res.json({ success: true, data: results });
+        res.json({ success: true, data: results });
     } catch (err) {
         next(err);
     }
@@ -237,17 +277,11 @@ router.post('/ai-draft', async (req, res, next) => {
 
 /**
  * GET /api/v1/reports/project/:projectId/json
- * Returns the full report data as structured JSON.
+ * Returns the full report data as structured JSON (lightweight export)
  */
 router.get('/project/:projectId/json', async (req, res, next) => {
     try {
         const { projectId } = req.params;
-
-        const { isOrgAdmin, isOrgAdminMember } = await requireReportManager(projectId, req.user, 'export reports');
-
-        if (isOrgAdmin || isOrgAdminMember) {
-            throw new AppError('Organization administrators are not allowed to export reports.', 403);
-        }
 
         const project = await prisma.pentest.findUnique({
             where: { id: projectId },
@@ -265,9 +299,32 @@ router.get('/project/:projectId/json', async (req, res, next) => {
 
         if (!project) throw new AppError('Project not found', 404);
 
+        const userId = req.user.id;
+        const userRole = req.user.roles?.map(r => r.type) || [];
+
+        const userCollab = project.collaborators.find(c => c.userId === userId);
+        const isLead = project.leadPentesterId === userId;
+        const isOrgAdmin = userRole.includes('ORG_ADMIN');
+
+        let isOrgAdminMember = false;
+        if (project.organization?.id) {
+            const member = await prisma.organizationMember.findFirst({
+                where: { organizationId: project.organization.id, userId, role: { in: ['owner', 'admin'] } },
+            });
+            isOrgAdminMember = Boolean(member);
+        }
+
+        const isProjectAdmin = userCollab?.role === 'PROJECT_ADMIN' || userRole.includes('PROJECT_ADMIN');
+        const isAuthorized = isLead || isOrgAdmin || isOrgAdminMember || isProjectAdmin;
+
+        if (!isAuthorized) {
+            throw new AppError('Unauthorized: Only project administrators or organization admins can generate reports', 403);
+        }
+
         const filename = `Hackract-Report-${projectId.split('-')[0].toUpperCase()}.json`;
         res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
         res.json({ success: true, generatedAt: new Date().toISOString(), data: project });
+
     } catch (err) {
         next(err);
     }
