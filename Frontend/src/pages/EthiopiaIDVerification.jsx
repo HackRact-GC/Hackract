@@ -22,6 +22,32 @@ const step2Schema = z.object({
   otp: z.string().length(6, 'OTP must be 6 digits').regex(/^\d+$/, 'OTP must be numeric')
 });
 
+const getNationalIdErrorMessage = (error, fallback) => {
+  const payload = error?.response?.data || {};
+
+  if (payload.errorCode === 'FAN_NOT_FOUND') {
+    return 'This FAN does not exist in the Government Registry.';
+  }
+
+  if (payload.errorCode === 'FAN_EMAIL_MISMATCH') {
+    return 'Your Hackract login email does not match the government-registered email for this FAN.';
+  }
+
+  return payload.message || payload.error || fallback;
+};
+
+const getNationalIdSuccessMessage = (result, fallback) => {
+  if (result?.delivered === true) {
+    return result.message || 'OTP sent successfully to the email registered on National ID.';
+  }
+
+  if (result?.delivered === false) {
+    return result.message || 'FAN and email matched, but the verification email could not be sent.';
+  }
+
+  return result?.message || fallback;
+};
+
 const EthiopiaIDVerification = () => {
   const navigate = useNavigate();
   const [step, setStep] = useState(1); // 1: Details, 2: OTP
@@ -40,7 +66,6 @@ const EthiopiaIDVerification = () => {
   });
 
   const fan = watch('fan');
-  const fin = watch('fin');
 
   useEffect(() => {
     fetchStatus();
@@ -75,20 +100,21 @@ const EthiopiaIDVerification = () => {
       
       if (result.autoVerified) {
         toast.success('Identity Auto-Verified!');
-        try { await refreshUser(); } catch (e) { /* ignore */ }
+        try { await refreshUser(); } catch { /* ignore */ }
         fetchStatus();
       } else {
-        if (result.error) {
-          toast.error(result.error);
+        if (result.delivered === false || result.error) {
+          toast.error(result.error || result.message || 'FAN and email matched, but the verification email could not be sent.');
+          return;
         } else {
-          toast.success(result.message || 'OTP Sent Successfully!');
+          toast.success(getNationalIdSuccessMessage(result, 'OTP Sent Successfully!'));
         }
         
         setEmailPreview('your official government-registered email');
         setStep(2);
       }
     } catch (error) {
-      toast.error(error.response?.data?.message || 'Initiation failed');
+      toast.error(getNationalIdErrorMessage(error, 'Could not start Fayda verification.'));
     } finally {
       setSubmitting(false);
     }
@@ -100,10 +126,10 @@ const EthiopiaIDVerification = () => {
     setSubmitting(true);
     try {
       const result = await NationalIDService.initiateVerification({ fan: rawFan });
-      if (result.error) toast.error(result.error);
-      else toast.success('A new OTP has been sent.');
+      if (result.delivered === false || result.error) toast.error(result.error || result.message);
+      else toast.success(getNationalIdSuccessMessage(result, 'A new OTP has been sent.'));
     } catch (error) {
-      toast.error(error.response?.data?.message || 'Failed to resend OTP');
+      toast.error(getNationalIdErrorMessage(error, 'Failed to resend OTP.'));
     } finally {
       setSubmitting(false);
     }
@@ -115,23 +141,14 @@ const EthiopiaIDVerification = () => {
       const rawFan = fan?.replace(/\s/g, '');
       await NationalIDService.verifyOtp({ fan: rawFan, otp: data.otp });
       toast.success('Identity Verified Successfully!');
-      try { await refreshUser(); } catch (e) { /* ignore */ }
+      try { await refreshUser(); } catch { /* ignore */ }
       fetchStatus();
       setStep(1); // Reset step on success
     } catch (error) {
-      toast.error(error.response?.data?.message || 'OTP verification failed');
+      toast.error(getNationalIdErrorMessage(error, 'OTP verification failed.'));
     } finally {
       setSubmitting(false);
     }
-  };
-
-  const handleSeedRegistry = async () => {
-      try {
-          await NationalIDService.seedRegistry();
-          toast.success('Test registry seeded with Abebe Bikila (FAN123456 / FIN123456)');
-      } catch (err) {
-          toast.error('Seeding failed');
-      }
   };
 
   if (loading) {

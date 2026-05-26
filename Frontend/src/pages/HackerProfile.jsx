@@ -573,6 +573,24 @@ const HackerProfile = () => {
           </div>
         </div>
       </div>
+
+      {/* Sticky footer with Next button */}
+      <div className="fixed bottom-6 left-0 right-0 flex justify-center pointer-events-none">
+        <div className="max-w-[1200px] w-full px-4 pointer-events-auto">
+          <div className="flex justify-end">
+            <button
+              onClick={async () => {
+                await saveProfile();
+                navigate('/national-id-verification');
+              }}
+              className="px-6 py-3 bg-[#00c477] text-black rounded-full font-bold shadow-lg hover:opacity-95"
+            >
+              Next
+            </button>
+          </div>
+        </div>
+      </div>
+
     </div>
   );
 };
