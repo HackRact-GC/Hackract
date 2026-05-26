@@ -29,22 +29,15 @@ router.get("/", async (req, res, next) => {
   try {
     const { organizationId } = req.query;
     const where = {};
-    const isOrgAdmin = req.user.roles?.some((r) => r.type === "ORG_ADMIN");
 
-    if (isOrgAdmin) {
-      if (organizationId) {
-        where.organizationId = organizationId;
-      } else {
-        where.organization = { members: { some: { userId: req.user.id } } };
-      }
+    if (organizationId) {
+      where.organizationId = organizationId;
     } else {
       where.OR = [
+        { organization: { members: { some: { userId: req.user.id } } } },
         { collaborators: { some: { userId: req.user.id } } },
         { leadPentesterId: req.user.id },
       ];
-      if (organizationId) {
-        where.organizationId = organizationId;
-      }
     }
 
     const projects = await prisma.pentest.findMany({
@@ -162,9 +155,7 @@ router.get("/:projectId", async (req, res, next) => {
       throw new AppError("Project not found", 404);
     }
 
-    const isOrgAdmin = req.user.roles?.some((r) => r.type === "ORG_ADMIN");
-    const canAccessOrg =
-      isOrgAdmin &&
+    const canAccess =
       project.organizationId &&
       (await prisma.organizationMember.findFirst({
         where: { organizationId: project.organizationId, userId: req.user.id },
@@ -172,7 +163,7 @@ router.get("/:projectId", async (req, res, next) => {
     const isCollaborator = project.collaborators.some((c) => c.userId === req.user.id);
     const isLead = project.leadPentesterId === req.user.id;
 
-    if (!canAccessOrg && !isCollaborator && !isLead) {
+    if (!canAccess && !isCollaborator && !isLead) {
       throw new AppError("You do not have access to this project", 403);
     }
 
@@ -924,4 +915,3 @@ router.delete("/:projectId/collaborators/:userId", async (req, res, next) => {
 });
 
 export default router;
-
