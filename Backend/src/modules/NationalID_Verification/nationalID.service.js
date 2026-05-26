@@ -36,6 +36,19 @@ class NationalIDService {
         }
 
         const normalizedEmail = email.toLowerCase();
+        const user = await prisma.user.findUnique({ where: { id: userId } });
+        if (!user) {
+            throw new AppError('User not found', 404);
+        }
+
+        if (user.email.toLowerCase() !== normalizedEmail) {
+            throw new AppError(
+                'The email on your Hackract account does not match the government-registered email for this FAN.',
+                400,
+                'FAN_EMAIL_MISMATCH',
+                { fanExists: false, emailMatched: false, delivered: false }
+            );
+        }
 
         const exists = await prisma.citizen.findFirst({
             where: {
@@ -48,10 +61,32 @@ class NationalIDService {
 
         if (exists) {
             if (exists.fan === fan) {
-                throw new AppError('Citizen with this FAN already exists', 400);
+                if (exists.email.toLowerCase() !== normalizedEmail) {
+                    throw new AppError(
+                        'This FAN already exists, but the submitted email does not match the government-registered email.',
+                        400,
+                        'FAN_EMAIL_MISMATCH',
+                        { fanExists: true, emailMatched: false, delivered: false }
+                    );
+                }
+
+                const result = await this.initiateVerification(userId, fan);
+                return {
+                    ...result,
+                    created: false,
+                    fanAlreadyExists: true,
+                    message: result.delivered
+                        ? 'FAN already exists and email matched. OTP sent successfully to the email registered on National ID.'
+                        : result.message
+                };
             }
             if (exists.email === normalizedEmail) {
-                throw new AppError('Citizen with this Email already exists', 400);
+                throw new AppError(
+                    'This email is already registered to a different FAN in the Government Registry.',
+                    400,
+                    'FAN_EMAIL_ALREADY_REGISTERED',
+                    { fanExists: false, emailMatched: true, delivered: false }
+                );
             }
         }
 
@@ -75,13 +110,7 @@ class NationalIDService {
                 create: { userId, citizenId: citizen.id, verificationStatus: 'DRAFT' }
             });
 
-            const user = await prisma.user.findUnique({ where: { id: userId } });
-            if (user) {
-                isSameEmail = user.email.toLowerCase() === citizen.email.toLowerCase();
-                if (!isSameEmail) {
-                    throw new AppError('Your account email must match the official email associated with this National ID in the Government Registry.', 400);
-                }
-            }
+            isSameEmail = true;
 
             const otp = Math.floor(100000 + Math.random() * 900000).toString();
             const otpHash = await bcrypt.hash(otp, 12);
@@ -122,6 +151,10 @@ class NationalIDService {
             }
             
             formatted.isSameEmail = isSameEmail;
+            formatted.fanExists = true;
+            formatted.emailMatched = true;
+            formatted.delivered = !emailError;
+            formatted.created = true;
             return formatted;
         }
 
@@ -250,7 +283,12 @@ class NationalIDService {
 
         const citizen = await prisma.citizen.findUnique({ where: { fan } });
         if (!citizen) {
-            throw new AppError('This FAN does not exist in the Government Registry.', 404, 'FAN_NOT_FOUND');
+            throw new AppError(
+                'This FAN does not exist in the Government Registry.',
+                404,
+                'FAN_NOT_FOUND',
+                { fanExists: false, emailMatched: false, delivered: false }
+            );
         }
 
         const user = await prisma.user.findUnique({ where: { id: userId } });
@@ -263,7 +301,8 @@ class NationalIDService {
             throw new AppError(
                 'The email on your Hackract account does not match the government-registered email for this FAN.',
                 400,
-                'FAN_EMAIL_MISMATCH'
+                'FAN_EMAIL_MISMATCH',
+                { fanExists: true, emailMatched: false, delivered: false }
             );
         }
 
@@ -305,7 +344,9 @@ class NationalIDService {
             message: emailError
                 ? 'OTP created, but we could not send the verification email.'
                 : 'OTP sent successfully to the email registered on National ID',
+            fanExists: true,
             isSameEmail,
+            emailMatched: true,
             delivered: !emailError
         };
     }
@@ -317,7 +358,14 @@ class NationalIDService {
         if (!fan || !otp) throw new AppError('FAN and OTP are required', 400);
 
         const citizen = await prisma.citizen.findUnique({ where: { fan } });
-        if (!citizen) throw new AppError('This FAN does not exist in the Government Registry.', 404, 'FAN_NOT_FOUND');
+        if (!citizen) {
+            throw new AppError(
+                'This FAN does not exist in the Government Registry.',
+                404,
+                'FAN_NOT_FOUND',
+                { fanExists: false, emailMatched: false }
+            );
+        }
 
         const user = await prisma.user.findUnique({ where: { id: userId } });
         if (!user) {
@@ -329,7 +377,8 @@ class NationalIDService {
             throw new AppError(
                 'The email on your Hackract account does not match the government-registered email for this FAN.',
                 400,
-                'FAN_EMAIL_MISMATCH'
+                'FAN_EMAIL_MISMATCH',
+                { fanExists: true, emailMatched: false }
             );
         }
 
@@ -357,7 +406,12 @@ class NationalIDService {
             data: { verificationStatus: 'APPROVED', verifiedAt: new Date() }
         });
 
-        return { message: 'National ID verified successfully' };
+        return {
+            message: 'National ID verified successfully',
+            fanExists: true,
+            emailMatched: true,
+            verified: true
+        };
     }
 
     async getStatus(userId) {

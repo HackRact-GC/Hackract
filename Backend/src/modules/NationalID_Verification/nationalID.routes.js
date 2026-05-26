@@ -204,7 +204,7 @@ router.post('/initiate-verification', protect, controller.initiateVerification);
 router.post('/verify-otp', protect, controller.verifyOtp);
 router.get('/status', protect, controller.getStatus);
 
-router.post('/', protect, restrictTo('ORG_ADMIN'), validate(createSchema), controller.create);
+router.post('/', protect, validate(createSchema), controller.create);
 router.get('/', protect, restrictTo('ORG_ADMIN'), controller.getAll);
 router.delete('/', protect, restrictTo('ORG_ADMIN'), controller.removeAll);
 
