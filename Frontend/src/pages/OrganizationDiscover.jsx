@@ -376,7 +376,10 @@ const HackerCard = ({ hacker, index, onInvite, onViewProfile, authUser }) => {
     >
       {/* Top: avatar + rating */}
       <div className="flex items-start justify-between mb-5">
-        <div className="relative w-16 h-16 rounded-xl bg-linear-to-br from-[#00c477]/20 to-emerald-900/40 p-0.5 border border-white/10 group-hover:border-[#00c477]/50 transition-colors">
+        <div 
+          onClick={() => onViewProfile(hacker)}
+          className="relative w-16 h-16 rounded-xl bg-linear-to-br from-[#00c477]/20 to-emerald-900/40 p-0.5 border border-white/10 group-hover:border-[#00c477]/50 transition-colors cursor-pointer"
+        >
           <img src={avatar} alt={name} className="w-full h-full rounded-[10px] object-cover bg-black/50" />
           <div className="absolute -bottom-1 -right-1 w-3 h-3 rounded-full bg-[#00c477] border-2 border-[#050505] shadow-[0_0_5px_#00c477]" />
         </div>
@@ -390,7 +393,10 @@ const HackerCard = ({ hacker, index, onInvite, onViewProfile, authUser }) => {
       </div>
 
       {/* Name */}
-      <div className="mb-4">
+      <div 
+        onClick={() => onViewProfile(hacker)}
+        className="mb-4 cursor-pointer"
+      >
         <h3 className="text-lg font-bold text-white group-hover:text-[#00c477] transition-colors mb-0.5">{name}</h3>
         {handle && <p className="text-xs text-gray-500 font-mono">{handle.startsWith('#') ? handle : `@${handle}`}</p>}
       </div>

@@ -1,4 +1,4 @@
-import { Handle, Position, NodeResizer, useStore } from '@xyflow/react';
+import { Handle, Position, useStore, NodeResizer } from '@xyflow/react';
 import { FiAlertCircle, FiCornerUpLeft, FiCpu, FiLoader, FiSend, FiX } from 'react-icons/fi';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { generateWorkflowAssistantResponse } from '../../../api/assistantApi';
@@ -272,7 +272,7 @@ const AiNode = ({ id, data, selected }) => {
 
       {/* Body */}
       <div className="p-3 flex flex-col gap-3 flex-1">
-        <div className="relative flex-1 flex flex-col">
+        <div className="flex items-center gap-2">
           <label className="text-[10px] uppercase tracking-[0.2em] text-gray-500">Width</label>
           <input
             type="range"
@@ -287,15 +287,10 @@ const AiNode = ({ id, data, selected }) => {
             }}
             className="flex-1 accent-[#00ff88]"
           />
-          <textarea
-            className="flex-1 w-full bg-black border border-gray-800 text-gray-300 p-2 rounded resize-none focus:outline-none focus:border-[#00ff88]/50 mt-2"
-            placeholder="Ask something..."
-            defaultValue={data.prompt || ''}
-            onChange={(e) => data.onDataChange && data.onDataChange({ prompt: e.target.value })}
-          />
-          <span className="text-[10px] text-gray-500 w-10 text-right">{panelWidth}</span>
+          <span className="text-[10px] text-gray-500 w-10 text-right">{panelWidth}px</span>
         </div>
 
+        {/* Upstream nodes indicator */}
         <div className="rounded-lg border border-[#00ff88]/15 bg-black/40 p-2">
           <div className="flex items-center justify-between gap-2 text-[10px] uppercase tracking-[0.2em] text-gray-500">
             <span className="flex items-center gap-1.5">
@@ -306,6 +301,7 @@ const AiNode = ({ id, data, selected }) => {
           </div>
         </div>
 
+        {/* Chat History */}
         <div ref={scrollRef} className="bg-black/60 border border-gray-800 rounded-lg p-2 max-h-72 overflow-y-auto space-y-2">
           {messages.length === 0 ? (
             <div className="text-gray-600 text-xs leading-relaxed">
@@ -336,6 +332,7 @@ const AiNode = ({ id, data, selected }) => {
           )}
         </div>
 
+        {/* Input */}
         <div className="space-y-2 border-t border-[#00ff88]/10 pt-3">
           <textarea
             className="w-full min-h-24 bg-black border border-gray-800 text-gray-300 p-3 rounded-lg resize-none focus:outline-none focus:border-[#00ff88]/50"
@@ -368,10 +365,6 @@ const AiNode = ({ id, data, selected }) => {
             </button>
           </div>
         </div>
-
-        <button className="bg-transparent border border-[#00ff88]/50 text-[#00ff88] text-xs px-3 py-1 rounded hover:bg-[#00ff88]/10 w-[120px] shrink-0">
-          Generate Report
-        </button>
       </div>
 
       <Handle type="target" position={Position.Left} className="w-3 h-3 bg-[#00ff88] border-2 border-[#0b0f19]" />

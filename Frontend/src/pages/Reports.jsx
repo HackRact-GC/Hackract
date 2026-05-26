@@ -52,13 +52,34 @@ const Reports = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
   const projectId = searchParams.get('projectId');
+  // ── Role checks ───────────────────────────────────────────────────────────
   const isOrgAdmin = getPrimaryRole(user) === ROLES.ORG_ADMIN;
+  // True if user has PROJECT_ADMIN role globally (rare) — usually we check per-project collab
+  const isGlobalProjectAdmin = user?.roles?.some(r => r.type === 'PROJECT_ADMIN');
 
   const [loading, setLoading] = useState(!!projectId);
   const [generating, setGenerating] = useState(false);
   const [project, setProject] = useState(null);
   const [findings, setFindings] = useState([]);
   const [availableProjects, setAvailableProjects] = useState([]);
+
+  // Derived permission — computed from the currently loaded project + user roles.
+  // Covers:
+  //   - PROJECT_ADMIN collaborator on an org project
+  //   - Lead of a personal project (isPersonal === true)
+  //   - Global PROJECT_ADMIN role
+  const isProjectAdmin = (() => {
+    if (!project || !user) return false;
+    const projData = project?.data ?? project;
+    const userCollab = projData?.collaborators?.find(c => c.userId === user?.id);
+    const isLead = projData?.leadPentesterId === user?.id;
+    const isPersonalOwner = projData?.isPersonal && isLead;
+    return (
+      userCollab?.role === 'PROJECT_ADMIN' ||
+      isGlobalProjectAdmin ||
+      isPersonalOwner
+    );
+  })();
 
   const [step, setStep] = useState(projectId ? 2 : 1);
   const [exportFormat, setExportFormat] = useState('pdf');
@@ -109,8 +130,37 @@ const Reports = () => {
   const [scale, setScale] = useState(1.0);
 
   useEffect(() => {
-    api.get('/projects').then(res => setAvailableProjects(res.data?.data || [])).catch(console.error);
-  }, []);
+    if (!user) return;
+    api.get('/projects')
+      .then(res => {
+        const all = res.data?.data || [];
+
+        let filtered;
+
+        if (isOrgAdmin) {
+          // ORG_ADMIN: sees ALL org projects (view/preview only, no generate)
+          filtered = all.filter(p => !p.isPersonal);
+        } else {
+          // Both Project Admins and regular hackers:
+          // A user can see a project if:
+          // 1. It is a personal project they lead
+          // 2. OR it is an organization project where they are a collaborator with role 'PROJECT_ADMIN' (or have global PROJECT_ADMIN role)
+          filtered = all.filter(p => {
+            if (p.isPersonal) {
+              return p.leadPentesterId === user.id;
+            }
+            
+            const userCollab = p.collaborators?.find(c => c.userId === user.id);
+            const isProjectAdminCollab = userCollab?.role === 'PROJECT_ADMIN';
+            
+            return isProjectAdminCollab || (isGlobalProjectAdmin && !!userCollab);
+          });
+        }
+
+        setAvailableProjects(filtered);
+      })
+      .catch(console.error);
+  }, [user, isOrgAdmin, isGlobalProjectAdmin]);
 
   const loadData = async () => {
     if (!projectId) return;
@@ -126,10 +176,10 @@ const Reports = () => {
       const userCollab = projData.collaborators?.find(c => c.userId === user?.id);
       const isProjectAdmin = userCollab?.role === 'PROJECT_ADMIN';
       const isLead = projData.leadPentesterId === user?.id;
-      const orgAdminFlag = user?.roles?.some(r => r.type === 'ORG_ADMIN');
+      const isCollaborator = !!userCollab;
 
-      if (!orgAdminFlag && !isLead && !isProjectAdmin) {
-        toast.error("Unauthorized: Only project administrators can access report generation");
+      if (!isOrgAdmin && !isLead && !isProjectAdmin && !isCollaborator) {
+        toast.error("Unauthorized: You do not have access to reports for this project");
         navigate(-1);
         return;
       }
@@ -433,13 +483,7 @@ const Reports = () => {
                     className="w-full bg-[#141518] border border-white/10 rounded-xl px-4 py-3 text-sm text-white outline-none focus:border-[#00c477] appearance-none"
                   >
                     <option value="" disabled>Select a project to analyze...</option>
-                    {availableProjects.filter(p => {
-                      const isOrgAdminFlag = user?.roles?.some(r => r.type === 'ORG_ADMIN');
-                      const isLead = p.leadPentesterId === user?.id;
-                      const userCollab = p.collaborators?.find(c => c.userId === user?.id);
-                      const isProjectAdmin = userCollab?.role === 'PROJECT_ADMIN';
-                      return isOrgAdminFlag || isLead || isProjectAdmin;
-                    }).map(p => (
+                    {availableProjects.map(p => (
                       <option key={p.id} value={p.id}>{p.name || 'Untitled Project'}</option>
                     ))}
                   </select>
@@ -506,37 +550,7 @@ const Reports = () => {
                   <FiCpu className="animate-pulse" /> AI-Guided Drafts
                 </button>
               </div>
-
-              <div className="bg-[#0f1115] border border-[#1c1d21] rounded-2xl p-6 flex-1 flex flex-col mt-4">
-                {isOrgAdmin && (
-                  <div className="bg-[#3b82f6]/10 border border-[#3b82f6]/20 rounded-xl p-4 text-xs text-gray-400 mb-6 flex items-center gap-3">
-                    <div className="w-2 h-2 rounded-full bg-[#3b82f6]" />
-                    <span className="text-left">
-                      <strong>READ-ONLY VIEW:</strong> As an organization owner, you have read-only access to this report manifest. Scope parameters and sections cannot be modified.
-                    </span>
-                  </div>
-                )}
-                {/* Grid Options */}
-                <div className="grid grid-cols-2 gap-4 mb-8">
-                  <CheckboxOption id="EX_SUM" label="Executive Summary" checked={modules.execSummary} onChange={() => toggleModule('execSummary')} disabled={isOrgAdmin} />
-                  <CheckboxOption id="TECH_SCOPE" label="Technical Scope" checked={modules.techScope} onChange={() => toggleModule('techScope')} disabled={isOrgAdmin} />
-                  <CheckboxOption id="FINDINGS_M" label="Vulnerability Matrix" checked={modules.vulnMatrix} onChange={() => toggleModule('vulnMatrix')} disabled={isOrgAdmin} />
-                  <CheckboxOption id="REMED_PATH" label="Remediation Roadmap" checked={modules.remedPath} onChange={() => toggleModule('remedPath')} disabled={isOrgAdmin} />
-                </div>
-
-                {/* Advanced Metadata Injection */}
-                <div className="mb-8">
-                  <h3 className="text-[10px] font-bold text-gray-500 uppercase tracking-widest font-mono mb-4">Advanced_Metadata_Injection</h3>
-                  <div className="space-y-1">
-                    <ToggleSwitch label="Include Evidence Screenshots" icon={FiFileText} checked={modules.screenshots} onChange={() => toggleModule('screenshots')} disabled={isOrgAdmin} />
-                    <ToggleSwitch label="CVSS Score Breakdown" icon={FiFileText} checked={modules.cvssBreakdown} onChange={() => toggleModule('cvssBreakdown')} disabled={isOrgAdmin} />
-                    <ToggleSwitch label="Digital Signature Verification" icon={FiFileText} checked={modules.digitalSignature} onChange={() => toggleModule('digitalSignature')} disabled={isOrgAdmin} />
-                  </div>
-                </div>
-
-                {/* Live Data / AI-guided area handled below */}
-              </div>
-
+              
               <div className="bg-[#0f1115] border border-[#1c1d21] rounded-2xl p-6 flex-1 flex flex-col mt-4">
                 {isOrgAdmin && (
                   <div className="bg-[#3b82f6]/10 border border-[#3b82f6]/20 rounded-xl p-4 text-xs text-gray-400 mb-6 flex items-center gap-3">
@@ -548,21 +562,29 @@ const Reports = () => {
                 )}
                 {activeConfigTab === 'standard' || isOrgAdmin ? (
                   <>
+                    {isOrgAdmin && (
+                      <div className="bg-[#3b82f6]/10 border border-[#3b82f6]/20 rounded-xl p-4 text-xs text-gray-400 mb-6 flex items-center gap-3">
+                        <div className="w-2 h-2 rounded-full bg-[#3b82f6]" />
+                        <span className="text-left">
+                          <strong>READ-ONLY VIEW:</strong> As an organization owner, you have read-only access to this report manifest. Scope parameters and sections cannot be modified.
+                        </span>
+                      </div>
+                    )}
                     {/* Grid Options */}
                     <div className="grid grid-cols-2 gap-4 mb-8">
-                      <CheckboxOption id="EX_SUM" label="Executive Summary" checked={modules.execSummary} onChange={() => toggleModule('execSummary')} />
-                      <CheckboxOption id="TECH_SCOPE" label="Technical Scope" checked={modules.techScope} onChange={() => toggleModule('techScope')} />
-                      <CheckboxOption id="FINDINGS_M" label="Vulnerability Matrix" checked={modules.vulnMatrix} onChange={() => toggleModule('vulnMatrix')} />
-                      <CheckboxOption id="REMED_PATH" label="Remediation Roadmap" checked={modules.remedPath} onChange={() => toggleModule('remedPath')} />
+                      <CheckboxOption id="EX_SUM" label="Executive Summary" checked={modules.execSummary} onChange={() => toggleModule('execSummary')} disabled={isOrgAdmin} />
+                      <CheckboxOption id="TECH_SCOPE" label="Technical Scope" checked={modules.techScope} onChange={() => toggleModule('techScope')} disabled={isOrgAdmin} />
+                      <CheckboxOption id="FINDINGS_M" label="Vulnerability Matrix" checked={modules.vulnMatrix} onChange={() => toggleModule('vulnMatrix')} disabled={isOrgAdmin} />
+                      <CheckboxOption id="REMED_PATH" label="Remediation Roadmap" checked={modules.remedPath} onChange={() => toggleModule('remedPath')} disabled={isOrgAdmin} />
                     </div>
 
                     {/* Advanced Metadata Injection */}
                     <div className="mb-8">
                       <h3 className="text-[10px] font-bold text-gray-500 uppercase tracking-widest font-mono mb-4">Advanced_Metadata_Injection</h3>
                       <div className="space-y-1">
-                        <ToggleSwitch label="Include Evidence Screenshots" icon={FiFileText} checked={modules.screenshots} onChange={() => toggleModule('screenshots')} />
-                        <ToggleSwitch label="CVSS Score Breakdown" icon={FiFileText} checked={modules.cvssBreakdown} onChange={() => toggleModule('cvssBreakdown')} />
-                        <ToggleSwitch label="Digital Signature Verification" icon={FiFileText} checked={modules.digitalSignature} onChange={() => toggleModule('digitalSignature')} />
+                        <ToggleSwitch label="Include Evidence Screenshots" icon={FiFileText} checked={modules.screenshots} onChange={() => toggleModule('screenshots')} disabled={isOrgAdmin} />
+                        <ToggleSwitch label="CVSS Score Breakdown" icon={FiFileText} checked={modules.cvssBreakdown} onChange={() => toggleModule('cvssBreakdown')} disabled={isOrgAdmin} />
+                        <ToggleSwitch label="Digital Signature Verification" icon={FiFileText} checked={modules.digitalSignature} onChange={() => toggleModule('digitalSignature')} disabled={isOrgAdmin} />
                       </div>
                     </div>
 
@@ -876,14 +898,15 @@ const Reports = () => {
                   <button onClick={() => setStep(2)} className="px-6 py-3.5 rounded-xl border border-white/10 text-xs font-bold text-gray-300 uppercase tracking-widest hover:bg-white/5 transition-colors">
                     Previous_Step
                   </button>
-                  <button
-                    onClick={exportFormat === 'pdf' ? handleGeneratePdf : handleJsonExport}
-                    disabled={generating || isOrgAdmin}
+                  <button 
+                    onClick={exportFormat === 'pdf' ? handleGeneratePdf : handleJsonExport} 
+                    disabled={generating || !isProjectAdmin} 
                     className="flex-1 bg-[#a3ffcc] hover:bg-[#00c477] disabled:opacity-50 disabled:bg-gray-800/80 disabled:text-gray-500 rounded-xl text-xs font-black uppercase tracking-widest transition-colors flex items-center justify-center gap-2"
                   >
                     {generating ? <FiLoader className="animate-spin" size={16} /> : <FiDownload size={16} />}
-                    {isOrgAdmin ? 'Generation Restricted' : (generating ? 'Downloading...' : 'Download_Now')}
+                    {!isProjectAdmin ? 'Generation Restricted' : (generating ? 'Deploying...' : 'Deploy_Now')}
                   </button>
+                  
                 </div>
               </div>
             </>
@@ -948,35 +971,25 @@ const Reports = () => {
               </button>
             </div>
           ) : (
-            <>
-              <button
-                id="generate_report_project"
-                onClick={handlePreviewPdf}
-                disabled={generating}
-                className="w-full bg-[#a3ffcc] hover:bg-[#00c477] disabled:opacity-50 text-[#004d2e] rounded-xl py-4 flex items-center justify-center gap-3 transition-all font-black uppercase tracking-widest text-sm"
+            <div className="flex flex-col gap-3">
+              <button 
+                onClick={isOrgAdmin ? handlePreviewLiveReport : handleGeneratePdf}
+                disabled={generating || (isOrgAdmin ? previewLoading : !isProjectAdmin)}
+                className="w-full bg-[#a3ffcc] hover:bg-[#00c477] disabled:opacity-50 disabled:bg-gray-800/80 disabled:text-gray-500 rounded-xl py-4 flex items-center justify-center gap-3 transition-all font-black uppercase tracking-widest text-sm disabled:cursor-not-allowed"
               >
-                {generating ? <FiLoader className="animate-spin" size={18} /> : <FiFileText size={18} />}
-                {generating ? 'SYNTHESIZING_PREVIEW...' : 'PREVIEW DOCUMENT'}
+                {(generating || previewLoading) ? <FiLoader className="animate-spin" size={18} /> : <FiFileText size={18} />}
+                {isOrgAdmin 
+                  ? (previewLoading ? 'FETCHING_PREVIEW...' : 'PREVIEW_LIVE_REPORT') 
+                  : (!isProjectAdmin ? 'GENERATION RESTRICTED' : (generating ? 'SYNTHESIZING_DOCUMENT...' : 'GENERATE_PDF_REPORT'))}
               </button>
 
-              <div className="grid grid-cols-2 gap-4">
-                <button 
-                  onClick={handleJsonExport}
-                  disabled={isOrgAdmin}
-                  className="bg-[#141518] hover:bg-white/5 border border-[#1c1d21] disabled:opacity-40 disabled:cursor-not-allowed rounded-xl py-3.5 flex items-center justify-center gap-2 text-[10px] font-bold text-gray-400 uppercase tracking-widest transition-colors"
-                >
-                  <FiCode size={16} /> EXPORT JSON
-                </button>
-                <button 
-                  onClick={() => isOrgAdmin ? handlePreviewLiveReport() : handleGeneratePdf()}
-                  disabled={generating || (isOrgAdmin && previewLoading)}
-                  className="bg-[#141518] hover:bg-white/5 border border-[#1c1d21] disabled:opacity-40 disabled:cursor-not-allowed rounded-xl py-3.5 flex items-center justify-center gap-2 text-[10px] font-bold text-gray-400 uppercase tracking-widest transition-colors"
-                >
-                  {previewLoading ? <FiLoader className="animate-spin" /> : <FiDownload size={16} />}
-                  {isOrgAdmin ? (previewLoading ? 'FETCHING_PREVIEW...' : 'PREVIEW_LIVE_REPORT') : (generating ? 'SYNTHESIZING_DOCUMENT...' : 'GENERATE_PDF_REPORT')}
-                </button>
-              </div>
-            </>
+              <button 
+                onClick={handleJsonExport}
+                className="bg-[#141518] hover:bg-white/5 border border-[#1c1d21] rounded-xl py-3.5 flex items-center justify-center gap-2 text-[10px] font-bold text-gray-400 uppercase tracking-widest transition-colors w-full"
+              >
+                <FiCode size={14} /> EXPORT JSON
+              </button>
+            </div>
           )}
 
         </div>
@@ -1048,8 +1061,7 @@ const Reports = () => {
           </div>
         </div>
       )}
-
-      {/* Enhanced secure preview modal */}
+  {/* PDF Modal */}
       {previewModalOpen && (
         <div className="fixed inset-0 z-50 flex flex-col bg-black/90 backdrop-blur-md">
           <div className="flex items-center justify-between px-6 py-4 border-b border-white/10 bg-[#0a0b0d]">
@@ -1093,7 +1105,7 @@ const Reports = () => {
                     <div className="text-xs font-bold uppercase tracking-widest">Rendering PDF Document...</div>
                   </div>
                 }
-                className="shadow-[0_0_50px_rgba(0,0,0,0.5)] border border-white/5 bg-white max-w-[1000px] flex-shrink-0 mb-16"
+                className="shadow-[0_0_50px_rgba(0,0,0,0.5)] border border-white/5 bg-white max-w-[1000px] shrink-0 mb-16"
               >
                 <Page 
                   pageNumber={pageNumber} 

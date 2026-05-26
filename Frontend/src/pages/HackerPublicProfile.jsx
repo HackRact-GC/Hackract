@@ -798,7 +798,7 @@ const HackerPublicProfile = () => {
       } catch (err) {
         console.error('Failed to load hacker profile', err);
         toast.error('Hacker profile not found');
-        navigate('/discover');
+        navigate(-1);
       } finally {
         setLoading(false);
       }
@@ -959,7 +959,7 @@ const HackerPublicProfile = () => {
 
         {/* Back button */}
         <button
-          onClick={() => navigate('/discover')}
+          onClick={() => navigate(-1)}
           className="flex items-center gap-2 text-gray-500 hover:text-[#00c477] transition-colors mb-6 group"
         >
           <FiArrowLeft className="group-hover:-translate-x-1 transition-transform" />
