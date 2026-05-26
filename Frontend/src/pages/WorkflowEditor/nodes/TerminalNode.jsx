@@ -108,8 +108,9 @@ const TerminalNode = ({ data, selected }) => {
 
       term.write(data);
     });
+    term.onData((data) => { sendInput(data); });
+    setOnOutput((data) => { term.write(data); });
 
-    // Handle resizing
     const handleResize = () => {
       if (fitAddonRef.current && terminalRef.current) {
         fitAddonRef.current.fit();
@@ -147,6 +148,7 @@ const TerminalNode = ({ data, selected }) => {
       });
 
       // Clear the initialCommand in the local state so it doesn't run again on re-connects
+      // We use data.onDataChange if available to update the node's permanent state
       if (data.onDataChange) {
         data.onDataChange({ initialCommand: null });
       }

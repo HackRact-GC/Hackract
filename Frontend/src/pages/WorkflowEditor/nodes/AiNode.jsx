@@ -1,4 +1,4 @@
-import { Handle, Position, useStore } from '@xyflow/react';
+import { Handle, Position, NodeResizer, useStore } from '@xyflow/react';
 import { FiAlertCircle, FiCornerUpLeft, FiCpu, FiLoader, FiSend, FiX } from 'react-icons/fi';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { generateWorkflowAssistantResponse } from '../../../api/assistantApi';
@@ -216,9 +216,23 @@ const AiNode = ({ id, data, selected }) => {
 
   return (
     <div
-      className={`bg-[#0b0f19] border rounded-lg font-mono text-sm transition-all relative ${selected || showPresence ? 'border-[#00ff88] shadow-[0_0_20px_rgba(0,255,136,0.6)]' : 'border-[#00ff88]/50 shadow-[0_0_10px_rgba(0,255,136,0.3)]'}`}
+      className={`bg-[#0b0f19] border rounded-lg font-mono text-sm transition-all relative flex flex-col h-full min-w-[240px] min-h-[180px] ${
+        selected || showPresence
+          ? 'border-[#00ff88] shadow-[0_0_20px_rgba(0,255,136,0.6)]'
+          : 'border-[#00ff88]/50 shadow-[0_0_10px_rgba(0,255,136,0.3)]'
+      }`}
       style={{ width: `${panelWidth}px` }}
     >
+      {/* NodeResizer — drag any edge or corner to resize */}
+      <NodeResizer
+        minWidth={240}
+        minHeight={180}
+        isVisible={selected}
+        lineClassName="!border-[#00ff88]/60 hover:!border-[#00ff88]"
+        handleClassName="!w-2.5 !h-2.5 !rounded-sm !bg-[#00ff88] !border-[#0b0f19] !border-2 hover:!scale-125 transition-transform"
+      />
+
+      {/* Presence Indicators */}
       {showPresence && (
         <div className="absolute -top-6 right-0 flex -space-x-2">
           {activeUsers.map((u, i) => (
@@ -234,7 +248,8 @@ const AiNode = ({ id, data, selected }) => {
         </div>
       )}
 
-      <div className="p-2 flex justify-between items-center text-[#00ff88] border-b border-[#00ff88]/30">
+      {/* Header */}
+      <div className="p-2 flex justify-between items-center text-[#00ff88] border-b border-[#00ff88]/30 shrink-0">
         <div className="flex items-center gap-2">
           <FiCpu size={16} />
           <span className="font-bold text-xs uppercase tracking-tighter">AI Assistant</span>
@@ -255,8 +270,9 @@ const AiNode = ({ id, data, selected }) => {
         </div>
       </div>
 
-      <div className="p-3 space-y-3">
-        <div className="flex items-center gap-2">
+      {/* Body */}
+      <div className="p-3 flex flex-col gap-3 flex-1">
+        <div className="relative flex-1 flex flex-col">
           <label className="text-[10px] uppercase tracking-[0.2em] text-gray-500">Width</label>
           <input
             type="range"
@@ -270,6 +286,12 @@ const AiNode = ({ id, data, selected }) => {
               data.onDataChange && data.onDataChange({ panelWidth: nextWidth });
             }}
             className="flex-1 accent-[#00ff88]"
+          />
+          <textarea
+            className="flex-1 w-full bg-black border border-gray-800 text-gray-300 p-2 rounded resize-none focus:outline-none focus:border-[#00ff88]/50 mt-2"
+            placeholder="Ask something..."
+            defaultValue={data.prompt || ''}
+            onChange={(e) => data.onDataChange && data.onDataChange({ prompt: e.target.value })}
           />
           <span className="text-[10px] text-gray-500 w-10 text-right">{panelWidth}</span>
         </div>
@@ -346,6 +368,10 @@ const AiNode = ({ id, data, selected }) => {
             </button>
           </div>
         </div>
+
+        <button className="bg-transparent border border-[#00ff88]/50 text-[#00ff88] text-xs px-3 py-1 rounded hover:bg-[#00ff88]/10 w-[120px] shrink-0">
+          Generate Report
+        </button>
       </div>
 
       <Handle type="target" position={Position.Left} className="w-3 h-3 bg-[#00ff88] border-2 border-[#0b0f19]" />
