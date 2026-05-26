@@ -57,38 +57,50 @@ const loadAssistantMessages = (storageKey) => {
     return DEFAULT_ASSISTANT_MESSAGES;
   }
 };
-
 const InviteMemberModal = ({ projectId, onClose, onInvited }) => {
-  const [search, setSearch] = useState("");
+  const [search, setSearch] = useState('');
   const [results, setResults] = useState([]);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(null);
 
-  const handleSearch = async () => {
-    if (!search.trim()) return;
+  const fetchOperators = async (query = '') => {
     setLoading(true);
     try {
-      const { data } = await api.get(`/users?search=${search}`);
-      setResults(data.data || []);
-    } catch (e) {
-      toast.error("Failed to find users");
+      const params = new URLSearchParams();
+      params.set('limit', '12');
+      params.set('page', '1');
+      if (query.trim()) params.set('search', query.trim());
+
+      const { data } = await api.get(`/hacker-profiles/discover?${params.toString()}`);
+      const list = data?.data?.profiles || data?.profiles || [];
+      setResults(Array.isArray(list) ? list : []);
+    } catch (error) {
+      toast.error('Failed to fetch operators');
     } finally {
       setLoading(false);
     }
   };
 
+  useEffect(() => {
+    fetchOperators();
+  }, []);
+
+  const handleSearch = () => {
+    fetchOperators(search);
+  };
+
   const sendInvite = async (hackerId) => {
     setSending(hackerId);
     try {
-      await api.post(`/invitations`, {
+      await api.post('/invitations', {
         pentestId: projectId,
         hackerId,
-        message: "You have been invited to collaborate on this security program.",
+        message: 'You have been invited to collaborate on this security program.',
       });
-      toast.success("Invitation sent!");
-      onInvited();
-    } catch (e) {
-      toast.error(e?.response?.data?.error || "Failed to send invitation");
+      toast.success('Invitation sent!');
+      onInvited?.();
+    } catch (error) {
+      toast.error(error?.response?.data?.error || 'Failed to send invitation');
     } finally {
       setSending(null);
     }
@@ -106,7 +118,7 @@ const InviteMemberModal = ({ projectId, onClose, onInvited }) => {
         initial={{ opacity: 0, scale: 0.95 }}
         animate={{ opacity: 1, scale: 1 }}
         className="bg-[#0a0a0a] border border-white/10 rounded-4xl w-full max-w-lg overflow-hidden shadow-2xl shadow-black"
-        onClick={e => e.stopPropagation()}
+        onClick={(e) => e.stopPropagation()}
       >
         <div className="p-8 space-y-6">
           <div className="flex items-center justify-between">
@@ -123,8 +135,8 @@ const InviteMemberModal = ({ projectId, onClose, onInvited }) => {
             <input
               autoFocus
               value={search}
-              onChange={e => setSearch(e.target.value)}
-              onKeyDown={e => e.key === 'Enter' && handleSearch()}
+              onChange={(e) => setSearch(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
               placeholder="Search by handle or email..."
               className="w-full bg-black border border-white/10 rounded-2xl px-5 py-4 text-sm text-white outline-none focus:border-[#00ff88]/50 transition-all font-medium"
             />
@@ -140,11 +152,11 @@ const InviteMemberModal = ({ projectId, onClose, onInvited }) => {
             {loading ? (
               <div className="py-12 flex justify-center"><div className="w-6 h-6 border-2 border-white/10 border-t-[#00ff88] rounded-full animate-spin" /></div>
             ) : results.length > 0 ? (
-              results.map(u => (
+              results.map((u) => (
                 <div key={u.id} className="flex items-center justify-between p-4 bg-white/5 rounded-2xl border border-white/5 group hover:border-white/10 transition-all">
                   <div className="flex items-center gap-4">
                     <div className="w-10 h-10 rounded-xl bg-black border border-white/10 flex items-center justify-center font-bold text-[#00ff88]">
-                      {u.fullName?.[0] || "?"}
+                      {u.fullName?.[0] || '?'}
                     </div>
                     <div>
                       <p className="text-sm font-bold text-white tracking-tight">{u.fullName}</p>
@@ -675,31 +687,18 @@ const WorkspaceView = ({ projectId, onBack }) => {
                     {canManage && (
                       <button
                         onClick={() => {
-                             const role = getPrimaryRole(user);
-                             let path = "/reports";
-                             if (role === ROLES.PROJECT_ADMIN) path = "/pa-reports";
-                             if (role === ROLES.PENTESTER) path = "/hacker-reports";
-                             navigate(`${path}?projectId=${projectId}`);
-                           }}
-                        className="px-4 py-1.5 bg-[#00ff88]/10 hover:bg-[#00ff88] text-[#00ff88] hover:text-black border border-[#00ff88]/20 hover:border-[#00ff88] rounded-xl text-[9px] font-black uppercase tracking-widest transition-all flex items-center gap-2"
-                      >
-                        <FiPlus /> Report Generation
-                      </button>
-                    )}
-                    <button
-                      onClick={() => {
                           const role = getPrimaryRole(user);
                           let path = "/reports";
                           if (role === ROLES.PROJECT_ADMIN) path = "/pa-reports";
                           if (role === ROLES.PENTESTER) path = "/hacker-reports";
                           navigate(`${path}?projectId=${projectId}`);
                         }}
-                      className="px-4 py-1.5 bg-[#00ff88]/10 hover:bg-[#00ff88] text-[#00ff88] hover:text-black border border-[#00ff88]/20 hover:border-[#00ff88] rounded-xl text-[9px] font-black uppercase tracking-widest transition-all flex items-center gap-2"
-                    >
-                      {isOrgAdmin ? <FiFileText /> : <FiPlus />}
-                      {isOrgAdmin ? "View Report" : "Report Generation"}
-                    </button>
-                    
+                        className="px-4 py-1.5 bg-[#00ff88]/10 hover:bg-[#00ff88] text-[#00ff88] hover:text-black border border-[#00ff88]/20 hover:border-[#00ff88] rounded-xl text-[9px] font-black uppercase tracking-widest transition-all flex items-center gap-2"
+                      >
+                        {isOrgAdmin ? <FiFileText /> : <FiPlus />}
+                        {isOrgAdmin ? "View Report" : "Report Generation"}
+                      </button>
+                    )}
                   </div>
                   
                 </div>

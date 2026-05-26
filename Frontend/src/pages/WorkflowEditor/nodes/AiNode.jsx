@@ -71,17 +71,17 @@ const AiNode = ({ id, data, selected }) => {
 
   const connectedNodeContexts = useMemo(() => {
     const incomingEdges = edges
-       .filter((edge) => edge.target === id)
-       .sort((left, right) => {
-         const leftSource = String(left.source || '');
-         const rightSource = String(right.source || '');
+      .filter((edge) => edge.target === id)
+      .sort((left, right) => {
+        const leftSource = String(left.source || '');
+        const rightSource = String(right.source || '');
 
-         if (leftSource !== rightSource) {
-           return leftSource.localeCompare(rightSource);
-         }
+        if (leftSource !== rightSource) {
+          return leftSource.localeCompare(rightSource);
+        }
 
-         return String(left.id || '').localeCompare(String(right.id || ''));
-       });
+        return String(left.id || '').localeCompare(String(right.id || ''));
+      });
 
     return incomingEdges
       .map((edge, index) => extractConnectedNodeContext(nodes.find((node) => node.id === edge.source), index, edge.id))
@@ -272,7 +272,6 @@ const AiNode = ({ id, data, selected }) => {
 
       {/* Body */}
       <div className="p-3 flex flex-col gap-3 flex-1">
-        {/* Width Slider */}
         <div className="flex items-center gap-2">
           <label className="text-[10px] uppercase tracking-[0.2em] text-gray-500">Width</label>
           <input

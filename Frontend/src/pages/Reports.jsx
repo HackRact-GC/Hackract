@@ -52,7 +52,6 @@ const Reports = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
   const projectId = searchParams.get('projectId');
-
   // ── Role checks ───────────────────────────────────────────────────────────
   const isOrgAdmin = getPrimaryRole(user) === ROLES.ORG_ADMIN;
   // True if user has PROJECT_ADMIN role globally (rare) — usually we check per-project collab
@@ -100,7 +99,6 @@ const Reports = () => {
   const [pdfPreviewUrl, setPdfPreviewUrl] = useState(null);
   const [showPreviewModal, setShowPreviewModal] = useState(false);
 
-  // ── Task 1: persist drafts across step navigation via localStorage ────────
   const DRAFT_KEY = `hackract_ai_drafts_${projectId}`;
   const [aiDrafts, setAiDraftsRaw] = useState(() => {
     try {
@@ -122,6 +120,8 @@ const Reports = () => {
   const [refiningId, setRefiningId] = useState(null);
   const [savingId, setSavingId] = useState(null);
   const [savedStatus, setSavedStatus] = useState({});
+
+  // Preview modal state (enhanced)
   const [previewModalOpen, setPreviewModalOpen] = useState(false);
   const [previewPdfBlob, setPreviewPdfBlob] = useState(null);
   const [numPages, setNumPages] = useState(null);
@@ -172,12 +172,10 @@ const Reports = () => {
       ]);
       const projData = pRes.data?.data ?? pRes.data;
 
-      // Check authorization: only project lead, global org admin, organization owner/admin, or project admin
+      // Check authorization
       const userCollab = projData.collaborators?.find(c => c.userId === user?.id);
       const isProjectAdmin = userCollab?.role === 'PROJECT_ADMIN';
-      const isOrgAdmin = user?.roles?.some(r => r.type === 'ORG_ADMIN');
       const isLead = projData.leadPentesterId === user?.id;
-
       const isCollaborator = !!userCollab;
 
       if (!isOrgAdmin && !isLead && !isProjectAdmin && !isCollaborator) {
@@ -238,7 +236,6 @@ const Reports = () => {
       const data = res.data?.data || [];
       if (data.length > 0) {
         const updatedDraft = data[0];
-        // ── If refining a single section, merge only that field ──────────────
         setAiDrafts(prev => prev.map(d => {
           if (d.findingId !== findingId) return d;
           if (section === 'all') return updatedDraft;
@@ -305,8 +302,7 @@ const Reports = () => {
     }
   };
 
-
-  // ── JSON export (client-side) ───────────────────────────────────────────────
+  // JSON export
   const handleJsonExport = () => {
     if (!projectId && findings.length === 0) return toast.error('No project data loaded to export.');
     const payload = {
@@ -326,7 +322,7 @@ const Reports = () => {
     toast.success('JSON report downloaded!');
   };
 
-  // ── Main preview handler ────────────────────────────────────────────────────
+  // Preview & Generate
   const handlePreviewPdf = async () => {
     if (!projectId) return toast.error('No project selected to preview.');
 
@@ -357,7 +353,6 @@ const Reports = () => {
     }
   };
 
-  // ── Main generate handler ───────────────────────────────────────────────────
   const handleGeneratePdf = async () => {
     if (!projectId) return toast.error('No project selected to generate PDF.');
 
@@ -397,7 +392,7 @@ const Reports = () => {
     setPreviewModalOpen(true);
     setPageNumber(1);
     setScale(1.0);
-    
+
     try {
       const response = await api.post(
         '/reports/preview',
@@ -438,7 +433,6 @@ const Reports = () => {
             <button onClick={() => navigate(-1)} className="text-gray-500 hover:text-white transition-colors">
               <FiArrowLeft size={18} />
             </button>
-
             <h1 className="text-gray-300 text-sm font-medium leading-relaxed">
               {isOrgAdmin ? (
                 <span>View high-fidelity audit reports for the <span className="font-bold text-white uppercase">{projectName}</span> architecture. Review findings and compliance documentation.</span>
@@ -522,10 +516,10 @@ const Reports = () => {
                       } else {
                         setStep(2);
                       }
-                    }} 
+                    }}
                     className="flex-1 bg-[#a3ffcc] hover:bg-[#00c477] text-[#004d2e] rounded-xl text-xs font-black uppercase tracking-widest transition-colors flex items-center justify-center"
                   >
-                    {isOrgAdmin ? 'Preview_Live_Report' : 'Next_Step'}
+                    Next_Step
                   </button>
                 </div>
               </div>
@@ -556,8 +550,17 @@ const Reports = () => {
                   <FiCpu className="animate-pulse" /> AI-Guided Drafts
                 </button>
               </div>
+              
               <div className="bg-[#0f1115] border border-[#1c1d21] rounded-2xl p-6 flex-1 flex flex-col mt-4">
-                {activeConfigTab === 'standard' ? (
+                {isOrgAdmin && (
+                  <div className="bg-[#3b82f6]/10 border border-[#3b82f6]/20 rounded-xl p-4 text-xs text-gray-400 mb-6 flex items-center gap-3">
+                    <div className="w-2 h-2 rounded-full bg-[#3b82f6]" />
+                    <span className="text-left">
+                      <strong>READ-ONLY VIEW:</strong> As an organization administrator, you have read-only access to this report manifest.
+                    </span>
+                  </div>
+                )}
+                {activeConfigTab === 'standard' || isOrgAdmin ? (
                   <>
                     {isOrgAdmin && (
                       <div className="bg-[#3b82f6]/10 border border-[#3b82f6]/20 rounded-xl p-4 text-xs text-gray-400 mb-6 flex items-center gap-3">
@@ -903,6 +906,7 @@ const Reports = () => {
                     {generating ? <FiLoader className="animate-spin" size={16} /> : <FiDownload size={16} />}
                     {!isProjectAdmin ? 'Generation Restricted' : (generating ? 'Deploying...' : 'Deploy_Now')}
                   </button>
+                  
                 </div>
               </div>
             </>
@@ -1057,7 +1061,7 @@ const Reports = () => {
           </div>
         </div>
       )}
-      {/* PDF Modal */}
+  {/* PDF Modal */}
       {previewModalOpen && (
         <div className="fixed inset-0 z-50 flex flex-col bg-black/90 backdrop-blur-md">
           <div className="flex items-center justify-between px-6 py-4 border-b border-white/10 bg-[#0a0b0d]">
@@ -1071,7 +1075,6 @@ const Reports = () => {
                 <span className="text-xs font-mono text-gray-300 w-12 text-center">{Math.round(scale * 100)}%</span>
                 <button onClick={() => setScale(s => Math.min(3, s + 0.25))} className="p-2 hover:bg-white/10 rounded text-gray-400 hover:text-white transition-colors">+</button>
               </div>
-              
               {numPages && (
                 <div className="flex items-center gap-3 border-l border-white/10 pl-6">
                   <button onClick={() => setPageNumber(p => Math.max(1, p - 1))} disabled={pageNumber <= 1} className="p-2 hover:bg-white/10 disabled:opacity-30 rounded text-gray-400 hover:text-white transition-colors">Prev</button>
@@ -1085,7 +1088,7 @@ const Reports = () => {
               </button>
             </div>
           </div>
-          
+
           <div className="flex-1 overflow-auto flex justify-center p-8 bg-[#0a0b0d]/50">
             {previewLoading ? (
               <div className="flex flex-col items-center justify-center text-[#00c477] gap-4 h-full">

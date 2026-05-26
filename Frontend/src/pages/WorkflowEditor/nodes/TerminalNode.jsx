@@ -135,17 +135,17 @@ const TerminalNode = ({ data, selected }) => {
     if (isConnected && data.initialCommand && xtermRef.current) {
       sendInput(`${data.initialCommand}\r`);
 
-        const nextTranscript = transcriptRef.current
-          ? `${transcriptRef.current}\n${data.initialCommand}`
-          : data.initialCommand;
-        transcriptRef.current = nextTranscript;
-        inputBufferRef.current = '';
-        publishTerminalState({
-          terminalInput: '',
-          terminalTranscript: nextTranscript,
-          output: nextTranscript,
-          outputLines: nextTranscript.split(/\r?\n/).filter(Boolean),
-        });
+      const nextTranscript = transcriptRef.current
+        ? `${transcriptRef.current}\n${data.initialCommand}`
+        : data.initialCommand;
+      transcriptRef.current = nextTranscript;
+      inputBufferRef.current = '';
+      publishTerminalState({
+        terminalInput: '',
+        terminalTranscript: nextTranscript,
+        output: nextTranscript,
+        outputLines: nextTranscript.split(/\r?\n/).filter(Boolean),
+      });
 
       // Clear the initialCommand in the local state so it doesn't run again on re-connects
       // We use data.onDataChange if available to update the node's permanent state
